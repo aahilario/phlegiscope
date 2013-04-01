@@ -57,7 +57,6 @@ class RepresentativeDossierModel extends DatabaseUtility {
   function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_blob; }
 
 	function replace_legislator_names_hotlinks($s) {
-    return $s;
 		$name_regex = '@([^,]{1,}),[ ]*(([^ ]*) ){1,}([ ](JR\.|II|III|IV|V|[^ ]*)*)*([ ]*)*(([^ ]*) ){1,}([A-Z]\.)*(.*)@i';
 		// $name_regex = '@([^,]{1,}),[ ]*(([^ ]*)[ ]?){1,}(JR\.|II|III|IV|V)*([ ]*)*(([^ ]*) ){1,}([A-Z]\.)*(.*)@i';
 		$matches = array();

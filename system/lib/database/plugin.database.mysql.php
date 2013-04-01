@@ -79,6 +79,9 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
         }
         // Otherwise stream the string in 4K chunks
         $i = 0;
+        $bindsource_length = strlen($bindsource);
+        $streamchunk = min($streamchunk, $bindsource_length);
+        // syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
         do {
           $chunk = substr($bindsource, $i, $streamchunk);
           $prepare_hdl->send_long_data($paramindex, $chunk);

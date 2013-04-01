@@ -335,6 +335,12 @@ class LegiscopeBase extends SystemUtility {
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
     $displayed_target_url = $target_url;
 
+		if (0) if ( $cache_force == 'true' ) {
+			$url = new UrlModel($target_url, TRUE);
+			if ( !is_null($url->get_pagecontent()) ) {
+			}	
+		}
+
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
     $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
 
@@ -352,7 +358,7 @@ class LegiscopeBase extends SystemUtility {
     $this->syslog( __FUNCTION__, 'FORCE', "Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
     // if ( !is_null($modifier) && !($modifier == 'false') ) 
-    // $this->recursive_dump($_POST,0,'FORCE');
+    $this->recursive_dump($_POST,0,'FORCE');
 
     $url      = new UrlModel($target_url, TRUE);
     $faux_url = NULL;
@@ -1083,7 +1089,7 @@ EOH;
 
   function perform_network_fetch( & $url, $referrer, $target_url, $faux_url, $metalink, $debug_dump = FALSE ) {/*{{{*/
     // Cache response if it's length exceeds the maximum length of a varchar field. 
-		$debug_dump = TRUE;
+		$debug_dump = FALSE;
     $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
     if ( $debug_dump ) {/*{{{*/
       $this->syslog(__FUNCTION__,'FORCE',"Referrer: {$referrer}");
@@ -1182,6 +1188,8 @@ EOH;
           $url->set_url($target_url,TRUE);
 					$url->set_pagecontent($response);
         }
+				// $this->syslog( __FUNCTION__, 'FORCE', "Final content length: " . strlen($url->get_pagecontent()) );
+				// $this->syslog( __FUNCTION__, 'FORCE', "Final content SHA1: " . sha1($url->get_pagecontent()) );
       }
     }/*}}}*/
     return $successful_fetch;

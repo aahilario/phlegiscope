@@ -83,7 +83,7 @@ EOS;
       'utx'  => array('attrname' => 'INT(11)'           , 'quot' => FALSE),
       'int'  => array('attrname' => 'INT(s)'            , 'quot' => FALSE),
       'vc'   => array('attrname' => 'VARCHAR(s)'        , 'quot' => TRUE),
-      'blob' => array('attrname' => 'MEDIUMBLOB'        , 'quot' => TRUE, 'mustbind' => TRUE, ),
+      'blob' => array('attrname' => 'MEDIUMBLOB'        , 'quot' => FALSE, 'mustbind' => TRUE, ),
       'dbl'  => array('attrname' => 'DOUBLE DEFAULT 0.0', 'quot' => FALSE),
       'flt'  => array('attrname' => 'FLOAT DEFAULT 0.0' , 'quot' => FALSE),
 			'bool' => array('attrname' => 'BOOLEAN'           , 'quot' => FALSE),
@@ -296,14 +296,16 @@ EOH;
   }/*}}}*/
 
   function update() {/*{{{*/
-    $f_attrval = create_function('$a', 'return "`{$a["name"]}` = {$a["value"]}";');
-    $attrlist  = $this->full_property_list();
+    $f_attrval   = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "`{$a["name"]}` = ?": "`{$a["name"]}` = {$a["value"]}";');
+    $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
+    $attrlist    = $this->full_property_list();
+    $boundattrs  = array_filter(array_map($f_bindattrs,  $attrlist));
     // $this->recursive_dump($attrlist,0,__FUNCTION__);
     $attrval   = join(',', array_map($f_attrval, $attrlist));
     $sql = <<<EOS
 UPDATE `{$this->tablename}` SET {$attrval} WHERE `id` = {$this->id}
 EOS;
-    $this->query($sql);
+    $this->insert_update_common($sql, $boundattrs, $attrlist);
     if ( !empty(self::$dbhandle->error) ) {
       $this->syslog( __FUNCTION__, 'FORCE', "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");
       $this->syslog(__FUNCTION__, 'FORCE', "Record #{$this->id}: {$sql}" );
@@ -453,22 +455,7 @@ EOS;
       ;
   }/*}}}*/
 
-  function insert() {/*{{{*/
-    $f_attrnames = create_function('$a', 'return "`{$a["name"]}`";');
-    $f_valueset  = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "?" : "{$a["value"]}";');
-    $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
-    $attrlist    = $this->full_property_list();
-    // DEBUG
-    $this->syslog(__FUNCTION__,'FORCE', "--- Property list");
-    $this->recursive_dump($attrlist,0,'FORCE');
-    // DEBUG
-    // $this->recursive_dump( $key_map, 0, 'FORCE');
-    $namelist   = join(',', array_map($f_attrnames, $attrlist));
-    $valueset   = join(',', array_map($f_valueset,  $attrlist));
-    $boundattrs = array_filter(array_map($f_bindattrs,  $attrlist));
-    $sql = <<<EOS
-INSERT INTO `{$this->tablename}` ({$namelist}) VALUES ({$valueset})
-EOS;
+  private function insert_update_common($sql, $boundattrs, $attrlist) {/*{{{*/
     if ( 0 < count($boundattrs) ) {
       $this->syslog(__FUNCTION__,'FORCE', "--- Currently: {$sql}");
       $bindable_attrs = array();
@@ -480,15 +467,34 @@ EOS;
         );
         if ( is_null($bindable_attrs[$b]['data']) ) {
           $this->syslog(__FUNCTION__,'FORCE', "--- WARNING: Data source not provided for bindable parameter '{$b}'. Coercing to empty string ''");
-          $this->recursive_dump($boundattrs,0,'FORCE');
+          // $this->recursive_dump($boundattrs,0,'FORCE');
           $bindable_attrs[$b]['data'] = '';
         }
       }
-      $this->recursive_dump($bindable_attrs,0,'FORCE');
+      // $this->recursive_dump($bindable_attrs,0,'FORCE');
       $this->query($sql, $bindable_attrs);
     } else {
       $this->query($sql);
     }
+  }/*}}}*/
+
+  function insert() {/*{{{*/
+    $f_attrnames = create_function('$a', 'return "`{$a["name"]}`";');
+    $f_valueset  = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "?" : "{$a["value"]}";');
+    $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
+    $attrlist    = $this->full_property_list();
+    // DEBUG
+    // $this->syslog(__FUNCTION__,'FORCE', "--- Property list");
+    // $this->recursive_dump($attrlist,0,'FORCE');
+    // DEBUG
+    // $this->recursive_dump( $key_map, 0, 'FORCE');
+    $namelist   = join(',', array_map($f_attrnames, $attrlist));
+    $valueset   = join(',', array_map($f_valueset,  $attrlist));
+    $boundattrs = array_filter(array_map($f_bindattrs,  $attrlist));
+    $sql = <<<EOS
+INSERT INTO `{$this->tablename}` ({$namelist}) VALUES ({$valueset})
+EOS;
+    $this->insert_update_common($sql, $boundattrs, $attrlist);
     $this->last_inserted_id = self::$dbhandle->insert_id;
     if ( !empty(self::$dbhandle->error) )
       $this->syslog( __FUNCTION__, __LINE__, "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");

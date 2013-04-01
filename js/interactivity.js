@@ -48,7 +48,7 @@ function update_representatives_avatars() {
       data     : { url : avatar_url, cache : $('#cache').prop('checked'), member_uuid : member_uuid, fr : true },
       cache    : false,
       dataType : 'json',
-      async    : false,
+      async    : true,
       beforeSend : (function() {
         display_wait_notification();
       }),

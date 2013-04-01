@@ -16,7 +16,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
   var $last_fetch_utx = NULL;
   var $contact_json_vc2048 = NULL;
   var $member_uuid_vc64 = NULL; // Basically a hash of the URL and full name
-  var $avatar_image_vc8192 = NULL; // Avatar image base64-encoded
+  var $avatar_image_blob = NULL; // Avatar image base64-encoded
   var $avatar_url_vc1024 = NULL;
 
   function __construct() {
@@ -53,10 +53,11 @@ class RepresentativeDossierModel extends DatabaseUtility {
     return json_decode($this->contact_json_vc2048,TRUE);
   }
 
-  function & set_avatar_image($v) { $this->avatar_image_vc8192 = $v; return $this; }
-  function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_vc8192; }
+  function & set_avatar_image($v) { $this->avatar_image_blob = $v; return $this; }
+  function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_blob; }
 
 	function replace_legislator_names_hotlinks($s) {
+    return $s;
 		$name_regex = '@([^,]{1,}),[ ]*(([^ ]*) ){1,}([ ](JR\.|II|III|IV|V|[^ ]*)*)*([ ]*)*(([^ ]*) ){1,}([A-Z]\.)*(.*)@i';
 		// $name_regex = '@([^,]{1,}),[ ]*(([^ ]*)[ ]?){1,}(JR\.|II|III|IV|V)*([ ]*)*(([^ ]*) ){1,}([A-Z]\.)*(.*)@i';
 		$matches = array();
@@ -104,6 +105,9 @@ EOH;
 		return $s;
 	}
 
+  function stow() {
+    return parent::stow();
+  }
 
 }
 

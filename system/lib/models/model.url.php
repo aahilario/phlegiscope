@@ -227,7 +227,7 @@ class UrlModel extends DatabaseUtility {
       $matches       = array();
 
       $matched_header = NULL;
-      if ( 1 == preg_match('@^HTTP/([0-9.]+) ([0-9]+)@', $t, $matched_header) ) {
+      if ( 1 == preg_match('@^HTTP/([0-9.]+) ([0-9]+)@', substr($t,0,32), $matched_header) ) {
         $http_response_code = intval($matched_header[2]); 
       }
 
@@ -241,25 +241,23 @@ class UrlModel extends DatabaseUtility {
         $final_headers['http-response-code'] = $http_response_code;
         $final_headers['legiscope-regular-markup'] = $response_regular_markup ? 1 : 0;
         $this->set_response_header($final_headers);
-        $this->recursive_dump($matches, 0, '>>');
+        // $this->recursive_dump($matches, 0, 'FORCE');
       }  
       if ( array_key_exists('content-type', $final_headers) ) {
         $this->set_content_type($final_headers['content-type']);
       }
       if ( array_key_exists('content-length', $final_headers) ) {
         $content_length = intval($final_headers['content-length']);
-        $bulk_length    = strlen($t);
-        if ( $bulk_length > $content_length ) {
-          $t = substr( $t, $bulk_length - $content_length );
-          $this->syslog( __FUNCTION__, __LINE__, "Stripped header, length {$bulk_length} -> {$content_length}" );
-        }
+        $t = substr( $t, - $content_length );
+        $bulk_length = strlen($t);
+        $this->syslog( __FUNCTION__, 'FORCE', "Stripped header, length {$bulk_length} -> {$content_length}" );
       } else {
         // FIXME: Deal with missing Content-Length key, or Transfer-Encoding: chunked 
       }
     }
     // FIXME: This goes away now that pagecontent is pagecontent_blob
     $cache_filename = $this->get_cache_filename();
-    if ( $content_length > C('CONTENT_SIZE_THRESHOLD') ) {
+    if (0) if ( 1 == preg_match('@(image/)@i', $this->get_content_type()) ) {
       $result = @file_put_contents($cache_filename,$t); 
       $this->syslog( __FUNCTION__, 'FORCE', "Caching {$content_length} file {$cache_filename}: " . 
         (FALSE == $result ? 'FAIL' : 'OK')  );
@@ -267,9 +265,11 @@ class UrlModel extends DatabaseUtility {
     }
     $this->set_content_length($content_length);
 		$this->set_urlhash(UrlModel::get_url_hash($this->get_url()));
+    // $this->syslog( __FUNCTION__, 'FORCE', "Current content SHA1: " . sha1($t) );
     // $this->pagecontent_blob = $content_length > C('CONTENT_SIZE_THRESHOLD') ? NULL : $t;
-    $this->syslog( __FUNCTION__, 'FORCE', "WARNING: Streaming {$content_length} file {$cache_filename}" );
-    $this->pagecontent_blob = "file://{$cache_filename}"; // Test streaming
+    // $this->syslog( __FUNCTION__, 'FORCE', "WARNING: Streaming {$content_length} file {$cache_filename}" );
+    // $this->pagecontent_blob = "file://{$cache_filename}"; // Test streaming
+    $this->pagecontent_blob = $t;
     $this->set_content_hash();
     $this->content_length_int11 = $content_length;
     $final_headers = $this->get_response_header();
@@ -280,8 +280,8 @@ class UrlModel extends DatabaseUtility {
         'response_headers'        => join("\n", $final_headers),
         'response_regular_markup' => $response_regular_markup ? 1 : 0,
       );
-    $this->syslog(__FUNCTION__, __LINE__, "Response data for " . $this->get_url());
-    $this->recursive_dump($result,0,"- ");
+    // $this->syslog(__FUNCTION__, __LINE__, "Response data for " . $this->get_url());
+    // $this->recursive_dump($result,0,"- ");
     return $result;
   }/*}}}*/
 
@@ -355,14 +355,7 @@ class UrlModel extends DatabaseUtility {
 
   function set_content_hash($s = NULL) {
     if ( is_null($s) ) {
-      if ( $this->get_content_length > C('CONTENT_SIZE_THRESHOLD') ) {
-        $s = file_exists($this->get_cache_filename())
-          ? sha1_file($this->get_cache_filename())
-          : NULL
-          ;
-      } else {
-        $s = sha1($this->get_pagecontent());
-      }
+      $s = sha1($this->get_pagecontent());
     }
     $this->content_hash_vc128 = $s;
     return $this;

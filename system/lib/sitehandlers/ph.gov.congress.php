@@ -42,7 +42,7 @@ class CongressGovPh extends LegiscopeBase {
     $m   = new RepresentativeDossierModel();
     $url = new UrlModel();
 
-    $m->dump_accessor_defs_to_syslog();
+    // $m->dump_accessor_defs_to_syslog();
     $p->set_parent_url($urlmodel->get_url())->parse_html($pagecontent);
 
     // If URL refers to an already cached representative bio, then
@@ -64,24 +64,25 @@ class CongressGovPh extends LegiscopeBase {
       // $this->recursive_dump($p->get_containers(),0,'FORCE');
       $contact_regex = '@(((Chief of Staff|Phone):) (.*)|Rm. ([^,]*),)([^|]*)@i';
       $contact_items = array();
-      preg_match_all($contact_regex, join('|',$member['contact']), $contact_items, PREG_SET_ORDER);
-      $contact_items = array(
-        'room'     => $contact_items[0][5],
-        'phone'    => trim(preg_replace('@^([^:]*):@i','',trim($contact_items[0][6]))),
-        'cos'      => $contact_items[1][4],
-        'role'     => $member['extra'][0],
-        'term'     => preg_replace('@[^0-9]@','',$member['extra'][2]),
-        'district' => $member['extra'][1],
-      );
-      // $this->recursive_dump($contact_items,0,'FORCE');
-      $member['fullname'] = $member['fullname'];
+      if ( is_array($member) && array_key_exists('contact',$member) ) {
+        preg_match_all($contact_regex, join('|',$member['contact']), $contact_items, PREG_SET_ORDER);
+        $contact_items = array(
+          'room'     => $contact_items[0][5],
+          'phone'    => trim(preg_replace('@^([^:]*):@i','',trim($contact_items[0][6]))),
+          'cos'      => $contact_items[1][4],
+          'role'     => $member['extra'][0],
+          'term'     => preg_replace('@[^0-9]@','',$member['extra'][2]),
+          'district' => $member['extra'][1],
+        );
+        // $this->recursive_dump($contact_items,0,'FORCE');
+      }
       // Determine whether the image for this representative is available in DB
       $url->fetch(UrlModel::get_url_hash($member['avatar']),'urlhash');
       if ( $url->in_database() ) {
         $image_content_type   = $url->get_content_type();
         $image_content        = base64_encode($url->get_pagecontent());
         $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-        $this->syslog(__FUNCTION__,'FORCE', "{$member['fullname']} avatar: {$member_avatar_base64}");
+        // $this->syslog(__FUNCTION__,'FORCE', "{$member['fullname']} avatar: {$member_avatar_base64}");
       }
       $m->set_fullname($member['fullname'])->
         set_create_time(time())->
@@ -90,7 +91,7 @@ class CongressGovPh extends LegiscopeBase {
         set_avatar_url($member['avatar'])->
         set_member_uuid(sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member['fullname']))->
         set_contact_json($contact_items)->
-        set_avatar_image($image_avatar_base64)->
+        set_avatar_image($member_avatar_base64)->
         stow();
       $member_uuid = $m->get_member_uuid();
     }/*}}}*/
@@ -100,24 +101,25 @@ class CongressGovPh extends LegiscopeBase {
       $member_uuid          = $m->get_member_uuid();
       $member['fullname']   = $m->get_fullname();
       if ( empty($member_avatar_base64) ) {/*{{{*/
-        $this->syslog(__FUNCTION__,'FORCE', "Stowing empty {$member['fullname']} avatar");
         $url->fetch(UrlModel::get_url_hash($m->get_avatar_url()),'urlhash');
         if ( $url->in_database() ) {
           $image_content_type = $url->get_content_type();
-          $image_content = base64_encode($url->get_pagecontent());
-          $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
+          $member_avatar_base64 = base64_encode($url->get_pagecontent());
+          $member_avatar_base64 = "data:{$image_content_type};base64,{$member_avatar_base64}";
           $m->set_avatar_image($member_avatar_base64);
           $m->stow();
           $m->fetch($member_uuid, 'member_uuid');
           $member_avatar_base64 = $m->get_avatar_image();
-          $this->syslog(__FUNCTION__,'FORCE', "Stowed {$member['fullname']} avatar {$member_avatar_base64}");
+          // $this->syslog(__FUNCTION__,'FORCE', "Stowed {$member['fullname']} avatar {$member_avatar_base64}");
         }
       }/*}}}*/
-      $this->syslog(__FUNCTION__,'FORCE', "[{$member['fullname']}] UUID[{$member_uuid}] avatar: {$member_avatar_base64}");
+      // $this->syslog(__FUNCTION__,'FORCE', "[{$member['fullname']}] UUID[{$member_uuid}] avatar: {$member_avatar_base64}");
       $member['avatar']   = $m->get_avatar_url();
     }/*}}}*/
 
-
+    // $member_avatar_base64 = $member['avatar'];
+    // $member_avatar_base64 = NULL;
+    if ( is_null($member_avatar_base64) || (strtoupper($member_avatar_base64) == 'NULL') ) $member_avatar_base64 = '';
     $summary = <<<EOH
 <div class="congress-member-summary">
 <h1 class="representative-avatar-fullname">{$member['fullname']}</h1>
@@ -599,7 +601,7 @@ EOH;
     $republic_act = new RepublicActDocumentModel();
     $test_url     = new UrlModel();
 
-    $test_url->dump_accessor_defs_to_syslog();
+    // $test_url->dump_accessor_defs_to_syslog();
     // $this->recursive_dump($ra_list,0,'FORCE');
 
     $this->syslog(__FUNCTION__,'FORCE',"Parsing list of republic acts. Entries: " . count($ra_list));
@@ -710,7 +712,7 @@ EOH;
     $hb_listparser->debug_tags = FALSE;
     $hb_listparser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent);
 
-    $house_bill->dump_accessor_defs_to_syslog();
+    // $house_bill->dump_accessor_defs_to_syslog();
 
     $this->syslog( __FUNCTION__, 'FORCE', "Elements: " . count($hb_listparser->get_containers()) );
     // $this->recursive_dump($hb_listparser->get_containers(),0,'FORCE');
@@ -815,9 +817,13 @@ EOH;
     $member->fetch( $member_uuid, 'member_uuid');
     if ( $member->in_database() ) {
       $image_content_type = $url->get_content_type();
-      $image_content = base64_encode($url->get_pagecontent());
+      $image_content = $url->get_pagecontent();
+      // $this->syslog( __FUNCTION__, 'FORCE', "Fetched image content URL: " . $url->get_url() );
+      // $this->syslog( __FUNCTION__, 'FORCE', "Fetched image content SHA1: " . sha1($image_content) );
+      // file_put_contents("./cache/member-image-{$member_uuid}", $image_content);
+      $image_content = base64_encode($image_content);
       $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-      $json_reply['altmarkup'] = utf8_encode($member_avatar_base64);
+      $json_reply['altmarkup'] = $member_avatar_base64;
       $member->set_avatar_image($member_avatar_base64)->stow();
       $this->syslog(__FUNCTION__,'FORCE', "Sending member {$member_uuid} avatar: {$json_reply['altmarkup']}");
     }

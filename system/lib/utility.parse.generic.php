@@ -82,13 +82,15 @@ class GenericParseUtility extends RawparseUtility {
   }/*}}}*/
 
   function ru_title_close(& $parser, $tag) {/*{{{*/
-    if ( !is_null($this->current_tag) && array_key_exists('tag', $this->current_tag) && ($tag == $this->current_tag['tag']) ) {
-      $title = array(
-        'title' => join('',$this->current_tag['cdata']),
-        'seq'   => 0,
-      ); 
-      $this->add_to_container_stack($title);
-    }
+		$this->pop_tagstack();
+		if ( is_array($this->current_tag) && array_key_exists('cdata', $this->current_tag) ) {
+			$title = array(
+				'title' => join('',$this->current_tag['cdata']),
+				'seq'   => 0,
+			); 
+			$this->add_to_container_stack($title);
+		}
+		$this->push_tagstack();
     return FALSE;
   }/*}}}*/
 

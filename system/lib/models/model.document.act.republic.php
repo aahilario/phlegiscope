@@ -21,7 +21,6 @@ class RepublicActDocumentModel extends DatabaseUtility {
   var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
 	var $content_json_vc65535 = NULL;
-	var $content_blob = NULL;
 
   function __construct() {
     parent::__construct();
@@ -106,9 +105,6 @@ class RepublicActDocumentModel extends DatabaseUtility {
 
 	function & set_content_json($v) { $this->content_json_vc65535 = $v; return $this; }
 	function get_content_json($v = NULL) { if (!is_null($v)) $this->set_content_json($v); return $this->content_json_vc65535; }
-
-	function & set_content($v) { $this->content_blob = $v; return $this; }
-	function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
 
   function get_standard_listing_markup($entry_value, $entry_name) {/*{{{*/
 

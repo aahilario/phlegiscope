@@ -45,7 +45,8 @@ function preload(components) {
         var hashpair = uncached_list[n];
         var hash = hashpair.hash;
         var live = hashpair.live;
-        var linkstring = $('a[class*=legiscope-remote][id='+hash+']').attr('href');
+        // var linkstring = $('a[class*=legiscope-remote][id='+hash+']').attr('href');
+        var linkstring = $('a[id='+hash+']').attr('href');
         $.ajax({
           type     : 'POST',
           url      : '/seek/',
@@ -62,7 +63,8 @@ function preload(components) {
             $('#doctitle').html(null);
           }),
           success  : (function(data, httpstatus, jqueryXHR) {
-            $('a[class*=legiscope-remote][id='+hash+']').addClass('cached');
+            // $('a[class*=legiscope-remote][id='+hash+']').addClass('cached');
+            $('a[id='+hash+']').addClass('cached');
           })
         });
       } 

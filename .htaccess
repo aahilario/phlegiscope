@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /
+
+# Client-side Javascript and CSS
+RewriteRule ^js/(.*) /index.php?js=$1 [L]
+RewriteRule ^css/(.*) /index.php?css=$1 [L]
+RewriteRule ^images/(.*) /index.php?images=$1 [L]
+
+# Permit http://host/subsystem/action/subject URLs
+RewriteRule ^([^/.]+)/([^/.]+)/(.*)$ /index.php?p=$1&q=$2&r=$3 [L]
+# Permit http://host/action/subject URLs
+RewriteRule ^([^/.]+)/(.*)$ /index.php?q=$1&r=$2 [L]
+

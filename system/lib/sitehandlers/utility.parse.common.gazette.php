@@ -14,11 +14,11 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     parent::__construct();
   }
 
-	function parse_html(& $raw_html, $only_scrub = FALSE) {
-		$status = !is_null(parent::parse_html($raw_html, $only_scrub));
-		$this->mark_container_sequence();
-		return $status;
-	}
+  function parse_html(& $raw_html, $only_scrub = FALSE) {
+    $status = !is_null(parent::parse_html($raw_html, $only_scrub));
+    $this->mark_container_sequence();
+    return $status;
+  }
 
   function ru_div_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->push_container_def($tag, $attrs);
@@ -41,8 +41,8 @@ class GazetteCommonParseUtility extends GenericParseUtility {
       'menu-footer1-container',
       'entry-utility',
       'menu-judiciary-container',
-			'printfriendly',
-			'menu-social-media-container',
+      'printfriendly',
+      'menu-social-media-container',
     )) . ')@', $this->current_tag['attrs']['CLASS']));
     $this->stack_to_containers();
     return $keep;
@@ -118,7 +118,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
 
   function ru_b_close(& $parser, $tag) {/*{{{*/
-		return $this->embed_cdata_in_parent();
+    return $this->embed_cdata_in_parent();
   }/*}}}*/
 
   function ru_strong_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -131,7 +131,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
 
   function ru_strong_close(& $parser, $tag) {/*{{{*/
-		return $this->embed_cdata_in_parent();
+    return $this->embed_cdata_in_parent();
   }/*}}}*/
 
   function ru_i_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -143,7 +143,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
 
   function ru_i_close(& $parser, $tag) {/*{{{*/
-		return $this->embed_cdata_in_parent();
+    return $this->embed_cdata_in_parent();
   }/*}}}*/
 
   function ru_em_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -155,7 +155,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
 
   function ru_em_close(& $parser, $tag) {/*{{{*/
-		return $this->embed_cdata_in_parent();
+    return $this->embed_cdata_in_parent();
   }/*}}}*/
 
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -163,12 +163,23 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }  /*}}}*/
 
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
-    // Attach CDATA to A tag 
+    if ( 1 == preg_match('@(nginx)@i', $cdata) ) {
+      $this->pop_tagstack();
+      $this->current_tag['discard'] = TRUE;
+      $this->push_tagstack();
+    }
     return parent::ru_p_cdata($parser,$cdata);
   }/*}}}*/
 
   function ru_p_close(& $parser, $tag) {/*{{{*/
-    // These people embed A tags within paragraphs, as permitted by WordPress.
+		$this->current_tag();
+		if (is_array($this->current_tag) &&
+			array_key_exists('discard',$this->current_tag) &&
+	    ($this->current_tag['discard'] === TRUE)) {
+      $this->pop_tagstack();
+      $this->current_tag['cdata'] = array();
+      $this->push_tagstack();
+		}
     return parent::ru_p_close($parser,$tag);
   }/*}}}*/
 

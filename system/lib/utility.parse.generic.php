@@ -83,10 +83,10 @@ class GenericParseUtility extends RawparseUtility {
 
   function ru_title_close(& $parser, $tag) {/*{{{*/
     if ( !is_null($this->current_tag) && array_key_exists('tag', $this->current_tag) && ($tag == $this->current_tag['tag']) ) {
-			$title = array(
-				'title' => join('',$this->current_tag['cdata']),
-				'seq'   => 0,
-			); 
+      $title = array(
+        'title' => join('',$this->current_tag['cdata']),
+        'seq'   => 0,
+      ); 
       $this->add_to_container_stack($title);
     }
     return FALSE;
@@ -224,8 +224,7 @@ class GenericParseUtility extends RawparseUtility {
     return TRUE;
   }/*}}}*/
 
-  function ru_body_open(& $parser, & $attrs) {/*{{{*/
-    $tagname = strtolower(preg_replace('/^ru_([^_]*)_open/','$1', __FUNCTION__));
+  function ru_body_open(& $parser, & $attrs, $tagname) {/*{{{*/
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
@@ -261,6 +260,28 @@ class GenericParseUtility extends RawparseUtility {
     return TRUE;
   }/*}}}*/
 
+  // ---- Sundry tags ----
+
+  function ru_br_open(& $parser, & $attrs, $tagname ) {/*{{{*/
+    return TRUE;
+  }/*}}}*/
+
+  function ru_br_cdata(& $parser, & $cdata) {/*{{{*/
+    return TRUE;
+  }/*}}}*/
+
+  function ru_br_close(& $parser, $tag) {/*{{{*/
+    $me     = $this->pop_tagstack();
+    $parent = $this->pop_tagstack();
+    if ( array_key_exists('cdata', $parent) ) {
+      // $this->syslog(__FUNCTION__,'FORCE',"Adding line break to {$parent['tag']} (" . join(' ', $parent['cdata']) . ")" );
+      $parent['cdata'][] = "\n[BR]";
+    }
+    $this->push_tagstack($parent);
+    $this->push_tagstack($me);
+    return FALSE;
+  }/*}}}*/
+
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
     // Handle A anchor/link tags
     if ( 0 < count($this->tag_stack) ) {
@@ -283,10 +304,12 @@ class GenericParseUtility extends RawparseUtility {
 
   function ru_p_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
-		$paragraph = array(
-			'text' => join('', $this->current_tag['cdata']),
-			'seq'  => $this->current_tag['attrs']['seq'],
-		);
+    $paragraph = array(
+      'text' => (is_array($this->current_tag) && array_key_exists('cdata', $this->current_tag) && is_array($this->current_tag['cdata'])) 
+        ? join('', $this->current_tag['cdata']) 
+        : NULL,
+      'seq'  => $this->current_tag['attrs']['seq'],
+    );
     $this->add_to_container_stack($paragraph);
     return TRUE;
   }/*}}}*/
@@ -316,18 +339,18 @@ class GenericParseUtility extends RawparseUtility {
   }/*}}}*/
 
   function ru_a_close(& $parser, $tag) {/*{{{*/
-		$this->current_tag();
+    $this->current_tag();
     $target = 0 < count($this->links) ? array_pop($this->links) : NULL;
     $link_text = join('', $target['cdata']);
     $link_data = array(
       'url'  => $target['attrs']['HREF'],
       'text' => $link_text,
-			'seq'  => $this->current_tag['attrs']['seq'],
+      'seq'  => $this->current_tag['attrs']['seq'],
     );
-		if ( !(empty($link_data['url']) && empty($link_data['text'])) ) {
-			array_push($this->links, $target);
-			$this->add_to_container_stack($link_data);
-		}
+    if ( !(empty($link_data['url']) && empty($link_data['text'])) ) {
+      array_push($this->links, $target);
+      $this->add_to_container_stack($link_data);
+    }
     return TRUE;
   }/*}}}*/
 
@@ -427,31 +450,31 @@ EOH
 
   function standard_cdata_container_close() {
     $this->current_tag();
-		$paragraph = array(
-			'text' => join('', $this->current_tag['cdata']),
-			'seq'  => $this->current_tag['attrs']['seq'],
-		);
+    $paragraph = array(
+      'text' => join('', $this->current_tag['cdata']),
+      'seq'  => $this->current_tag['attrs']['seq'],
+    );
     if ( 0 < strlen($paragraph['text']) ) 
     $this->add_to_container_stack($paragraph);
     return TRUE;
   }
 
-	function embed_cdata_in_parent() {
-		$i = $this->pop_tagstack();
-		$content = join('',$this->current_tag['cdata']);
-		$parent = $this->pop_tagstack();
-		$parent['cdata'][] = " {$content} ";
-		$this->push_tagstack($parent);
-		$this->push_tagstack($i);
-		return FALSE;
-	}
+  function embed_cdata_in_parent() {
+    $i = $this->pop_tagstack();
+    $content = join('',$this->current_tag['cdata']);
+    $parent = $this->pop_tagstack();
+    $parent['cdata'][] = " {$content} ";
+    $this->push_tagstack($parent);
+    $this->push_tagstack($i);
+    return FALSE;
+  }
 
-	function reduce_containers_to_string($s) {
-		$s = is_array($s) ? array_values($s) : NULL;
-		$s = is_array($s) && 1 == count($s) ? array_values($s[0]) : NULL;
-		// $s = is_array($s) ? join(' ',$s) : NULL;
-		$s = is_array($s) ? trim($s[0]) : NULL;
-		return $s;
-	}
+  function reduce_containers_to_string($s) {
+    $s = is_array($s) ? array_values($s) : NULL;
+    $s = is_array($s) && 1 == count($s) ? array_values($s[0]) : NULL;
+    // $s = is_array($s) ? join(' ',$s) : NULL;
+    $s = is_array($s) ? trim($s[0]) : NULL;
+    return $s;
+  }
 
 }

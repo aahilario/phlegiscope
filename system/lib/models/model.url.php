@@ -20,7 +20,7 @@ class UrlModel extends DatabaseUtility {
   var $last_modified_utx = NULL;
   var $content_type_vc64 = NULL;
   var $cache_filename_vc255 = NULL;
-  var $pagecontent_vc65535 = NULL;
+  var $pagecontent_blob = NULL;
   var $response_header_vc32767 = NULL;
   var $hits_int11 = NULL;
   var $is_fake_bool = NULL;
@@ -185,16 +185,7 @@ class UrlModel extends DatabaseUtility {
     // FIXME:  Permit use of an array parameter (to save sets of links)
     if ( is_null($this->id) ) $this->set_create_time(time());
 		else $this->content_changed();
-    $stowresult = NULL;
-    if (!(C('CONTENT_SIZE_THRESHOLD') > strlen($this->pagecontent_vc65535))) {
-      $t = $this->pagecontent_vc65535;
-      $this->pagecontent_vc65535 = NULL;
-      $stowresult = parent::stow();
-      $this->pagecontent_vc65535 = $t;
-      $t = NULL;
-    } else {
-      $stowresult = parent::stow(); 
-    }
+    $stowresult = parent::stow(); 
     return $stowresult;
   }/*}}}*/
 
@@ -266,16 +257,19 @@ class UrlModel extends DatabaseUtility {
         // FIXME: Deal with missing Content-Length key, or Transfer-Encoding: chunked 
       }
     }
+    // FIXME: This goes away now that pagecontent is pagecontent_blob
+    $cache_filename = $this->get_cache_filename();
     if ( $content_length > C('CONTENT_SIZE_THRESHOLD') ) {
-      $cache_filename = $this->get_cache_filename();
       $result = @file_put_contents($cache_filename,$t); 
-      $this->syslog( __FUNCTION__, __LINE__, "Caching {$content_length} file {$cache_filename}: " . 
+      $this->syslog( __FUNCTION__, 'FORCE', "Caching {$content_length} file {$cache_filename}: " . 
         (FALSE == $result ? 'FAIL' : 'OK')  );
 			$this->set_cache_filename($cache_filename);
     }
     $this->set_content_length($content_length);
 		$this->set_urlhash(UrlModel::get_url_hash($this->get_url()));
-    $this->pagecontent_vc65535 = $content_length > C('CONTENT_SIZE_THRESHOLD') ? NULL : $t;
+    // $this->pagecontent_blob = $content_length > C('CONTENT_SIZE_THRESHOLD') ? NULL : $t;
+    $this->syslog( __FUNCTION__, 'FORCE', "WARNING: Streaming {$content_length} file {$cache_filename}" );
+    $this->pagecontent_blob = "file://{$cache_filename}"; // Test streaming
     $this->set_content_hash();
     $this->content_length_int11 = $content_length;
     $final_headers = $this->get_response_header();
@@ -361,7 +355,14 @@ class UrlModel extends DatabaseUtility {
 
   function set_content_hash($s = NULL) {
     if ( is_null($s) ) {
-      $s = sha1($this->get_pagecontent());
+      if ( $this->get_content_length > C('CONTENT_SIZE_THRESHOLD') ) {
+        $s = file_exists($this->get_cache_filename())
+          ? sha1_file($this->get_cache_filename())
+          : NULL
+          ;
+      } else {
+        $s = sha1($this->get_pagecontent());
+      }
     }
     $this->content_hash_vc128 = $s;
     return $this;
@@ -380,23 +381,44 @@ class UrlModel extends DatabaseUtility {
     $this->create_time_utx = $utx;
   }
 
+  function & set_last_modified($v) { $this->last_modified_utx = $v; return $this; }
+  function get_last_modified($v = NULL) { if (!is_null($v)) $this->set_last_modified($v); return $this->last_modified_utx; }
+
+  function & set_content($v) { $this->content_blob = $v; return $this; }
+  function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
+
+  function & set_urltext($v) { $this->urltext_vc4096 = $v; return $this; }
+  function get_urltext($v = NULL) { if (!is_null($v)) $this->set_urltext($v); return $this->urltext_vc4096; }
+
   function get_pagecontent() {
     $headers = $this->get_response_header();
     $is_pdf  = (1 == preg_match('@^application/pdf@i',$this->get_content_type()));
-    if ( ($this->get_content_length() > C('CONTENT_SIZE_THRESHOLD')) || ($is_pdf && is_null($this->pagecontent_vc65535)) ) {
-      $this->pagecontent_vc65535 = file_exists($this->get_cache_filename())
-        ? @file_get_contents($this->get_cache_filename())
-        : NULL
-        ;
-      if ( is_null($this->pagecontent_vc65535) && $is_pdf ) {
-        $this->syslog(__FUNCTION__, 'FORCE', "PDF could not be obtained from " . $this->get_cache_filename());
+    // $is_html = (1 == preg_match('@^text/html@i',$this->get_content_type()));
+    $cache_filename = $this->get_cache_filename();
+    if ( is_null($this->pagecontent_blob) && file_exists($cache_filename) ) {
+      // $this->recursive_dump(explode("\n",print_r($this,TRUE)),0,'FORCE');
+      $this->syslog(__FUNCTION__,'FORCE',"---------- LOADING {$cache_filename}" );
+      $this->pagecontent_blob = @file_get_contents($this->get_cache_filename());
+      $length = strlen($this->pagecontent_blob);
+      $this->syslog(__FUNCTION__,'FORCE',"---------- LOADED {$length} octets from {$cache_filename}" );
+      if ( is_null($this->pagecontent_blob) && $is_pdf ) {
+        $this->syslog(__FUNCTION__, 'FORCE', "PDF could not be obtained from {$cache_filename}");
+      }
+      $stowresult = $this->stow();
+      $sr_type = gettype($stowresult);
+      $this->syslog(__FUNCTION__,'FORCE',"---------- [{$sr_type} {$stowresult}] LOADED {$length} octets from {$cache_filename}" );
+      if ( 'string' == $sr_type && (0 < strlen(intval($stowresult))) ) {
+        $unlink_result = unlink($cache_filename);
+        $ur_type = gettype($unlink_result);
+        $this->syslog(__FUNCTION__,'FORCE',"---------- [{$ur_type} {$unlink_result}] WARNING: Unlinking now-unneeded cache file {$cache_filename}" );
       }
     }
-    if ( (!is_array($headers) || !(0 < count($headers))) && !empty($this->pagecontent_vc65535) ) {
-      $this->set_pagecontent($this->pagecontent_vc65535);
+    if ( (!is_array($headers) || !(0 < count($headers))) && !empty($this->pagecontent_blob) ) {
+      $this->syslog(__FUNCTION__,'FORCE',"---------- WARNING: Content length " . strlen($this->pagecontent_blob) . " but empty headers" );
+      $this->set_pagecontent($this->pagecontent_blob);
       $this->stow();
     }
-    return $this->pagecontent_vc65535;
+    return $this->pagecontent_blob;
   }
 
   function get_content_type() {

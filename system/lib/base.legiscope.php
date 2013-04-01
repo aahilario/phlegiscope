@@ -352,7 +352,7 @@ class LegiscopeBase extends SystemUtility {
     $this->syslog( __FUNCTION__, 'FORCE', "Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
     // if ( !is_null($modifier) && !($modifier == 'false') ) 
-    $this->recursive_dump($_POST,0,'FORCE');
+    // $this->recursive_dump($_POST,0,'FORCE');
 
     $url      = new UrlModel($target_url, TRUE);
     $faux_url = NULL;

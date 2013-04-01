@@ -71,7 +71,7 @@ EOS;
       if (!( str_replace('__','_',$propername) == $member['name'] ) && ('pkey' == $member['type'])) {
         $member['propername'] = $propername;
       }
-      $members[] = $member;
+      $members[$member['name']] = $member;
     }
     $this->recursive_dump($members,0,get_class($this));
     return $members;
@@ -83,6 +83,7 @@ EOS;
       'utx'  => array('attrname' => 'INT(11)'           , 'quot' => FALSE),
       'int'  => array('attrname' => 'INT(s)'            , 'quot' => FALSE),
       'vc'   => array('attrname' => 'VARCHAR(s)'        , 'quot' => TRUE),
+      'blob' => array('attrname' => 'MEDIUMBLOB'        , 'quot' => TRUE, 'mustbind' => TRUE, ),
       'dbl'  => array('attrname' => 'DOUBLE DEFAULT 0.0', 'quot' => FALSE),
       'flt'  => array('attrname' => 'FLOAT DEFAULT 0.0' , 'quot' => FALSE),
 			'bool' => array('attrname' => 'BOOLEAN'           , 'quot' => FALSE),
@@ -104,10 +105,12 @@ EOS;
     }
 
     $quoting    = array_key_exists($attrs['type'],$type_map) ? $type_map[$attrs['type']]['quot'] : FALSE;
+    $bindparam  = array_key_exists($attrs['type'],$type_map) && array_key_exists('mustbind', $type_map[$attrs['type']]) ? $type_map[$attrs['type']]['mustbind'] : FALSE;
     $properties = array_key_exists($attrs['type'],$type_map) ? $type_map[$attrs['type']]['attrname'] : 'VARCHAR(64)';
     $properties = preg_replace('/\((s)\)/',"({$size})",$type_map[$matches[1][0]]['attrname']);
     $properties = "{$properties} {$modifier}";
 
+    // TODO: Implement model references
     if (array_key_exists('propername',$attrs)) {
       $fieldname = $attrs['propername'];
       $properties = "INT(11) REFERENCES `{$attrs['propername']}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT";
@@ -116,6 +119,8 @@ EOS;
       'fieldname' => $fieldname,
       'properties' => $properties,
       'quoted' => $quoting,
+      'size' => empty($size) ? NULL : intval($size),
+      'mustbind' => $bindparam,
     );
   }/*}}}*/
 
@@ -227,9 +232,9 @@ EOH;
     return $this;
   }/*}}}*/
 
-  function & query($sql) {/*{{{*/
+  function & query($sql, $bindparams = NULL) {/*{{{*/
     $this->initialize_db_handle();
-    self::$dbhandle->query($sql);
+    self::$dbhandle->query($sql, $bindparams);
     return $this;
   }/*}}}*/
 
@@ -323,18 +328,35 @@ EOS;
 		return array_key_exists('n',$result) ? intval($result['n']) : NULL;
 	}
 
-  protected function prepare_select_sql(& $sql) {/*{{{*/
+  protected function prepare_select_sql(& $sql, $exclude_blobfields = FALSE) {/*{{{*/
+    // TODO: Exclude*BLOB attributes from the statement generated with this method. 
     $this->initialize_db_handle();
     $key_by_varname = create_function('$a', 'return $a["name"];');
     $attrlist = $this->full_property_list();
 		$key_map  = array_map($key_by_varname, $attrlist);
+    // DEBUG
+    // $this->syslog(__FUNCTION__,'FORCE', "--- Property list");
+    // $this->recursive_dump( $key_map, 0, 'FORCE');
 		if ( 0 < count($attrlist) && count($attrlist) == count($key_map) ) {
+      $bindable_attrs = ( $exclude_blobfields )
+        ? create_function('$a', 'return $a["attrs"]["mustbind"] ? NULL : "`" . $a["name"] . "`";')
+        : create_function('$a', 'return "`{$a["name"]}`";')
+        ;
+      $attrnames = array_filter(array_map($bindable_attrs, $attrlist));
+      $attrnames[] = '`id`'; // Mandatory to include this
+      // DEBUG
+      // $this->recursive_dump( $attrnames, 0, 'FORCE');
+      $attrnames = join(',',$attrnames);
 			$attrlist = array_combine($key_map, $attrlist);
-			$conditionstring = join(' ',$this->construct_sql_from_conditiontree($attrlist));
+      $conditionstring = $this->construct_sql_from_conditiontree($attrlist);
+      // DEBUG
+      // $this->recursive_dump( $conditionstring, 0, 'FORCE');
+			$conditionstring = join(' ',$conditionstring);
 			$sql = <<<EOS
-SELECT * FROM `{$this->tablename}` WHERE {$conditionstring}
+SELECT {$attrnames} FROM `{$this->tablename}` WHERE {$conditionstring}
 EOS;
-			$this->syslog( __FUNCTION__, __LINE__, "Query: {$sql}");
+      // DEBUG
+			// $this->syslog( __FUNCTION__, 'FORCE', "Query: {$sql}");
 		}
     return $attrlist;
   }/*}}}*/
@@ -361,7 +383,11 @@ EOS;
   function select() {/*{{{*/
     $sql = '';
     $this->attrlist = $this->prepare_select_sql($sql);
-    $this->syslog( __FUNCTION__, __LINE__, "> {$sql}");
+    if (0) {
+      // DEBUG
+      $this->syslog( __FUNCTION__, 'FORCE', __LINE__ . "> {$sql}");
+      $this->recursive_dump( $this->attrlist, 0, 'FORCE');
+    }
     $result = $this->query($sql)->resultset();
     $this->recursive_dump($result,0,'R');
     $this->recursive_dump($this->query_conditions,0,'C');
@@ -416,6 +442,11 @@ EOS;
   }
 
   function stow() {/*{{{*/
+    if ( !is_null($this->id) ) {
+      $this->syslog( __FUNCTION__ , 'FORCE', "WARNING: Updating " . get_class($this) . " #{$this->id}");
+      // $this->recursive_dump(explode("\n",print_r($this,TRUE)),0,'FORCE');
+      // return;
+    }
     return is_null($this->id)
       ? $this->insert()
       : $this->update()
@@ -424,15 +455,40 @@ EOS;
 
   function insert() {/*{{{*/
     $f_attrnames = create_function('$a', 'return "`{$a["name"]}`";');
-    $f_valueset  = create_function('$a', 'return $a["value"];');
+    $f_valueset  = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "?" : "{$a["value"]}";');
+    $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
     $attrlist    = $this->full_property_list();
-    // $this->recursive_dump($attrlist,0,__FUNCTION__);
-    $namelist = join(',', array_map($f_attrnames, $attrlist));
-    $valueset = join(',', array_map($f_valueset,  $attrlist));
+    // DEBUG
+    $this->syslog(__FUNCTION__,'FORCE', "--- Property list");
+    $this->recursive_dump($attrlist,0,'FORCE');
+    // DEBUG
+    // $this->recursive_dump( $key_map, 0, 'FORCE');
+    $namelist   = join(',', array_map($f_attrnames, $attrlist));
+    $valueset   = join(',', array_map($f_valueset,  $attrlist));
+    $boundattrs = array_filter(array_map($f_bindattrs,  $attrlist));
     $sql = <<<EOS
 INSERT INTO `{$this->tablename}` ({$namelist}) VALUES ({$valueset})
 EOS;
-    $this->query($sql);
+    if ( 0 < count($boundattrs) ) {
+      $this->syslog(__FUNCTION__,'FORCE', "--- Currently: {$sql}");
+      $bindable_attrs = array();
+      foreach ( $boundattrs as $b ) {
+        // TODO: Allow string, integer, and double values
+        $bindable_attrs[$b] = array(
+          'bindflag' => 'b',
+          'data'     => $attrlist[$b]['value'], 
+        );
+        if ( is_null($bindable_attrs[$b]['data']) ) {
+          $this->syslog(__FUNCTION__,'FORCE', "--- WARNING: Data source not provided for bindable parameter '{$b}'. Coercing to empty string ''");
+          $this->recursive_dump($boundattrs,0,'FORCE');
+          $bindable_attrs[$b]['data'] = '';
+        }
+      }
+      $this->recursive_dump($bindable_attrs,0,'FORCE');
+      $this->query($sql, $bindable_attrs);
+    } else {
+      $this->query($sql);
+    }
     $this->last_inserted_id = self::$dbhandle->insert_id;
     if ( !empty(self::$dbhandle->error) )
       $this->syslog( __FUNCTION__, __LINE__, "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");

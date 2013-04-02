@@ -239,6 +239,9 @@ class LegiscopeBase extends SystemUtility {
 		// URLs which are presumed to always expire
 		$lie_table = array(
 			'http://www.gov.ph/(.*)/republic-act-no(.*)([/]*)',
+			'http://www.congress.gov.ph/download/(.*)',
+			'http://www.congress.gov.ph/committees/(.*)',
+			'http://www.senate.gov.ph/(.*)',
 		);
 
 		$lie_table = '@' . join('|', $lie_table) . '@i';
@@ -558,9 +561,11 @@ class LegiscopeBase extends SystemUtility {
               $parser->cache_filename   = $this->seek_cache_filename;
               $parser->target_url       = $target_url;
               $parser->metalink_url     = $faux_url; 
+							$parser->linkset          = $linkset;
 
               $this->$method_name($parser, $body_content, $url);
 
+							$linkset        = $parser->linkset;
               $structure_html = $parser->structure_html;
               $json_reply     = $parser->json_reply; // Merged with response JSON
               $target_url     = $parser->target_url;
@@ -674,7 +679,7 @@ class LegiscopeBase extends SystemUtility {
   protected function get_handler_names(UrlModel & $url) {/*{{{*/
 
     // Construct post-processing method name from path parts
-		$debug_method = FALSE;
+		$debug_method = TRUE;
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
     $urlpathhash_sans_script = $urlpathhash; 
@@ -994,7 +999,9 @@ EOH;
         $n++;
       }/*}}}*/
       $hashlist = join('|', $hashlist);
+			// Add 'cached' and 'refresh' class to selectors
       $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
+			// TODO: Implement link aging
       $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
       $this->syslog( __FUNCTION__, __LINE__, "-- Marked {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/

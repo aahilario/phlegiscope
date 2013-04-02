@@ -17,7 +17,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function parse_html(& $raw_html, $only_scrub = FALSE) {
     $status = !is_null(parent::parse_html($raw_html, $only_scrub));
     $this->mark_container_sequence();
-    return $status;
+    return $this;
   }
 
   function ru_div_open(& $parser, & $attrs, $tag) {/*{{{*/

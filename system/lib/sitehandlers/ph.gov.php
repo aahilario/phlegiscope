@@ -36,7 +36,7 @@ class GovPh extends LegiscopeBase {
     $pagecontent = join('',$gazette->get_filtered_doc());
 
     // $this->recursive_dump($gazette->get_containers(),0,'FORCE');
-
+    // $this->recursive_dump($gazette->get_links(),0,'FORCE');
 
     // $this->recursive_dump($entry_content,0,'FORCE');
   }/*}}}*/
@@ -51,7 +51,8 @@ class GovPh extends LegiscopeBase {
 
     if ( is_null( $urlmodel->get_pagecontent() ) ) {
       $pagecontent = join('',$gazette->get_filtered_doc());
-      $urlmodel->set_pagecontent($pagecontent)->stow();
+      $urlmodel->set_pagecontent($pagecontent);
+      $urlmodel->stow();
     }
     $pagecontent = ''; // $pagecontent = join('',$gazette->get_filtered_doc());
 
@@ -235,6 +236,11 @@ EOH;
 <li><a id="{$link_hash}" class="{$link_properties}" href="{$distinct_pages[$maximum_page_number]}">Oldest Announcement</a></li>
 {$substitute_content}
 EOH;
+    $parser->linkset = <<<EOH
+<ul class="link-cluster">
+{$substitute_content}
+</ul>
+EOH;
     
     // Individual Republic Act announcements (including pager)
     $pagecontent = <<<EOH
@@ -268,7 +274,8 @@ EOH;
     $pagecontent = join('',$gazette->get_filtered_doc());
 
     if ( is_null( $urlmodel->get_pagecontent() ) ) {
-      $urlmodel->set_pagecontent($pagecontent)->stow();
+      $urlmodel->set_pagecontent($pagecontent);
+      $urlmodel->stow();
     }
 
     // Extract body of Republic Act document

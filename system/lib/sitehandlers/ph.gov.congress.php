@@ -411,6 +411,26 @@ EOH;
 
   }/*}}}*/
 
+  function seek_by_pathfragment_f2792e9d2ac91d20240ce308f106ecea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // 
+    $this->syslog( __FUNCTION__, 'FORCE', "Invoked for " . $urlmodel->get_url() );
+    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+
+    $pagecontent = <<<EOH
+<h1>Clearing cached links</h1>
+<script type="text/javascript">
+$(function(){
+  $('ul[class*=link-cluster]').each(function(){
+    $(this).find('a[class*=legiscope-remote]').each(function(){
+      $(this).removeClass('cached');
+    });
+  });
+  initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+});
+</script>
+EOH;
+  }/*}}}*/
+
   function seek_postparse_bypathonly_9f222d54cda33a330ffc7cd18e7ce27f(& $parser, & $pagecontent, & $urlmodel) {
     // http://www.congress.gov.ph/committees/search.php?congress=15&id=A505
     $this->syslog( __FUNCTION__, 'FORCE', "Invoked for " . $urlmodel->get_url() );

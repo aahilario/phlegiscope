@@ -43,7 +43,7 @@ class CongressRaListParseUtility extends RawparseUtility {
   function ru_ul_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     // if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$tag}" );
-    // if ($this->debug_tags) $this->recursive_dump($list_container,0,'FORCE');
+    // if ($this->debug_tags) $this->recursive_dump($list_container,'(warning)');
     return TRUE;
   }/*}}}*/
 
@@ -51,6 +51,8 @@ class CongressRaListParseUtility extends RawparseUtility {
     // Handle A anchor/link tags
 		$this->pop_tagstack();
 		$this->current_tag['cdata'] = array();
+    $this->update_current_tag_url('HREF');
+    $attrs['HREF'] = $this->current_tag['attrs']['HREF'];
 		$this->push_tagstack();
 		if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', $this->get_stacktags() . " --- {$this->current_tag['tag']} {$this->current_tag['attrs']['HREF']}" );
     return TRUE;
@@ -75,13 +77,7 @@ class CongressRaListParseUtility extends RawparseUtility {
 
   function ru_a_close(& $parser, $tag) {/*{{{*/
 		$this->pop_tagstack();
-		$target = $this->current_tag['attrs']['HREF'];
-		$link_text = join('', $this->current_tag['cdata']);
-		$link_data = array(
-			'url'      => $target,
-			'text'     => $link_text,
-		);
-		$this->add_to_container_stack($link_data);
+		$this->add_to_container_stack($this->collapse_current_tag_link_data());
 		$this->push_tagstack();
     return TRUE;
   }/*}}}*/
@@ -124,7 +120,7 @@ class CongressRaListParseUtility extends RawparseUtility {
         $list_item['children'][] = $item;
       }
     }
-		if ($this->debug_tags) $this->recursive_dump($list_container, 0, 'FORCE');
+		if ($this->debug_tags) $this->recursive_dump($list_container,'(warning)');
 
 		$this->push_tagstack();
 		if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );

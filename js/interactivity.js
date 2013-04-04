@@ -2,6 +2,7 @@ function initialize_dossier_triggers() {
   enable_proxied_links('human-element-dossier-trigger',{
     beforeSend : (function() {
       $('#doctitle').html("Dossier loader triggered. Please wait.");
+      display_wait_notification();
     }),
     complete : (function(jqueryXHR, textStatus) {
       remove_wait_notification();

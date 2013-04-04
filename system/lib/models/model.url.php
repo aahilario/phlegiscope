@@ -184,7 +184,7 @@ class UrlModel extends DatabaseUtility {
   function stow($url_or_urlarray = NULL, $parent_url = NULL) {/*{{{*/
     // FIXME:  Permit use of an array parameter (to save sets of links)
     if ( is_null($this->id) ) $this->set_create_time(time());
-		else $this->content_changed();
+    else $this->content_changed();
     $stowresult = parent::stow(); 
     return $stowresult;
   }/*}}}*/
@@ -207,7 +207,7 @@ class UrlModel extends DatabaseUtility {
   function get_cache_filename() {
     if ( is_null($this->get_url()) || is_null($this->get_urlhash()) ) return NULL;
     $subject_host_hash = self::get_url_hash($this->get_url(),PHP_URL_HOST);
-		$urlhash = $this->get_urlhash();
+    $urlhash = $this->get_urlhash();
     return C('CACHE_PATH') . '/' . "legiscope.{$subject_host_hash}.{$urlhash}.cached";
   }
 
@@ -241,7 +241,7 @@ class UrlModel extends DatabaseUtility {
         $final_headers['http-response-code'] = $http_response_code;
         $final_headers['legiscope-regular-markup'] = $response_regular_markup ? 1 : 0;
         $this->set_response_header($final_headers);
-        // $this->recursive_dump($matches, 0, 'FORCE');
+        // $this->recursive_dump($matches, __LINE__);
       }  
       if ( array_key_exists('content-type', $final_headers) ) {
         $this->set_content_type($final_headers['content-type']);
@@ -250,7 +250,7 @@ class UrlModel extends DatabaseUtility {
         $content_length = intval($final_headers['content-length']);
         $t = substr( $t, - $content_length );
         $bulk_length = strlen($t);
-        $this->syslog( __FUNCTION__, 'FORCE', "Stripped header, length {$bulk_length} -> {$content_length}" );
+        $this->syslog( __FUNCTION__, __LINE__, "Stripped header, length {$bulk_length} -> {$content_length}" );
       } else {
         // FIXME: Deal with missing Content-Length key, or Transfer-Encoding: chunked 
       }
@@ -259,18 +259,18 @@ class UrlModel extends DatabaseUtility {
     $cache_filename = $this->get_cache_filename();
     if (0) if ( 1 == preg_match('@(image/)@i', $this->get_content_type()) ) {
       $result = @file_put_contents($cache_filename,$t); 
-      $this->syslog( __FUNCTION__, 'FORCE', "Caching {$content_length} file {$cache_filename}: " . 
+      $this->syslog( __FUNCTION__, __LINE__, "Caching {$content_length} file {$cache_filename}: " . 
         (FALSE == $result ? 'FAIL' : 'OK')  );
-			$this->set_cache_filename($cache_filename);
+      $this->set_cache_filename($cache_filename);
     }
     $this->set_content_length($content_length);
-		$this->set_urlhash(UrlModel::get_url_hash($this->get_url()));
-    // $this->syslog( __FUNCTION__, 'FORCE', "Current content SHA1: " . sha1($t) );
+    $this->set_urlhash(UrlModel::get_url_hash($this->get_url()));
+    // $this->syslog( __FUNCTION__, __LINE__, "Current content SHA1: " . sha1($t) );
     // $this->pagecontent_blob = $content_length > C('CONTENT_SIZE_THRESHOLD') ? NULL : $t;
-    // $this->syslog( __FUNCTION__, 'FORCE', "WARNING: Streaming {$content_length} file {$cache_filename}" );
+    // $this->syslog( __FUNCTION__, __LINE__, "WARNING: Streaming {$content_length} file {$cache_filename}" );
     // $this->pagecontent_blob = "file://{$cache_filename}"; // Test streaming
     $this->pagecontent_blob = $t;
-    $this->set_content_hash();
+    $this->set_content_hash(sha1($t));
     $this->content_length_int11 = $content_length;
     $final_headers = $this->get_response_header();
     $result = 
@@ -281,7 +281,7 @@ class UrlModel extends DatabaseUtility {
         'response_regular_markup' => $response_regular_markup ? 1 : 0,
       );
     // $this->syslog(__FUNCTION__, __LINE__, "Response data for " . $this->get_url());
-    // $this->recursive_dump($result,0,"- ");
+    // $this->recursive_dump($result,"- ");
     return $result;
   }/*}}}*/
 
@@ -298,7 +298,7 @@ class UrlModel extends DatabaseUtility {
     $prior_content_hash = $this->get_prior_content_hash();
     if ( $current_content_hash == $prior_content_hash ) {
       return FALSE;
-    } else {
+    } else if ($do_update) {
       $this->
         set_prior_content_hash($current_content_hash)->
         set_content_hash()->
@@ -310,13 +310,14 @@ class UrlModel extends DatabaseUtility {
   function set_response_header($a) {
     if ( is_array($a) ) $a = json_encode($a);
     $this->response_header_vc32767 = $a;
+    return $this;
   }
 
   function get_response_header($as_array = TRUE, $interline_break = "\n") {
     $this->syslog( __FUNCTION__, __LINE__, "Header raw: {$this->response_header_vc32767}");
     $h = json_decode($this->response_header_vc32767,TRUE);
     if ( (FALSE == $h) || !is_array($h) ) {
-      $this->syslog( __FUNCTION__, 'FORCE', "Header JSON parse failure");
+      $this->syslog( __FUNCTION__, __LINE__, "Header JSON parse failure");
        return $as_array ? array() : NULL;
     }
     if ($as_array != TRUE) {
@@ -389,25 +390,25 @@ class UrlModel extends DatabaseUtility {
     // $is_html = (1 == preg_match('@^text/html@i',$this->get_content_type()));
     $cache_filename = $this->get_cache_filename();
     if ( is_null($this->pagecontent_blob) && file_exists($cache_filename) ) {
-      // $this->recursive_dump(explode("\n",print_r($this,TRUE)),0,'FORCE');
-      $this->syslog(__FUNCTION__,'FORCE',"---------- LOADING {$cache_filename}" );
+      // $this->recursive_dump(explode("\n",__LINE__);
+      $this->syslog(__FUNCTION__,__LINE__,"---------- LOADING {$cache_filename}" );
       $this->pagecontent_blob = @file_get_contents($this->get_cache_filename());
       $length = strlen($this->pagecontent_blob);
-      $this->syslog(__FUNCTION__,'FORCE',"---------- LOADED {$length} octets from {$cache_filename}" );
+      $this->syslog(__FUNCTION__,__LINE__,"---------- LOADED {$length} octets from {$cache_filename}" );
       if ( is_null($this->pagecontent_blob) && $is_pdf ) {
-        $this->syslog(__FUNCTION__, 'FORCE', "PDF could not be obtained from {$cache_filename}");
+        $this->syslog(__FUNCTION__, __LINE__, "PDF could not be obtained from {$cache_filename}");
       }
       $stowresult = $this->stow();
       $sr_type = gettype($stowresult);
-      $this->syslog(__FUNCTION__,'FORCE',"---------- [{$sr_type} {$stowresult}] LOADED {$length} octets from {$cache_filename}" );
+      $this->syslog(__FUNCTION__,__LINE__,"---------- [{$sr_type} {$stowresult}] LOADED {$length} octets from {$cache_filename}" );
       if ( 'string' == $sr_type && (0 < strlen(intval($stowresult))) ) {
         $unlink_result = unlink($cache_filename);
         $ur_type = gettype($unlink_result);
-        $this->syslog(__FUNCTION__,'FORCE',"---------- [{$ur_type} {$unlink_result}] WARNING: Unlinking now-unneeded cache file {$cache_filename}" );
+        $this->syslog(__FUNCTION__,__LINE__,"---------- [{$ur_type} {$unlink_result}] WARNING: Unlinking now-unneeded cache file {$cache_filename}" );
       }
     }
     if ( (!is_array($headers) || !(0 < count($headers))) && !empty($this->pagecontent_blob) ) {
-      $this->syslog(__FUNCTION__,'FORCE',"---------- WARNING: Content length " . strlen($this->pagecontent_blob) . " but empty headers" );
+      $this->syslog(__FUNCTION__,__LINE__,"---------- WARNING: Content length " . strlen($this->pagecontent_blob) . " but empty headers" );
       $this->set_pagecontent($this->pagecontent_blob);
       $this->stow();
     }
@@ -422,9 +423,9 @@ class UrlModel extends DatabaseUtility {
     return intval($this->content_length_int11);
   }
 
-  function increment_hits() {
-    $this->hits_int11 = is_null($this->hits_int11) ? 1 : ($this->hits_int11 + 1); 
-    return $this->hits_int11;
+  function & increment_hits() {
+    $this->hits_int11 = intval($this->hits_int11) + 1; 
+    return $this;
   }
 
   function get_url() {
@@ -435,10 +436,10 @@ class UrlModel extends DatabaseUtility {
     return $this->urlhash_vc128uniq;
   }
 
-	function & set_urlhash($t) {
-		$this->urlhash_vc128uniq = $t;
-		return $this;
-	}
+  function & set_urlhash($t) {
+    $this->urlhash_vc128uniq = $t;
+    return $this;
+  }
 
   function get_linktext() {
     return $this->urltext_vc4096;

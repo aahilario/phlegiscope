@@ -43,7 +43,7 @@ class LegiscopeBase extends SystemUtility {
     if ( !is_null($stylesheetname = $this->filter_request('css') ) ) {
       $fn = "css/{$stylesheetname}";
       if ( file_exists( $fn ) ) {
-        // $this->syslog( __FUNCTION__, 'FORCE', "Emitting script {$fn}" );
+        // $this->syslog( __FUNCTION__, __LINE__, "Emitting script {$fn}" );
         $filehandle = fopen($fn, 'rb');
         header('Content-Type: text/css');
         header('Content-Length: ' . filesize($fn));
@@ -57,7 +57,7 @@ class LegiscopeBase extends SystemUtility {
     if ( !is_null($filename = $this->filter_request('images') ) ) {
       $fn = "images/{$filename}";
       if ( file_exists( $fn ) ) {
-        // $this->syslog( __FUNCTION__, 'FORCE', "Emitting script {$fn}" );
+        // $this->syslog( __FUNCTION__, __LINE__, "Emitting script {$fn}" );
         $filehandle = fopen($fn, 'rb');
         header('Content-Type: application/image');
         header('Content-Length: ' . filesize($fn));
@@ -99,15 +99,15 @@ class LegiscopeBase extends SystemUtility {
     if ( 0 < strlen($output_buffer) ) {
       // Dump content inadvertently generated during this operation.
       $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,'FORCE','WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,0,'FORCE');
+      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
+      $this->recursive_dump($output_buffer,__LINE__);
     }
   }/*}}}*/
 
   function keyword() {/*{{{*/
 
-    $this->syslog( '----', 'FORCE', "----------------------------------");
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked from {$_SERVER['REMOTE_ADDR']}" );
+    $this->syslog( '----', __LINE__, "----------------------------------");
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked from {$_SERVER['REMOTE_ADDR']}" );
 
     ob_start();
 
@@ -116,8 +116,7 @@ class LegiscopeBase extends SystemUtility {
     $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST);
     $hostModel = new HostModel($referrer);
     $referrers = new UrlModel();
-    $hostModel->increment_hits();
-    $hostModel->stow();
+    $hostModel->increment_hits()->stow();
 
     $fragment     = $this->filter_post('fragment');
     $decomposer   = '@([^ ]*) ?@i';
@@ -127,7 +126,7 @@ class LegiscopeBase extends SystemUtility {
 
     if ( !($_SESSION['last_fragment'] == $fragment) && count($components) > 0 ) {
 
-      $this->recursive_dump($components,0,__LINE__);
+      $this->recursive_dump($components,__LINE__);
       $components = array_filter($components[1]);
       $components = join('(.*)', $components);
 
@@ -150,7 +149,7 @@ class LegiscopeBase extends SystemUtility {
         );
         if ($count++ > 100) break;;
       }
-      $this->syslog( '----', 'FORCE', "Republic Acts found: {$count}");
+      $this->syslog( '----', __LINE__, "Republic Acts found: {$count}");
       /////////////////////////////////////////////////
       $iterator = new HouseBillDocumentModel();
       $iterator->
@@ -171,7 +170,7 @@ class LegiscopeBase extends SystemUtility {
         );
         if ($count++ > 20) break;;
       }
-      $this->syslog( '----', 'FORCE', "House Bills found: {$count}");
+      $this->syslog( '----', __LINE__, "House Bills found: {$count}");
       /////////////////////////////////////////////////
       $iterator = new SenateBillDocumentModel();
       $iterator->
@@ -195,7 +194,7 @@ class LegiscopeBase extends SystemUtility {
         );
         if ($count++ > 20) break;;
       }
-      $this->syslog( '----', 'FORCE', "Senate Bills found: {$count}");
+      $this->syslog( '----', __LINE__, "Senate Bills found: {$count}");
       /////////////////////////////////////////////////
 
       foreach ( $records as $dummyindex => $record ) {
@@ -222,44 +221,44 @@ class LegiscopeBase extends SystemUtility {
 
   function preload() {/*{{{*/
 
-    $this->syslog( '----', 'FORCE', "----------------------------------");
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked from {$_SERVER['REMOTE_ADDR']}" );
+    $this->syslog( '----', __LINE__, "----------------------------------");
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked from {$_SERVER['REMOTE_ADDR']}" );
 
     ob_start();
 
     $link_hashes = $this->filter_post('links', array());
     $modifier    = $this->filter_post('modifier');
 
-    $this->recursive_dump($link_hashes,0,__LINE__);
+    $this->recursive_dump($link_hashes,__LINE__);
 
     $url = new UrlModel();
-    
+
     $uncached = array();
 
-		// URLs which are presumed to always expire
-		$lie_table = array(
-			'http://www.gov.ph/(.*)/republic-act-no(.*)([/]*)',
-			'http://www.congress.gov.ph/download/(.*)',
-			'http://www.congress.gov.ph/committees/(.*)',
-			'http://www.senate.gov.ph/(.*)',
-		);
+    // URLs which are presumed to always expire
+    $lie_table = array(
+      'http://www.gov.ph/(.*)/republic-act-no(.*)([/]*)',
+      'http://www.congress.gov.ph/download/(.*)',
+      'http://www.congress.gov.ph/committees/(.*)',
+      'http://www.senate.gov.ph/(.*)',
+    );
 
-		$lie_table = '@' . join('|', $lie_table) . '@i';
+    $lie_table = '@' . join('|', $lie_table) . '@i';
 
-		$hash_count = 0;
+    $hash_count = 0;
 
     foreach( $link_hashes as $hash ) {
       $url->fetch($hash, 'urlhash');
       $urlstring = $url->get_url();
-			$in_lie_table = (1 == preg_match($lie_table,$url->get_url()));
+      $in_lie_table = (1 == preg_match($lie_table,$url->get_url()));
       if ( $url->in_database() && !($modifier == 'true') && !$in_lie_table ) {
-        $this->syslog(__FUNCTION__,'FORCE',"- Matched hash {$hash} to {$urlstring}" );
+        $this->syslog(__FUNCTION__,__LINE__,"- Matched hash {$hash} to {$urlstring}" );
       } else {
-        $this->syslog(__FUNCTION__,'FORCE',"+ Must fetch URL corresponding to {$hash}" );
-				$uncached[] = array(
-					'hash' => $hash,
-					'live' => !$in_lie_table,
-				);
+        $this->syslog(__FUNCTION__,__LINE__,"+ Must fetch URL corresponding to {$hash}" );
+        $uncached[] = array(
+          'hash' => $hash,
+          'live' => !$in_lie_table,
+        );
       }
       if ( $hash_count++ > 300 ) break;
     }
@@ -280,7 +279,7 @@ class LegiscopeBase extends SystemUtility {
 
   function fetchpdf($a) {/*{{{*/
 
-    $this->syslog( '----', 'FORCE', "----------------------------------");
+    $this->syslog( '----', __LINE__, "----------------------------------");
 
     ob_start();
 
@@ -289,18 +288,18 @@ class LegiscopeBase extends SystemUtility {
     $target_url = $url->get_url();
     $content_type = $url->get_content_type();
 
-    $this->syslog( __FUNCTION__, 'FORCE', "Doctype '{$content_type}' passed: '{$a}', from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
+    $this->syslog( __FUNCTION__, __LINE__, "Doctype '{$content_type}' passed: '{$a}', from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
 
     $output_buffer = ob_get_clean();
     if ( 0 < strlen($output_buffer) ) {
       // Dump content inadvertently generated during this operation.
       $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,'FORCE','WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,0,'FORCE');
+      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
+      $this->recursive_dump($output_buffer,__LINE__);
     }
 
     if ( 1 == preg_match('@^application/pdf@i', $content_type) ) {
-      $this->syslog( __FUNCTION__, 'FORCE', "Emitting PDF '{$a}' to {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Emitting PDF '{$a}' to {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
       header("Content-Type: " . $content_type);
       header("Content-Length: " . $url->get_content_length());
       echo $url->get_pagecontent();
@@ -309,7 +308,7 @@ class LegiscopeBase extends SystemUtility {
 
     header("HTTP/1.1 404 Not Found");
     exit(0);
-    
+
   }/*}}}*/
 
   function seek() {/*{{{*/
@@ -327,7 +326,7 @@ class LegiscopeBase extends SystemUtility {
     $cache_force        = $this->filter_post('cache');
     $referrer           = $this->filter_session('referrer');
 
-    $this->syslog( __FUNCTION__,'FORCE',"{$cache_force} ----------------------------------");
+    $this->syslog( __FUNCTION__,__LINE__,"(marker) {$cache_force} ----------------------------------");
 
     if ( FALSE === ( $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST) ) ) {
       // Faux message
@@ -338,18 +337,18 @@ class LegiscopeBase extends SystemUtility {
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
     $displayed_target_url = $target_url;
 
-		if (0) if ( $cache_force == 'true' ) {
-			$url = new UrlModel($target_url, TRUE);
-			if ( !is_null($url->get_pagecontent()) ) {
-			}	
-		}
+    if (0) if ( $cache_force == 'true' ) {
+      $url = new UrlModel($target_url, TRUE);
+      if ( !is_null($url->get_pagecontent()) ) {
+      }  
+    }
 
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
     $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
 
     if ( (C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true')) && (!$network_fetch) && is_null($metalink) ) {/*{{{*/
       if ( file_exists($this->seek_cache_filename) && !$network_fetch ) {
-        $this->syslog( __FUNCTION__, 'FORCE', "Emitting cached markup for {$target_url} <- {$this->seek_cache_filename}" );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Emitting cached markup for {$target_url} <- {$this->seek_cache_filename}" );
         header('Content-Type: application/json');
         header('Content-Length: ' . filesize($this->seek_cache_filename));
         $this->flush_output_buffer();
@@ -358,10 +357,10 @@ class LegiscopeBase extends SystemUtility {
       }
     }/*}}}*/
 
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
     // if ( !is_null($modifier) && !($modifier == 'false') ) 
-    $this->recursive_dump($_POST,0,'FORCE');
+    $this->recursive_dump($_POST,__LINE__);
 
     $url      = new UrlModel($target_url, TRUE);
     $faux_url = NULL;
@@ -371,40 +370,40 @@ class LegiscopeBase extends SystemUtility {
       // in which case we need to use a fake URL to store the results of 
       // the POST.  We'll generate the fake URL here. 
       $metalink = base64_decode($metalink);
-      $metalink = json_decode($metalink, TRUE);
-      // Prepare faux metalink URL by combining the metalink components
-      // with POST target URL query components. After the POST, a new cookie
-      // is returned  
-      if ( 0 < count($metalink) ) {/*{{{*/
-        $metalink_fix     = create_function('$a', 'return (strlen($a) < 32) ? $a : md5($a);' );
-        $query_components = UrlModel::parse_url($url->get_url(),PHP_URL_QUERY);
-        $query_components = UrlModel::decompose_query_parts($query_components);
-        $query_components = array_filter(array_map($metalink_fix,array_merge($query_components, $metalink)));
-        $this->recursive_dump($query_components,0,__LINE__);
-        $query_components = UrlModel::recompose_query_parts($query_components);
-        $whole_url = UrlModel::parse_url($url->get_url());
-        $whole_url['query'] = $query_components;
-        $faux_url = UrlModel::recompose_url($whole_url);
-        $in_db = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh'; // Try to load contents of the faux URL from DB.
-        $this->syslog( __FUNCTION__, __LINE__, "Metalink {$in_db} data received len = " . count($metalink) . ", mapping {$faux_url} <- {$target_url}" );
-        // Now test for presence of a cached file, now that you have a faux url
-        $metalink_cache_filename = UrlModel::get_url_hash($faux_url);
-        $metalink_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$metalink_cache_filename}.generated";
-        $this->seek_cache_filename = $metalink_cache_filename;
+    $metalink = json_decode($metalink, TRUE);
+    // Prepare faux metalink URL by combining the metalink components
+    // with POST target URL query components. After the POST, a new cookie
+    // is returned  
+    if ( 0 < count($metalink) ) {/*{{{*/
+      $metalink_fix     = create_function('$a', 'return (strlen($a) < 32) ? $a : md5($a);' );
+      $query_components = UrlModel::parse_url($url->get_url(),PHP_URL_QUERY);
+      $query_components = UrlModel::decompose_query_parts($query_components);
+      $query_components = array_filter(array_map($metalink_fix,array_merge($query_components, $metalink)));
+      $this->recursive_dump($query_components,__LINE__);
+      $query_components = UrlModel::recompose_query_parts($query_components);
+      $whole_url = UrlModel::parse_url($url->get_url());
+      $whole_url['query'] = $query_components;
+      $faux_url = UrlModel::recompose_url($whole_url);
+      $in_db = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh'; // Try to load contents of the faux URL from DB.
+      $this->syslog( __FUNCTION__, __LINE__, "Metalink {$in_db} data received len = " . count($metalink) . ", mapping {$faux_url} <- {$target_url}" );
+      // Now test for presence of a cached file, now that you have a faux url
+      $metalink_cache_filename = UrlModel::get_url_hash($faux_url);
+      $metalink_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$metalink_cache_filename}.generated";
+      $this->seek_cache_filename = $metalink_cache_filename;
 
-        if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true')  ) {/*{{{*/
-          if ( $network_fetch ) unlink($metalink_cache_filename);
-          else if ( file_exists($metalink_cache_filename) ) {/*{{{*/
-            $this->syslog( __FUNCTION__, __LINE__, "Emitting cached markup for {$url} <- {$metalink_cache_filename}" );
-            header('Content-Type: application/json');
-            header('Content-Length: ' . filesize($metalink_cache_filename));
-            $this->flush_output_buffer();
-            echo file_get_contents($metalink_cache_filename);
-            exit(0);
-          }/*}}}*/
+      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true')  ) {/*{{{*/
+        if ( $network_fetch ) unlink($metalink_cache_filename);
+        else if ( file_exists($metalink_cache_filename) ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "Emitting cached markup for {$url} <- {$metalink_cache_filename}" );
+          header('Content-Type: application/json');
+          header('Content-Length: ' . filesize($metalink_cache_filename));
+          $this->flush_output_buffer();
+          echo file_get_contents($metalink_cache_filename);
+          exit(0);
         }/*}}}*/
-			}/*}}}*/
-			else $metalink = NULL;
+      }/*}}}*/
+    }/*}}}*/
+    else $metalink = NULL;
     }/*}}}*/
 
     $json_reply = array(
@@ -430,17 +429,18 @@ class LegiscopeBase extends SystemUtility {
       ;
 
     //$selenium_session = $this->get_selenium_session()->session('firefox'); 
-    //$this->syslog( __FUNCTION__, 'FORCE', "Obtained Selenium object instance '" . get_class($selenium_session) .'"');
+    //$this->syslog( __FUNCTION__, __LINE__, "Obtained Selenium object instance '" . get_class($selenium_session) .'"');
     //$remote_image = $selenium_session->screenshot();
     //$cache_filename = $url->get_cache_filename();
     //$success = file_put_contents("{$cache_filename}.png", base64_decode($remote_image));
 
     if ( $network_fetch ) {/*{{{*/
 
+			if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
       $successful_fetch = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink );
       $action = $successful_fetch
-        ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
-        : "Failed to retrieve"
+        ? "(marker) Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
+        : "WARNING Failed to retrieve"
         ;
       if (!$successful_fetch) {/*{{{*/
 
@@ -448,7 +448,8 @@ class LegiscopeBase extends SystemUtility {
         $json_reply['message']        = CurlUtility::$last_error_message;
         $json_reply['responseheader'] = CurlUtility::$last_error_message;
         $json_reply['defaulttab']     = 'responseheader';
-        $this->syslog( __FUNCTION__, 'FORCE', "WARNING: Failed to retrieve {$target_url}" );
+        $this->syslog( __FUNCTION__, __LINE__, "WARNING: Failed to retrieve {$target_url}" );
+        $this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
 
       }/*}}}*/
 
@@ -466,16 +467,16 @@ class LegiscopeBase extends SystemUtility {
 
       // Unsuccessful fetch attempt
       $cache_filename = $url->get_cache_filename();
-      $this->syslog( __FUNCTION__, 'FORCE', "Must remove cache file {$cache_filename}" );
+      $this->syslog( __FUNCTION__, __LINE__, "WARNING Must remove cache file {$cache_filename}" );
       $url->remove();
-      
+
     }/*}}}*/
     else if ( !$network_fetch || $successful_fetch ) {/*{{{*/
 
       $json_reply  = array();
       $subject_url = is_null($faux_url) ? $target_url : $faux_url;
 
-      $this->syslog( __FUNCTION__, 'FORCE', "{$action} response from {$subject_url} <- '{$referrer}' cached as {$cached_content} by {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
+      $this->syslog( __FUNCTION__, __LINE__, "{$action} response from {$subject_url} <- '{$referrer}' cached as {$cached_content} by {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
 
       if ( !is_null($faux_url) ) {/*{{{*/
         // If we've loaded content from an ephemeral URL, use the POST target page action for generating links, rather than the fake URL.
@@ -498,12 +499,16 @@ class LegiscopeBase extends SystemUtility {
           if ( $url->is_custom_parse() ) {
             // Defer parsing to per-site parsers
             $structure = array();
-            $this->syslog( __FUNCTION__, 'FORCE', "Deferring parsing to URL-specific parser");
+            $this->recursive_dump($url->get_response_header(),__LINE__);
+            $this->syslog( __FUNCTION__, __LINE__, "Deferring parsing to URL-specific parser");
           } 
           else {
-            $structure = $parser->set_parent_url($url->get_url())->parse_html($pagecontent); // Pass by ref parameter; see RawparseUtility::parse_html(& $h)
+
+            // $this->recursive_dump($url->get_response_header(),__LINE__);
+            $this->syslog( __FUNCTION__, __LINE__, "Response headers for {$url}");
+            $structure = $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header()); // Pass by ref parameter; see RawparseUtility::parse_html(& $h)
             if ( $parser->needs_custom_parser() && !$url->is_custom_parse() ) {
-              $this->syslog( __FUNCTION__, 'FORCE', "Marking for special handling {$url}");
+              $this->syslog( __FUNCTION__, __LINE__, "Marking for special handling {$url}");
               $url->set_custom_parse(TRUE);
             }
           }
@@ -532,24 +537,16 @@ class LegiscopeBase extends SystemUtility {
           if ( FALSE == $url->is_custom_parse() ) {
             // Build anchor links from normalized link array (complete with scheme and host parts)
             $linkset        = $this->generate_linkset($parser->get_containers(), $url->get_url());
-            $seek_structure_filename = "{$this->seek_cache_filename}.structure";
-            if ( !file_exists($seek_structure_filename) || $network_fetch ) {
-              $this->recursive_file_dump(
-                $seek_structure_filename, 
-                $parser->get_containers(),0,'-');
-            }  
-            $structure_html = file_get_contents($seek_structure_filename);
           }
-
-          // $this->syslog( __FUNCTION__, 'FORCE', "Linkset");
+          // $this->syslog( __FUNCTION__, __LINE__, "Linkset");
           extract($linkset); // 'linkset', 'urlhashes', 'cluster_urls'
 
-          $body_content = utf8_decode(utf8_decode( htmlspecialchars_decode($body_content, ENT_NOQUOTES | ENT_HTML401) ));
+          $body_content = htmlspecialchars_decode($body_content, ENT_NOQUOTES | ENT_HTML401);
           $handler_list = $this->get_handler_names($url);
 
           $matched = FALSE;
-          foreach ( $handler_list as $handler_type => $method_name ) {
-            if ( method_exists($this, $method_name) ) {
+          foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
+            if ( method_exists($this, $method_name) ) {/*{{{*/
               $matched |= TRUE;
               $parser->trigger_linktext = $linktext;
               $parser->cluster_urldefs  = $cluster_urls;
@@ -561,22 +558,37 @@ class LegiscopeBase extends SystemUtility {
               $parser->cache_filename   = $this->seek_cache_filename;
               $parser->target_url       = $target_url;
               $parser->metalink_url     = $faux_url; 
-							$parser->linkset          = $linkset;
+              $parser->linkset          = $linkset;
 
+              $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name}");
               $this->$method_name($parser, $body_content, $url);
+              $url->increment_hits()->stow();
 
-							$linkset        = $parser->linkset;
+              $linkset        = $parser->linkset;
               $structure_html = $parser->structure_html;
               $json_reply     = $parser->json_reply; // Merged with response JSON
               $target_url     = $parser->target_url;
 
               break;
-            }
-          }
+            }/*}}}*/
+          }/*}}}*/
+
+          if ( C('ENABLE_STRUCTURE_DUMP') == TRUE && FALSE == $url->is_custom_parse() ) {/*{{{*/
+            $seek_structure_filename = "{$this->seek_cache_filename}.structure";
+            $state = "Fetch";
+            if ( !file_exists($seek_structure_filename) || $network_fetch ) {
+              $this->recursive_file_dump(
+                $seek_structure_filename, 
+                $parser->structure_html,0,'-');
+              $state = "Wrote";
+            }  
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) {$state} {$seek_structure_filename}");
+            $structure_html = file_get_contents($seek_structure_filename);
+          }/*}}}*/
 
           if ( !$matched ) {
-            $this->syslog( __FUNCTION__, 'FORCE', "No custom handler for path " . $url->get_url());
-            $this->recursive_dump($handler_list,0,'FORCE');
+            $this->syslog( __FUNCTION__, __LINE__, "No custom handler for path " . $url->get_url());
+            $this->recursive_dump($handler_list,__LINE__);
           }
           $headers['legiscope-regular-markup'] = 1;
 
@@ -584,11 +596,11 @@ class LegiscopeBase extends SystemUtility {
         else if ( 1 == preg_match('@^application/pdf@i', $headers['content-type']) ) {/*{{{*/
           $body_content = 'PDF';
           $body_content_length = $url->get_content_length();
-          $this->syslog( __FUNCTION__, 'FORCE', "PDF fetch {$body_content_length} from " . $url->get_url());
+          $this->syslog( __FUNCTION__, __LINE__, "PDF fetch {$body_content_length} from " . $url->get_url());
           $headers['legiscope-regular-markup'] = 0;
           // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
-          $json_reply = array('retainoriginal' => 'true');
-          $this->syslog( __FUNCTION__, 'FORCE', "PDF loader, retain original frame");
+          // $json_reply = array('retainoriginal' => 'true');
+          $this->syslog( __FUNCTION__, __LINE__, "PDF loader, retain original frame");
         }/*}}}*/
       }
 
@@ -596,16 +608,17 @@ class LegiscopeBase extends SystemUtility {
         $_SESSION['referrer'] = $target_url;
       }/*}}}*/
       else {/*{{{*/
-        $this->syslog( __FUNCTION__, 'FORCE', "Freeze referrer {$referrer} for " . $url->get_url());
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Freeze referrer {$referrer} for " . $url->get_url());
       }/*}}}*/
 
       $url->fetch($url->get_url(),'url');
       $current_linktext = $url->get_linktext();
       if ( !is_null($linktext) && (!(0 < strlen($current_linktext)) || (1 == preg_match('@^\[@',$linktext))) && ($linktext != $current_linktext)  ) {/*{{{*/
-        $this->syslog( __FUNCTION__, 'FORCE', "Stowing link text '{$linktext}' (currently '{$current_linktext}') for " . $url->get_url());
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing link text '{$linktext}' (currently '{$current_linktext}') for " . $url->get_url());
         $url->set_linktext($linktext)->stow();
       }/*}}}*/
 
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible content length: " . strlen($body_content) );
       $final_body_content = preg_replace(
         array(
           '/<html([^>]*)>/imU',
@@ -624,6 +637,7 @@ class LegiscopeBase extends SystemUtility {
         ),
         $body_content
       );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible final length: " . strlen($final_body_content) );
 
       $json_reply = array_merge(
         array(
@@ -642,7 +656,7 @@ class LegiscopeBase extends SystemUtility {
         $json_reply
       );
 
-      // $this->recursive_dump($json_reply,0,'FORCE');
+      // $this->recursive_dump($json_reply,__LINE__);
       // Post-processing hacks 
       $member_uuid = $this->filter_post('member_uuid');
       if ( !is_null($member_uuid) && $json_reply['httpcode'] == 200 ) {/*{{{*/
@@ -657,8 +671,8 @@ class LegiscopeBase extends SystemUtility {
     if ( 0 < strlen($output_buffer) ) {/*{{{*/
       // Dump content inadvertently generated during this operation.
       $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,'FORCE','WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,0,'FORCE');
+      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
+      $this->recursive_dump($output_buffer,__LINE__);
     }/*}}}*/
 
     if ( get_class($this) == 'LegiscopeBase' ) {/*{{{*/
@@ -675,11 +689,11 @@ class LegiscopeBase extends SystemUtility {
 
     return $json_reply;
   }/*}}}*/
-  
+
   protected function get_handler_names(UrlModel & $url) {/*{{{*/
 
     // Construct post-processing method name from path parts
-		$debug_method = TRUE;
+    $debug_method = TRUE;
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
     $urlpathhash_sans_script = $urlpathhash; 
@@ -701,7 +715,7 @@ class LegiscopeBase extends SystemUtility {
       $no_params = preg_replace('@\({PARAMS}\)@','', $cluster_urls['query_template']);
       $url_query_parts = UrlModel::decompose_query_parts($no_params);
       if ( 0 < count($url_query_parts) ) {
-        // $this->recursive_dump($url_query_parts,0,__LINE__);
+        // $this->recursive_dump($url_query_parts,__LINE__);
         $url_query_components = array();
         foreach( $url_query_parts as $p1 => $p2 ) {
           $url_query_components[] = $p1;
@@ -714,7 +728,7 @@ class LegiscopeBase extends SystemUtility {
     else {/*{{{*/
       $url_query_parts = UrlModel::parse_url($url->get_url(), PHP_URL_QUERY);
       $url_query_parts = UrlModel::decompose_query_parts($url_query_parts);
-      // $this->recursive_dump($url_query_parts,0,__LINE__);
+      // $this->recursive_dump($url_query_parts,__LINE__);
       if ( (0 < count($url_query_parts)) ) {
         // Construct post-parse handler name from query parts
         $seek_postparse_querytype_method = array();
@@ -727,7 +741,7 @@ class LegiscopeBase extends SystemUtility {
         $seek_postparse_querytype_method = strtolower("seek_postparse_{$url_query_parts}");
       }
     }/*}}}*/ 
-    
+
     $method_map = array(
       'by-fullpath' => $seek_postparse_method,
       'by-query'    => $seek_postparse_querytype_method,
@@ -751,7 +765,7 @@ class LegiscopeBase extends SystemUtility {
       $test_url = UrlModel::recompose_url($test_url);
       $test_path = str_replace('/','-',$test_path);
       $method_map['by-path-' . count($url_map) . "{$test_path}"] = 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url);
-      // $this->syslog(__FUNCTION__,'FORCE',"- Test '{$method_name}' <-- {$test_url}" );
+      // $this->syslog(__FUNCTION__,__LINE__,"- Test '{$method_name}' <-- {$test_url}" );
       // if ( method_exists($this, $method_name) ) break;
       // else $method_name = NULL;
     }
@@ -769,9 +783,9 @@ class LegiscopeBase extends SystemUtility {
       if ( array_key_exists($method_name, array_flip($method_list)) ) continue;
       if ( method_exists($this, $method_name) ) {
         $method_list[$method_type] = $method_name;
-				if ( $debug_method ) $this->syslog(__FUNCTION__,'FORCE',"{$method_type} handler '{$method_name}' present." );
+        if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"{$method_type} handler '{$method_name}' present." );
       } else {
-        if ( $debug_method ) $this->syslog(__FUNCTION__,'FORCE',"{$method_type} handler '{$method_name}' missing." );
+        if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) {$method_type} handler '{$method_name}' missing." );
       }
     }
 
@@ -781,6 +795,7 @@ class LegiscopeBase extends SystemUtility {
 
   final function generate_linkset($containers, $url) {/*{{{*/
 
+    $debug_method = FALSE;
     $parent_page = new UrlModel($url,TRUE);
     $parent_page_url_hash = $parent_page->get_urlhash();
 
@@ -789,7 +804,7 @@ class LegiscopeBase extends SystemUtility {
     $method_def     = <<<EOH
 return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a><span class="legiscope-refresh {refresh-' . \$a["urlhash"] . '}" id="refresh-' . \$a["urlhash"] . '">reload</span></li>';
 EOH;
-    // $this->syslog( __FUNCTION__, 'FORCE', "- Method filter {$method_def}" );
+    // $this->syslog( __FUNCTION__, __LINE__, "- Method filter {$method_def}" );
     $link_generator = create_function('$a', $method_def);
     $hash_extract   = <<<EOH
 return array( 'hash' => \$a['urlhash'], 'url' => \$a['url'] ); 
@@ -798,8 +813,10 @@ EOH;
 
     $parent_url = UrlModel::parse_url($url);
 
-    // $this->syslog( '----', __LINE__, "Normalizing URLs on page at {$url}");
-    // $this->recursive_dump($parent_url, 0, '-');
+    if ( $debug_method ) {
+      $this->syslog( '----', __LINE__, "Normalizing URLs on page at {$url}");
+      $this->recursive_dump($parent_url, '-');
+    }
 
     // Generate clusters of links
     $urlhashes = array();
@@ -809,7 +826,7 @@ EOH;
     foreach ( $containers as $container ) {/*{{{*/
 
       // $this->syslog( __FUNCTION__, __LINE__, "Container #{$container_counter}");
-      // $this->recursive_dump($container, 0, __LINE__);
+      // $this->recursive_dump($container, __LINE__);
 
       if ( $container['tagname'] == 'head' ) continue;
       $raw_links = $this->normalize_links($url, $parser, $container['children']);
@@ -849,33 +866,33 @@ EOH;
           }
           $query_part_hashes[$query_hash]['BASE_URL'] = UrlModel::recompose_url($parsed_url);
           $linkitem['query_parts'] = $query_match;
-           
+
         }/*}}}*/
         else $skip_pager_detection = TRUE;
         $normalized_links[$linkitem['urlhash']] = $linkitem;
         // $this->syslog(__FUNCTION__, __LINE__, $linkitem['url']);
       }/*}}}*/
 
-      // $this->recursive_dump($normalized_links, 0, __LINE__);
+      // $this->recursive_dump($normalized_links, __LINE__);
       if ( $skip_pager_detection || ( 0 < strlen($query_hash) ) ) {/*{{{*/
 
-        $this->syslog(__FUNCTION__, __LINE__, "-------- Normalized links, query hash [{$query_hash}]" );
+        if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(warning) -------- Normalized links, query hash [{$query_hash}]" );
 
         $linkset_class = array("link-cluster");
         if ( !$skip_pager_detection && ( 0 < strlen($query_hash) ) && is_array($query_part_hashes[$query_hash]) ) {/*{{{*/
           // Evaluate whether this set of URLs is a pager (from a hash of query components)
-          $this->syslog(__FUNCTION__, __LINE__, "{$this->subject_host_hash}-{$parent_page_url_hash}-{$container_counter} with query hash '{$query_hash}'" );
+          if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "{$this->subject_host_hash}-{$parent_page_url_hash}-{$container_counter} with query hash '{$query_hash}'" );
           // $pager_clusters[$query_hash] = $query_part_hashes[$query_hash];
           $occurrence_count = NULL;
           $variable_params  = array();
           $fixed_params     = array();
           $base_url         = NULL;
-          //$this->recursive_dump($pager_clusters, 0, __LINE__);
+          //$this->recursive_dump($pager_clusters, __LINE__);
           foreach ($query_part_hashes[$query_hash] as $query_param_name => $occurrences ) {/*{{{*/
             if ( $query_param_name == 'BASE_URL' ) {
               $base_url = $occurrences;
               // $this->syslog(__FUNCTION__, __LINE__, "-------- Base URL for this set: [{$base_url}]" );
-              // $this->recursive_dump($query_part_hashes[$query_hash], 0, __LINE__);
+              // $this->recursive_dump($query_part_hashes[$query_hash], __LINE__);
               continue;
             }
             if ( 1 == count($occurrences) ) {
@@ -939,7 +956,7 @@ EOH;
       }/*}}}*/
       else {
         // $this->syslog(__FUNCTION__, __LINE__, "- Skip container: {$query_hash}" );
-        // $this->recursive_dump($query_part_hashes[$query_hash],0,__LINE__);
+        // $this->recursive_dump($query_part_hashes[$query_hash],__LINE__);
       }
     }/*}}}*/
 
@@ -947,7 +964,7 @@ EOH;
 
     if ( 0 < count($cluster_urls) ) {
       // $this->syslog(__FUNCTION__, __LINE__, "- Found pager query parameters" );
-      // $this->recursive_dump($cluster_urls,0,__LINE__);
+      // $this->recursive_dump($cluster_urls,__LINE__);
       // Normalize pager query URLs
       foreach( $cluster_urls as $cluster_url_uid => $pager_def ) {
         $urlparts = UrlModel::parse_url($pager_def['query_base_url']);
@@ -992,16 +1009,16 @@ EOH;
       // Collect all URL hashes.
       // Construct UrlEdgeModel join table entries for extant records. 
       while ( $url_cache_iterator->recordfetch($result) ) {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "{$parent_in_db} Found record {$result['id']} -> {$result['urlhash']} ({$result['content_type']})");
-        $this->recursive_dump($result,0,__LINE__);
+        // $this->syslog( __FUNCTION__, __LINE__, "{$parent_in_db} Found record {$result['id']} -> {$result['urlhash']} ({$result['content_type']})");
+        // $this->recursive_dump($result, $h > 2 ? '(skip)' : __LINE__);
         $idlist[] = $result['id'];
         $hashlist[] = $result['urlhash'];
         $n++;
       }/*}}}*/
       $hashlist = join('|', $hashlist);
-			// Add 'cached' and 'refresh' class to selectors
+      // Add 'cached' and 'refresh' class to selectors
       $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
-			// TODO: Implement link aging
+      // TODO: Implement link aging
       $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
       $this->syslog( __FUNCTION__, __LINE__, "-- Marked {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/
@@ -1033,7 +1050,7 @@ EOH;
 
       if ( FALSE === ($normalized_link = UrlModel::normalize_url($parent_url, $link_item)) ) continue;
 
-      $this->syslog( __FUNCTION__, '-', "{$normalized_link} ({$link_item['text']}) <- {$link_item['url']} [" . join(',',array_keys($link_item['urlparts'])) . " -> " .join(',',$link_item['urlparts']) . "] <{$q['path']}>");
+      // $this->syslog( __FUNCTION__, __LINE__, "{$normalized_link} ({$link_item['text']}) <- {$link_item['url']} [" . join(',',array_keys($link_item['urlparts'])) . " -> " .join(',',$link_item['urlparts']) . "] <{$q['path']}>");
 
       $normalized_links[] = array(
         'url'      => $normalized_link,
@@ -1051,7 +1068,7 @@ EOH;
     $paginator_form = array_values(array_filter(array_map($extract_form, $containers)));
     return $paginator_form;
   }/*}}}*/
-  
+
   function extract_form_controls($form_control_source) {/*{{{*/
 
     $form_controls        = array();
@@ -1076,7 +1093,7 @@ EOH;
 
       $userset = array();
       foreach ( $select_options as $select_option ) {
-        //$this->recursive_dump($select_options,0,__LINE__);
+        //$this->recursive_dump($select_options,__LINE__);
         $select_name    = $select_option['name'];
         $select_option  = $select_option['keys'];
         foreach ( $select_option as $option ) {
@@ -1096,14 +1113,14 @@ EOH;
 
   function perform_network_fetch( & $url, $referrer, $target_url, $faux_url, $metalink, $debug_dump = FALSE ) {/*{{{*/
     // Cache response if it's length exceeds the maximum length of a varchar field. 
-		$debug_dump = FALSE;
+    $debug_dump = TRUE;
     $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
     if ( $debug_dump ) {/*{{{*/
-      $this->syslog(__FUNCTION__,'FORCE',"Referrer: {$referrer}");
-      $this->syslog(__FUNCTION__,'FORCE',"Target URL: {$target_url}");
-      $this->syslog(__FUNCTION__,'FORCE',"Metalink URL: {$faux_url}");
-      $this->syslog(__FUNCTION__,'FORCE',"Metalink data:");
-      $this->recursive_dump($metalink,0,'FORCE');
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Referrer: {$referrer}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Target URL: {$target_url}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Metalink URL: {$faux_url}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Metalink data:");
+      $this->recursive_dump($metalink,__LINE__);
     }/*}}}*/
     $curl_options = array(
       CURLOPT_COOKIESESSION  => is_null($session_has_cookie),
@@ -1117,35 +1134,35 @@ EOH;
     if ( !is_null($session_has_cookie) ) {
       $curl_options[CURLOPT_COOKIE] = $session_has_cookie;
     }
-    $url_copy         = $target_url; // CurlUtility methods modify the URL parameter (passed by ref)
+    $url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
     $skip_get         = FALSE;
     $successful_fetch = FALSE;
 
     if ( is_array($metalink) ) {/*{{{*/
       // FIXME:  SECURITY DEFECT: Don't forward user-submitted input 
       if ( $debug_dump ) {/*{{{*/
-        $this->recursive_dump($metalink,0,'FORCE');
-        $this->syslog( __FUNCTION__, 'FORCE', "Execute POST to {$url_copy}" );
+        $this->recursive_dump($metalink,'(marker)');
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute POST to {$url_copy}" );
       }/*}}}*/
       $response = CurlUtility::post($url_copy, $metalink, $curl_options);
-      //$this->recursive_dump(CurlUtility::$last_transfer_info, 0, 'FORCE');
+      //$this->recursive_dump(CurlUtility::$last_transfer_info, __LINE__);
       if ( array_key_exists(intval(CurlUtility::$last_transfer_info['http_code']),array_flip(array(100,302,301,504))))
         $skip_get = FALSE;
       else
         $skip_get = TRUE;
-      $url_copy = $target_url; // CurlUtility methods modify the URL parameter (passed by ref)
+      $url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
       $successful_fetch = CurlUtility::$last_error_number == 0;
     }/*}}}*/
 
     if ( !$skip_get ) {/*{{{*/
       if ( $debug_dump ) {/*{{{*/
-        $this->syslog( __FUNCTION__, 'FORCE', "Execute GET/HEAD to {$url_copy}" );
+        $this->syslog( __FUNCTION__, __LINE__, "Execute GET/HEAD to {$url_copy}" );
       }/*}}}*/
       $response = $modifier == 'true'
         ? CurlUtility::head($url_copy, $curl_options)
         : CurlUtility::get($url_copy, $curl_options)
         ;
-      //$this->recursive_dump(CurlUtility::$last_transfer_info, 0, 'FORCE');
+      $this->recursive_dump(CurlUtility::$last_transfer_info, __LINE__);
       $successful_fetch = CurlUtility::$last_error_number == 0;
     }/*}}}*/
 
@@ -1156,10 +1173,10 @@ EOH;
       if ( 0 < count($cookie_lines) ) {
         $curl_cookie = array();
         foreach ( $cookie_lines as $cookie_item ) {
-          // $this->syslog( __FUNCTION__, 'FORCE', "Extracting cookie {$cookie_item}" );
+          // $this->syslog( __FUNCTION__, __LINE__, "Extracting cookie {$cookie_item}" );
           $cookie_parts = array();
           if (!( 0 < intval(preg_match_all('@([^=]*)=([^;]*)[; ]?@',$cookie_item,$cookie_parts,PREG_SET_ORDER)))) continue;
-          // $this->recursive_dump($cookie_parts,0,'FORCE');
+          // $this->recursive_dump($cookie_parts,__LINE__);
           foreach ( $cookie_parts as $cookie_components ) {
             $cookie_components[1] = trim($cookie_components[1]);
             $curl_cookie[] = "{$cookie_components[1]}={$cookie_components[2]}";
@@ -1171,35 +1188,43 @@ EOH;
 
     if ( $successful_fetch ) {/*{{{*/
       // If we used a metalink to specify POST action parameters, change to the faux URL first
-      if ( is_array($metalink) ) $url->set_url($faux_url,TRUE);
+			if ( is_array($metalink) ) {
+			 	$url->set_url($faux_url,FALSE);
+			}
       // Split response into header and content parts
       $transfer_info = CurlUtility::$last_transfer_info;
       $http_code = array_key_exists('http_code', $transfer_info) ? intval($transfer_info['http_code']) : 400;
       if ( 400 <= $http_code && $http_code < 500 ) {
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, 'FORCE', "cURL last_transfer_info" );
-          $this->recursive_dump($transfer_info, 0, 'FORCE');
-        }/*}}}*/
+        $this->syslog( __FUNCTION__, __LINE__, "(warning) cURL last_transfer_info" );
+        $this->recursive_dump($transfer_info, "(warning) HTTP {$http_code}");
         $successful_fetch = FALSE;
       } else {
-				// Store contents to disk (DB/cache file)
-        $page_content_result = $url->set_pagecontent($response);
+        // Store contents to disk (DB/cache file)
+        $page_content_result = $url->set_pagecontent($response); // No stow() yet
         if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, 'FORCE', "Result set_pagecontent" );
-          $this->recursive_dump($page_content_result, 0, 'FORCE');
+					$hash = $url->get_content_hash();
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Result [{$hash}] set_pagecontent for " . $url->get_url() );
+          $this->recursive_dump($page_content_result,"(marker)");
         }/*}}}*/
         $url->set_last_fetch(time());
-        $url->increment_hits();
-        $url->set_linktext($linktext)->stow();
+        $url->set_linktext($linktext)->increment_hits()->stow();
         if ( is_array($metalink) ) {
-          $url->set_url($target_url,TRUE);
-					$url->set_pagecontent($response);
+					$faux_url_instance = new UrlModel($faux_url,TRUE);
+					$faux_url_instance->set_pagecontent($response);
+					$faux_stow = $faux_url_instance->stow();
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing content to fake URL {$faux_url} " );
+
+					$url->fetch($target_url,'url');
+          $url->set_pagecontent($response);
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Assigned content to target URL {$target_url}" );
         }
-				// $this->syslog( __FUNCTION__, 'FORCE', "Final content length: " . strlen($url->get_pagecontent()) );
-				// $this->syslog( __FUNCTION__, 'FORCE', "Final content SHA1: " . sha1($url->get_pagecontent()) );
+        // $this->syslog( __FUNCTION__, __LINE__, "Final content length: " . strlen($url->get_pagecontent()) );
+        // $this->syslog( __FUNCTION__, __LINE__, "Final content SHA1: " . sha1($url->get_pagecontent()) );
       }
     }/*}}}*/
+
     return $successful_fetch;
+
   }/*}}}*/
 
   function get_session_cookies($host_hash, $as_array = FALSE) {/*{{{*/
@@ -1227,11 +1252,11 @@ EOH;
     if ( $session_data_present && is_array($session_data) && array_key_exists('COOKIES', $session_data) ) {
       $this->syslog(__FUNCTION__, __LINE__, "Extracting cookies for host {$host_hash}");
       $extract_cookiepairs = create_function('$a', 'return $a["name"] . "=" . $a["value"];');
-      $this->recursive_dump($session_data['COOKIES'],0,__LINE__);
+      $this->recursive_dump($session_data['COOKIES'],__LINE__);
       $session_cookies = join('; ', array_map($extract_cookiepairs, $session_data['COOKIES']));
     } else {
-      $this->syslog(__FUNCTION__, 'FORCE', "No key 'COOKIES' found for {$host_hash}");
-      $this->recursive_dump($session_data,0,'FORCE');
+      $this->syslog(__FUNCTION__, __LINE__, "No key 'COOKIES' found for {$host_hash}");
+      $this->recursive_dump($session_data,__LINE__);
     }
 
     $this->syslog(__FUNCTION__, __LINE__, "Current session cookies: '{$session_cookies}'");

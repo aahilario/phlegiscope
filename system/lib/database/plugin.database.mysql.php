@@ -12,6 +12,8 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 
   private $ls_last_operation_result = NULL;
   private $ls_last_operation_affected_rows = NULL;
+	private $ls_last_operation_sql = NULL;
+	private $ls_last_operation_errdesc = NULL;
   private $ls_result = NULL;
 
   function __construct($dbhost = NULL, $dbuser = NULL, $dbpass = NULL, $dbname = NULL) {/*{{{*/
@@ -46,6 +48,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     }
     $this->ls_last_operation_result = NULL;
     $this->ls_last_operation_affected_rows = NULL;
+		$this->ls_last_operation_errdesc = NULL;
     $this->ls_result = NULL;
 
     if ( is_null($bindparams) ) {
@@ -91,9 +94,14 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
       }
       $resultset = $prepare_hdl->execute();
     }
+		$this->ls_last_operation_sql = $sql;
     // If the resultset is a boolean, return it
     if ( is_bool($resultset) ) {
-      if (C('DEBUG_'.get_class($this))) syslog( LOG_INFO,  __METHOD__ . ": Boolean result " . ($resultset ? 'TRUE' : 'FALSE') );  
+      syslog( LOG_INFO,  __METHOD__ . ": Boolean result " . ($resultset ? 'TRUE' : 'FALSE') . " query {$sql}" );  
+			if ( $resultset == FALSE ) {
+				$this->ls_last_operation_errdesc = $this->error;
+				syslog( LOG_INFO,  __METHOD__ . ": Last error: {$this->ls_last_operation_errdesc}" );  
+			}
       $this->ls_last_operation_result = $resultset;
       $this->ls_last_operation_affected_rows = NULL;
       return $resultset;
@@ -119,7 +127,10 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
       : $this->ls_result->num_rows
       ;
     if ( is_bool($result) ) {
-      syslog( LOG_INFO, get_class($this) . '::' . __METHOD__ . ": Boolean result " . ($result ? 'TRUE' : 'FALSE') );  
+      syslog( LOG_INFO, get_class($this) . '::' . __METHOD__ . ": Boolean result " . ($result ? 'TRUE' : 'FALSE') . " query {$this->ls_last_operation_sql}" );
+			if ( FALSE == $result ) {
+				syslog( LOG_INFO,  __METHOD__ . ": Last error: {$this->ls_last_operation_errdesc}" );  
+			}
     }
     return $result;
   }

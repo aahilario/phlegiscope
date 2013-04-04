@@ -14,14 +14,14 @@ class SenateBillInfoParseUtility extends GenericParseUtility {
     parent::__construct();
   }
 
-  function parse_html($content) {
-    parent::parse_html($content);
+  function parse_html($content, array $response_headers) {
+    parent::parse_html($content, $response_headers);
     // $extract_containers = create_function('$a', 'return (("table" == $a["tagname"]) && (1 == preg_match("@^(lis_table|container)@i", $a["id"]))) ? array($a["id"] => $a["children"]) : NULL;');
     // $containers         = array_values(array_filter(array_map($extract_containers, $this->get_containers())));
     $containers = $this->get_containers();
     if ( $this->debug_tags ) {
       $this->syslog( __FUNCTION__, 'FORCE', "Final structure" );
-      $this->recursive_dump($containers,0,'FORCE');
+      $this->recursive_dump($containers,'(warning)');
     }
     $heading_map = array(
       'Long title'          => 'description',
@@ -112,7 +112,7 @@ class SenateBillInfoParseUtility extends GenericParseUtility {
       if ( array_key_exists('url', $v) ) $senate_bill_recordparts[$k] = json_encode($v);
       else $senate_bill_recordparts[$k] = trim(join(' ', $v));
     }
-    if ( $this->debug_tags ) $this->recursive_dump($senate_bill_recordparts,0,'FORCE');
+    if ( $this->debug_tags ) $this->recursive_dump($senate_bill_recordparts,'(warning)');
     return $senate_bill_recordparts;
   }
 
@@ -120,7 +120,7 @@ class SenateBillInfoParseUtility extends GenericParseUtility {
     $this->push_container_def($tag, $attrs);
     if ($this->debug_tags) {
       $this->syslog( __FUNCTION__, 'FORCE', $this->get_stacktags() . " --- {$this->current_tag['tag']}" );
-      $this->recursive_dump($attrs,0,'FORCE');
+      $this->recursive_dump($attrs,'(warning)');
     }
     return TRUE;
   }/*}}}*/
@@ -140,7 +140,7 @@ class SenateBillInfoParseUtility extends GenericParseUtility {
     }
     if ($this->debug_tags) {
       $this->syslog( __FUNCTION__, 'FORCE', $this->get_stacktags() . " --- {$this->current_tag['tag']}" );
-      $this->recursive_dump($this->current_tag,0,'FORCE');
+      $this->recursive_dump($this->current_tag,'(warning)');
     }
     return TRUE;
   }/*}}}*/

@@ -2,25 +2,29 @@
 
 class RawparseUtility extends SystemUtility {/*{{{*/
 
-  protected $headerset       = array();
-  protected $parser          = NULL;
-  protected $current_tag     = NULL;
-  protected $tag_stack       = array();
-  protected $links           = array();
-  protected $container_stack = array();
-  private $containers      = array();
-  protected $filtered_doc    = array();
+  protected $headerset            = array();
+  protected $parser               = NULL;
+  protected $current_tag          = NULL;
+  protected $tag_stack            = array();
+  protected $links                = array();
+  protected $container_stack      = array();
+  private $containers             = array();
+  protected $filtered_doc         = array();
   protected $custom_parser_needed = FALSE;
-  protected $page_url_parts  = array();
+  protected $page_url_parts       = array();
   protected $removable_containers = array();
   private $hash_generator_counter = 0;
-  private $tag_counter = 0;
-  private $doctype_reached = FALSE;
+  private $tag_counter            = 0;
+
   /*
    * HTML document XML parser class
    */
 
   function __construct() {/*{{{*/
+    $this->initialize();
+  }/*}}}*/
+  
+  protected function initialize() {/*{{{*/
     $this->parser = xml_parser_create('UTF-8');
     xml_set_object($this->parser, $this);
     xml_set_element_handler($this->parser, 'ru_tag_open', 'ru_tag_close');
@@ -30,7 +34,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
     xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1 );
     xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
   }/*}}}*/
-  
+
   function attributes_as_string($attrs, $as_array = FALSE, $concat_with = " ") {/*{{{*/
     $attrstr = array();
     foreach ( $attrs as $key => $val ) {
@@ -40,43 +44,48 @@ class RawparseUtility extends SystemUtility {/*{{{*/
 EOH;
     }
     if ( !$as_array ) $attrstr = join($concat_with, $attrstr);
-    // $this->syslog(__FUNCTION__,'FORCE',"- {$attrstr}");
+    // $this->syslog(__FUNCTION__,__LINE__,"- {$attrstr}");
     return $attrstr;
   }/*}}}*/
 
-  function needs_custom_parser() {
+  function needs_custom_parser() {/*{{{*/
     return $this->custom_parser_needed;
-  }
+  }/*}}}*/
 
-  function & set_parent_url($url) {
+  function & set_parent_url($url) {/*{{{*/
     $this->page_url_parts = UrlModel::parse_url($url);
     return $this;
-  }
+  }/*}}}*/
 
-  function & reorder_with_sequence_tags(& $c) {
+  function & reorder_with_sequence_tags(& $c) {/*{{{*/
     // Reorder containers by stream context sequence number
     // If child tags in a container possess a 'seq' ordinal value key (stream/HTML rendering context sequence number),
     // then these children are reordered using that ordinal value.
     if ( is_array($c) ) {
-      $sequence_num = create_function('$a', 'return array_key_exists("seq",$a) ? $a["seq"] : (array_key_exists("seq",$a["attrs"]) ? $a["attrs"]["seq"] : NULL);');
-      $filter_src   = create_function('$a', '$rv = array_key_exists("seq",$a) ? $a        : (array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
-      $containers   = array_map($sequence_num, $c);
+      if ( array_key_exists('children', $c) ) return $this->reorder_with_sequence_tags($c['children']);
+      $sequence_num = create_function('$a', 'return is_array($a) && array_key_exists("seq",$a) ? $a["seq"] : (is_array($a["attrs"]) && array_key_exists("seq",$a["attrs"]) ? $a["attrs"]["seq"] : NULL);');
+      $filter_src   = create_function('$a', '$rv = is_array($a) && array_key_exists("seq",$a)  ? $a        : (is_array($a["attrs"]) && array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
+      $containers   = array_filter(array_map($sequence_num, $c));
       if ( is_array($containers) && (0 < count($containers))) {
         $containers = array_combine(
           $containers,
-          array_map($filter_src, $c)
+          array_filter(array_map($filter_src, $c))
         );
-        ksort($containers);
-        $c = $containers;
+        if ( is_array($containers) ) {
+          ksort($containers);
+          $c = $containers;
+        }
+      } else {
+        
       }
     }
     return $this;
-  }
+  }/*}}}*/
 
-  function & mark_container_sequence() {
+  function & mark_container_sequence() {/*{{{*/
     $this->reorder_with_sequence_tags($this->containers);
     return $this;
-  }
+  }/*}}}*/
 
   function get_map_functions($docpath, $d = 0) {/*{{{*/
     // A mutable alternative to XPath
@@ -99,10 +108,10 @@ EOH;
 
     foreach ( $selectors as $condition ) {
 
-      if ( $this->debug_operators ) $this->syslog(__FUNCTION__,'FORCE',">>> Decomposing '{$condition}'");
+      if ( $this->debug_operators ) $this->syslog(__FUNCTION__,__LINE__,">>> Decomposing '{$condition}'");
 
       if ( !(1 == preg_match('@([^*=]*)(\*=|=)*(.*)@', $condition, $p)) ) {
-        $this->syslog(__FUNCTION__,'FORCE',"--- WARNING: Unparseable condition. Terminating recursion.");
+        $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Unparseable condition. Terminating recursion.");
         return array();
       }
       $attr = $p[1];
@@ -110,16 +119,27 @@ EOH;
       $val  = $p[3];
 
       if ($this->debug_operators) {/*{{{*/
-        $this->recursive_dump($p,0,'FORCE');
+        $this->recursive_dump($p,"(marker) Selector components" );
       }/*}}}*/
 
-      if ( !empty($attr) ) $conditions[] = 'array_key_exists("'.$attr.'", $a)';
+      $attparts = '';
+      if ( !empty($attr) ) {
+        // Specify a match on nested arrays using [kd1:kd2] to match against
+        // $a[kd1][kd2] 
+        foreach ( explode(':', $attr) as $sa ) {
+          $conditions[] = 'array_key_exists("'.$sa.'", $a'.$attparts.')';
+          $attparts .= "['{$sa}']";
+        }
+      }
 
       if ( empty($val) ) {
         // There is only an attribute to check for.  Include source element if the attribute exists 
         if (!is_array($returnable)) $returnable = '$a["'.$attr.'"]';
       } else if ( $conn == '=' ) {
-        $conditions[] = '$a["'.$attr.'"] == "'.$val.'"';
+        // Allow condition '*' to stand for any matchable value; 
+        // if an asterisk is specified, then the match for a specific
+        // value is omitted, so only existence of the key is required.
+        if ( $val != '*' ) $conditions[] = '$a["'.$attr.'"] == "'.$val.'"';
       } else if ($conn == '*=') {
         $split_val = explode('|', $val);
         $regex_modifier = NULL;
@@ -128,10 +148,10 @@ EOH;
           array_pop($split_val);
           $val = join('|',$split_val);
         }
-        $conditions[] = '1 == preg_match("@('.$val.')@'.$regex_modifier.'",$a["'.$attr.'"])';
+        $conditions[] = '1 == preg_match("@('.$val.')@'.$regex_modifier.'",$a'.$attparts.')';
         if ( $returnable == '*' ) $returnable = '$a["'.$attr.'"]';
       } else {
-        $this->syslog(__FUNCTION__,'FORCE',"Unrecognized comparison operator '{$conn}'");
+        $this->syslog(__FUNCTION__,__LINE__,"Unrecognized comparison operator '{$conn}'");
       }
     }
 
@@ -147,7 +167,9 @@ EOH;
       }
     } else {
       if ( $returnable == '*' ) {
-        $this->syslog(__FUNCTION__,'FORCE',"--- WARNING: Map function will be unusable, no return value (currently '{$returnable}') in map function.  Bailing out");
+        // If the returnable attribute is given as '*', return the entire array value.
+        // $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Map function will be unusable, no return value (currently '{$returnable}') in map function.  Bailing out");
+        $returnable_match = '$a';
       } else {
         $returnable_match = $returnable;
       }
@@ -156,16 +178,16 @@ EOH;
     $map_functions[] = $map_condition;
 
     if ($this->debug_operators) {/*{{{*/
-      $this->syslog(__FUNCTION__,'FORCE',"- Extracting from '{$docpath}'");
-      $this->recursive_dump($matches,0,'FORCE');
-      $this->syslog(__FUNCTION__,'FORCE',"- Map function derived at depth {$d}: {$map_condition}");
-      $this->recursive_dump($conditions,0,'FORCE');
+      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Extracting from '{$docpath}'");
+      $this->recursive_dump($matches,"(marker) matches");
+      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Map function derived at depth {$d}: {$map_condition}");
+      $this->recursive_dump($conditions,"(marker) conditions");
     }/*}}}*/
 
     if ( is_array($subjects) && 0 < count($subjects) ) {
       foreach ( $subjects as $subpath ) {
         if ($this->debug_operators) {/*{{{*/
-          $this->syslog(__FUNCTION__,'FORCE',"- Passing sub-path at depth {$d}: {$subpath}");
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Passing sub-path at depth {$d}: {$subpath}");
         }/*}}}*/
         $submap = $this->get_map_functions($subpath, $d+1);
         if ( is_array($submap) ) $map_functions = array_merge($map_functions, $submap);
@@ -175,14 +197,14 @@ EOH;
     return $map_functions;
   }/*}}}*/
 
-  function resequence_children(& $containers) {
+  function resequence_children(& $containers) {/*{{{*/
     return array_walk(
       $containers,
       // create_function('& $a, $k, $s', 'if ( array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'),
       create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
       $this
     );
-  }
+  }/*}}}*/
 
   function & get_containers($docpath = NULL) {
     $this->filtered_containers = array();
@@ -193,22 +215,33 @@ EOH;
     if ( !is_null($docpath) ) {
       $filter_map = $this->get_map_functions($docpath);
       if ( $this->debug_operators ) {
-        $this->syslog(__FUNCTION__,'FORCE',"------ Containers to process: " . count($this->containers));
-        $this->recursive_dump($filter_map,0,'FORCE');
+        $this->syslog(__FUNCTION__,__LINE__,"------ (marker) Containers to process: " . count($this->containers));
+        $this->recursive_dump($filter_map,'(marker)');
       }
       $this->filtered_containers = $this->containers;
       foreach ( $filter_map as $i => $map ) {
         if ( $i == 0 ) {
+          if ( $this->debug_operators ) {
+            $n = count($this->filtered_containers);
+            $this->syslog(__FUNCTION__,__LINE__,"A ------ (marker) N = {$n} Map: {$map}");
+          }
           $this->filtered_containers = array_filter(array_map(create_function('$a',$map), $this->filtered_containers));
+          if ( $this->debug_operators ) {
+            $n = count($this->filtered_containers);
+            $this->syslog(__FUNCTION__,__LINE__,"A <<<<<< (marker) N = {$n} Map: {$map}");
+          }
           $this->resequence_children($this->filtered_containers);
         } else {
+          if ( $this->debug_operators ) {
+            $this->syslog(__FUNCTION__,__LINE__,"B ------ (marker) N = {$n} Map: {$a}");
+          }
           foreach ( $this->filtered_containers as $seq => $m ) {
             $this->filtered_containers[$seq] = array_filter(array_map(create_function('$a',$map), $m));
           }
         }
         if ( $this->debug_operators ) {
-          $this->syslog(__FUNCTION__,'FORCE',"- Map #{$i} - {$map}");
-          $this->recursive_dump($this->filtered_containers,0,'FORCE');
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Map #{$i} - {$map}");
+          $this->recursive_dump($this->filtered_containers,'(marker)');
         }
       }
       return $this->filtered_containers;
@@ -272,119 +305,136 @@ EOH;
     return $rawhtml;
   }/*}}}*/
 
-  function normalize( & $scrubbed_html, $utf8_encode_ignore = TRUE ) {/*{{{*/
-
-    if ( empty($scrubbed_html) ) return FALSE;
-
-    $dom           = new DOMDocument('1.0');
-    $dom->recover = TRUE;
-    $loadresult    = $dom->loadHTML($scrubbed_html);
-    $dom->normalize();
-    $scrubbed_html = $dom->saveXML();
-    if ( !$loadresult ) $this->syslog( __FUNCTION__, 'FORCE', "-- WARNING: Failed to filtering HTML as XML, load result FAIL" );
-
-    return $loadresult;
-  }/*}}}*/
 
   function reset() {/*{{{*/
+    if ( !is_null($this->parser) ) {
+      xml_parser_free($this->parser);
+      $this->parser = NULL;
+    }
+    $this->initialize();
     $this->current_tag     = NULL;
     $this->tag_stack       = array();
     $this->links           = array();
     $this->container_stack = array();
     $this->containers      = array();
     $this->filtered_doc    = array();
-    $this->doctype_reached = FALSE;
+    return $this;
   }/*}}}*/
 
-  function parse_html(& $raw_html, $only_scrub = FALSE) {/*{{{*/
+  function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {/*{{{*/
 
     $this->reset();
 
     if ( empty($raw_html) ) {
-      $this->syslog(__FUNCTION__,'FORCE', "Nothing to parse. Returning NULL");
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) Nothing to parse. Returning NULL");
        return NULL;
     }
 
-    $scrubbed_html = preg_replace(
+    $raw_html = join('',array_filter(explode("\n",str_replace(
       array(
-        '/^<DOCTYPE([^>]*)/imU',
-        '/<html([^>]*)>/imU',
-        '/>([ ]*)</m',
-        '/<!--(.*)-->/imUx',
-        '@<noscript>(.*)</noscript>@imU',
-        '@<script([^>]*)>(.*)</script>@imU',
-      ),
-      array(
-        '',
-        '<html>',
+        "\r",
         '><',
-        '',
-        '',
-        '',
-        '',
       ),
-      $raw_html
-    );
+      array(
+        "\n",
+        ">\n<",
+      ), 
+      preg_replace(
+        array(
+          '@(<\!doctype(.*)>)@im',
+          '/<html([^>]*)>/imU',
+          '/>([ ]*)</m',
 
-    $raw_html = array_filter(explode("\n",str_replace('><', ">\n<", $scrubbed_html)));
+          '/<!--(.*)-->/imUx',
+          '@<noscript>(.*)</noscript>@imU',
+          '@<script([^>]*)>(.*)</script>@imU',
 
-    libxml_use_internal_errors(true);
+          //'@([[:cntrl:]]*)@',
+        ),
+        array(
+          '',
+          '<html>',
+          '><',
 
-    $this->normalize($scrubbed_html, FALSE);
+          '',
+          '',
+          '',
 
-    // Parse HTML into structure
-    $target_struct = array();
-    $struct_index = NULL;
-    $size_ok = strlen($scrubbed_html) < 2097152;
+          //'',
+        ),
+        $raw_html
+      )
+    ))));
 
-    if ( $size_ok ) {
-      $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-      xml_parse_into_struct($this->parser, $scrubbed_html, $target_struct, $struct_index);
-      $xml_errno = xml_get_error_code($this->parser);
-    } else {
-      $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-      xml_parse($this->parser, $scrubbed_html);
+    libxml_use_internal_errors(TRUE);
+    libxml_clear_errors();
+
+    $doctype_match = 'content-type';
+    if ( !array_key_exists($doctype_match, $response_headers) ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) Missing key '{$doctype_match}' for encoding check. Count " . count($response_headers) );
+      $this->recursive_dump($response_headers,'(warning) - Must use doctype');
     }
 
-    // $this->recursive_dump($target_struct,0,'FORCE');
+    $doctype_match = array(); 
+    $content_type = array_key_exists('content-type', $response_headers) &&
+      1 == preg_match('@charset=([^;]*)@', $response_headers['content-type'], $doctype_match)
+      ? strtolower($doctype_match[1])
+      : 'iso-8859-1' // Default assumption
+      ;
+    $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}'" );
+    // Parse HTML into structure
+    $target_struct            = array();
+    $struct_index             = NULL;
+    $dom                      = new DOMDocument();
+    $dom->recover             = TRUE;
+    $dom->preserveWhiteSpace  = FALSE;
+    $dom->strictErrorChecking = FALSE;
+    $dom->substituteEntities  = FALSE;
+
+    if ( $content_type == 'iso-8859-1' ) {
+      $loadresult   = $dom->loadHTML($raw_html);
+    } else if ( $content_type == 'utf-8' ) {
+      $loadresult   = $dom->loadHTML($raw_html);
+    } else {
+      $loadresult   = $dom->loadHTML($raw_html);
+    }
+    $dom->normalizeDocument();
+
+    if ( !$loadresult ) $this->syslog( __FUNCTION__, __LINE__, "-- WARNING: Failed to filtering HTML as XML, load result FAIL" );
+
+    $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
+    xml_parse($this->parser, $dom->saveXML());
+    $xml_errno = xml_get_error_code($this->parser);
 
     if ( $xml_errno == 0 ) {
 
       $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-      $dom = new DOMDocument('1.0');
-      $dom->loadXML($scrubbed_html);
+      $dom->loadXML($raw_html);
       $dom->formatOutput = TRUE;
-      $scrubbed_html = NULL;
-
-      if ( $size_ok ) {
-        $this->syslog(__FUNCTION__,'FORCE', "--------------------------- " . __LINE__ );
-        $raw_html = array_filter(explode("\n",str_replace('><', ">\n<", $dom->saveHTML())));
-      } else {
-        $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-        $this->custom_parser_needed = TRUE;
-        $raw_html = $this->filtered_doc;
-        $this->filtered_doc = array();
-      }
+      $raw_html = $dom->saveHTML();
+      $this->syslog(__FUNCTION__,__LINE__, " - Parse OK: \n" . substr($raw_html,0,500));
 
     } else {
 
-      $this->syslog(__FUNCTION__,'FORCE', "--------------------------- " . __LINE__ );
+      $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
       $error_offset = xml_get_current_byte_index($this->parser);
       $xml_errstr = xml_error_string($xml_errno);
-      $this->syslog( __FUNCTION__, 'FORCE', 
+      $this->syslog( __FUNCTION__, __LINE__, 
         "PARSE ERROR #{$xml_errno}: {$xml_errstr} " . 
-        "offset {$error_offset} context " . substr($scrubbed_html, $error_offset, 100)
+        "offset {$error_offset} context " . substr($dom->saveXML(), $error_offset - 100, 200)
       );
+      $errors = libxml_get_errors();
+      foreach ($errors as $error) {
+        $this->syslog(__FUNCTION__,__LINE__,"- Parse err @ line {$error->line} col {$error->column}: {$error->message}");
+      }
 
     }
 
-    if ( is_array($raw_html) ) $raw_html = join('',$raw_html);
     $only_non_empty = create_function('$a', 'return 0 < count($a["children"]) ? $a : NULL;');
-    $filtered_containers = array_filter(array_map($only_non_empty,$this->containers));
-    $this->containers = $filtered_containers;
-    // $this->recursive_dump($this->containers,0,'FORCE');
+    $this->containers = array_filter(array_map($only_non_empty,$this->containers));
+    if ( $this->debug_tags ) $this->recursive_dump($this->containers,'(marker)');
 
-    return is_null($target_struct) ? $this->containers : $target_struct;
+    return $this->containers;
 
   }/*}}}*/
 
@@ -423,10 +473,8 @@ EOH;
 
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
     $tag = strtoupper($tag);
-    // $this->syslog(__FUNCTION__,'FORCE',">>>>>>>>>>>>>>>> {$tag}" );
+    // $this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>> {$tag}" );
     if ( $tag == 'HTTP:' ) return; 
-    if ( $tag == 'HTML' ) $this->doctype_reached = TRUE;
-    if ( !$this->doctype_reached ) return;
     $tag_handler = strtolower("ru_{$tag}_open");
     $current_tag = array(
       'tag' => $tag, 
@@ -456,8 +504,6 @@ EOH;
   }/*}}}*/
 
   function ru_tag_close($parser, $tag) {/*{{{*/
-    if ( !$this->doctype_reached ) return;
-    if ( $tag == 'HTTP:' ) return;
     $tag = strtoupper($tag);
     $tag_handler = strtolower("ru_{$tag}_close");
     $result = ( method_exists($this, $tag_handler) )
@@ -481,18 +527,18 @@ EOH;
       $start = $this->current_tag['position'];
       $end = count($this->filtered_doc);
       $last_removed = "[NONE]";
-      // $this->syslog(__FUNCTION__,'FORCE', "Removing children of {$tag} from {$start} to {$end}");
+      // $this->syslog(__FUNCTION__,__LINE__, "Removing children of {$tag} from {$start} to {$end}");
       for ( ; $start <= $end; $start++ ) { $last_removed = array_pop($this->filtered_doc); }
-      // $this->syslog(__FUNCTION__,'FORCE', "Removing children of {$tag} from {$this->current_tag['position']} to {$end} ({$last_removed})");
+      // $this->syslog(__FUNCTION__,__LINE__, "Removing children of {$tag} from {$this->current_tag['position']} to {$end} ({$last_removed})");
 
       // If this tag is a container, remove the container stack entry associated with this tag
       if ( array_key_exists('CONTAINER', $this->current_tag) ) {
         $container_id_hash = $this->current_tag['CONTAINER'];
         if ( array_key_exists($container_id_hash, $this->containers) ) {
-          // $this->syslog(__FUNCTION__,'FORCE', "Removing container {$this->current_tag['tag']} with set hash {$container_id_hash}");
+          // $this->syslog(__FUNCTION__,__LINE__, "Removing container {$this->current_tag['tag']} with set hash {$container_id_hash}");
           unset($this->containers[$container_id_hash]);
         } else {
-          // $this->syslog(__FUNCTION__,'FORCE', "Deferring removal of container {$container_id_hash}");
+          // $this->syslog(__FUNCTION__,__LINE__, "Deferring removal of container {$container_id_hash}");
           $this->removable_containers[] = $container_id_hash;
         }
       }
@@ -501,19 +547,18 @@ EOH;
   }/*}}}*/
 
   function ru_cdata($parser, $cdata) {/*{{{*/
-    if ( !$this->doctype_reached ) return;
     // Character data will always be contained within a parent container.
     // If there is no handler specified for a given tag, the topmost 
     // tag on the tag stack receives link content.
     $parser_result = TRUE;
-		/*
+    /*
     if ( 1 == preg_match('@(shortlink)@', $cdata) ) {
-      $this->syslog( __FUNCTION__, 'FORCE', "--- Matched extradata '{$cdata}'" );
-      $this->recursive_dump($this->container_stack,0,'FORCE');
-      $this->recursive_dump($this->containers,0,'FORCE');
-      $this->recursive_dump($this->tag_stack,0,'FORCE');
+      $this->syslog( __FUNCTION__, __LINE__, "--- Matched extradata '{$cdata}'" );
+      $this->recursive_dump($this->container_stack,__LINE__);
+      $this->recursive_dump($this->containers,__LINE__);
+      $this->recursive_dump($this->tag_stack,__LINE__);
     }
-		*/
+    */
     if ( 0 < count($this->tag_stack) ) {
       $stack_top = array_pop($this->tag_stack);
       array_push($this->tag_stack,$stack_top);
@@ -527,14 +572,14 @@ EOH;
         array_push($this->tag_stack,$stack_top);
       }
     }
-    // else $this->syslog( __FUNCTION__, 'FORCE', "--- {$cdata}" );
+    // else $this->syslog( __FUNCTION__, __LINE__, "--- {$cdata}" );
     // if ( $parser_result === TRUE ) $this->filtered_doc[] = trim($cdata);
     return $parser_result;
   }/*}}}*/
 
   function ru_default($parser, & $cdata) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "--- {$cdata}" );
-		$cdata = NULL;
+    $cdata = NULL;
     return FALSE;
   }/*}}}*/
 
@@ -585,11 +630,21 @@ EOH;
     if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) && is_array($this->current_tag) && array_key_exists('attrs', $this->current_tag) && array_key_exists($k, $this->current_tag['attrs'])) {
       $fixurl = array('url' => $this->current_tag['attrs'][$k]);
       $this->current_tag['attrs'][$k] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
-      //if ($this->current_tag['tag'] == 'FORM') 
-      //  $this->syslog(__FUNCTION__, 'FORCE', "- Updated {$this->current_tag['tag']} URL to '{$this->current_tag['attrs'][$k]}'" ); 
+      //  $this->syslog(__FUNCTION__, __LINE__, "- Updated {$this->current_tag['tag']} URL to '{$this->current_tag['attrs'][$k]}'" ); 
     }
     return $this;
   }/*}}}*/
+
+  function collapse_current_tag_link_data() {
+    $target = $this->current_tag['attrs']['HREF'];
+    $link_text = join('', $this->current_tag['cdata']);
+    $link_data = array(
+      'url'      => $target,
+      'text'     => $link_text,
+      'seq'      => $this->current_tag['attrs']['seq'],
+    );
+    return $link_data;
+  }
 
   // ------------ Specific HTML tag handler methods -------------
 
@@ -599,7 +654,7 @@ EOH;
   }/*}}}*/
 
   function ru_x_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->syslog( __FUNCTION__, 'FORCE', "CDATA: {$cdata}" );
+    $this->syslog( __FUNCTION__, __LINE__, "CDATA: {$cdata}" );
     return TRUE;
   }/*}}}*/
 
@@ -612,14 +667,14 @@ EOH;
     $container = array_pop($this->container_stack);
     // array_push($this->containers,$container);
     $hash_value = array_key_exists('sethash',$container) ? $container['sethash'] : NULL;
-    // $this->recursive_dump($container,0,'FORCE');
+    // $this->recursive_dump($container,__LINE__);
     if ( is_null($hash_value) ) {
-      $this->syslog(__FUNCTION__, 'FORCE', "- Missing container hash");
-      $this->recursive_dump($container,0,'FORCE');
+      $this->syslog(__FUNCTION__, __LINE__, "- Missing container hash");
+      $this->recursive_dump($container,__LINE__);
     } else if ( !is_array($container) ) {
-      $this->syslog(__FUNCTION__, 'FORCE', "- Got non-container item from container stack! " . print_r($containers));
+      $this->syslog(__FUNCTION__, __LINE__, "- Got non-container item from container stack! " . print_r($containers));
     } else if ( array_key_exists($hash_value,$this->containers) ) {
-      $this->syslog(__FUNCTION__, 'FORCE', "- Hash collision on tag {$container['tagname']} - {$hash_value}");
+      $this->syslog(__FUNCTION__, __LINE__, "- Hash collision on tag {$container['tagname']} - {$hash_value}");
     } else {
       $this->containers[$hash_value] = $container;
     }

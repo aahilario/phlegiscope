@@ -17,10 +17,15 @@ define('LEGISCOPE_CURLOPT_TIMEOUT', 120);
 // Debug logging
 define('DEBUG_DatabaseUtility', FALSE);
 define('DEBUG_LegiscopeBase', FALSE);
+define('DEBUG_CongressGovPh', FALSE);
 define('DEBUG_RawparseUtility', FALSE);
 define('DEBUG_MysqlDatabasePlugin', FALSE);
 define('DEBUG_UrlModel', FALSE);
+define('DEBUG_ALL', FALSE);
 define('SELENIUM_WEBDRIVER', 'http://127.0.0.8:4444/wd/hub');
+
+// Debug flags
+define('ENABLE_STRUCTURE_DUMP', FALSE);
 
 // Session handling
 define('LEGISCOPE_SESSION_NAME', 'LEGISCOPE');

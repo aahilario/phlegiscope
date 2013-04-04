@@ -27,26 +27,22 @@ class GovPh extends LegiscopeBase {
       return $this->parse_republic_act($parser,$pagecontent,$urlmodel);
     }
 
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
 
     $gazette = new GazetteCommonParseUtility();
-    $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent);
+    $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
     // $this->mark_container_sequence(); // Not needed for GazetteCommonParseUtility::parse_html()
     $pagecontent = join('',$gazette->get_filtered_doc());
 
-    // $this->recursive_dump($gazette->get_containers(),0,'FORCE');
-    // $this->recursive_dump($gazette->get_links(),0,'FORCE');
-
-    // $this->recursive_dump($entry_content,0,'FORCE');
   }/*}}}*/
 
   function seek_by_pathfragment_6a91f58596d1557b32b1abdf5169b08c(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.gov.ph/section/legis/page/*
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
 
     $gazette = new GazetteCommonParseUtility();
-    $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent);
+    $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
     $test_url = new UrlModel();
 
     if ( is_null( $urlmodel->get_pagecontent() ) ) {
@@ -56,15 +52,15 @@ class GovPh extends LegiscopeBase {
     }
     $pagecontent = ''; // $pagecontent = join('',$gazette->get_filtered_doc());
 
-    // $this->syslog(__FUNCTION__,'FORCE',"++ Pager");
+    // $this->syslog(__FUNCTION__,__LINE__,"++ Pager");
     $this->recursive_dump($pagerlinks = $gazette->get_containers(
       'children[tagname=div][class*=nav-previous|nav-next|i]'
-    ),0,"++ Pager");
+    ),"++ Pager");
 
-    // $this->syslog(__FUNCTION__,'FORCE',"++ All containers");
+    // $this->syslog(__FUNCTION__,__LINE__,"++ All containers");
     $this->recursive_dump($containers = $gazette->get_containers(
       'children[tagname=div][class*=category-legis|category-senate|category-republic-acts|nav-previous|nav-next|i]'
-    ),0,"++ All containers");
+    ),"++ All containers");
 
     $substitute_content = '';
     $entries_found = 0;
@@ -88,13 +84,13 @@ class GovPh extends LegiscopeBase {
           // Remove the link from the list of fetch targets (in favor of the global list),
           // unless it is one of the pager links.
 					// DEBUG
-          // $this->syslog(__FUNCTION__,'FORCE',"-- Existing entry: {$v['url']} ({$v['text']} vs {$linktext})");
+          // $this->syslog(__FUNCTION__,__LINE__,"-- Existing entry: {$v['url']} ({$v['text']} vs {$linktext})");
           if ( !array_key_exists($c, $pagerlinks) ) {
             unset($found_links[$v['url']]);
             continue;
           }  
         } else {
-          $this->syslog(__FUNCTION__,'FORCE',"!! Missing entry: {$v['url']} ({$v['text']})");
+          $this->syslog(__FUNCTION__,__LINE__,"!! Missing entry: {$v['url']} ({$v['text']})");
           $found_links[$v['url']]['missing'] = $c;
           $link_properties[] = 'uncached';
         }
@@ -105,27 +101,27 @@ EOH;
       }/*}}}*/
     }/*}}}*/
 
-    $this->syslog(__FUNCTION__,'FORCE',"++ Matches found on this page: {$entries_found}");
-    // $this->recursive_dump($found_links,0,'FORCE');
+    $this->syslog(__FUNCTION__,__LINE__,"++ Matches found on this page: {$entries_found}");
+    // $this->recursive_dump($found_links,__LINE__);
 
     if ( !($entries_found > 2) ) {/*{{{*/
 
       $this->recursive_dump($containers = $gazette->get_containers(
         //'children[tagname=div][class*=entry-content]{[text]}'
         //'children[tagname=div][class*=category-legis|category-republic-acts|i]'
-      ),0,'FORCE');
+      ),__LINE__);
 
       $this->recursive_dump($approval_date = $gazette->get_containers(
         'children[tagname=div][class*=entry-content]{[text*=Approved(:?)|i]}'
-      ),0,'FORCE');
+      ),__LINE__);
 
       $this->recursive_dump($ra_number = $gazette->get_containers(
         'children[tagname=div][class*=entry-content]{[text*=REPUBLIC ACT NO|i]}'
-      ),0,'FORCE');
+      ),__LINE__);
 
       $this->recursive_dump($act_title = $gazette->get_containers(
         'children[tagname=div][class*=entry-content]{[text*=AN ACT ]}'
-      ),0,'FORCE');
+      ),__LINE__);
 
     }/*}}}*/
 
@@ -134,9 +130,9 @@ EOH;
     // Individual, already cached Republic Act announcements
     $pattern = '(http://www.gov.ph/(.*)/republic-act-no(.*)([/]*))';
     $matches = $test_url->count(array('url' => "REGEXP '{$pattern}'"));
-    $this->syslog( __FUNCTION__, 'FORCE', "- Available pages: {$matches}");
+    $this->syslog( __FUNCTION__, __LINE__, "- Available pages: {$matches}");
     $record = array();
-    $link_properties = array('human-element-dossier-trigger'/* legiscope-remote*/);
+    $link_properties = array('human-element-dossier-trigger'/* legiscope-remote*/,'cached');
     $link_properties = join(' ',$link_properties);
     $test_url->where(array('url' => "REGEXP '{$pattern}'"))->recordfetch_setup();
     $republic_act_entries = array();
@@ -159,7 +155,7 @@ EOH;
 
     $pattern = '(http://www.gov.ph/section/legis/page/(.*))';
     $matches = $test_url->count(array('url' => "REGEXP '{$pattern}'"));
-    $this->syslog( __FUNCTION__, 'FORCE', "------ Tracked RA announcement pages: {$matches}");
+    $this->syslog( __FUNCTION__, __LINE__, "------ Tracked RA announcement pages: {$matches}");
     $test_url->where(array('url' => "REGEXP '{$pattern}'"))->recordfetch_setup();
     $record = array();
     $maximum_page_number = 2; // If the cache is empty, our pages start here
@@ -170,12 +166,12 @@ EOH;
       $gaz = new GazetteCommonParseUtility();
       $matches = array();
       $url = preg_match("@{$pattern}@",$record['url'],$matches);
-      // $this->syslog( __FUNCTION__, 'FORCE', "------ {$matches[2]}");
-      // $this->recursive_dump($matches,0,'FORCE');
+      // $this->syslog( __FUNCTION__, __LINE__, "------ {$matches[2]}");
+      // $this->recursive_dump($matches,__LINE__);
       $matches = intval(trim($matches[2],'/'));
       $new_url = trim(str_replace('(.*)', $matches, $pattern),'()');
       $distinct_pages[$matches] = $new_url;
-      // $this->syslog( __FUNCTION__, 'FORCE', "------ {$new_url}");
+      // $this->syslog( __FUNCTION__, __LINE__, "------ {$new_url}");
       if ( $matches > $maximum_page_number ) $maximum_page_number = $matches;
 
       if (0) {/*{{{*/
@@ -190,23 +186,23 @@ EOH;
 
         $gaz->set_parent_url('http://www.gov.ph/');
 
-        if ( is_null($gaz->parse_html($markup)) ) {
+        if ( is_null($gaz->parse_html($markup,$urlmodel->get_response_header())) ) {
 
-          if (1) $this->syslog(__FUNCTION__,'FORCE',"-----------------------" );
-          if (1) $this->syslog(__FUNCTION__,'FORCE',"Nothing to process from {$url}. Method parse_html() did not return a content structure array. Content length = " . strlen($markup) . " " . substr($markup,0,500) );
-          if (1) $this->recursive_dump($record,0,'FORCE');
+          if (1) $this->syslog(__FUNCTION__,__LINE__,"-----------------------" );
+          if (1) $this->syslog(__FUNCTION__,__LINE__,"Nothing to process from {$url}. Method parse_html() did not return a content structure array. Content length = " . strlen($markup) . " " . substr($markup,0,500) );
+          if (1) $this->recursive_dump($record,__LINE__);
 
         } else {
           $links = $gaz->get_containers(
             'children[tagname=div][class*=category-legis|category-senate|category-republic-acts|nav-previous|nav-next|i]'
           );
 
-          if (0) $this->syslog(__FUNCTION__,'FORCE',"-----------------------" );
-          if (0) $this->recursive_dump($record,0,'FORCE');
+          if (0) $this->syslog(__FUNCTION__,__LINE__,"-----------------------" );
+          if (0) $this->recursive_dump($record,__LINE__);
 
           $record['url'] = $test_url->get_url();
 
-          $this->syslog(__FUNCTION__,'FORCE',
+          $this->syslog(__FUNCTION__,__LINE__,
             "Parsed {$record['url']} for links. Found " . count($links) . '/' . count($gaz->get_containers()) . 
             " with content in " . $test_url->get_cache_filename() . 
             " of length " . strlen($markup) );
@@ -224,23 +220,24 @@ EOH;
       create_function('&$a, $k, $s', '$h = UrlModel::get_url_hash($a["url"]); $a["text"] = $s->get_linktext();'),
       $test_url);
 
-    if (0) $this->syslog(__FUNCTION__,'FORCE',"-----------------------" );
-    if (0) $this->recursive_dump($distinct_pages,0,'FORCE');
+    if (0) $this->syslog(__FUNCTION__,__LINE__,"-----------------------" );
+    if (0) $this->recursive_dump($distinct_pages,__LINE__);
 
     ksort($distinct_pages);
-    $this->syslog( __FUNCTION__, 'FORCE', "------ Furthest page reached: {$maximum_page_number}");
-    $this->syslog( __FUNCTION__, 'FORCE', "------ Earliest page: {$distinct_pages[$maximum_page_number]}");
+    $this->syslog( __FUNCTION__, __LINE__, "------ Furthest page reached: {$maximum_page_number}");
+    $this->syslog( __FUNCTION__, __LINE__, "------ Earliest page: {$distinct_pages[$maximum_page_number]}");
 
     $link_hash = UrlModel::get_url_hash($distinct_pages[$maximum_page_number]);
     $substitute_content = <<<EOH
 <li><a id="{$link_hash}" class="{$link_properties}" href="{$distinct_pages[$maximum_page_number]}">Oldest Announcement</a></li>
 {$substitute_content}
 EOH;
-    $parser->linkset = <<<EOH
+    $parser->linkset = preg_replace('@(human-element-dossier-trigger)@', 'legiscope-remote', <<<EOH
 <ul class="link-cluster">
 {$substitute_content}
 </ul>
-EOH;
+EOH
+    );
     
     // Individual Republic Act announcements (including pager)
     $pagecontent = <<<EOH
@@ -257,16 +254,17 @@ $(function(){
 <div id="human-element-dossier-container" class="alternate-original half-container"></div>
 EOH;
 
-    $this->syslog( __FUNCTION__, 'FORCE', "- Finally done.");
+    $this->syslog( __FUNCTION__, __LINE__, "- Finally done.");
 
   }/*}}}*/
 
   function parse_republic_act(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
 
+    $pagecontent = $urlmodel->get_pagecontent();
     $gazette = new GazetteCommonParseUtility();
-    $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent);
+    $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
     $link = new UrlModel();
     // $link->dump_accessor_defs_to_syslog();
@@ -296,7 +294,7 @@ EOH;
       );
     else {
 
-      $this->syslog(__FUNCTION__,'FORCE', "!! Unparseable {$urlmodel}. Leaving.");
+      $this->syslog(__FUNCTION__,__LINE__, "!! Unparseable {$urlmodel}. Leaving.");
       return;
 
     }
@@ -306,23 +304,23 @@ EOH;
 
     $this->recursive_dump($ra_number = $gazette->get_containers(
       'children[tagname=div][class*=entry-content]{[text*=REPUBLIC ACT NO|i]}'
-    ),0,__LINE__);
+    ),__LINE__);
 
     $ra_number = $gazette->reduce_containers_to_string($ra_number);
 
     if ( is_null($ra_number) || !($ra_number = preg_replace('@((\[)*([^0-9]*)([0-9]*)([^]]*)(\])*)@','$4',$ra_number)) ) {
 
-      $this->syslog(__FUNCTION__,'FORCE', "Unable to obtain RA number from content. Skipping");
+      $this->syslog(__FUNCTION__,__LINE__, "Unable to obtain RA number from content. Skipping");
       return;
 
     }
 
     $ra_number = "RA" . str_pad($ra_number,5,'0',STR_PAD_LEFT);
 
-    $this->syslog(__FUNCTION__,'FORCE', "RA S.N. is {$ra_number}");
+    $this->syslog(__FUNCTION__,__LINE__, "RA S.N. is {$ra_number}");
 
     if ( strlen($ra_number) > 7 ) {
-      $this->syslog(__FUNCTION__,'FORCE', "Ill-formed R.A. number. Skipping");
+      $this->syslog(__FUNCTION__,__LINE__, "Ill-formed R.A. number. Skipping");
       return;
     }
 
@@ -333,29 +331,29 @@ EOH;
 
     if ( $republic_act->in_database() && !is_null($republic_act->get_content_json()) ) {
 
-      $this->syslog(__FUNCTION__,'FORCE', "{$ra_number} already stowed. Leaving.");
+      $this->syslog(__FUNCTION__,__LINE__, "{$ra_number} already stowed. Leaving.");
       return;
 
     }
 
     $this->recursive_dump($approval_date = $gazette->get_containers(
       'children[tagname=div][class*=entry-content]{[text*=Approved:|i]}'
-    ),0,__LINE__);
+    ),__LINE__);
 
     $this->recursive_dump($act_title = $gazette->get_containers(
       'children[tagname=div][class*=entry-content]{[text*=AN ACT ]}'
-    ),0,__LINE__);
+    ),__LINE__);
 
     if ( !(1 == count($act_title)) ) {
 
-      $this->syslog(__FUNCTION__,'FORCE', "{$ra_number} multiline title.  Double check content.");
+      $this->syslog(__FUNCTION__,__LINE__, "{$ra_number} multiline title.  Double check content.");
 
     }
 
     $approval_date = $gazette->reduce_containers_to_string($approval_date);
     $act_title = $gazette->reduce_containers_to_string($act_title);
 
-    $this->recursive_dump($containers,0,'FORCE');
+    $this->recursive_dump($containers,__LINE__);
 
     $republic_act->
       set_content(json_encode($containers))->
@@ -372,7 +370,7 @@ EOH;
 
   function generic(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // 
-    $this->syslog( __FUNCTION__, 'FORCE', "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 

@@ -40,7 +40,7 @@ class SystemUtility extends DatabaseUtility {
 
     if ( is_null(self::$selenium_webdriver) ) {
       $this->syslog(__FUNCTION__, 'FORCE', "Spider session data (Se URL: {$selenium_session_url})");
-      $this->recursive_dump($preload_session,0,'FORCE');
+      $this->recursive_dump($preload_session,'(warning)');
       // self::$selenium_webdriver = new PHPWebDriver_WebDriver(is_null($selenium_session_url) ? C('SELENIUM_WEBDRIVER') : $selenium_session_url);
       self::$selenium_webdriver = new PHPWebDriver_WebDriver(C('SELENIUM_WEBDRIVER'));
       $additional_capabilities = array();
@@ -52,15 +52,15 @@ class SystemUtility extends DatabaseUtility {
       }
       self::$selenium_session = self::$selenium_webdriver->session('firefox', $additional_capabilities); 
       $this->syslog( __FUNCTION__, 'FORCE', "Initialized Selenium Webdriver. In session - {$_SESSION[$this->subject_host_hash]['SELENIUM_SESSION_URL']}");
-      $this->recursive_dump($additional_capabilities,0,'FORCE');
+      $this->recursive_dump($additional_capabilities,'(warning)');
       $this->syslog(__FUNCTION__, 'FORCE', "   Selenium sessions");
       $sessions = self::$selenium_webdriver->sessions();
-      $this->recursive_dump($sessions,0,'FORCE');
+      $this->recursive_dump($sessions,'(warning)');
 
       if ( is_null($selenium_session_url) ) {
         $capabilities = self::$selenium_session->capabilities();
         $this->syslog(__FUNCTION__, 'FORCE', "   Selenium sesscaps");
-        $this->recursive_dump($capabilities,0,'FORCE');
+        $this->recursive_dump($capabilities,'(warning)');
         $get_matching_session_url = create_function('$a', 'return FALSE == strpos($a, "'.$capabilities['webdriver.remote.sessionid'].'") ? NULL : $a;');
         $matched = array_values(array_filter(array_map($get_matching_session_url, $sessions)));
         if ( is_array($matched) && (1 == count($matched)) ) {

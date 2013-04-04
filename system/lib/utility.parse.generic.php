@@ -22,7 +22,7 @@ class GenericParseUtility extends RawparseUtility {
   }/*}}}*/
 
   function ru_script_cdata(& $parser, & $cdata) {/*{{{*/
-    // $this->syslog(__FUNCTION__,'FORCE',"{$cdata}");
+    // $this->syslog(__FUNCTION__,__LINE__,"{$cdata}");
     return FALSE;
   }/*}}}*/
 
@@ -156,8 +156,8 @@ class GenericParseUtility extends RawparseUtility {
 
   function ru_form_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
-    // $this->syslog( __FUNCTION__, 'FORCE', "--- {$tag}" );
-    // $this->recursive_dump($form_container,0,'FORCE');
+    // $this->syslog( __FUNCTION__, __LINE__, "--- {$tag}" );
+    // $this->recursive_dump($form_container,__LINE__);
     return TRUE;
   }/*}}}*/
 
@@ -175,7 +175,7 @@ class GenericParseUtility extends RawparseUtility {
     // Treat SELECT tags as containers on OPEN, but as tags on CLOSE 
     // $this->stack_to_containers();
     $select_contents = array_pop($this->container_stack);
-    // if (C('DEBUG_'.get_class($this))) $this->recursive_dump($select_contents, 0, 'SELECT');
+    // if (C('DEBUG_'.get_class($this))) $this->recursive_dump($select_contents, 'SELECT');
     $this->add_to_container_stack($select_contents, 'FORM');
     return TRUE;
   }/*}}}*/
@@ -276,7 +276,7 @@ class GenericParseUtility extends RawparseUtility {
     $me     = $this->pop_tagstack();
     $parent = $this->pop_tagstack();
     if ( array_key_exists('cdata', $parent) ) {
-      // $this->syslog(__FUNCTION__,'FORCE',"Adding line break to {$parent['tag']} (" . join(' ', $parent['cdata']) . ")" );
+      // $this->syslog(__FUNCTION__,__LINE__,"Adding line break to {$parent['tag']} (" . join(' ', $parent['cdata']) . ")" );
       $parent['cdata'][] = "\n[BR]";
     }
     $this->push_tagstack($parent);
@@ -388,8 +388,8 @@ class GenericParseUtility extends RawparseUtility {
   function replace_legislative_sn_hotlinks($subject) {/*{{{*/
     $match_legislation_sn = array();
     if ( preg_match_all('@((RA|HB|SB|HR)([0]*([0-9]*)))@', "{$subject}", $match_legislation_sn) ) {
-      // $this->syslog( __FUNCTION__, 'FORCE', "- Status {$bill['bill']} {$subject}" );
-      // $this->recursive_dump($match_legislation_sn,0,'FORCE');
+      // $this->syslog( __FUNCTION__, __LINE__, "- Status {$bill['bill']} {$subject}" );
+      // $this->recursive_dump($match_legislation_sn,__LINE__);
       $match_legislation_sn = array_filter(array_combine($match_legislation_sn[2],$match_legislation_sn[4]));
       $status_list = array();
       foreach ( $match_legislation_sn as $prefix => $suffix ) {
@@ -407,7 +407,7 @@ class GenericParseUtility extends RawparseUtility {
           )))->recordfetch_setup();
           $record = array();
           if ( $M->recordfetch($record) ) {
-            // $this->recursive_dump($record,0,'FORCE');
+            // $this->recursive_dump($record,__LINE__);
             $status_list[] = array(
               'regex' => "@({$prefix})([0]*)({$suffix})@",
               'subst' => <<<EOH
@@ -415,7 +415,7 @@ class GenericParseUtility extends RawparseUtility {
 EOH
             );
           } else {
-            $this->syslog(__FUNCTION__,'FORCE',"- NO MATCH {$prefix}{$suffix}");
+            $this->syslog(__FUNCTION__,__LINE__,"- NO MATCH {$prefix}{$suffix}");
           }
         }
       }

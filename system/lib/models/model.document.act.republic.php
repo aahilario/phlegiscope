@@ -118,11 +118,14 @@ class RepublicActDocumentModel extends DatabaseUtility {
     if ( is_null($this->senate_bill) ) $this->senate_bill = new SenateBillDocumentModel(); 
     if ( is_null($this->house_bill) ) $this->house_bill = new HouseBillDocumentModel(); 
 
-    $ra['desc']          = $this->get_description();
-    $ra['bill-head']     = $this->get_sn();
-    $ra['origin']        = $this->get_origin();
-    $ra['approval_date'] = $this->get_approval_date();
-    $ra['congress_tag']  = $this->get_congress_tag();
+		$ra = array(
+			'url'           => $this->get_url(),
+			'desc'          => $this->get_description(),
+			'bill-head'     => $this->get_sn(),
+			'origin'        => $this->get_origin(),
+			'approval_date' => $this->get_approval_date(),
+			'congress_tag'  => $this->get_congress_tag(),
+		);
 
     $cache_state = array('legiscope-remote');
     if ( $this->is_searchable() ) $cache_state[] = 'cached';
@@ -130,14 +133,14 @@ class RepublicActDocumentModel extends DatabaseUtility {
     // Extract origin components
     $origin_parts = array();
     $origin_regex = '@^([^(]*)\((([A-Z]*)[0]*([0-9]*))[^A-Z0-9]*(([A-Z]*)[0]*([0-9]*))[^)]*\)@i';
-    if (!( FALSE === preg_match_all($origin_regex, $ra['origin'], $origin_parts))) {
+    if (!( FALSE === preg_match_all($origin_regex, $ra['origin'], $origin_parts))) {/*{{{*/
       $origin_string = trim($origin_parts[1][0]);
       $origin_parts = array_filter(array(
         trim($origin_parts[3][0]) => trim(intval($origin_parts[4][0])),
         trim($origin_parts[6][0]) => trim(intval($origin_parts[7][0])),
       ));
       // ksort($origin_parts);
-      // $this->recursive_dump($origin_parts,0,'FORCE');
+      // $this->recursive_dump($origin_parts,'(warning)');
       if ( array_key_exists('SB', $origin_parts) ) {/*{{{*/
         $record = array();
         if ( $this->senate_bill->
@@ -147,7 +150,7 @@ class RepublicActDocumentModel extends DatabaseUtility {
           )))->
           recordfetch_setup()->
           recordfetch($record) ) {
-            // $this->recursive_dump($record,0,'FORCE');
+            // $this->recursive_dump($record,'(warning)');
             $origin_parts['SB'] = <<<EOH
 <a class="legiscope-remote cached" href="{$record['url']}">{$record['sn']}</a>
 EOH;
@@ -162,21 +165,23 @@ EOH;
           )))->
           recordfetch_setup()->
           recordfetch($record) ) {
-            // $this->recursive_dump($record,0,'FORCE');
+            // $this->recursive_dump($record,'(warning)');
             $origin_parts['HB'] = <<<EOH
 <a class="legiscope-remote cached" href="{$record['url']}">{$record['sn']}</a>
 EOH;
           }
       }/*}}}*/
-      // $this->recursive_dump($origin_parts,0,'FORCE');
+      // $this->recursive_dump($origin_parts,'(warning)');
       $ra['origin'] = join('/', $origin_parts);
       $ra['origin'] = "{$origin_string} ({$ra['origin']})";
-    }
+    }/*}}}*/
     $cache_state = join(' ', $cache_state);
+		
+		$urlhash = UrlModel::get_url_hash($ra['url']);
     $replacement_line = utf8_encode(<<<EOH
 <div class="republic-act-entry">
-<span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$ra['bill-head']}</a></span>
-<span class="republic-act-desc"><a href="{$url}" class="legiscope-remote" id="title-{$urlhash}">{$ra['desc']}</a></span>
+<span class="republic-act-heading"><a href="{$ra['url']}" class="{$cache_state}" id="{$urlhash}">{$ra['bill-head']}</a></span>
+<span class="republic-act-desc"><a href="{$ra['url']}" class="legiscope-remote" id="title-{$urlhash}">{$ra['desc']}</a></span>
 <span class="republic-act-meta">Origin of legislation: {$ra['origin']}</span>
 <span class="republic-act-meta">Passed into law: {$ra['approval_date']}</span>
 </div>

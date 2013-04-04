@@ -74,10 +74,10 @@ class RepresentativeDossierModel extends DatabaseUtility {
 			$known = array_combine($keys, $known);
 			unset($matches[0]);
 			$s = join(' ', $matches);
-			// $this->syslog( __FUNCTION__, 'FORCE', "- Matches for name '{$s}'" );
-			// $this->recursive_dump($known,0,'FORCE');
-			// $this->syslog( __FUNCTION__, 'FORCE', "- Source '{$s}'" );
-			// $this->recursive_dump($matches,0,'FORCE');
+			// $this->syslog( __FUNCTION__, __LINE__, "- Matches for name '{$s}'" );
+			// $this->recursive_dump($known,__LINE__);
+			// $this->syslog( __FUNCTION__, __LINE__, "- Source '{$s}'" );
+			// $this->recursive_dump($matches,__LINE__);
       $this->
         where(array('AND' => array(
           'fullname' => "REGEXP '({$known['surname']})'",
@@ -89,15 +89,15 @@ class RepresentativeDossierModel extends DatabaseUtility {
 EOH;
       $s = NULL;
       while ( $this->recordfetch($matches) ) {
-        // $this->syslog( __FUNCTION__, 'FORCE', "- Match #{$matches['id']} {$matches['fullname']}" );
-        // $this->recursive_dump($matches,0,'FORCE');
+        // $this->syslog( __FUNCTION__, __LINE__, "- Match #{$matches['id']} {$matches['fullname']}" );
+        // $this->recursive_dump($matches,__LINE__);
         $copy = $template;
         foreach ( $matches as $k => $v ) {
           $copy = str_replace("{{$k}}", "{$v}", $copy);
         }
         if ( is_null($s) ) {
           $s = $copy;
-          $this->syslog( __FUNCTION__, 'FORCE', "- Match #{$matches['id']} {$matches['fullname']} -> {$s}" );
+          $this->syslog( __FUNCTION__, __LINE__, "- Match #{$matches['id']} {$matches['fullname']} -> {$s}" );
         }
       }
 		}

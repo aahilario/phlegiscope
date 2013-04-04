@@ -140,14 +140,12 @@ function load_content_window(a,ck,obj,data,handlers) {
       var contenttype = data.contenttype ? data.contenttype : '';
       var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
 
-      /*
       $('div[class*=contentwindow]').each(function(){
         if ($(this).attr('id') == 'issues') return;
         if (retainoriginal)
         if ($(this).attr('id') == 'original') return;
         $(this).children().remove();
       });
-      */
 
       if ( /^application\/pdf/.test(contenttype) ) {
         var target_container = $(retainoriginal ? ('#'+$('[class*=alternate-original]').first().attr('id')) : '#original');

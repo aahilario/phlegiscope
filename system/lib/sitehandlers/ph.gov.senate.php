@@ -258,13 +258,12 @@ EOH;
       $containerset,0,__LINE__);
     $parser->structure_html = file_get_contents($seek_structure_filename);
     $this->syslog( __FUNCTION__, __LINE__, "--------- Storing structure dump {$seek_structure_filename}, length = " . strlen($parser->structure_html) );
-    // $this->recursive_dump($containerset,'(warning)');
     ////////////////////////////////////////////////////////////////////
-
-    // $structure = $senator->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-
+    //
     // Extract the image URLs on this page and use them to construct a 
     // minimal pager, by rewriting pairs of image + URL tags
+    //
+    ////////////////////////////////////////////////////////////////////
 
     $image_url = array();
     $filter_image_or_link = create_function('$a', 'return (array_key_exists("text",$a) || array_key_exists("image",$a) || ($a["tag"] == "A")) ? $a : NULL;'); 
@@ -308,10 +307,9 @@ EOH;
       }
     }/*}}}*/
 
-    // $this->recursive_dump($image_url,'(warning)');
-
     $pagecontent = '';
     $senator_dossier = '';
+
     if ( 0 < count($image_url) ) { /*{{{*/
       foreach ( $image_url as $brick ) {/*{{{*/
         $bio_url = $brick['link']['url'];
@@ -635,7 +633,6 @@ EOH;
   function seek_postparse_bypathonly_582a1744b18910b951a5855e3479b6f2(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/senators/sen_bio/*
     $this->syslog( __FUNCTION__, __LINE__, "--------- SENATOR BIO PARSER Invoked for " . $urlmodel->get_url() );
-    // $pagecontent = "Senator bio " . $urlmodel->get_url() . "<br/>{$pagecontent}";
 
     $senator     = new SenatorBioParseUtility();
     $dossier     = new SenatorDossierModel();
@@ -643,7 +640,6 @@ EOH;
     $dossier->dump_accessor_defs_to_syslog();
 
     $senator->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-    // $this->recursive_dump($senator->get_filtered_doc(),'(warning)');
     $pagecontent = join('',$senator->get_filtered_doc());
 
     ////////////////////////////////////////////////////////////////////
@@ -656,7 +652,6 @@ EOH;
     ////////////////////////////////////////////////////////////////////
 
     $structure   = $senator->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-    // $this->recursive_dump($senator->get_containers(),'(warning)');
 
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/

@@ -459,22 +459,6 @@ EOH;
 
   }/*}}}*/
 
-  function seek_by_pathfragment_8a807a96bdae8c210fd561e703c9c4b1(& $parser, & $pagecontent, & $urlmodel) {
-    $this->seek_postparse_ra_hb($parser,$pagecontent,$urlmodel);
-  }
-
-  function seek_postparse_jnl(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-
-    $common      = new CongressCommonParseUtility();
-    $ra_linktext = $parser->trigger_linktext;
-    $common->
-      set_parent_url($urlmodel->get_url())->
-      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-
-    $pagecontent = join('',$common->get_filtered_doc());
-
-  }/*}}}*/
-
   function seek_postparse_ra_hb(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/download/index.php?d=ra
 
@@ -494,6 +478,18 @@ EOH;
     $common->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = join('',$common->get_filtered_doc());
+
+  }/*}}}*/
+
+  function seek_postparse_jnl(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $common      = new CongressCommonParseUtility();
+    $ra_linktext = $parser->trigger_linktext;
+    $common->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+
     $pagecontent = join('',$common->get_filtered_doc());
 
   }/*}}}*/
@@ -916,6 +912,10 @@ EOH;
   function seek_postparse_bypath_356caa1dcd2d3a76fcc6debce13393ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // Republic Acts
     $this->seek_postparse_ra_hb($parser, $pagecontent, $urlmodel);
+  }/*}}}*/
+
+  function seek_by_pathfragment_8a807a96bdae8c210fd561e703c9c4b1(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->seek_postparse_ra_hb($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
 }

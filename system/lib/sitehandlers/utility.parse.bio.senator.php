@@ -148,5 +148,24 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     return !$skip;
   }/*}}}*/
 
+  function ru_link_open(& $parser, & $attrs, $tag) {/*{{{*/
+    return TRUE;
+  }  /*}}}*/
+  function ru_link_cdata(& $parser, & $cdata) {/*{{{*/
+    return TRUE;
+  }/*}}}*/
+  function ru_link_close(& $parser, $tag) {/*{{{*/
+    return FALSE;
+  }/*}}}*/
+
+  function ru_style_open(& $parser, & $attrs, $tag) {/*{{{*/
+    return TRUE;
+  }  /*}}}*/
+  function ru_style_cdata(& $parser, & $cdata) {/*{{{*/
+    return TRUE;
+  }/*}}}*/
+  function ru_style_close(& $parser, $tag) {/*{{{*/
+    return FALSE;
+  }/*}}}*/
 
 }

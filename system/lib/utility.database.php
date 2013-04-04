@@ -420,16 +420,13 @@ EOS;
   function select() {/*{{{*/
     $sql = '';
     $this->attrlist = $this->prepare_select_sql($sql);
-    if (0) {
-      // DEBUG
-      $this->syslog( __FUNCTION__, __LINE__, __LINE__ . "> {$sql}");
-      $this->recursive_dump( $this->attrlist, __LINE__);
-    }
     $result = $this->query($sql)->resultset();
+    /*
     $this->recursive_dump($result,'R');
     $this->recursive_dump($this->query_conditions,'C');
-    $this->query_result = NULL;
     //$this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>>>>>>>>>" );
+    */
+    $this->query_result = NULL;
     if ( is_array($result) ) {
       //$this->recursive_dump($result,__LINE__);
        $this->result_to_model($result);

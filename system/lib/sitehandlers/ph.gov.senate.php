@@ -243,6 +243,7 @@ EOH;
     ////////////////////////////////////////////////////////////////////
     $membership  = new SenatorCommitteeEdgeModel();
     $senator     = new SenatorBioParseUtility();
+    $committee   = new SenateCommitteeModel();
     $dossier     = new SenatorDossierModel();
     $senator->
       set_parent_url($urlmodel->get_url())->
@@ -259,17 +260,49 @@ EOH;
     $dossier->fetch($urlmodel->get_url(), 'bio_url');
     $member_uuid = $dossier->get_member_uuid(); 
 
-    $comms = $membership->fetch_committees($dossier);
+    $committee_membership_markup = ''; 
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Result type: " . gettype($comms) );
-    $this->recursive_dump($comms,'(marker) -');
+    if ( $membership->fetch_committees($dossier,TRUE) ) {/*{{{*/
+      $committee_list = array();
+      $committee_item = array();
+      while ( $membership->recordfetch($committee_item) ) {
+        $committee_list[$committee_item['b']] = array(
+          'data' => $committee_item,
+          'name' => NULL
+        );
+      }
+      // TODO: Allow individual Model classes to maintain separate DB handles 
+      foreach ( $committee_list as $committee_id => $c ) {
+        $committee->fetch($committee_id,'id');
+        $committee_list[$committee_id] = $committee->in_database()
+          ? $committee->get_committee_name()
+          : 'Disappeared'
+          ;
+        $committee_membership_markup .= <<<EOH
+<li><a class="legiscope-remote">{$committee_list[$committee_id]}</a></li>
+EOH;
+      }
+      $this->recursive_dump($committee_list,'(marker) - C List');
+    }/*}}}*/
+
+    if ( 0 < strlen($committee_membership_markup) ) {
+      $committee_membership_markup = <<<EOH
+<hr/>
+<span class="section-title">Committee Memberships</span><br/>
+<ul class="committee_membership">
+{$committee_membership_markup}
+</ul>
+<hr/>
+
+EOH;
+    }
 
     if (1 == preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match)) {/*{{{*/
 
-      $this->recursive_dump($avatar_match,'(marker) Avatar Placeholder');
+      // $this->recursive_dump($avatar_match,'(marker) Avatar Placeholder');
       $image_markup    = array();
       preg_match('@<img(.*)fauxsrc="([^"]*)"([^>]*)>@mi',$pagecontent,$image_markup);
-      $this->recursive_dump($image_markup,'(marker) Avatar Markup');
+      // $this->recursive_dump($image_markup,'(marker) Avatar Markup');
       $bio_image_src   = new UrlModel($image_markup[2],TRUE);
       $placeholder     = $avatar_match[0];
       $avatar_uuid_url = explode(",",$avatar_match[1]);
@@ -313,9 +346,14 @@ EOH;
         ;
         
       // Remove fake content
+      // Insert committee membership in place of any extant <HR> tag
       $pagecontent = preg_replace(
-        array("@({$placeholder})@im",'@(fauxsrc="(.*)")@im'),
-        array("{$replacement}","alt=\"{$member_fullname}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\""), 
+        array("@({$placeholder})@im",'@(fauxsrc="(.*)")@im','@(\<hr([^>]*)\>)@i'),
+        array(
+          "{$replacement}",
+          "alt=\"{$member_fullname}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\"",
+          "{$committee_membership_markup}",
+        ), 
         $pagecontent
       );
 
@@ -352,7 +390,6 @@ EOH;
     $membership       = new SenatorCommitteeEdgeModel();
     $committee        = new SenateCommitteeModel();
     $senator          = new SenatorDossierModel();
-    $membership       = new SenateCommitteeMembershipModel();
     $url              = new UrlModel();
 
     // $this->recursive_dump($urlmodel->get_response_header(TRUE),'(warning)');
@@ -363,8 +400,9 @@ EOH;
 
     // $senator->dump_accessor_defs_to_syslog();
     // $committee->dump_accessor_defs_to_syslog();
-    // $membership->dump_accessor_defs_to_syslog();
+    $membership->dump_accessor_defs_to_syslog();
 
+    // $committees     = $membership->fetch_committees($senator);
     $containers     = $committee_parser->get_containers();
     $extract_tables = create_function('$a', 'return $a["attrs"]["CLASS"] == "SenTable" ? $a["children"] : NULL;');
     $containers     = array_values(array_filter(array_map($extract_tables, $containers)));
@@ -380,8 +418,11 @@ EOH;
     // Tables on this page are sequences of TD, A, TD tags.
     // An empty table cell (no character data) signifies the end of a row 
     $remove_empty_cells = create_function('$a', 'return empty($a["cdata"]) ? NULL : $a;');
-    $filtered_content = $pagecontent;
-    $pagecontent = '';
+    $filtered_content   = $pagecontent;
+    $pagecontent        = '';
+
+    // Cache sets of Senator-committee IDs discovered
+    $senator_committees = array();
     foreach ( $containers as $container ) {/*{{{*/
       $committee_list = array();
       $container = array_filter(array_map($remove_empty_cells, $container));
@@ -394,6 +435,7 @@ EOH;
           $element['id'] = $committee->stow_committee($content['cdata']);
           if ( !is_null($element['id']) ) {
             $element['committee_name'] = $committee->get_committee_name();
+            $senator_committees[$element['id']] = array();
           }
         }/*}}}*/
         else if ( $tag == 'a' ) {/*{{{*/// Senator name and bio
@@ -407,13 +449,40 @@ EOH;
           if ( !is_null($senator_id) ) {
             $url->fetch($bio_url, 'url');
             $senator_info['cached'] = $url->in_database();
-            $element['senators'][] = $senator_info;
+            $element['senators'][$senator_id] = $senator_info;
+            $senator_committees[$element['id']][$senator_id] = $senator_id; 
           }
         }/*}}}*/
         array_push($committee_list,$element);
       }/*}}}*/
-      $this->recursive_dump($committee_list,'(marker)');
+      // Make the committee ID be the committee list array key
+      $committee_list = array_combine(
+        array_map(create_function('$a', 'return $a["id"];'), $committee_list),
+        $committee_list
+      );
       $replacement_content = '';
+      foreach ( $senator_committees as $committee_id => $senator_ids ) {/*{{{*/// Generate missing committee associations
+        $membership->where(array('AND' => array('b' => $committee_id)))->recordfetch_setup();
+        $edge = array();
+        while ( $membership->recordfetch($edge) ) {
+          // Remove already extant edges
+          $senator_ids[$edge['id']] = NULL;
+        }
+        $senator_ids = array_filter($senator_ids);
+        foreach ( $senator_ids as $senator_id => $v ) {
+          $membership->fetch($senator_id,$committee_id);
+          $already_in_db = $membership->in_database();
+          $associate_result = !$already_in_db
+            ? $membership->
+              set_create_time(time())->
+              set_last_fetch(time())->
+              set_role('chairperson')->
+              stow($senator_id, $committee_id)
+            : $membership->get_id()
+            ;
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Association #{$associate_result} " . ($already_in_db ? "found" : "created") );
+        }
+      }/*}}}*/
       foreach ( $committee_list as $c ) {/*{{{*/// Generate markup
         $senator_entries = '';
         foreach ( $c['senators'] as $senator_entry ) {/*{{{*/

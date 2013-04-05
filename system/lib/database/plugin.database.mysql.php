@@ -97,8 +97,8 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 		$this->ls_last_operation_sql = $sql;
     // If the resultset is a boolean, return it
     if ( is_bool($resultset) ) {
-      syslog( LOG_INFO,  __METHOD__ . ": Boolean result " . ($resultset ? 'TRUE' : 'FALSE') . " query {$sql}" );  
 			if ( $resultset == FALSE ) {
+				syslog( LOG_INFO,  __METHOD__ . ": Boolean result " . ($resultset ? 'TRUE' : 'FALSE') . " query {$sql}" );  
 				$this->ls_last_operation_errdesc = $this->error;
 				syslog( LOG_INFO,  __METHOD__ . ": Last error: {$this->ls_last_operation_errdesc}" );  
 			}

@@ -16,7 +16,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
   var $avatar_image_vc8192 = NULL; // Avatar image base64-encoded
   var $avatar_url_vc1024 = NULL;
   var $bio_url_vc1024 = NULL;
-	var $create_time_utx = NULL;
+  var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
 
   function __construct() {
@@ -56,5 +56,49 @@ class SenatorDossierModel extends RepresentativeDossierModel {
   function & set_avatar_image($v) { $this->avatar_image_vc8192 = $v; return $this; }
   function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_vc8192; }
 
+  function cleanup_senator_name($senator_fullname) {/*{{{*/
+    $senator_fullname = trim(preg_replace('@^Sen\.@i', '', utf8_decode($senator_fullname)));
+    // Deal with quotes mistakenly parsed as '?'
+    $senator_fullname = str_replace(array("\x09","[BR]","[EMPTY]"), array(""," ",""), $senator_fullname);
+    $senator_fullname = preg_replace(array('@(\?|\')([^?\']*)(\?|\')@','@([ ]+)@'),array("$2",' '), $senator_fullname);
+    return $senator_fullname;
+  }/*}}}*/
+
+  function stow_senator($url, $member_fullname, array & $senator_info, UrlModel & $parent_url ) {/*{{{*/
+    $parent_url_parts = UrlModel::parse_url($parent_url->get_url());
+    $bio_url = array('url' => $url);
+    $bio_url = ( !is_null($parent_url_parts) && is_array($parent_url_parts) )
+      ? UrlModel::normalize_url($parent_url_parts, $bio_url)
+      : $url
+      ;
+    $senator_fullname = $this->cleanup_senator_name($member_fullname);
+    $senator_info = array(
+      'id'       => NULL,
+      'url'      => NULL, 
+      'linktext' => NULL, 
+    );
+    $this->fetch($senator_fullname,'fullname');
+    if ( $this->in_database() ) $senator_info['id'] = $this->get_id();
+    if ( is_null($senator_info['id']) ) {
+      $this->fetch($bio_url,'bio_url');
+      if ( $this->in_database() ) $senator_info['id'] = $this->get_id();
+    }
+    if ( is_null($senator_info['id']) ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) Neither name '{$senator_fullname}' nor bio URL {$bio_url} has a match in DB");
+      $member_uuid = sha1(mt_rand(10000,100000) . UrlModel::get_url_hash($bio_url) . "{$senator_fullname}");
+      $senator_info['id'] = $this->
+        set_member_uuid($member_uuid)->
+        set_fullname($senator_fullname)->
+        set_bio_url($bio_url)->
+        set_create_time(time())->
+        set_last_fetch(time())->
+        stow();
+    }
+    if ( !is_null($senator_info['id']) ) {
+      $senator_info['url'] = $this->get_bio_url();
+      $senator_info['linktext'] = $this->get_fullname();
+    }
+    return $senator_info['id'];
+  }/*}}}*/
 
 }

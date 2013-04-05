@@ -643,6 +643,7 @@ EOS;
   }
 
   final private function recursive_dump_worker($a, $depth = 0, $prefix = NULL) {/*{{{*/
+    if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));
     foreach ( $a as $key => $val ) {
       $logstring = is_null($prefix) 
         ? basename(__FILE__) . "::" . __LINE__ . "::" . __FUNCTION__ . ": "

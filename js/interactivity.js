@@ -38,15 +38,21 @@ function initialize_dossier_triggers() {
 }
 
 function update_representatives_avatars() {
-  $('img[class*=representative-avatar]').each(function(){
+  $('img[class*=representative-avatar][src=""]').first().each(function(){
     var avatar_id = $(this).attr('id').replace(/^image-/,'imagesrc-');
-    if ( $(this).attr('src').length > 0 ) return;
+    if ( $(this).attr('src').length > 0 ) {
+      setTimeout((function(){update_representatives_avatars();}),100);
+      return;
+    }
+    var no_replace = $('input[id='+avatar_id+']').hasClass('no-replace');
+    var alt_name = no_replace ? ($(this).attr('id')+'-alt') : $(this).attr('id'); 
     var member_uuid = $(this).attr('id').replace(/^image-/,'');
     var avatar_url = $('input[id='+avatar_id+']').val();
+    $(this).attr('id', alt_name);
     $.ajax({
       type     : 'POST',
       url      : '/seek/',
-      data     : { url : avatar_url, cache : $('#cache').prop('checked'), member_uuid : member_uuid, fr : true },
+      data     : { url : avatar_url, cache : $('#cache').prop('checked'), member_uuid : member_uuid, no_replace : no_replace, fr : true },
       cache    : false,
       dataType : 'json',
       async    : true,
@@ -59,11 +65,14 @@ function update_representatives_avatars() {
       success  : (function(data, httpstatus, jqueryXHR) {
         var altmarkup = data.altmarkup ? data.altmarkup : null;
         var total_image_width = 0;
-        $('img[id=image-'+member_uuid+']').attr('src', altmarkup);
-        $("div[class=dossier-strip]").find("img").each(function(){
-          total_image_width += ($(this).outerWidth() + 4);
-        });
-        $("div[class=dossier-strip]").width(total_image_width);
+        $('img[id='+alt_name+']').attr('src', altmarkup);
+        if ( !no_replace ) {
+          $("div[class=dossier-strip]").find("img").each(function(){
+            total_image_width += ($(this).outerWidth() + 4);
+          });
+          $("div[class=dossier-strip]").width(total_image_width);
+        }
+        setTimeout((function(){update_representatives_avatars();}),10);
       })
     });
   });

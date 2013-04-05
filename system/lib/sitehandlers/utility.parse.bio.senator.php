@@ -148,24 +148,45 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     return !$skip;
   }/*}}}*/
 
-  function ru_link_open(& $parser, & $attrs, $tag) {/*{{{*/
+  function ru_img_open(& $parser, & $attrs, $tag) {/*{{{*/
+    // Handle A anchor/link tags
+		$this->pop_tagstack();
+		$this->update_current_tag_url('SRC');
+		// Add capability to cache images as well
+		$faux_mem_uuid = sha1(mt_rand(10000,100000) . ' ' . $this->current_tag['attrs']['SRC']);
+		$this->current_tag['attrs']['FAUXSRC'] = $this->current_tag['attrs']['SRC'];
+		$this->current_tag['attrs']['SRC'] = '{REPRESENTATIVE-AVATAR('.$faux_mem_uuid.','.$this->current_tag['attrs']['SRC'].')}';//$this->current_tag['attrs']['SRC'];
+    if ( !array_key_exists('CLASS', $this->current_tag['attrs']) ) {
+      // $this->syslog(__FUNCTION__,__LINE__,"Setting CSS selector for '{$this->current_tag['attrs']['HREF']}'");
+      $this->current_tag['attrs']['CLASS'] = 'legiscope-remote representative-avatar representative-avatar-missing';
+    } else {
+      // $this->syslog(__FUNCTION__,__LINE__,"Adding CSS selector for '{$this->current_tag['attrs']['HREF']}'");
+      $this->current_tag['attrs']['CLASS'] .= ' legiscope-remote';
+    }
+		$this->current_tag['attrs']['ID'] = "image-{$faux_mem_uuid}";
+		$this->current_tag['attrs']['FAKEID'] = "{$faux_mem_uuid}";
+		$this->push_tagstack();
     return TRUE;
   }  /*}}}*/
-  function ru_link_cdata(& $parser, & $cdata) {/*{{{*/
+  function ru_img_cdata(& $parser, & $cdata) {/*{{{*/
     return TRUE;
   }/*}}}*/
-  function ru_link_close(& $parser, $tag) {/*{{{*/
-    return FALSE;
-  }/*}}}*/
-
-  function ru_style_open(& $parser, & $attrs, $tag) {/*{{{*/
-    return TRUE;
-  }  /*}}}*/
-  function ru_style_cdata(& $parser, & $cdata) {/*{{{*/
-    return TRUE;
-  }/*}}}*/
-  function ru_style_close(& $parser, $tag) {/*{{{*/
-    return FALSE;
+  function ru_img_close(& $parser, $tag) {/*{{{*/
+		$skip = FALSE;
+		$this->pop_tagstack();
+		if ( 1 == preg_match('@(nav_logo)@',$this->current_tag['attrs']['CLASS']) ) $skip = TRUE;
+		if ( !$skip ) {
+			$image = array(
+				'image' => $this->current_tag['attrs']['SRC'],
+				'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
+			 	'realsrc' => $this->current_tag['attrs']['FAUXSRC'],
+			);
+			$this->add_to_container_stack($image);
+		} else {
+			// $this->recursive_dump($this->current_tag,__LINE__);
+		}
+		$this->push_tagstack();
+    return !$skip;
   }/*}}}*/
 
 }

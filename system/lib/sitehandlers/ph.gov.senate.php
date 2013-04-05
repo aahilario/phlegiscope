@@ -24,9 +24,9 @@ class SenateGovPh extends LegiscopeBase {
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     $common = new SenateCommonParseUtility();
-    $common->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
+    $common->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
     $pagecontent = join('',$common->get_filtered_doc());
-    $this->recursive_dump($common->get_containers(),'(warning)');
+    // $this->recursive_dump($common->get_containers(),'(warning)');
   }/*}}}*/
 
   /** Committee Information **/
@@ -36,6 +36,7 @@ class SenateGovPh extends LegiscopeBase {
     $calparser = new SenateCommitteeNoticeParser();
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
+
 
   /** Journal Entries **/
 
@@ -233,6 +234,289 @@ EOH;
   }/*}}}*/
 
 
+  /** Committees **/
+
+  function seek_postparse_bypathonly_582a1744b18910b951a5855e3479b6f2(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.senate.gov.ph/senators/sen_bio/*
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) --------- SENATOR BIO PARSER Invoked for " . $urlmodel->get_url() );
+
+    ////////////////////////////////////////////////////////////////////
+    $membership  = new SenatorCommitteeEdgeModel();
+    $senator     = new SenatorBioParseUtility();
+    $dossier     = new SenatorDossierModel();
+    $senator->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = join('',$senator->get_filtered_doc());
+    $parser->structure_html = ''; 
+    ////////////////////////////////////////////////////////////////////
+
+    // Find the placeholder, and extract the target URL for the image.
+    // If the image (UrlModel) is cached locally, then replace the entire
+    // placeholder with the base-64 encoded image.  Otherwise, replace
+    // the placeholder with an empty string, and emit the markup below.
+    $avatar_match = array();
+    $dossier->fetch($urlmodel->get_url(), 'bio_url');
+    $member_uuid = $dossier->get_member_uuid(); 
+
+    $comms = $membership->fetch_committees($dossier);
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Result type: " . gettype($comms) );
+    $this->recursive_dump($comms,'(marker) -');
+
+    if (1 == preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match)) {/*{{{*/
+
+      $this->recursive_dump($avatar_match,'(marker) Avatar Placeholder');
+      $image_markup    = array();
+      preg_match('@<img(.*)fauxsrc="([^"]*)"([^>]*)>@mi',$pagecontent,$image_markup);
+      $this->recursive_dump($image_markup,'(marker) Avatar Markup');
+      $bio_image_src   = new UrlModel($image_markup[2],TRUE);
+      $placeholder     = $avatar_match[0];
+      $avatar_uuid_url = explode(",",$avatar_match[1]);
+      $avatar_url      = new UrlModel($avatar_uuid_url[1],TRUE);
+      $fake_uuid       = $avatar_uuid_url[0];
+      $member_fullname = $dossier->get_fullname();
+      $image_base64enc = NULL;
+
+      if ( $avatar_url->in_database() ) {
+        // Fetch the image, stuff it in a base-64 encoded string, and pass
+        // it along to the user - if it exists.  Otherwise.
+        $image_contenttype = $avatar_url->get_content_type(TRUE);
+        $this->recursive_dump($image_contenttype,'(marker) Image properties');
+        $image_base64enc   = base64_encode($avatar_url->get_pagecontent());
+        $image_base64enc   = is_array($image_contenttype) && array_key_exists('content-type', $image_contenttype)
+          ? "data:{$image_contenttype['content-type']}:base64,{$image_base64enc}"
+          : NULL
+          ;
+      } else if ( $bio_image_src->in_database() ) {
+        $image_contenttype = $bio_image_src->get_content_type(TRUE);
+        $this->recursive_dump($image_contenttype,'(marker) Image properties');
+        $image_base64enc   = base64_encode($bio_image_src->get_pagecontent());
+        $image_base64enc   = is_array($image_contenttype) && array_key_exists('content-type', $image_contenttype)
+          ? "data:{$image_contenttype['content-type']}:base64,{$image_base64enc}"
+          : NULL
+          ;
+      }
+
+      // Cleanup placeholder, replace fake UUID with the Senator's real UUID.
+      // Also make it ready for use in preg_replace
+      $placeholder = preg_replace("@({$fake_uuid})@mi","{$member_uuid}",$placeholder);
+      $placeholder = str_replace(array('(',')',),array('\(','\)',),$placeholder);
+
+      // Ditto for markup
+      $pagecontent = preg_replace('@('.$fake_uuid.')@im', $member_uuid,$pagecontent);
+
+      // Replacement for the placeholder
+      $replacement = is_null($image_base64enc)
+        ? '' // Image hasn't yet been fetched.
+        : $image_base64enc // Image available, and can be inserted in markup.
+        ;
+        
+      // Remove fake content
+      $pagecontent = preg_replace(
+        array("@({$placeholder})@im",'@(fauxsrc="(.*)")@im'),
+        array("{$replacement}","alt=\"{$member_fullname}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\""), 
+        $pagecontent
+      );
+
+      // Test for correct replacement
+      $avatar_match = array('0' => 'No Match');
+      preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match);
+      $this->recursive_dump($avatar_match,'(marker) After subst');
+
+      // Only emit the image scraper trigger if the image was empty
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Avatar URL is {$avatar_url}");
+      if ( is_null($image_base64enc) ) $pagecontent .= <<<EOH
+
+<input type="hidden" class="no-replace" id="imagesrc-{$member_uuid}" value="{$avatar_url}" />
+<script type="text/javascript">
+$(function(){
+setTimeout((function(){
+  update_representatives_avatars();
+}),50);
+});
+</script>
+EOH;
+    }/*}}}*/
+    else {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) No placeholder found!" );
+    }
+    $parser->json_reply = array('retainoriginal' => TRUE);
+  }/*}}}*/
+
+  function seek_postparse_7150c562d8623591da65174bd4b85eea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.senate.gov.ph/committee/list.asp ('List of Committees')
+
+    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
+    $committee_parser = new SenateCommitteeListParseUtility();
+    $membership       = new SenatorCommitteeEdgeModel();
+    $committee        = new SenateCommitteeModel();
+    $senator          = new SenatorDossierModel();
+    $membership       = new SenateCommitteeMembershipModel();
+    $url              = new UrlModel();
+
+    // $this->recursive_dump($urlmodel->get_response_header(TRUE),'(warning)');
+
+    $committee_parser->debug_tags = FALSE;
+    $committee_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
+    $pagecontent = join('',$committee_parser->get_filtered_doc());
+
+    // $senator->dump_accessor_defs_to_syslog();
+    // $committee->dump_accessor_defs_to_syslog();
+    // $membership->dump_accessor_defs_to_syslog();
+
+    $containers     = $committee_parser->get_containers();
+    $extract_tables = create_function('$a', 'return $a["attrs"]["CLASS"] == "SenTable" ? $a["children"] : NULL;');
+    $containers     = array_values(array_filter(array_map($extract_tables, $containers)));
+
+    $extract_tag_cdata = create_function('$a', 'return array("tag" => $a["tag"], "attrs" => $a["attrs"], "cdata" => join(" ", array_filter($a["cdata"])));');
+
+    foreach ( $containers as $index => $table ) {
+      $containers[$index] = array_map($extract_tag_cdata, $table);
+    }
+
+    $containers = array_values($containers);
+
+    // Tables on this page are sequences of TD, A, TD tags.
+    // An empty table cell (no character data) signifies the end of a row 
+    $remove_empty_cells = create_function('$a', 'return empty($a["cdata"]) ? NULL : $a;');
+    $filtered_content = $pagecontent;
+    $pagecontent = '';
+    foreach ( $containers as $container ) {/*{{{*/
+      $committee_list = array();
+      $container = array_filter(array_map($remove_empty_cells, $container));
+      // $this->recursive_dump($container,'(warning)');
+      foreach ( $container as $content ) {/*{{{*/
+        $tag = strtolower($content["tag"]);
+        if ( $tag == 'td' ) array_push($committee_list, array('committee_name' => NULL, 'senators' => array()));
+        $element = array_pop($committee_list);
+        if ( $tag == 'td' ) {/*{{{*/// Committee Name
+          $element['id'] = $committee->stow_committee($content['cdata']);
+          if ( !is_null($element['id']) ) {
+            $element['committee_name'] = $committee->get_committee_name();
+          }
+        }/*}}}*/
+        else if ( $tag == 'a' ) {/*{{{*/// Senator name and bio
+          $senator_info = array();
+          $senator_id = $senator->stow_senator(
+            $content['attrs']['HREF'], // Senator's resume URL
+            $content['cdata'], // Senator's full name as obtained on the page
+            $senator_info, // Empty array, into which instance data are stored
+            $urlmodel // The parent page URL (this page)
+          );
+          if ( !is_null($senator_id) ) {
+            $url->fetch($bio_url, 'url');
+            $senator_info['cached'] = $url->in_database();
+            $element['senators'][] = $senator_info;
+          }
+        }/*}}}*/
+        array_push($committee_list,$element);
+      }/*}}}*/
+      $this->recursive_dump($committee_list,'(marker)');
+      $replacement_content = '';
+      foreach ( $committee_list as $c ) {/*{{{*/// Generate markup
+        $senator_entries = '';
+        foreach ( $c['senators'] as $senator_entry ) {/*{{{*/
+          $link_attribs = array('legiscope-remote');
+          if ( $senator_entry['cached'] ) $link_attribs[] = 'cached';
+          $link_attribs = join(' ', $link_attribs);
+          $linktext = array_key_exists('linktext', $senator_entry)
+            ? utf8_encode($senator_entry['linktext'])
+            : $senator_entry['url'];
+          $senator_entries .= <<<EOH
+<span class="committee-senators">
+  <a href="{$senator_entry['url']}" class="{$link_attribs}">{$linktext}</a>
+</span>
+
+EOH;
+        }/*}}}*/
+        $committee->fetch_by_committee_name($c['committee_name']);
+        $committee_desc = ($committee->in_database())
+          ? $committee->get_jurisdiction() 
+          : '...'
+          ;
+        $pagecontent .= <<<EOH
+<div class="committee-functions-leadership">
+  <div class="committee-name">{$c['committee_name']}</div>
+  <div class="committee-leaders">
+  {$senator_entries}
+  </div>
+  <div class="committee-jurisdiction">{$committee_desc}</div>
+</div>
+
+EOH;
+      }/*}}}*/
+    }/*}}}*/
+
+  }/*}}}*/
+
+  function seek_postparse_bypath_01826c0f1e0270f7d72cb025cdcdb2fc(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.senate.gov.ph/committee/duties.asp
+
+    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
+    $committee_parser = new SenateCommitteeListParseUtility();
+    // $committee_parser = new SenateCommonParseUtility();
+    $committee        = new SenateCommitteeModel();
+    $senator          = new SenatorDossierModel();
+
+    $committee_parser->debug_tags = FALSE;
+    // Malformed document hacks (2013 March 5 - W3C validator failure.  Check http://validator.w3.org/check?uri=http%3A%2F%2Fwww.senate.gov.ph%2Fcommittee%2Fduties.asp&charset=%28detect+automatically%29&doctype=Inline&ss=1&group=0&verbose=1&st=1&user-agent=W3C_Validator%2F1.3+http%3A%2F%2Fvalidator.w3.org%2Fservices)
+    $content = preg_replace(
+      array(
+        '@(\<[/]*(o:p)\>)@im',
+        '@(\<[/]*(u1:p)\>)@im',
+        '@(\<[/]*(font)\>)@im',
+      ),
+      array(
+        '<br class="unidentified"/>',
+        '<br class="unidentified"/>',
+        '<br class="unidentified"/>',
+      ),
+      $urlmodel->get_pagecontent()
+    );
+    $pagecontent = utf8_encode($content);
+    $committee_parser->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($content,$urlmodel->get_response_header());
+
+    // Container accessors are not used
+    $this->recursive_dump(($committee_info = $committee_parser->get_desc_stack(
+    )),'(marker) Names');
+
+    $template = <<<EOH
+<div class="republic-act-entry">
+<span class="republic-act-heading"><a href="{url}" class="{cache_state}" id="{urlhash}">{committee_name}</a></span>
+<span class="republic-act-desc">{jurisdiction}</span>
+</div>
+
+EOH;
+    $replacement_content = '';
+
+    $this->syslog(__FUNCTION__,__LINE__, "Committee count: " . count($committee_info));
+
+    foreach ( $committee_info as $entry ) {
+      
+      //$this->syslog(__FUNCTION__,__LINE__,"++ {$entry['link']}");
+      // $this->recursive_dump($entry,"(marker)");
+      $committee_name = $committee->cleanup_committee_name(trim($entry['link'],'#'));
+      $short_code = preg_replace('@[^A-Z]@','',$committee_name);
+      $committee->fetch_by_committee_name($committee_name);
+      $committee->
+        set_committee_name($committee_name)->
+        set_short_code($short_code)->
+        set_jurisdiction($entry['description'])->
+        set_is_permanent('TRUE')->
+        set_create_time(time())->
+        set_last_fetch(time())->
+        stow();
+      $replacement_content .= $committee->substitute($template);
+    }
+
+    $pagecontent = $replacement_content;
+
+  }/*}}}*/
+
+
   /** Senators **/
 
   function seek_postparse_bypathonly_255b2edb0476630159f8a93cd5836b08(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -269,7 +553,8 @@ EOH;
     $filter_image_or_link = create_function('$a', 'return (array_key_exists("text",$a) || array_key_exists("image",$a) || ($a["tag"] == "A")) ? $a : NULL;'); 
 
     foreach ( $containerset as $container_id => $container ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"Candidate structure {$container_id} - now at " . count($image_url));
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Candidate structure {$container_id} - now at " . count($image_url));
+      // $this->recursive_dump($container,"(marker) {$container_id}");
       if ( !("table" == $container['tagname']) ) continue;
       $children = array_filter(array_map($filter_image_or_link,$container['children']));
       // $this->recursive_dump($children,'(warning)');
@@ -277,6 +562,8 @@ EOH;
         if (array_key_exists("image", $candidate_node)) {
           $image = array(
             "image" => $candidate_node['image'],
+            "fauxuuid" => $candidate_node['fauxuuid'],
+            "realsrc" => $candidate_node['realsrc'],
             "link" => array( 
               "url" => NULL,
               "urlhash" => NULL,
@@ -319,12 +606,12 @@ EOH;
         $member_avatar_base64 = NULL; 
         $avatar_url           = NULL; 
         if ( !$dossier->in_database() ) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__, "- Treating {$bio_url}");
+          $member_fullname = $dossier->cleanup_senator_name(utf8_decode($brick['link']['text']));
+          if (empty($member_fullname)) continue;
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) - Treating {$bio_url}");
           $this->recursive_dump($brick,'(warning)');
-          $member_fullname = $brick['link']['text'];
-          if (!(0 < strlen(trim($member_fullname)))) continue;
-          $member_uuid     = sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member_fullname);
-          $avatar_url      = $brick['image'];
+          $member_uuid = sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member_fullname);
+          $avatar_url  = $brick['realsrc'];
           $url->fetch(UrlModel::get_url_hash($avatar_url),'urlhash');
           if ( $url->in_database() ) {
             $image_content_type   = $url->get_content_type();
@@ -372,6 +659,7 @@ $(function(){
   });
   if ( total_image_width < (total_image_count * 76) ) total_image_width = total_image_count * 76;
   $("div[class=dossier-strip]").width(total_image_width).css({'width' : total_image_width+'px !important'});
+  setTimeout((function(){ update_representatives_avatars(); }),500);
 });
 </script>
 EOH
@@ -446,6 +734,7 @@ EOH
     $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
+
 
   /** Republic acts **/
 
@@ -628,245 +917,6 @@ EOH;
   function seek_postparse_edd4db85190acf2176ca125df8fe269a(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
-  }/*}}}*/
-
-  function seek_postparse_bypathonly_582a1744b18910b951a5855e3479b6f2(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.senate.gov.ph/senators/sen_bio/*
-    $this->syslog( __FUNCTION__, __LINE__, "--------- SENATOR BIO PARSER Invoked for " . $urlmodel->get_url() );
-
-    $senator     = new SenatorBioParseUtility();
-    $dossier     = new SenatorDossierModel();
-
-    $dossier->dump_accessor_defs_to_syslog();
-
-    $senator->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-    $pagecontent = join('',$senator->get_filtered_doc());
-
-    ////////////////////////////////////////////////////////////////////
-    $seek_structure_filename = "{$this->seek_cache_filename}.structure";
-    $this->recursive_file_dump(
-      $seek_structure_filename, 
-      $senator->get_containers(),0,__LINE__);
-    $parser->structure_html = file_get_contents($seek_structure_filename);
-    $this->syslog( __FUNCTION__, __LINE__, "--------- Storing structure dump {$seek_structure_filename}, length = " . strlen($parser->structure_html) );
-    ////////////////////////////////////////////////////////////////////
-
-    $structure   = $senator->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-
-    $parser->json_reply = array('retainoriginal' => TRUE);
-  }/*}}}*/
-
-  function seek_postparse_7150c562d8623591da65174bd4b85eea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.senate.gov.ph/committee/list.asp ('List of Committees')
-
-    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
-    $committee_parser = new SenateCommitteeListParseUtility();
-    $committee        = new SenateCommitteeModel();
-    $senator          = new SenatorDossierModel();
-    $membership       = new SenateCommitteeMembershipModel();
-    $url              = new UrlModel();
-
-    // $this->recursive_dump($urlmodel->get_response_header(TRUE),'(warning)');
-
-    $committee_parser->debug_tags = FALSE;
-    $committee_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-    $pagecontent = join('',$committee_parser->get_filtered_doc());
-
-    // $senator->dump_accessor_defs_to_syslog();
-    // $committee->dump_accessor_defs_to_syslog();
-    // $membership->dump_accessor_defs_to_syslog();
-
-    $containers     = $committee_parser->get_containers();
-    $extract_tables = create_function('$a', 'return $a["attrs"]["CLASS"] == "SenTable" ? $a["children"] : NULL;');
-    $containers     = array_values(array_filter(array_map($extract_tables, $containers)));
-
-    $extract_tag_cdata = create_function('$a', 'return array("tag" => $a["tag"], "attrs" => $a["attrs"], "cdata" => join(" ", array_filter($a["cdata"])));');
-
-    foreach ( $containers as $index => $table ) {
-      $containers[$index] = array_map($extract_tag_cdata, $table);
-    }
-
-    $containers = array_values($containers);
-
-    // $this->recursive_dump($containers[1],'(warning)');
-
-    // Tables on this page are sequences of TD, A, TD tags.
-    // An empty table cell (no character data) signifies the end of a row 
-    $remove_empty_cells = create_function('$a', 'return empty($a["cdata"]) ? NULL : $a;');
-    $parent_url_parts = UrlModel::parse_url($urlmodel->get_url());
-    $filtered_content = $pagecontent;
-    $pagecontent = '';
-    foreach ( $containers as $container ) {/*{{{*/
-      $committee_list = array();
-      $container = array_filter(array_map($remove_empty_cells, $container));
-      // $this->recursive_dump($container,'(warning)');
-      foreach ( $container as $content ) {
-        $tag = strtolower($content["tag"]);
-        if ( $tag == 'td' ) array_push($committee_list, array('committee_name' => NULL, 'senators' => array()));
-        $element = array_pop($committee_list);
-        if ( $tag == 'td' ) {/*{{{*/// Committee Name
-          $element['committee_name'] = trim($content['cdata']);
-          $committee->fetch($element['committee_name'], 'committee_name');
-          if ( !$committee->in_database() ) {
-            $short_code = trim(preg_replace('@[^A-Z]@','',$element['committee_name']));
-            if ( !empty($short_code) ) 
-            $committee->
-              set_committee_name($element['committee_name'])->
-              set_short_code($short_code)->
-              set_jurisdiction(NULL)->
-              set_is_permanent('FALSE')->
-              set_create_time(time())->
-              set_last_fetch(time())->
-              stow();
-          } else {
-            $element['cached'] = TRUE;
-            $element['id'] = $committee->get_id();
-          }
-        }/*}}}*/
-        else if ( $tag == 'a' ) {/*{{{*/// Senator name and bio
-          $bio_url = array('url' => $content['attrs']['HREF']);
-          $bio_url = UrlModel::normalize_url($parent_url_parts, $bio_url);
-          $senator_fullname = htmlspecialchars_decode(trim(preg_replace('@^Sen\.@i', '', $content['cdata'])));
-          // Deal with quotes mistakenly parsed as '?'
-          $senator_fullname = preg_replace('@(\?|\')([^?\']*)(\?|\')@','"$2"', $senator_fullname);
-          $senator_info = array(
-            'url'      => $bio_url, 
-            'linktext' => $senator_fullname, 
-          );
-          $senator->fetch($senator_fullname,'fullname');
-          if ( !$senator->in_database() ) {
-            $senator->
-              set_fullname($senator_fullname)->
-              set_bio_url($bio_url)->
-              set_create_time(time())->
-              set_last_fetch(time())->
-              stow();
-          } else {
-            $senator_info['id'] = $senator->get_id();
-          }
-          $url->fetch($bio_url, 'url');
-          $senator_info['cached'] = $url->in_database();
-          $element['senators'][] = $senator_info;
-        }/*}}}*/
-        array_push($committee_list,$element);
-      }
-      //$this->recursive_dump($committee_list,'(warning)');
-      $replacement_content = '';
-      foreach ( $committee_list as $c ) {/*{{{*/// Generate markup
-        $senator_entries = '';
-        foreach ( $c['senators'] as $senator_entry ) {
-          $link_attribs = array('legiscope-remote');
-          if ( $senator_entry['cached'] ) $link_attribs[] = 'cached';
-          $link_attribs = join(' ', $link_attribs);
-          $linktext = array_key_exists('linktext', $senator_entry)
-            ? utf8_encode($senator_entry['linktext'])
-            : $senator_entry['url'];
-          $senator_entries .= <<<EOH
-<span class="committee-senators">
-  <a href="{$senator_entry['url']}" class="{$link_attribs}">{$linktext}</a>
-</span>
-
-EOH;
-        }
-        $committee->fetch($c['committee_name'],'committee_name');
-        $committee_desc = ($committee->in_database())
-          ? $committee->get_jurisdiction() 
-          : '...'
-          ;
-        // $this->recursive_dump($c,'(warning)');
-        $pagecontent .= <<<EOH
-<div class="committee-functions-leadership">
-  <div class="committee-name">{$c['committee_name']}</div>
-  <div class="committee-leaders">
-  {$senator_entries}
-  </div>
-  <div class="committee-jurisdiction">{$committee_desc}</div>
-</div>
-
-EOH;
-      }/*}}}*/
-    }/*}}}*/
-    // $pagecontent = $filtered_content;
-  }/*}}}*/
-
-  function seek_postparse_bypath_01826c0f1e0270f7d72cb025cdcdb2fc(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.senate.gov.ph/committee/duties.asp
-
-    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
-    $committee_parser = new SenateCommitteeListParseUtility();
-    $committee        = new SenateCommitteeModel();
-    $senator          = new SenatorDossierModel();
-
-    $committee_parser->debug_tags = FALSE;
-    $committee_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-    $pagecontent = join(' ',$committee_parser->get_filtered_doc());
-
-    $extract_toc         = create_function('$a', 'return $a["tagname"] == "div" && $a["id"] == "toc" ? $a["children"] : NULL;');
-    $committee_toc       = array_values(array_filter(array_map($extract_toc, $committee_parser->get_containers())));
-    $extract_toc_entries = create_function('$a', 'return $a["tag"] == "A" ? array("link" => trim($a["attrs"]["HREF"]), "title" => is_array($a["cdata"]) ? trim(join(" ", $a["cdata"])) : NULL ) : NULL;');
-    $committee_tocs      = array_map($extract_toc_entries, $committee_toc[0]);
-    // $this->syslog( __FUNCTION__, __LINE__, "Committee TOC" );
-    // $this->recursive_dump($committee_tocs,'(warning)');
-    $committee_tocs      = array_filter(array_combine(
-      array_map($committee_parser->slice('link'), $committee_tocs),
-      array_map($committee_parser->slice('title'), $committee_tocs)
-    ));
-
-    // $this->recursive_dump($committee_tocs,'(warning)');
-    // $this->recursive_dump($committee_parser->get_desc_stack(),'(warning)');
-
-    $descriptions = $committee_parser->get_desc_stack();
-    // $this->syslog( __FUNCTION__, __LINE__, "Description Stack" );
-    // $this->recursive_dump($descriptions,'(warning)');
-    $descriptions = array_filter(array_combine(
-      array_map($committee_parser->slice('link'), $descriptions),
-      array_map($committee_parser->slice('description'), $descriptions)
-    ));
-
-    // $this->recursive_dump($descriptions,'(warning)');
-    $committee->dump_accessor_defs_to_syslog();
-
-    $template = <<<EOH
-<div class="republic-act-entry">
-<span class="republic-act-heading"><a href="{url}" class="{cache_state}" id="{urlhash}">{committee_name}</a></span>
-<span class="republic-act-desc"><a href="{url}" class="legiscope-remote" id="title-{urlhash}">{jurisdiction}</a></span>
-</div>
-
-EOH;
-    $replacement_content = '';
-
-    $this->syslog(__FUNCTION__,__LINE__, "Committee count: " . count($committee_tocs));
-    $this->recursive_dump($committee_tocs,'(warning)');
-
-    foreach ( $committee_tocs as $link => $title ) {
-      $committee_name = trim($link,'#');
-      if ( !is_array($descriptions) || !array_key_exists($committee_name, $descriptions) ) {
-        $this->syslog(__FUNCTION__,__LINE__, "WARNING: Missing committee '{$committee_name}'");
-        continue; 
-      }
-      $short_code = preg_replace('@[^A-Z]@','',$committee_name);
-      $committee->fetch($short_code, 'short_code');
-      if ( !$committee->in_database() )
-      $committee->
-        set_committee_name($committee_name)->
-        set_short_code($short_code)->
-        set_jurisdiction($descriptions[$committee_name])->
-        set_is_permanent('TRUE')->
-        set_create_time(time())->
-        set_last_fetch(time())->
-        stow();
-      $committee->fetch($short_code, 'short_code');
-      if ( !$committee->in_database() ) {
-        $committee->
-          set_committee_name($committee_name)->
-          set_jurisdiction("NOT STORED")->
-          stow();
-      }
-      $replacement_content .= $committee->substitute($template);
-    }
-
-    $pagecontent = $replacement_content;
-
   }/*}}}*/
 
   function seek_postparse_bypath_62f91d11784860d07dea11c53509a732(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -1063,6 +1113,7 @@ EOH
 
   }/*}}}*/
 
+
   /** Utilities **/
 
   function generic(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -1154,8 +1205,11 @@ EOH;
       $image_content = base64_encode($url->get_pagecontent());
       $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
       $json_reply['altmarkup'] = utf8_encode($member_avatar_base64);
-      $member->set_avatar_image($member_avatar_base64)->stow();
-      $this->syslog(__FUNCTION__,__LINE__, "Sending member {$member_uuid} avatar: {$json_reply['altmarkup']}");
+      if ( 'false' == $this->filter_post('no_replace','false') ) {
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) Replacing {$member_uuid} avatar: {$json_reply['altmarkup']}");
+        $member->set_avatar_image($member_avatar_base64)->stow();
+      }
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) Sending member {$member_uuid} avatar: {$json_reply['altmarkup']}");
     }
   }/*}}}*/
 

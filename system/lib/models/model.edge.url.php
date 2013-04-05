@@ -40,8 +40,9 @@ class UrlEdgeModel extends DatabaseUtility {
     if ( $a > 0 && $b > 0 ) {
       $this->a_int11 = $a;
       $this->b_int11 = $b;
-      parent::stow();
+      return parent::stow();
     }
+    return FALSE;
   }
 
 }

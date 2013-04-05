@@ -30,6 +30,13 @@ class RawparseUtility extends SystemUtility {/*{{{*/
     xml_set_element_handler($this->parser, 'ru_tag_open', 'ru_tag_close');
     xml_set_character_data_handler($this->parser, 'ru_cdata');
     xml_set_default_handler($this->parser, 'ru_default');
+    /* Diagnostics */
+    xml_set_start_namespace_decl_handler($this->parser,'ru_start_namespace');
+    xml_set_end_namespace_decl_handler($this->parser, 'ru_end_namespace');
+    xml_set_processing_instruction_handler($this->parser, 'ru_processing_instr');
+    xml_set_external_entity_ref_handler($this->parser, 'ru_external_entity_ref');
+
+    /* Options. Do not change these XML_OPTION_CASE_FOLDING */
     xml_parser_set_option($this->parser, XML_OPTION_CASE_FOLDING, 1 );
     xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1 );
     xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
@@ -305,7 +312,6 @@ EOH;
     return $rawhtml;
   }/*}}}*/
 
-
   function reset() {/*{{{*/
     if ( !is_null($this->parser) ) {
       xml_parser_free($this->parser);
@@ -382,11 +388,10 @@ EOH;
       : 'iso-8859-1' // Default assumption
       ;
     $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}'" );
-    // Parse HTML into structure
-    $target_struct            = array();
-    $struct_index             = NULL;
+
     $dom                      = new DOMDocument();
     $dom->recover             = TRUE;
+    $dom->resolveExternals    = TRUE;
     $dom->preserveWhiteSpace  = FALSE;
     $dom->strictErrorChecking = FALSE;
     $dom->substituteEntities  = FALSE;
@@ -398,6 +403,7 @@ EOH;
     } else {
       $loadresult   = $dom->loadHTML($raw_html);
     }
+
     $dom->normalizeDocument();
 
     if ( !$loadresult ) $this->syslog( __FUNCTION__, __LINE__, "-- WARNING: Failed to filtering HTML as XML, load result FAIL" );
@@ -409,14 +415,14 @@ EOH;
     if ( $xml_errno == 0 ) {
 
       $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-      $dom->loadXML($raw_html);
-      $dom->formatOutput = TRUE;
+      // $dom->loadXML($raw_html);
+      $dom->formatOutput = FALSE;
       $raw_html = $dom->saveHTML();
       $this->syslog(__FUNCTION__,__LINE__, " - Parse OK: \n" . substr($raw_html,0,500));
 
     } else {
 
-      $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) --------------------------- " . __LINE__ );
       $error_offset = xml_get_current_byte_index($this->parser);
       $xml_errstr = xml_error_string($xml_errno);
       $this->syslog( __FUNCTION__, __LINE__, 
@@ -425,7 +431,7 @@ EOH;
       );
       $errors = libxml_get_errors();
       foreach ($errors as $error) {
-        $this->syslog(__FUNCTION__,__LINE__,"- Parse err @ line {$error->line} col {$error->column}: {$error->message}");
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) - Parse err @ line {$error->line} col {$error->column}: {$error->message}");
       }
 
     }
@@ -471,6 +477,22 @@ EOH;
     return 2 < count($this->tag_stack) ? $this->tag_stack[count($this->tag_stack)-2] : $this->current_tag;
   }/*}}}*/
 
+  function ru_processing_instr( $parser , string $target , string $data ) {
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) {$target} {$data}" );
+  }
+
+  function ru_start_namespace( $parser , string $prefix , string $uri ) {
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) {$prefix} {$uri}" );
+  }
+
+  function ru_end_namespace( $parser , string $prefix ) {
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) {$prefix}" );
+  }
+
+  function ru_external_entity_ref( $parser , string $open_entity_names , string $base , string $system_id , string $public_id ) {
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) ENs {$open_entity_names} Base {$base} SID {$system_id} PID {$public_id}" );
+  }
+
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
     $tag = strtoupper($tag);
     // $this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>> {$tag}" );
@@ -481,6 +503,8 @@ EOH;
       'attrs' => is_array($attrs) ? array_merge( $attrs, array('seq' => $this->tag_counter) ) : array('seq' => $this->tag_counter),
       'position' => NULL,
     );
+    // usleep(20000);
+    // $this->syslog(__FUNCTION__,__LINE__, "(marker) {$tag} " . $this->get_stacktags() );
     $this->current_tag = $current_tag;
     array_push($this->tag_stack, $current_tag);
     $result = ( method_exists($this, $tag_handler) )
@@ -562,9 +586,11 @@ EOH;
     if ( 0 < count($this->tag_stack) ) {
       $stack_top = array_pop($this->tag_stack);
       array_push($this->tag_stack,$stack_top);
-      $cdata_content_handler = "ru_{$stack_top['tag']}_cdata";
+      $cdata_content_handler = strtolower("ru_{$stack_top['tag']}_cdata");
       if ( method_exists($this, $cdata_content_handler) ) {
         $parser_result = $this->$cdata_content_handler($parser, $cdata);
+    //usleep(20000);
+    //$this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$cdata_content_handler}() {$cdata}" );
       } else {
         $stack_top = array_pop($this->tag_stack);
         if ( !array_key_exists('cdata', $stack_top) ) $stack_top['cdata'] = array();
@@ -572,14 +598,13 @@ EOH;
         array_push($this->tag_stack,$stack_top);
       }
     }
-    // else $this->syslog( __FUNCTION__, __LINE__, "--- {$cdata}" );
     // if ( $parser_result === TRUE ) $this->filtered_doc[] = trim($cdata);
     return $parser_result;
   }/*}}}*/
 
   function ru_default($parser, & $cdata) {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "--- {$cdata}" );
-    $cdata = NULL;
+    // $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$cdata}" );
+    // $cdata = NULL;
     return FALSE;
   }/*}}}*/
 

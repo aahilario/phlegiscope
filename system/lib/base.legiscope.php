@@ -330,18 +330,13 @@ class LegiscopeBase extends SystemUtility {
 
     if ( FALSE === ( $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST) ) ) {
       // Faux message
+			$this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. {$target_url} hash != [$this->subject_host_hash]");
       header('HTTP/1.0 404 Not Found');
       exit(0);
     }
 
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
     $displayed_target_url = $target_url;
-
-    if (0) if ( $cache_force == 'true' ) {
-      $url = new UrlModel($target_url, TRUE);
-      if ( !is_null($url->get_pagecontent()) ) {
-      }  
-    }
 
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
     $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
@@ -359,8 +354,9 @@ class LegiscopeBase extends SystemUtility {
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
-    // if ( !is_null($modifier) && !($modifier == 'false') ) 
-    $this->recursive_dump($_POST,__LINE__);
+		$this->recursive_dump($_POST, 
+			( !is_null($modifier) && !($modifier == 'false') ? '(marker)' : '' ) . " " . __LINE__
+		);
 
     $url      = new UrlModel($target_url, TRUE);
     $faux_url = NULL;

@@ -18,7 +18,6 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_table_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;

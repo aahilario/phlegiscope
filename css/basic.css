@@ -21,6 +21,10 @@ hr {
   border-top: 1px dotted #CCC;
   height: 1px;
 }
+li > a {
+  margin-right: 0;
+  padding-right: 0;
+}
 a {
   display: inline;
 }
@@ -42,6 +46,7 @@ a {
 #controlpanel {
   float: left;
   width: 20%;
+  min-width: 280px;
 }
 #sitecontent {
   right: 1px;
@@ -90,7 +95,7 @@ span.legiscope-refresh {
   color: white;
   background-color: #AAA;
   padding: 3px 2px 2px 3px;
-  margin-left: 3px;
+  margin-left: 0px;
 }
 a.legiscope-remote:hover + span.legiscope-refresh {
   display: inline;
@@ -373,4 +378,17 @@ div.congress-doc-item > span {
 .uncached {
   color: #AA0 !important;
   font-weight: bold;
+}
+
+
+/** Link cluster reordering **/
+.upper-section {
+  background-image: url("/images/sort-arrow-up.png");
+  background-repeat: no-repeat;
+  background-position: left top;
+}
+.lower-section {
+  background-image: url("/images/sort-arrow-down.png");
+  background-repeat: no-repeat;
+  background-position: left bottom;
 }

@@ -333,7 +333,7 @@ EOS;
       $sql = '';
       $this->where($a)->prepare_select_sql($sql);
       $sql = preg_replace('@^SELECT (.*) FROM @','SELECT COUNT(*) n FROM ', $sql);
-      $this->syslog(__FUNCTION__, __LINE__, "SQL - {$sql}");
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) SQL - {$sql}");
     }
     $result = $this->query($sql)->resultset();
     $result = array_combine($result['attrnames'], $result['values'][0]);
@@ -682,7 +682,7 @@ EOS;
       } else {
         $type = array_key_exists($name, $property_list) ? $property_list[$name] : NULL;
         $this->syslog(__FUNCTION__, __LINE__, <<<EOP
-
+(marker)
 function & {$setter}(\$v) { \$this->{$name}_{$type} = \$v; return \$this; }
 function get_{$name}(\$v = NULL) { if (!is_null(\$v)) \$this->{$setter}(\$v); return \$this->{$name}_{$type}; }
 
@@ -700,7 +700,7 @@ EOP
 
   function dump_accessor_defs_to_syslog() {
     $data_items = array_flip(array_map($this->slice('name'), $this->fetch_property_list()));
-    $this->recursive_dump($data_items,__LINE__);
+    $this->recursive_dump($data_items,'(marker)');
     $this->set_contents_from_array($data_items,FALSE);
   }  
 

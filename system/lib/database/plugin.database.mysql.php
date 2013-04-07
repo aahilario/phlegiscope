@@ -84,11 +84,14 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
         $i = 0;
         $bindsource_length = strlen($bindsource);
         $streamchunk = min($streamchunk, $bindsource_length);
-        // syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
+        syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
+				$n = 0;
         do {
           $chunk = substr($bindsource, $i, $streamchunk);
+					// syslog( LOG_INFO, __METHOD__ . ": Chunk {$n} @ {$i}");
           $prepare_hdl->send_long_data($paramindex, $chunk);
           $i += $streamchunk;
+					$n++;
         } while ( $i < strlen($bindsource) );
         $paramindex++;
       }

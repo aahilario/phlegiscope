@@ -22,10 +22,20 @@ class SenateGovPh extends LegiscopeBase {
   }
 
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $common = new SenateCommonParseUtility();
     $common->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = join('',$common->get_filtered_doc());
+    $pagecontent = preg_replace(
+      array(
+        "@\&\#10;@",
+        "@\n@",
+      ),
+      array(
+        "",
+        "",
+      ),
+      join('',$common->get_filtered_doc())
+    );
     // $this->recursive_dump($common->get_containers(),'(warning)');
   }/*}}}*/
 
@@ -92,12 +102,10 @@ class SenateGovPh extends LegiscopeBase {
     $replacement_content = '';
 
     $paginator_form = $this->extract_form($parser->get_containers());
-
     $paginator_form = $paginator_form[0]['children'];
+    $control_set = $this->extract_form_controls($paginator_form);
 
     $this->recursive_dump($paginator_form,'(warning)');
-
-    $control_set = $this->extract_form_controls($paginator_form);
 
     extract($control_set); // form_controls, select_name, select_options, userset
 
@@ -229,7 +237,7 @@ EOH;
   }/*}}}*/
 
   function seek_postparse_bypath_0930d15b5c0048e5e03af7b02f24769d(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
@@ -251,6 +259,9 @@ EOH;
     $pagecontent = join('',$senator->get_filtered_doc());
     $parser->structure_html = ''; 
     ////////////////////////////////////////////////////////////////////
+
+    $this->recursive_dump(($boundary_top = $senator->get_containers(
+    )),'(marker) All');
 
     // Find the placeholder, and extract the target URL for the image.
     // If the image (UrlModel) is cached locally, then replace the entire
@@ -279,15 +290,15 @@ EOH;
           : 'Disappeared'
           ;
         $committee_membership_markup .= <<<EOH
-<li><a class="legiscope-remote">{$committee_list[$committee_id]}</a></li>
+<li><a class="legiscope-remote" href="http://www.senate.gov.ph/committee/list.asp">{$committee_list[$committee_id]}</a></li>
 EOH;
       }
       $this->recursive_dump($committee_list,'(marker) - C List');
     }/*}}}*/
 
-    if ( 0 < strlen($committee_membership_markup) ) {
+    if ( 0 < strlen($committee_membership_markup) ) {/*{{{*/
       $committee_membership_markup = <<<EOH
-<hr/>
+<hr class="{$member_uuid}"/>
 <span class="section-title">Committee Memberships</span><br/>
 <ul class="committee_membership">
 {$committee_membership_markup}
@@ -295,7 +306,7 @@ EOH;
 <hr/>
 
 EOH;
-    }
+    }/*}}}*/
 
     if (1 == preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match)) {/*{{{*/
 
@@ -348,11 +359,14 @@ EOH;
       // Remove fake content
       // Insert committee membership in place of any extant <HR> tag
       $pagecontent = preg_replace(
-        array("@({$placeholder})@im",'@(fauxsrc="(.*)")@im','@(\<hr([^>]*)\>)@i'),
+        array(
+          "@({$placeholder})@im",
+          '@(fauxsrc="(.*)")@im',
+          '@(\<p (.*)class="h1_bold"([^>]*)\>)@i'),
         array(
           "{$replacement}",
           "alt=\"{$member_fullname}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\"",
-          "{$committee_membership_markup}",
+          "{$committee_membership_markup}<table>",
         ), 
         $pagecontent
       );
@@ -361,6 +375,12 @@ EOH;
       $avatar_match = array('0' => 'No Match');
       preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match);
       $this->recursive_dump($avatar_match,'(marker) After subst');
+
+      $committee_list_match = array('0' => 'No Match');
+      if (!(1 == preg_match('@\<hr class="'.$member_uuid.'"/\>@i',$pagecontent,$committee_list_match))) {
+        $pagecontent = $committee_membership_markup . $pagecontent;
+      }
+
 
       // Only emit the image scraper trigger if the image was empty
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Avatar URL is {$avatar_url}");
@@ -590,7 +610,7 @@ EOH;
 
   function seek_postparse_bypathonly_255b2edb0476630159f8a93cd5836b08(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/senators/sen15th.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     // $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
 
     $senator = new SenatorBioParseUtility();
@@ -740,67 +760,67 @@ EOH
 
   function seek_postparse_73c3022a45d05b832a96fb881f20d2c6(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/senators/roll.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_aaccd94d6d5d9466c26378fd24f6b14f(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/senators/composition.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_8b7a45d963ca5d18191d657067f14cf9(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/secretariat/officers.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypathonly_3eed37a7b2fbf573b46f1303b8dcc9d1(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/secretariat/leg.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypathonly_c9858078eb57bf106b0e5187bb2ea278(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/about/rulesmenu.asp 
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_710a92e801107035b7786723f9a96ec8(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/Treaties.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypathonly_2e8161d636209e4cd69b7ff638f5c8f4(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypathonly_818a2624f2a47cff5dc1a4b4976acc4c(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/photo_gallery/gallery.aspx
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_5c335fa143545884a63985e3389274fa(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/committee/schedwk.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypathonly_f71816285af79cbebebb490d5fcf4813(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // 
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypathonly_572e65afda6a84c7a7a375b915ad1f68(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/photo_release/2013/0122_00.asp
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
@@ -876,29 +896,62 @@ EOH
         // Extract parts of an A tag containing republic act links
         $link = $tag['attrs']['HREF'];
         $ra['desc'] = str_replace(array('[BR]',"\n"),array(''," "),join('',$tag['cdata']));
-        $ra['link'][] = $link; 
+        $test_url->fetch($link, 'url');
+        $id = $test_url->in_database() ? $test_url->get_id() : NULL;
+        $ra['link'][$id] = $link; 
         $matches = array();
         preg_match('@(Republic Act No)*([^0-9]*)([0-9]*)(.*)@i',$ra['desc'],$matches);
         $ra['linktext'] = 'RA' . str_pad(ltrim($matches[3],'0'),5,'0',STR_PAD_LEFT);
         $ra['desc'] = trim($matches[4]);
 
-        $test_url->fetch($link, 'url');
-        $ra['cached_url'] = $test_url->in_database() ? $test_url->get_id() : NULL;
         $republic_act->fetch($ra['linktext'], 'sn');
         $found = $republic_act->in_database();
         $ra['cached_sn'] = $found ? $republic_act->get_id() : NULL;
-        if ( $found ) $ra['link'][] = $republic_act->get_url();
+        $id = NULL;
+        if ( $found ) {
+          $test_url->fetch($republic_act->get_url(), 'url');
+          $found = $test_url->in_database();
+          $id = $test_url->get_id();
+        }
+        $ra['link'][$id] = $republic_act->get_url();
         array_push($republic_acts, $ra);
         continue;
       }
       array_push($republic_acts, $ra);
     }/*}}}*/
 
+    // Make the RA serial number be the resultset array key
+    $republic_acts = array_combine(
+      array_map(create_function('$a', 'return $a["linktext"];'),$republic_acts),
+      $republic_acts
+    );
+
     return $republic_acts;
   }/*}}}*/
 
   function seek_postparse_bypathonly_47fcf9913bde652d1ecee59501b11c59(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    /** Router **/ 
+
+    $pdf_sys_type = $this->query_extract_type_parameter($urlmodel);
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Pagecontent {$pdf_sys_type} by-path parser invocation for " . $urlmodel->get_url() );
+
+    switch ($pdf_sys_type) {
+      case 'republic_act' : 
+        return $this->pdf_sys_republic_act($parser,$pagecontent,$urlmodel);
+        break;
+      default:
+        return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+        break;
+    }
+  }/*}}}*/
+
+  function pdf_sys_republic_act(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
+
     // http://www.senate.gov.ph/lis/pdf_sys.aspx?congress=15&type=republic_act 
+    // Iterate through pager URLs to load 
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for {$urlmodel} ---------------------------------------" );
 
     $republic_act = new RepublicActDocumentModel();
     $ra_parser    = new SenateRaListParseUtility();
@@ -906,44 +959,41 @@ EOH
 
     $ra_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
-    $pagecontent = 'Republic Acts<br/>'; // join('',$ra_parser->get_filtered_doc());
+    $pagetitle    = 'Republic Acts'; 
+    $pagecontent  = ''; // join('',$ra_parser->get_filtered_doc());
 
     // Extract pager
 
     $pages = array();
-    $pager_links = $this->extract_pager_links($pages, $parser->cluster_urldefs,'1cb903bd644be9596931e7c368676982');
-    // $this->recursive_dump($parser->cluster_urldefs,'(warning)');
-    // $this->recursive_dump($extracted_links,'(warning)');
+    $pager_links = $this->extract_pager_links(
+      $pages,
+      $parser->cluster_urldefs,
+      '1cb903bd644be9596931e7c368676982');
 
     $pagecontent .= join('', $pager_links);
 
     // Extract Congress selector
 
-    /*
-    $this->recursive_dump($congress_switcher = array_values($ra_parser->get_containers(
-      'children[tagname=div][id=div_ChangeCongress]'
-    )),0,'++ switcher');
-
-    array_walk($congress_switcher[0],
-      create_function('& $a, $k, $s', 'if ( !array_key_exists("cdata", $a) ) { $a = NULL; return; } $linktext = join(" ",$a["cdata"]); $a = "<span class=\"link-faux-menuitem\"><a href=\"{$a["attrs"]["HREF"]}\" class=\"{$a["attrs"]["CLASS"]}\" id=\"{$a["attrs"]["ID"]}\">{$linktext}</a></span>";'),
-      $ra_parser);
-    */
-
     $extracted_links = array();
-    $congress_switcher = $this->extract_pager_links($extracted_links, $parser->cluster_urldefs,'9f35fc4cce1f01b32697e7c34b397a99');
+
+    $congress_switcher = $this->extract_pager_links(
+      $extracted_links,
+      $parser->cluster_urldefs,
+      '9f35fc4cce1f01b32697e7c34b397a99');
 
     $pagecontent .= "&nbsp;&nbsp;Congress: " . join('',$congress_switcher) . '<br/><br/>';
-    // $pagecontent .= join('',$congress_switcher[0]) . '<br/><br/>';
 
     $pages = array_flip(array_values(array_merge(
       array($urlmodel->get_url()),
       $pages
     )));
-    // $this->recursive_dump($pages,'(warning)');
 
     $on_this_page = $this->fetch_legislation_links($ra_parser, $republic_act); 
 
-    foreach ( $pages as $page_url => $d ) {
+    $dumped = FALSE;
+
+    $linkset = array(); 
+    foreach ( $pages as $page_url => $d ) {/*{{{*/
       $test_url->fetch($page_url,'url');
       if ( $test_url->in_database() ) {
         $url_id = $test_url->get_id();
@@ -952,55 +1002,91 @@ EOH
           ? $url_id
           : NULL // We want to skip this page
           ;
-        if ( !is_null($pages[$page_url]) ) {
-          $content = $test_url->get_pagecontent();
+        if ( is_null($pages[$page_url]) ) {
+          $this->syslog(__FUNCTION__,__LINE__, "- Skipping URL #{$url_id} {$page_url}");
+          $republic_acts = $on_this_page;
+        } else {
           $content_length = $test_url->get_content_length();
           $this->syslog(__FUNCTION__,__LINE__, "* Loading URL #{$url_id} {$content_length} octets {$page_url}:");
           $ra_parser->
             reset()->
             set_parent_url($urlmodel->get_url())->
-            parse_html($content,$urlmodel->get_response_header());
-          // $this->recursive_dump($ra_parser->get_containers(),'(warning)');
+            parse_html($test_url->get_pagecontent(),$test_url->get_response_header());
           $republic_acts = $this->fetch_legislation_links($ra_parser, $republic_act); 
-        } else {
-          $this->syslog(__FUNCTION__,__LINE__, "- Skipping URL #{$url_id} {$page_url}");
-          $republic_acts = $on_this_page;
         }
       }
-        // $this->recursive_dump($republic_acts,'(warning)');
-        foreach ( $republic_acts as $ra ) {
-          $pagecontent .= <<<EOH
-<a>{$ra['linktext']}</a><br/>
+      krsort($republic_acts);
+      if ( !$dumped ) {
+        $dumped = TRUE;
+        // $this->recursive_dump($republic_acts,'(marker) -');
+      }
+      foreach ( $republic_acts as $ra_number => $ra ) {
+        // RA10174 =>
+        //   link =>
+        //      0 => http://www.senate.gov.ph/republic_acts/ra%2010174.pdf
+        //      1 => http://www.congress.gov.ph/download/ra_15/RA10174.pdf
+        //   desc => An Act Establishing the Peoples Survival Fund to Provide Long-Term Finance Streams to Enable the Government to Effectively Address the Problem of Climate Change
+        //   linktext => RA10174
+        //   aux =>
+        //      0 => Approved by the President on August 16, 2012
+        //   cached_url => 663
+        //   cached_sn => 3501
+        $links = array();
+        foreach ($ra['link'] as $url_id => $url) {
+          $host = UrlModel::parse_url($url,PHP_URL_HOST);
+          $linktext = (0 == count($links)) ?  $ra['linktext'] : $host;
+          $cached = 0 < intval($url_id) ? ' cached' : ' uncached';
+          $urlhash = UrlModel::get_url_hash($url);
+          $actual_link = <<<EOH
+<a id="{$urlhash}" class="legiscope-remote{$cached}" href="{$url}">{$linktext}</a>
 EOH;
+ 
+          $links[] .= (0 == count($links))
+            ? $actual_link
+            : <<<EOH
+Alternate {$actual_link}
+EOH
+            ;
+
         }
-      $pagecontent .= "<br/><br/>";
-    }
+        if ( 0 < count($links) ) $linkset[$ra_number] .= '<li>' . join('&nbsp;',$links) . '</li>';
+      }
+      $republic_acts = array();
+    }/*}}}*/
+    krsort($linkset);
+    $linkset = join("\n",$linkset);
+    $linkset = <<<EOH
+<ul class="link-cluster">
+{$linkset}
+</ul>
+EOH;
 
-    /////////////////////////////////
-    // $this->recursive_dump($ra_parser->get_containers(),'(warning)');
-    // $this->recursive_dump($ra_parser->get_containers(),'(warning)');
+    $pagecontent .= <<<EOH
 
-    // $pagecontent .= join('',$ra_parser->get_filtered_doc());
+{$linkset}
+
+<script type="text/javascript">
+$(function(){ $('#doctitle').html('{$pagetitle}');});
+</script>
+EOH;
+
   }/*}}}*/
 
   function seek_postparse_edd4db85190acf2176ca125df8fe269a(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
-  function seek_postparse_bypath_62f91d11784860d07dea11c53509a732(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=bill 
-    // 2013 March 16:  Individual Senate bills are enumerated across multiple pages.
-    // Links found at this URL lead to a Javascript-triggered form; we should use the first level links available
-    // on this page to immediately display the second-level link content.
 
-    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
-    $pagecontent = '';
+  /** House Bill route handler **/
 
-    $senate_bill = new SenateBillDocumentModel(); 
+  function leg_sys_bill(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $pagecontent     = '';
+    $senate_bill     = new SenateBillDocumentModel();
     $senate_bill_url = new UrlModel();
 
-    $urlmodel->set_last_fetch(time())->stow();
+    $urlmodel->set_last_fetch(time())->increment_hits()->stow();
 
     // Generate pager links
 
@@ -1011,7 +1097,6 @@ EOH;
     // Parse Senate Bill summary page markup
       
     $form_attributes = $this->extract_formaction($parser, $urlmodel);
-
     $parent_urlparts = UrlModel::parse_url($urlmodel->get_url());
 
     $filter_for_sbn_querypart = create_function('$a', 'return 1 == preg_match("@SBN-([0-9]*)@", $a["attrs"]["HREF"]) ? array("url" => $a["attrs"]["HREF"], "cdata" => $a["cdata"]) : NULL;' );
@@ -1081,11 +1166,41 @@ EOH;
         file_put_contents($cache_filename, $pagecontent);
       }
     }/*}}}*/
+
+  }/*}}}*/
+
+  function leg_sys_resolution(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_postparse_bypath_62f91d11784860d07dea11c53509a732(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    /** Router **/ 
+    // http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=bill 
+    // 2013 March 16:  Individual Senate bills are enumerated across multiple pages.
+    // Links found at this URL lead to a Javascript-triggered form; we should use the first level links available
+    // on this page to immediately display the second-level link content.
+
+    $leg_sys_type = $this->query_extract_type_parameter($urlmodel);
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) ********** Router: {$leg_sys_type} for " . $urlmodel->get_url() );
+
+    switch ($leg_sys_type) {
+      case 'bill' : 
+        return $this->leg_sys_bill($parser,$pagecontent,$urlmodel);
+        break;
+      case 'resolution':
+        return $this->leg_sys_resolution($parser,$pagecontent,$urlmodel);
+        break;
+      default:
+        return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+        break;
+    }
+
   }/*}}}*/
 
   function seek_postparse_bypath_1fa0159bc56439f7a8a02d5b4f3628ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $this->syslog( __FUNCTION__, __LINE__, "Level 2 Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Level 2 Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
 
     $senate_bill = new SenateBillDocumentModel(); 
       
@@ -1104,12 +1219,12 @@ EOH;
     $faux_url               = new UrlModel($faux_url,TRUE);
     $faux_url_in_db         = $faux_url->in_database() ? "in DB" : "fetchable";
 
-    $this->syslog( __FUNCTION__, __LINE__, "Real post action {$sbn_regex_result} URL {$action_url} Faux cacheable {$faux_url_in_db} url: {$faux_url}" );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Real post action {$sbn_regex_result} URL {$action_url} Faux cacheable {$faux_url_in_db} url: {$faux_url}" );
 
     $not_in_database = !$faux_url->in_database();
 
     if ( $not_in_database || $parser->from_network ) {/*{{{*/
-      $this->syslog( __FUNCTION__, __LINE__, "Faux cacheable url: {$faux_url} -> {$form_attributes['action']}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Faux cacheable url: {$faux_url} -> {$form_attributes['action']}" );
       $form_controls = $form_attributes['form_controls'];
       $form_controls['__EVENTTARGET'] = 'lbAll';
       $form_controls['__EVENTARGUMENT'] = NULL;
@@ -1183,20 +1298,49 @@ EOH
   }/*}}}*/
 
 
+  /** Committee Reports **/
+
+  function seek_postparse_4c2e9f440b8f89e94f6de126ef0e38c4(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+
+    $common = new SenateCommonParseUtility();
+    $common->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+
+    $this->recursive_dump(($paginator_form = $common->get_containers(
+      '*[tagname=form]'
+    )),'(marker) New');
+
+    $paginator_form = $this->extract_form($parser->get_containers());
+    $paginator_form = $paginator_form[0]['children'];
+    $control_set = $this->extract_form_controls($paginator_form);
+
+  }/*}}}*/
+
+  function seek_postparse_bypath_44f799b5135aac003bf23fabbe947941(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_by_pathfragment_791d51238202c15ff6456b035963dcd9(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+
   /** Utilities **/
 
   function generic(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // 
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function extract_formaction(& $parser, & $urlmodel) {/*{{{*/
     $paginator_form  = $this->extract_form($parser->get_containers());
-    $this->syslog( __FUNCTION__, __LINE__, "Forms found: " . count($paginator_form) );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Forms found: " . count($paginator_form) );
     $paginator_attrs    = $paginator_form[0]['attrs'];
     $paginator_controls = $paginator_form[0]['children'];
-    $this->syslog( __FUNCTION__, __LINE__, "Child controls: " . count($paginator_controls) );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Child controls: " . count($paginator_controls) );
 
     $link        = array('url' => $paginator_attrs['ACTION']);
     $parent      = UrlModel::parse_url($urlmodel->get_url());
@@ -1280,6 +1424,13 @@ EOH;
       }
       $this->syslog(__FUNCTION__,__LINE__, "(marker) Sending member {$member_uuid} avatar: {$json_reply['altmarkup']}");
     }
+  }/*}}}*/
+
+  function query_extract_type_parameter(& $urlmodel) {/*{{{*/
+    $path_query = UrlModel::parse_url($urlmodel->get_url(),PHP_URL_QUERY);
+    $query_parts = UrlModel::decompose_query_parts($path_query);
+    $this->recursive_dump($query_parts,'(marker) Hdl');
+    return $query_parts['type'];
   }/*}}}*/
 
 }

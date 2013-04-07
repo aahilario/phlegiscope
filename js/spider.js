@@ -64,7 +64,7 @@ function preload(components) {
           }),
           success  : (function(data, httpstatus, jqueryXHR) {
             // $('a[class*=legiscope-remote][id='+hash+']').addClass('cached');
-            $('a[id='+hash+']').addClass('cached');
+            $('a[id='+hash+']').addClass('cached').removeClass('uncached');
           })
         });
       } 
@@ -78,14 +78,46 @@ function initialize_linkset_clickevents(linkset,childtag) {
   $(linkset).on('contextmenu',function(){
     return false;
   }).click(function(e){
+
     e.stopPropagation();
     e.preventDefault();
+
+    if ( $(this).hasClass('upper-section') || $(this).hasClass('lower-section') ) {
+      var coordinates = $(this).prop('coordinates');
+      $.ajax({
+        type     : 'POST',
+        url      : '/reorder/',
+        data     : { clusterid : $(this).attr('id'), move : $(this).hasClass('upper-section') ? -1 : 1 },
+        cache    : false,
+        dataType : 'json',
+        async    : true,
+        beforeSend : (function() {
+          display_wait_notification();
+        }),
+        complete : (function(jqueryXHR, textStatus) {
+          remove_wait_notification();
+        }),
+        success  : (function(data, httpstatus, jqueryXHR) {
+
+          var linkset = data.linkset;
+
+          if ( linkset && linkset.length > 0 ) {
+            replace_contentof('linkset', linkset);
+            initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+            setTimeout(function(){ initialize_remote_links(); },1);
+          }
+        })
+      });
+
+      return;
+    }
+
     var components = new Array($(this).children(child_tags).length);
     var component_index = 0;
-    $(this).children(child_tags).each(function(){
+    $(this).children(child_tags).find('a').each(function(){
       if ( component_index > 300 ) return;
-      var linkset_child = $(this).children('a').first().attr('id');
-      if ( $(this).children('a').first().hasClass('cached') ) return;
+      var linkset_child = $(this).attr('id');
+      if ( $(this).hasClass('cached') ) return;
       components[component_index] = linkset_child; 
       component_index++;
     });
@@ -265,6 +297,26 @@ function initialize_remote_links() {
         });
     });
   });
+
+  $('[class*=link-cluster]')
+    .unbind('mouseenter')
+    .unbind('mouseleave')
+    .unbind('mousemove');
+
+  $('[class*=link-cluster]').mouseenter(function(e){
+    $(this).prop('linkset-location', $(this).offset());
+  }).mouseleave(function(e){
+    $(this).removeClass('upper-section').removeClass('lower-section');
+    $('#doctitle').html('Legiscope');
+  }).mousemove(function(e){
+    if ( !$(this).prop ) return;
+    var y = ($(this).innerHeight() / 2) - (e.pageY - $(this).prop('linkset-location').top);
+    var x = (e.pageX - $(this).prop('linkset-location').left) - ($(this).innerWidth() / 2);
+    $(this).removeClass('upper-section').removeClass('lower-section');
+    $(this).prop('coordinates',{ x : x, y : y });
+    if ( x > 0 ) return;
+    $(this).addClass( y >= 0 ? 'upper-section' : 'lower-section' );
+  });
   return true;
 }
 
@@ -416,6 +468,7 @@ function initialize_hot_search() {
 }
 
 function initialize_authentication_inputs() {
+  $('[class*=authentication-tokens]').unbind('keyup');
   $('[class*=authentication-tokens]').keyup(function(e){
     if ($(e).attr('keyCode') == 13) {
       // Gather all input fields with the given selector class name,

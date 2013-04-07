@@ -146,7 +146,8 @@ class SenateCommonParseUtility extends GenericParseUtility {
     return TRUE;
   }/*}}}*/
   function ru_img_close(& $parser, $tag) {/*{{{*/
-    return TRUE;
+    $this->current_tag();
+    return !(1 == preg_match('@(nav_logo)@i',$this->current_tag['attrs']['CLASS']));
   }/*}}}*/
 
 }

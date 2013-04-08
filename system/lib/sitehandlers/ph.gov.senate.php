@@ -115,9 +115,11 @@ EOH;
       } /*}}}*/
       $pagecontent .= <<<EOH
 <br/>
-<b>{$e['section']}</b><br/>
+<b>{$e['section']}</b>
 <br/>
 EOH;
+      $lines = array();
+      $sorttype = NULL;
       foreach ($e['content'] as $entry) {/*{{{*/
         $properties = array('legiscope-remote');
         $matches = array();
@@ -129,11 +131,21 @@ EOH;
         $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
         $properties = join(' ', $properties);
         $urlhash = UrlModel::get_url_hash($entry['url']);
-        $pagecontent .= <<<EOH
-<span><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</span><br/>
+        $sortkey = preg_replace('@[^0-9]@','',$title);
+        if ( is_null($sorttype) )
+          $sorttype = 0 < intval($sortkey) ? SORT_NUMERIC : SORT_REGULAR;
+        $sortkey = 0 < intval($sortkey) ? intval($sortkey) : $title;
+        $lines[$sortkey] = <<<EOH
+<li><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</li>
 
 EOH;
       }/*}}}*/
+      ksort($lines,$sorttype);
+      $lines = join(' ',$lines);
+      $pagecontent .= <<<EOH
+<ul>{$lines}</ul>
+EOH;
+
     }
 
     $parser->json_reply = array('retainoriginal' => TRUE);
@@ -1456,22 +1468,28 @@ EOH;
       } /*}}}*/
       $pagecontent .= <<<EOH
 <br/>
-<b>{$e['section']}</b><br/>
+<b>{$e['section']}</b>
 <br/>
 EOH;
       if ( 1 == preg_match('@remark@i', $e['section'])) {/*{{{*/
         // Reporting committees
+        $lines = array();
         foreach ( $e['content'] as $line ) {
-            $pagecontent .= <<<EOH
-<span>{$line}</span><br/>
+            $lines[] = <<<EOH
+<li>{$line}</li><br/>
 
 EOH;
         }
+        $lines = join(' ',$lines);
+        $pagecontent .= <<<EOH
+<ul>{$lines}</ul>
+EOH;
         continue;
       }/*}}}*/
       if ( 1 == preg_match('@reporting committee@i', $e['section'])) {/*{{{*/
         // Reporting committees
         $committee = new SenateCommitteeModel();
+        $lines = array();
         foreach ( $e['content'] as $committee_name ) {
           $committee->fetch_by_committee_name($committee_name);
           $properties = array('legiscope-remote');
@@ -1481,20 +1499,26 @@ EOH;
             $properties[] = 'cached';
             $properties = join(' ', $properties);
             $urlhash = UrlModel::get_url_hash($entry['url']);
-            $pagecontent .= <<<EOH
-<span><a id="{$urlhash}" class="{$properties}" href="{$committee_url}">{$committee_name}</a></span><br/>
+            $lines[] = <<<EOH
+<li><a id="{$urlhash}" class="{$properties}" href="{$committee_url}">{$committee_name}</a></li>
 
 EOH;
           } else {
             $properties = join(' ', $properties);
-            $pagecontent .= <<<EOH
-<span><a class="{$properties}" href="{$committee_url}">{$committee_name}</a></span><br/>
+            $lines[] = <<<EOH
+<li><a class="{$properties}" href="{$committee_url}">{$committee_name}</a></li>
 
 EOH;
           }
         }
+        $lines = join(' ',$lines);
+        $pagecontent .= <<<EOH
+<ul>{$lines}</ul>
+EOH;
         continue;
       }/*}}}*/
+      $lines = array();
+      $sorttype = NULL;
       if ( is_array($e['content'])) foreach ($e['content'] as $entry) {/*{{{*/
         $properties = array('legiscope-remote');
         $matches = array();
@@ -1506,12 +1530,22 @@ EOH;
           $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
           $properties = join(' ', $properties);
           $urlhash = UrlModel::get_url_hash($entry['url']);
-          $pagecontent .= <<<EOH
-<span><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</span><br/>
+          $sortkey = preg_replace('@[^0-9]@','',$title);
+          if ( is_null($sorttype) )
+            $sorttype = 0 < intval($sortkey) ? SORT_NUMERIC : SORT_REGULAR;
+          $sortkey = 0 < intval($sortkey) ? intval($sortkey) : $title;
+          $lines[$sortkey] = <<<EOH
+<li><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</li>
 
 EOH;
         }
       }/*}}}*/
+      ksort($lines,$sorttype);
+      $lines = join(' ',$lines);
+      $pagecontent .= <<<EOH
+<ul>{$lines}</ul>
+EOH;
+
     }
 
     $pagecontent .= <<<EOH

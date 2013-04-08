@@ -41,7 +41,19 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 			$matches = array();
 			$pattern = '@^(.*) Congress - (.*)(Date:(.*))\[BR\](.*)Approved on(.*)\[BR\]@im'; 
 			preg_match( $pattern, $paragraph['text'], $matches );
-			array_push($this->activity_summary,array(
+			if ( is_null($matches[2]) ) {
+				$matches = array();
+        $pattern = '@^(.*) Congress(.*)\[BR\](.*)Committee Report No. ([0-9]*) Filed on (.*)(\[BR\])*@im'; 
+				preg_match( $pattern, $paragraph['text'], $matches );
+				array_push($this->activity_summary,array(
+					'source' => $paragraph['text'],
+					'metadata' => array(
+						'congress' => $matches[1],
+						'report'   => $matches[4],
+						'filed'    => trim($matches[5]),
+						'n_filed'  => strtotime(trim($matches[5])),
+					)));
+			} else array_push($this->activity_summary,array(
 				'source' => $paragraph['text'],
 				'metadata' => array(
 					'congress'   => $matches[1],
@@ -53,7 +65,7 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 			)));
 		}
 		$this->add_to_container_stack($paragraph);
-		// if ( $this->debug_tags) 
+		if ( $this->debug_tags) 
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']} {$text}" );
 		$this->push_tagstack();
 		$this->stack_to_containers();
@@ -115,13 +127,33 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
   }/*}}}*/
   function ru_p_close(& $parser, $tag) {/*{{{*/
 		$this->current_tag();
-		$text = preg_replace('@[^A-Z0-9/() .]@i','',join(' ', $this->current_tag['cdata']));
+		$text = preg_replace('@[^-A-Z0-9/() .]@i','',join(' ', $this->current_tag['cdata']));
 		if ( 0 < strlen($text) ) {
 			$paragraph = array('text' => $text);
 			array_push($this->activity_summary, array(
 				'section' => "{$text}",
 				'content' => NULL, 
 			));
+			$this->add_to_container_stack($paragraph);
+		}
+    return TRUE;
+  }/*}}}*/
+
+  // For cmmittee reports only - BLOCKQUOTE tags wrap text lines
+  function ru_blockquote_open(& $parser, & $attrs, $tag) {/*{{{*/
+		return $this->ru_li_open($parser,$attrs,$tag);
+  }  /*}}}*/
+  function ru_blockquote_cdata(& $parser, & $cdata) {/*{{{*/
+		return $this->ru_li_cdata($parser,$cdata);
+  }/*}}}*/
+  function ru_blockquote_close(& $parser, $tag) {/*{{{*/
+		$this->current_tag();
+		$text = join(' ', $this->current_tag['cdata']);
+    $paragraph = array('text' => $text);
+		if ( !empty($text) ) {
+			$activity = array_pop($this->activity_summary);
+			$activity['content'] = explode('[BR]',$text);
+			array_push($this->activity_summary, $activity);
 			$this->add_to_container_stack($paragraph);
 		}
     return TRUE;

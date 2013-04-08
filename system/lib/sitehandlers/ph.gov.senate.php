@@ -50,6 +50,95 @@ class SenateGovPh extends LegiscopeBase {
 
   /** Journal Entries **/
 
+  function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $journal_parser = new SenateJournalParseUtility();
+    $journal_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = preg_replace(
+      array(
+        "@\&\#10;@",
+        "@\&\#9;@",
+        "@\n@",
+      ),
+      array(
+        "",
+        " ",
+        "",
+      ),
+      join('',$journal_parser->get_filtered_doc())
+    );
+
+    if (0) $this->recursive_dump(($journal_properties = $journal_parser->get_containers(
+      //'children[tagname=div][class*=lis_doctitle]'
+    )),'(marker) J');
+    
+    if (1) $this->recursive_dump(($journal_data = array_filter($journal_parser->activity_summary)
+    ),'(marker) A');
+
+    $pagecontent = '';
+
+    $test_url = new UrlModel();
+
+    foreach ( $journal_data as $n => $e ) {
+      if ( array_key_exists('metadata',$e) ) {/*{{{*/
+        $e = $e['metadata'];
+        $pagecontent .= <<<EOH
+<br/>
+<div>
+Journal of the {$e['congress']} Congress, {$e['session']}<br/>
+Recorded: {$e['date']}<br/>
+Approved: {$e['approved']}
+</div>
+EOH;
+        continue;
+      }/*}}}*/
+      if ( intval($n) == 0 ) {/*{{{*/
+        foreach ($e['content'] as $entry) {
+          $properties = array('legiscope-remote');
+          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+          $properties = join(' ', $properties);
+          $urlhash = UrlModel::get_url_hash($entry['url']);
+          if ( array_key_exists('url',$entry) ) {/*{{{*/
+            $pagecontent .= <<<EOH
+<b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
+EOH;
+            continue;
+          }/*}}}*/
+          if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
+            $pagecontent .= <<<EOH
+Published {$entry['text']}<br/><br/>
+EOH;
+            continue;
+          }/*}}}*/
+        }
+        continue;
+      } /*}}}*/
+      $pagecontent .= <<<EOH
+<br/>
+<b>{$e['section']}</b><br/>
+<br/>
+EOH;
+      foreach ($e['content'] as $entry) {/*{{{*/
+        $properties = array('legiscope-remote');
+        $matches = array();
+        $title = $entry['text'];
+        $pattern = '@^([^:]*)(:| - )(.*)@i';
+        preg_match($pattern, $title, $matches);
+        $title = $matches[1];
+        $desc = $matches[3];
+        $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+        $properties = join(' ', $properties);
+        $urlhash = UrlModel::get_url_hash($entry['url']);
+        $pagecontent .= <<<EOH
+<span><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</span><br/>
+
+EOH;
+      }/*}}}*/
+    }
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+  }/*}}}*/
+
   function seek_postparse_386038c1a686fd0e6aeee9a105b9580d(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->seek_postparse_congress_type_journal($parser,$pagecontent,$urlmodel);
   }/*}}}*/
@@ -238,92 +327,7 @@ EOH;
 
   function seek_postparse_bypath_0930d15b5c0048e5e03af7b02f24769d(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-
-    $journal_parser = new SenateJournalParseUtility();
-    $journal_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = preg_replace(
-      array(
-        "@\&\#10;@",
-        "@\&\#9;@",
-        "@\n@",
-      ),
-      array(
-        "",
-        " ",
-        "",
-      ),
-      join('',$journal_parser->get_filtered_doc())
-    );
-
-    if (0) $this->recursive_dump(($journal_properties = $journal_parser->get_containers(
-      //'children[tagname=div][class*=lis_doctitle]'
-    )),'(marker) J');
-    
-    if (1) $this->recursive_dump(($journal_data = array_filter($journal_parser->activity_summary)
-    ),'(marker) A');
-
-    $pagecontent = '';
-
-    $test_url = new UrlModel();
-
-    foreach ( $journal_data as $n => $e ) {
-      if ( array_key_exists('metadata',$e) ) {/*{{{*/
-        $e = $e['metadata'];
-        $pagecontent .= <<<EOH
-<br/>
-<div>
-Journal of the {$e['congress']} Congress, {$e['session']}<br/>
-Recorded: {$e['date']}<br/>
-Approved: {$e['approved']}
-</div>
-EOH;
-        continue;
-      }/*}}}*/
-      if ( intval($n) == 0 ) {/*{{{*/
-        foreach ($e['content'] as $entry) {
-          $properties = array('legiscope-remote');
-          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
-          $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
-          if ( array_key_exists('url',$entry) ) {/*{{{*/
-            $pagecontent .= <<<EOH
-<b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
-EOH;
-            continue;
-          }/*}}}*/
-          if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
-            $pagecontent .= <<<EOH
-Published {$entry['text']}<br/><br/>
-EOH;
-            continue;
-          }/*}}}*/
-        }
-        continue;
-      } /*}}}*/
-      $pagecontent .= <<<EOH
-<br/>
-<b>{$e['section']}</b><br/>
-<br/>
-EOH;
-      foreach ($e['content'] as $entry) {/*{{{*/
-        $properties = array('legiscope-remote');
-        $matches = array();
-        $title = $entry['text'];
-        $pattern = '@^([^:]*)(:| - )(.*)@i';
-        preg_match($pattern, $title, $matches);
-        $title = $matches[1];
-        $desc = $matches[3];
-        $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
-        $properties = join(' ', $properties);
-        $urlhash = UrlModel::get_url_hash($entry['url']);
-        $pagecontent .= <<<EOH
-<span><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</span><br/>
-
-EOH;
-      }/*}}}*/
-    }
-
-    $parser->json_reply = array('retainoriginal' => TRUE);
+    $this->canonical_journal_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
 
@@ -1380,10 +1384,144 @@ EOH
         file_put_contents($cache_filename, $pagecontent);
     }
 
+    $parser->json_reply = array('retainoriginal' => TRUE);
+
   }/*}}}*/
 
 
   /** Committee Reports **/
+
+  function canonical_committee_report_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $commreport_parser = new SenateJournalParseUtility();
+    $commreport_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = preg_replace(
+      array(
+        "@\&\#10;@",
+        "@\&\#9;@",
+        "@\n@",
+      ),
+      array(
+        "",
+        " ",
+        "",
+      ),
+      join('',$commreport_parser->get_filtered_doc())
+    );
+
+    if (0) $this->recursive_dump(($journal_properties = $commreport_parser->get_containers(
+      //'children[tagname=div][class*=lis_doctitle]'
+    )),'(marker) J');
+    
+    if (1) $this->recursive_dump(($journal_data = array_filter($commreport_parser->activity_summary)
+    ),'(marker) A');
+
+    $pagecontent = '';
+
+    $test_url = new UrlModel();
+
+    foreach ( $journal_data as $n => $e ) {
+      if ( array_key_exists('metadata',$e) ) {/*{{{*/
+
+        $e = $e['metadata'];
+        $pagecontent .= <<<EOH
+<br/>
+<div>
+{$e['congress']} Congress Committee Report #{$e['report']}<br/>
+Filed: {$e['filed']}<br/>
+</div>
+EOH;
+        continue;
+      }/*}}}*/
+      if ( intval($n) == 0 ) {/*{{{*/
+        foreach ($e['content'] as $entry) {
+          $properties = array('legiscope-remote');
+          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+          $properties = join(' ', $properties);
+          $urlhash = UrlModel::get_url_hash($entry['url']);
+          if ( array_key_exists('url',$entry) ) {/*{{{*/
+            $pagecontent .= <<<EOH
+<b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
+EOH;
+            continue;
+          }/*}}}*/
+          if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
+            $pagecontent .= <<<EOH
+Published {$entry['text']}<br/><br/>
+EOH;
+            continue;
+          }/*}}}*/
+        }
+        continue;
+      } /*}}}*/
+      $pagecontent .= <<<EOH
+<br/>
+<b>{$e['section']}</b><br/>
+<br/>
+EOH;
+      if ( 1 == preg_match('@remark@i', $e['section'])) {/*{{{*/
+        // Reporting committees
+        foreach ( $e['content'] as $line ) {
+            $pagecontent .= <<<EOH
+<span>{$line}</span><br/>
+
+EOH;
+        }
+        continue;
+      }/*}}}*/
+      if ( 1 == preg_match('@reporting committee@i', $e['section'])) {/*{{{*/
+        // Reporting committees
+        $committee = new SenateCommitteeModel();
+        foreach ( $e['content'] as $committee_name ) {
+          $committee->fetch_by_committee_name($committee_name);
+          $properties = array('legiscope-remote');
+          if ( $committee->in_database() ) {
+            $committee_url = $committee->get_url();
+            $committee_name = $committee->get_committee_name();
+            $properties[] = 'cached';
+            $properties = join(' ', $properties);
+            $urlhash = UrlModel::get_url_hash($entry['url']);
+            $pagecontent .= <<<EOH
+<span><a id="{$urlhash}" class="{$properties}" href="{$committee_url}">{$committee_name}</a></span><br/>
+
+EOH;
+          } else {
+            $properties = join(' ', $properties);
+            $pagecontent .= <<<EOH
+<span><a class="{$properties}" href="{$committee_url}">{$committee_name}</a></span><br/>
+
+EOH;
+          }
+        }
+        continue;
+      }/*}}}*/
+      if ( is_array($e['content'])) foreach ($e['content'] as $entry) {/*{{{*/
+        $properties = array('legiscope-remote');
+        $matches = array();
+        $title = $entry['text'];
+        $pattern = '@^([^:]*)(:| - )(.*)@i';
+        if ( 1 == preg_match($pattern, $title, $matches) ) {
+          $title = $matches[1];
+          $desc = $matches[3];
+          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+          $properties = join(' ', $properties);
+          $urlhash = UrlModel::get_url_hash($entry['url']);
+          $pagecontent .= <<<EOH
+<span><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</span><br/>
+
+EOH;
+        }
+      }/*}}}*/
+    }
+
+    $pagecontent .= <<<EOH
+<br/>
+<hr/>
+EOH;
+    // $pagecontent .= join('',$commreport_parser->get_filtered_doc());
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+  }/*}}}*/
 
   function seek_postparse_4c2e9f440b8f89e94f6de126ef0e38c4(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
@@ -1404,7 +1542,8 @@ EOH
 
   function seek_postparse_bypath_44f799b5135aac003bf23fabbe947941(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+    $this->canonical_committee_report_page_parser($parser,$pagecontent,$urlmodel);
+    $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
   function seek_by_pathfragment_791d51238202c15ff6456b035963dcd9(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/

@@ -182,6 +182,7 @@ class UrlModel extends DatabaseUtility {
   }
 
 	function is_cached($url) {
+		return TRUE;
 		$this->fetch($url,'url');
 		return $this->in_database();
 	}

@@ -140,6 +140,7 @@ ul.linkset-pager > li {
 	float: left;
 	clear: none;
 	max-width: 32%;
+  min-width: 168px;
 	clip: auto;
 	overflow: hidden;
 }

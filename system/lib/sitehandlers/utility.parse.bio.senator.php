@@ -109,7 +109,6 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     }
     return TRUE;
   }  /*}}}*/
-
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
     if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
@@ -119,7 +118,6 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     }
     return TRUE;
   }/*}}}*/
-
   function ru_p_close(& $parser, $tag) {/*{{{*/
     $skip = FALSE;
     $this->pop_tagstack();

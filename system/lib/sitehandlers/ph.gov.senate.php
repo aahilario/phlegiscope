@@ -238,7 +238,92 @@ EOH;
 
   function seek_postparse_bypath_0930d15b5c0048e5e03af7b02f24769d(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+
+    $journal_parser = new SenateJournalParseUtility();
+    $journal_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = preg_replace(
+      array(
+        "@\&\#10;@",
+        "@\&\#9;@",
+        "@\n@",
+      ),
+      array(
+        "",
+        " ",
+        "",
+      ),
+      join('',$journal_parser->get_filtered_doc())
+    );
+
+    if (0) $this->recursive_dump(($journal_properties = $journal_parser->get_containers(
+      //'children[tagname=div][class*=lis_doctitle]'
+    )),'(marker) J');
+    
+    if (1) $this->recursive_dump(($journal_data = array_filter($journal_parser->activity_summary)
+    ),'(marker) A');
+
+    $pagecontent = '';
+
+    $test_url = new UrlModel();
+
+    foreach ( $journal_data as $n => $e ) {
+      if ( array_key_exists('metadata',$e) ) {/*{{{*/
+        $e = $e['metadata'];
+        $pagecontent .= <<<EOH
+<br/>
+<div>
+Journal of the {$e['congress']} Congress, {$e['session']}<br/>
+Recorded: {$e['date']}<br/>
+Approved: {$e['approved']}
+</div>
+EOH;
+        continue;
+      }/*}}}*/
+      if ( intval($n) == 0 ) {/*{{{*/
+        foreach ($e['content'] as $entry) {
+          $properties = array('legiscope-remote');
+          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+          $properties = join(' ', $properties);
+          $urlhash = UrlModel::get_url_hash($entry['url']);
+          if ( array_key_exists('url',$entry) ) {/*{{{*/
+            $pagecontent .= <<<EOH
+<b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
+EOH;
+            continue;
+          }/*}}}*/
+          if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
+            $pagecontent .= <<<EOH
+Published {$entry['text']}<br/><br/>
+EOH;
+            continue;
+          }/*}}}*/
+        }
+        continue;
+      } /*}}}*/
+      $pagecontent .= <<<EOH
+<br/>
+<b>{$e['section']}</b><br/>
+<br/>
+EOH;
+      foreach ($e['content'] as $entry) {/*{{{*/
+        $properties = array('legiscope-remote');
+        $matches = array();
+        $title = $entry['text'];
+        $pattern = '@^([^:]*)(:| - )(.*)@i';
+        preg_match($pattern, $title, $matches);
+        $title = $matches[1];
+        $desc = $matches[3];
+        $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+        $properties = join(' ', $properties);
+        $urlhash = UrlModel::get_url_hash($entry['url']);
+        $pagecontent .= <<<EOH
+<span><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</span><br/>
+
+EOH;
+      }/*}}}*/
+    }
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
 
@@ -261,7 +346,7 @@ EOH;
     ////////////////////////////////////////////////////////////////////
 
     $this->recursive_dump(($boundary_top = $senator->get_containers(
-    )),'(marker) All');
+    )),'All');
 
     // Find the placeholder, and extract the target URL for the image.
     // If the image (UrlModel) is cached locally, then replace the entire

@@ -343,12 +343,7 @@ class GenericParseUtility extends RawparseUtility {
   function ru_a_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $target = 0 < count($this->links) ? array_pop($this->links) : NULL;
-    $link_text = join('', $target['cdata']);
-    $link_data = array(
-      'url'  => $target['attrs']['HREF'],
-      'text' => $link_text,
-      'seq'  => $this->current_tag['attrs']['seq'],
-    );
+		$link_data = $this->collapse_current_tag_link_data();
     if ( !(empty($link_data['url']) && empty($link_data['text'])) ) {
       array_push($this->links, $target);
       $this->add_to_container_stack($link_data);
@@ -364,8 +359,6 @@ class GenericParseUtility extends RawparseUtility {
   }/*}}}*/
 
   function ru_div_close(& $parser, $tag) {/*{{{*/
-    $tagname = preg_replace('/^ru_([^_]*)_close/i','$1', __FUNCTION__);
-    if (C('DEBUG_'.get_class($this))) $this->syslog( "{$tagname}>", NULL, "" );
     $this->stack_to_containers();
     return TRUE;
   }/*}}}*/

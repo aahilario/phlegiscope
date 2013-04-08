@@ -57,7 +57,7 @@ class SenateCommonParseUtility extends GenericParseUtility {
       if ( $skip && $this->debug_tags ) {
         usleep(20000);
         $tag_cdata = array_key_exists('cdata', $this->current_tag) ? join('', $this->current_tag['cdata']) : '--empty--';
-         $this->syslog(__FUNCTION__,__LINE__,"(marker) Warning - Rejecting tag with CDATA [{$tag_cdata}]");
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) Warning - Rejecting tag with CDATA [{$tag_cdata}]");
         $this->recursive_dump($this->current_tag,"(warning) {$tag}" );
       }
     }
@@ -110,7 +110,8 @@ class SenateCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
   function ru_a_close(& $parser, $tag) {/*{{{*/
     $this->pop_tagstack();
-    $this->add_to_container_stack($this->current_tag);
+    $link_data = $this->collapse_current_tag_link_data();
+    $this->add_to_container_stack($link_data);
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "--- {$this->current_tag['tag']}" );
     return TRUE;

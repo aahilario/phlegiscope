@@ -181,6 +181,11 @@ class UrlModel extends DatabaseUtility {
     // Return a list of UrlModel referrers
   }
 
+	function is_cached($url) {
+		$this->fetch($url,'url');
+		return $this->in_database();
+	}
+
   function stow($url_or_urlarray = NULL, $parent_url = NULL) {/*{{{*/
     // FIXME:  Permit use of an array parameter (to save sets of links)
     if ( is_null($this->id) ) $this->set_create_time(time());

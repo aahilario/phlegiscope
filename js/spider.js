@@ -82,6 +82,8 @@ function initialize_linkset_clickevents(linkset,childtag) {
     e.stopPropagation();
     e.preventDefault();
 
+    if ( !$(this).prop || !$(this).prop('coordinates') ) return;
+
     if ( $(this).hasClass('upper-section') || $(this).hasClass('lower-section') ) {
       var coordinates = $(this).prop('coordinates');
       $.ajax({
@@ -309,7 +311,7 @@ function initialize_remote_links() {
     $(this).removeClass('upper-section').removeClass('lower-section');
     $('#doctitle').html('Legiscope');
   }).mousemove(function(e){
-    if ( !$(this).prop ) return;
+    if ( !$(this).prop || !$(this).prop('linkset-location') ) return;
     var y = ($(this).innerHeight() / 2) - (e.pageY - $(this).prop('linkset-location').top);
     var x = (e.pageX - $(this).prop('linkset-location').left) - ($(this).innerWidth() / 2);
     $(this).removeClass('upper-section').removeClass('lower-section');

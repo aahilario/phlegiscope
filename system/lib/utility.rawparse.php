@@ -527,6 +527,15 @@ EOH;
     return TRUE;
   }/*}}}*/
 
+	function get_container_by_hashid($container_id_hash, $key = NULL) {
+		return array_key_exists($container_id_hash,$this->containers)
+			? is_null($key) 
+			  ? $this->containers[$container_id_hash]
+				: $this->containers[$container_id_hash][$key]
+			: NULL
+			;
+	}
+
   function ru_tag_close($parser, $tag) {/*{{{*/
     $tag = strtoupper($tag);
     $tag_handler = strtolower("ru_{$tag}_close");

@@ -42,6 +42,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
   public function query($sql = NULL, array $bindparams = NULL) {
     // Execute a query that may or may not return a resultset
     // Close any existing result set, and either return the result of an operation
+		$debug_method = FALSE;
     if ( !$this->ping() ) return FALSE;
     if ( !is_null($this->ls_result) ) {
       $this->ls_result->close(); // Disregard close() return value
@@ -73,7 +74,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
         // If a file source is used for content, stream that.
         $streamchunk = 4096;
         if ( !is_null($sourcefile) && !(FALSE == ($handle = fopen($sourcefile,'r'))) ) {
-          syslog(LOG_INFO, __METHOD__ . ": Streaming update field #{$paramindex}.");
+          if ( $debug_method ) syslog(LOG_INFO, __METHOD__ . ": Streaming update field #{$paramindex}.");
           while (!feof($handle)) {
             $prepare_hdl->send_long_data($paramindex, fread($handle,$streamchunk));
           }
@@ -84,11 +85,11 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
         $i = 0;
         $bindsource_length = strlen($bindsource);
         $streamchunk = min($streamchunk, $bindsource_length);
-        syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
+        if ( $debug_method ) syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
 				$n = 0;
         do {
           $chunk = substr($bindsource, $i, $streamchunk);
-					// syslog( LOG_INFO, __METHOD__ . ": Chunk {$n} @ {$i}");
+					if ( $debug_method ) syslog( LOG_INFO, __METHOD__ . ": Chunk {$n} @ {$i}");
           $prepare_hdl->send_long_data($paramindex, $chunk);
           $i += $streamchunk;
 					$n++;

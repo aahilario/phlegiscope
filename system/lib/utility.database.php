@@ -480,7 +480,7 @@ EOS;
 
   function stow() {/*{{{*/
     if ( !is_null($this->id) ) {
-      $this->syslog( __FUNCTION__ , __LINE__, "WARNING: Updating " . get_class($this) . " #{$this->id}");
+      // $this->syslog( __FUNCTION__ , __LINE__, "WARNING: Updating " . get_class($this) . " #{$this->id}");
       // $this->recursive_dump(explode("\n",__LINE__);
       // return;
     }

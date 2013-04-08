@@ -738,7 +738,7 @@ class LegiscopeBase extends SystemUtility {
   protected function get_handler_names(UrlModel & $url) {/*{{{*/
 
     // Construct post-processing method name from path parts
-    $debug_method = TRUE;
+    $debug_method = FALSE;
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
     $urlpathhash_sans_script = $urlpathhash; 
@@ -760,7 +760,6 @@ class LegiscopeBase extends SystemUtility {
       $no_params = preg_replace('@\({PARAMS}\)@','', $cluster_urls['query_template']);
       $url_query_parts = UrlModel::decompose_query_parts($no_params);
       if ( 0 < count($url_query_parts) ) {
-        // $this->recursive_dump($url_query_parts,__LINE__);
         $url_query_components = array();
         foreach( $url_query_parts as $p1 => $p2 ) {
           $url_query_components[] = $p1;
@@ -773,7 +772,6 @@ class LegiscopeBase extends SystemUtility {
     else {/*{{{*/
       $url_query_parts = UrlModel::parse_url($url->get_url(), PHP_URL_QUERY);
       $url_query_parts = UrlModel::decompose_query_parts($url_query_parts);
-      // $this->recursive_dump($url_query_parts,__LINE__);
       if ( (0 < count($url_query_parts)) ) {
         // Construct post-parse handler name from query parts
         $seek_postparse_querytype_method = array();
@@ -810,14 +808,7 @@ class LegiscopeBase extends SystemUtility {
       $test_url = UrlModel::recompose_url($test_url);
       $test_path = str_replace('/','-',$test_path);
       $method_map['by-path-' . count($url_map) . "{$test_path}"] = 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url);
-      // $this->syslog(__FUNCTION__,__LINE__,"- Test '{$method_name}' <-- {$test_url}" );
-      // if ( method_exists($this, $method_name) ) break;
-      // else $method_name = NULL;
     }
-
-    //if ( !is_null($method_name) && method_exists($this, $method_name) ) {
-    //  return $this->$method_name($parser, $pagecontent, $urlmodel);
-    //}
 
     $method_map['generic'] = 'common_unhandled_page_parser';
 
@@ -1150,9 +1141,10 @@ EOH
   }/*}}}*/
 
   function extract_form($containers) {/*{{{*/
+		$debug_method = FALSE;
     $extract_form   = create_function('$a', 'return array_key_exists("tagname", $a) && ("FORM" == strtoupper($a["tagname"])) ? $a : NULL;');
     $paginator_form = array_values(array_filter(array_map($extract_form, $containers)));
-    $this->recursive_dump($paginator_form,'(marker) Old');
+    if ( $debug_method ) $this->recursive_dump($paginator_form,'(marker) Old');
     return $paginator_form;
   }/*}}}*/
 

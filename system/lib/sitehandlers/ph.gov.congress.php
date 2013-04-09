@@ -906,7 +906,6 @@ EOH;
     }
 
     $parser->json_reply = array('retainoriginal' => TRUE);
-    $parser->structure_html = $p->get_containers();
   }/*}}}*/
 
   function seek_postparse_bypath_356caa1dcd2d3a76fcc6debce13393ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/

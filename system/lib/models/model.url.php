@@ -35,14 +35,20 @@ class UrlModel extends DatabaseUtility {
   }
 
   function set_url($url, $load = TRUE) {/*{{{*/
-    $this->url_vc4096 = $url;
-    $this->urlhash_vc128uniq = is_null($url) ? NULL : self::get_url_hash($url);
-    if ( $load && !is_null($this->urlhash_vc128uniq ) ) {
-      $this->id = NULL;
-       $this->fetch($this->urlhash_vc128uniq,'urlhash');
-    }
+		$this->url_vc4096 = $url;
+		$this->urlhash_vc128uniq = is_null($url) ? NULL : self::get_url_hash($url);
+		if ( $load && !is_null($this->urlhash_vc128uniq ) ) {
+			$this->id = NULL;
+			$this->fetch($this->urlhash_vc128uniq,'urlhash');
+		}
     return $this->in_database();
   }/*}}}*/
+
+	function get_query_element($component) {/*{{{*/
+    $path_query = self::parse_url($this->get_url(),PHP_URL_QUERY);
+    $query_parts = self::decompose_query_parts($path_query);
+		return $query_parts[$component];
+	}/*}}}*/
 
   static function get_url_hash($url, $url_component = NULL ) {/*{{{*/
     if ( !is_null($url_component) ) {
@@ -177,6 +183,23 @@ class UrlModel extends DatabaseUtility {
     return $match_parts;
   }/*}}}*/
 
+	static function construct_metalink_fake_url(UrlModel & $url, array & $metalink) {/*{{{*/
+		// Reduce long metalink query parameters (truncate params exceeding 32 characters)
+		$metalink_fix     = create_function('$a', 'return (strlen($a) > 32) ? "" : $a;' );
+		$query_components = self::parse_url($url->get_url(),PHP_URL_QUERY);
+		$query_components = self::decompose_query_parts($query_components);
+		$query_components = array_map($metalink_fix,array_merge($query_components, $metalink));
+		ksort($query_components); // Ensure that we are not sensitive to query part parameter order
+		ksort($metalink); // Just so the caller gets a clue we've reordered the POST data URL
+		$query_components = self::recompose_query_parts($query_components);
+
+		// Create fake URL using faked query parameters 
+		$whole_url = self::parse_url($url->get_url());
+		$whole_url['query'] = $query_components;
+		$faux_url = self::recompose_url($whole_url);
+		return $faux_url;
+	}/*}}}*/
+
   function fetch_referrers() {
     // Return a list of UrlModel referrers
   }
@@ -210,12 +233,12 @@ class UrlModel extends DatabaseUtility {
     $this->syslog(__FUNCTION__, __LINE__, "Content-Length: {$this->content_length_int11}" );
   }/*}}}*/
 
-  function get_cache_filename() {
+  function get_cache_filename() {/*{{{*/
     if ( is_null($this->get_url()) || is_null($this->get_urlhash()) ) return NULL;
     $subject_host_hash = self::get_url_hash($this->get_url(),PHP_URL_HOST);
     $urlhash = $this->get_urlhash();
     return C('CACHE_PATH') . '/' . "legiscope.{$subject_host_hash}.{$urlhash}.cached";
-  }
+  }/*}}}*/
 
   function set_pagecontent($t) {/*{{{*/
 
@@ -291,13 +314,10 @@ class UrlModel extends DatabaseUtility {
     return $result;
   }/*}}}*/
 
-  function cached_to_disk() {
-    if ( !$this->in_database() ) return FALSE;
-    if ( $this->get_content_length() > C('CONTENT_SIZE_THRESHOLD') ) {
-      return @file_exists($this->get_cache_filename());
-    }  
-    return FALSE;
-  }
+  function cached_to_disk() {/*{{{*/
+		return !$this->in_database() &&
+		 	!@file_exists($this->get_cache_filename());
+  }/*}}}*/
 
   function content_changed($do_update = TRUE) {/*{{{*/
     $current_content_hash = $this->get_content_hash();
@@ -313,13 +333,13 @@ class UrlModel extends DatabaseUtility {
     return TRUE;
   }/*}}}*/
 
-  function set_response_header($a) {
+  function set_response_header($a) {/*{{{*/
     if ( is_array($a) ) $a = json_encode($a);
     $this->response_header_vc32767 = $a;
     return $this;
-  }
+  }/*}}}*/
 
-  function get_response_header($as_array = TRUE, $interline_break = "\n") {
+  function get_response_header($as_array = TRUE, $interline_break = "\n") {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "Header raw: {$this->response_header_vc32767}");
     $h = json_decode($this->response_header_vc32767,TRUE);
     if ( (FALSE == $h) || !is_array($h) ) {
@@ -337,9 +357,9 @@ class UrlModel extends DatabaseUtility {
       $header_lines = NULL;
     }
     return $h;
-  }
+  }/*}}}*/
 
-  function referrers($attr = NULL) {
+  function referrers($attr = NULL) {/*{{{*/
     if ( !$this->in_database() ) return NULL;
     $edge = new UrlEdgeModel();
     $link = new UrlModel();
@@ -358,7 +378,7 @@ class UrlModel extends DatabaseUtility {
       }
     }
     return $result;
-  }
+  }/*}}}*/
 
   function set_content_hash($s = NULL) {
     if ( is_null($s) ) {
@@ -390,7 +410,7 @@ class UrlModel extends DatabaseUtility {
   function & set_urltext($v) { $this->urltext_vc4096 = $v; return $this; }
   function get_urltext($v = NULL) { if (!is_null($v)) $this->set_urltext($v); return $this->urltext_vc4096; }
 
-  function get_pagecontent() {
+  function get_pagecontent() {/*{{{*/
     $headers = $this->get_response_header();
     $is_pdf  = (1 == preg_match('@^application/pdf@i',$this->get_content_type()));
     // $is_html = (1 == preg_match('@^text/html@i',$this->get_content_type()));
@@ -419,7 +439,7 @@ class UrlModel extends DatabaseUtility {
       $this->stow();
     }
     return $this->pagecontent_blob;
-  }
+  }/*}}}*/
 
   function get_content_type() {
     return $this->content_type_vc64;

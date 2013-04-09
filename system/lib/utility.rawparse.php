@@ -680,6 +680,66 @@ EOH;
     return $link_data;
   }
 
+  function extract_form_controls($form_control_source) {/*{{{*/
+
+    $form_controls        = array();
+    $select_options       = array();
+    $select_name          = NULL;
+    $select_option        = NULL;
+    $userset              = array();
+
+    if ((is_array($form_control_source) && (0 < count($form_control_source)))) {
+
+      $extract_hidden_input = create_function('$a','return strtoupper($a["tag"]) == "INPUT" &&  strtoupper($a["attrs"]["TYPE"]) == "HIDDEN" ? array("name" => $a["attrs"]["NAME"], "value" => $a["attrs"]["VALUE"]) : NULL;');
+      $extract_text_input   = create_function('$a','return strtoupper($a["tag"]) == "INPUT" &&  strtoupper($a["attrs"]["TYPE"]) == "TEXT"   ? array("name" => $a["attrs"]["NAME"], "value" => $a["attrs"]["VALUE"]) : NULL;');
+      $extract_select       = create_function('$a','return strtoupper($a["tagname"]) == "SELECT" ? array("name" => $a["attrs"]["NAME"], "keys" => $a["children"]) : NULL;');
+      foreach ( array_merge(
+        array_values(array_filter(array_map($extract_hidden_input,$form_control_source))),
+        array_values(array_filter(array_map($extract_text_input, $form_control_source)))
+      ) as $form_control ) {
+        $form_controls[$form_control['name']] = $form_control['value'];
+      };
+
+      $select_options = array_values(array_filter(array_map($extract_select, $form_control_source)));
+
+      $userset = array();
+      foreach ( $select_options as $select_option ) {
+        //$this->recursive_dump($select_options,__LINE__);
+        $select_name    = $select_option['name'];
+        $select_option  = $select_option['keys'];
+        foreach ( $select_option as $option ) {
+          if ( empty($option['value']) ) continue;
+          $userset[$select_name][$option['value']] = $option['text'];
+        }
+      }
+    }
+
+    return array(
+      'userset'        => $userset,
+      'form_controls'  => $form_controls,
+      'select_name'    => $select_name,
+      'select_options' => $select_option,
+    );
+  }/*}}}*/
+
+
+	function fetch_body_generic_cleanup($pagecontent) {/*{{{*/
+		return preg_replace(
+			array(
+				'@^(.*)\<body([^>]*)\>(.*)\<\/body\>(.*)@mi',
+				// Remove mouse event handlers
+				'@(onmouseover|onmouseout)="([^"]*)"@',
+				"@(onmouseover|onmouseout)='([^']*)'@",
+			),
+			array(
+				'$3', 
+				'',
+				'',
+			),
+			$pagecontent
+		);
+	}/*}}}*/
+	
   // ------------ Specific HTML tag handler methods -------------
 
   function ru_x_open(& $parser, & $attrs, $tagname ) {/*{{{*/

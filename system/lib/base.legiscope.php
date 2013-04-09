@@ -13,6 +13,11 @@ class LegiscopeBase extends SystemUtility {
   function __construct() {/*{{{*/
     parent::__construct();
     $this->session_start_wrapper();
+
+    $target_url = $this->filter_post('url');
+    $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
+    $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
+
   }/*}}}*/
 
   static function & instantiate_by_host() {/*{{{*/
@@ -113,10 +118,10 @@ class LegiscopeBase extends SystemUtility {
 
     $referrer     = $this->filter_session('referrer','http://www.congress.gov.ph');
 
-    $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST);
     $hostModel = new HostModel($referrer);
     $referrers = new UrlModel();
     $hostModel->increment_hits()->stow();
+    $this->subject_host_hash = UrlModel::get_url_hash($hostModel->get_url(),PHP_URL_HOST);
 
     $fragment     = $this->filter_post('fragment');
     $decomposer   = '@([^ ]*) ?@i';
@@ -360,35 +365,26 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
-  function seek() {/*{{{*/
+	function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
+    if ( get_class($this) == $class_match ) {/*{{{*/
+      $pagecontent = json_encode($json_reply);
+      header('Content-Type: application/json');
+      header('Content-Length: ' . strlen($pagecontent));
+      $this->flush_output_buffer();
+      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
+        file_put_contents($this->seek_cache_filename, $pagecontent);
+      }
+      echo $pagecontent;
+      exit(0);
+    }/*}}}*/
+	}/*}}}*/
 
-    // Perform an HTTP GET
-
-    ob_start();
-
-    $json_reply         = array();
-    $modifier           = $this->filter_post('modifier');
-    $metalink           = $this->filter_post('metalink');
-    $linktext           = $this->filter_post('linktext');
-    $target_url         = $this->filter_post('url');
-    $freeze_referrer    = $this->filter_post('fr');
-    $cache_force        = $this->filter_post('cache');
-    $referrer           = $this->filter_session('referrer');
-
-    $this->syslog( __FUNCTION__,__LINE__,"(marker) {$cache_force} ----------------------------------");
-
+	function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
     if ( FALSE === ( $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST) ) ) {
-      // Faux message
-			$this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. {$target_url} hash != [$this->subject_host_hash]");
+			$this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do.");
       header('HTTP/1.0 404 Not Found');
       exit(0);
     }
-
-    $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
-    $displayed_target_url = $target_url;
-
-    $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
-    $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
 
     if ( (C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true')) && (!$network_fetch) && is_null($metalink) ) {/*{{{*/
       if ( file_exists($this->seek_cache_filename) && !$network_fetch ) {
@@ -400,56 +396,62 @@ class LegiscopeBase extends SystemUtility {
         exit(0);
       }
     }/*}}}*/
+	}/*}}}*/
 
+	function get_faux_url(UrlModel & $url, & $metalink) {/*{{{*/
+		$faux_url = NULL;
+		if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
+			// The POST action may be a URL which permits a GET action,
+			// in which case we need to use a fake URL to store the results of 
+			// the POST.  We'll generate the fake URL here. 
+			$metalink = json_decode(base64_decode($metalink), TRUE);
+			// Prepare faux metalink URL by combining the metalink components
+			// with POST target URL query components. After the POST, a new cookie
+			// may be returned; if so, it will be used to traverse sibling links
+			// which content hasn't yet been cached in the UrlModel backing store.
+		  $this->recursive_dump($metalink,'(marker) Metalink data');
+		  if ( $metalink == FALSE ) {
+				$metalink = NULL;
+			} else if ( 0 < count($metalink) ) {/*{{{*/
+
+				$faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
+				$in_db    = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh';
+
+			}/*}}}*/
+			else $metalink = NULL;
+		}/*}}}*/
+		return $faux_url;
+	}/*}}}*/
+
+  function seek() {/*{{{*/
+
+    // Perform an HTTP GET
+    ob_start();
+
+    $json_reply         = array();
+    $modifier           = $this->filter_post('modifier');
+    $metalink           = $this->filter_post('metalink');
+    $linktext           = $this->filter_post('linktext');
+    $target_url         = $this->filter_post('url');
+    $freeze_referrer    = $this->filter_post('fr');
+    $cache_force        = $this->filter_post('cache');
+    $referrer           = $this->filter_session('referrer');
+    $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
+    $url                = new UrlModel($target_url, TRUE);
+
+    $this->syslog( __FUNCTION__,__LINE__,"(marker) Use cache = {$cache_force} ----------------------------------");
+
+    $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
+    $displayed_target_url = $target_url;
+
+		$this->exit_emit_cached_content($url, $cache_force, $network_fetch);
+	
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
-		$this->recursive_dump($_POST, 
-			( !is_null($modifier) && !($modifier == 'false') ? '(marker)' : '' ) . " " . __LINE__
-		);
+		$faux_url = $this->get_faux_url($url, $metalink);
 
-    $url      = new UrlModel($target_url, TRUE);
-    $faux_url = NULL;
-
-    if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
-      // The POST action may be a URL which permits a GET action,
-      // in which case we need to use a fake URL to store the results of 
-      // the POST.  We'll generate the fake URL here. 
-      $metalink = base64_decode($metalink);
-    $metalink = json_decode($metalink, TRUE);
-    // Prepare faux metalink URL by combining the metalink components
-    // with POST target URL query components. After the POST, a new cookie
-    // is returned  
-    if ( 0 < count($metalink) ) {/*{{{*/
-      $metalink_fix     = create_function('$a', 'return (strlen($a) < 32) ? $a : md5($a);' );
-      $query_components = UrlModel::parse_url($url->get_url(),PHP_URL_QUERY);
-      $query_components = UrlModel::decompose_query_parts($query_components);
-      $query_components = array_filter(array_map($metalink_fix,array_merge($query_components, $metalink)));
-      $this->recursive_dump($query_components,__LINE__);
-      $query_components = UrlModel::recompose_query_parts($query_components);
-      $whole_url = UrlModel::parse_url($url->get_url());
-      $whole_url['query'] = $query_components;
-      $faux_url = UrlModel::recompose_url($whole_url);
-      $in_db = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh'; // Try to load contents of the faux URL from DB.
-      $this->syslog( __FUNCTION__, __LINE__, "Metalink {$in_db} data received len = " . count($metalink) . ", mapping {$faux_url} <- {$target_url}" );
-      // Now test for presence of a cached file, now that you have a faux url
-      $metalink_cache_filename = UrlModel::get_url_hash($faux_url);
-      $metalink_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$metalink_cache_filename}.generated";
-      $this->seek_cache_filename = $metalink_cache_filename;
-
-      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true')  ) {/*{{{*/
-        if ( $network_fetch ) unlink($metalink_cache_filename);
-        else if ( file_exists($metalink_cache_filename) ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "Emitting cached markup for {$url} <- {$metalink_cache_filename}" );
-          header('Content-Type: application/json');
-          header('Content-Length: ' . filesize($metalink_cache_filename));
-          $this->flush_output_buffer();
-          echo file_get_contents($metalink_cache_filename);
-          exit(0);
-        }/*}}}*/
-      }/*}}}*/
-    }/*}}}*/
-    else $metalink = NULL;
-    }/*}}}*/
+		$this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) {$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
+		$this->recursive_dump($metalink,'(marker) Metalink URL src');
 
     $json_reply = array(
       'url'            => $target_url,
@@ -464,30 +466,24 @@ class LegiscopeBase extends SystemUtility {
       'contenttype'    => 'unknown',
     );
 
-    $urlhash          = $url->get_urlhash();
-    $network_fetch    = ($modifier == 'reload' || $modifier == 'true') || !$url->in_database();
-    $content_length   = $url->get_content_length();
-    $successful_fetch = $url->in_database();
-    $action           = $successful_fetch && !$network_fetch
+    $urlhash        = $url->get_urlhash();
+    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || !$url->in_database();
+    $content_length = $url->get_content_length();
+    $retrieved      = $url->in_database();
+    $action         = $retrieved && !$network_fetch
       ? "DB Retrieved {$content_length} octets"
       : "Reloading"
       ;
 
-    //$selenium_session = $this->get_selenium_session()->session('firefox'); 
-    //$this->syslog( __FUNCTION__, __LINE__, "Obtained Selenium object instance '" . get_class($selenium_session) .'"');
-    //$remote_image = $selenium_session->screenshot();
-    //$cache_filename = $url->get_cache_filename();
-    //$success = file_put_contents("{$cache_filename}.png", base64_decode($remote_image));
-
     if ( $network_fetch ) {/*{{{*/
 
 			if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
-      $successful_fetch = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink );
-      $action = $successful_fetch
+      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink );
+      $action = $retrieved
         ? "(marker) Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
         : "WARNING Failed to retrieve"
         ;
-      if (!$successful_fetch) {/*{{{*/
+      if (!$retrieved) {/*{{{*/
 
         $json_reply['error']          = CurlUtility::$last_error_number;
         $json_reply['message']        = CurlUtility::$last_error_message;
@@ -501,116 +497,86 @@ class LegiscopeBase extends SystemUtility {
     }/*}}}*/
 
     $pagecontent    = $url->get_pagecontent();
-    $structure_html = '...';
     $responseheader = '...';
     $headers        = $url->get_response_header(TRUE);
+
     $body_content   = NULL;
 
-    $this->syslog( __FUNCTION__, __LINE__, "Network fetch " . ($network_fetch ? 'OK' : 'NO') . ", successful " . ($successful_fetch ? 'YES' : 'NO'));
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Network fetch " . ($network_fetch ? 'OK' : 'NO') . ", successful " . ($retrieved ? 'YES' : 'NO'));
 
-    if ( $network_fetch && !$successful_fetch ) {/*{{{*/
+		$headers['legiscope-regular-markup'] = 0;
+
+    if ( !$retrieved ) {/*{{{*/
 
       // Unsuccessful fetch attempt
       $cache_filename = $url->get_cache_filename();
-      $this->syslog( __FUNCTION__, __LINE__, "WARNING Must remove cache file {$cache_filename}" );
+      $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing {$url}. Must remove cache file {$cache_filename}" );
+		  if ( file_exists($cache_filename) ) unlink($cache_filename);
       $url->remove();
 
     }/*}}}*/
-    else if ( !$network_fetch || $successful_fetch ) {/*{{{*/
+    else {/*{{{*/
 
-      $json_reply  = array();
+      $json_reply  = array(); // May be overridden by per-site handler, see below
       $subject_url = is_null($faux_url) ? $target_url : $faux_url;
 
-      $this->syslog( __FUNCTION__, __LINE__, "{$action} response from {$subject_url} <- '{$referrer}' cached as {$cached_content} by {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
+      $this->syslog( __FUNCTION__, __LINE__, "{$action} response from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
 
-      if ( !is_null($faux_url) ) {/*{{{*/
-        // If we've loaded content from an ephemeral URL, use the POST target page action for generating links, rather than the fake URL.
+      if ( !is_null($faux_url) ) {/*{{{*/// If we've loaded content from an ephemeral URL, use the POST target page action for generating links, rather than the fake URL.
         $url->set_url($target_url,FALSE);
       }/*}}}*/
 
       $responseheader = $url->get_response_header(FALSE,'<br/>');
-      $headers['legiscope-regular-markup'] = 0;
+
       if ( array_key_exists('content-type', $headers) ) {
+
         if ( 1 == preg_match('@^text/html@i', $headers['content-type']) ) {/*{{{*/
 
           $parser = new GenericParseUtility();
 
-          $linkset = array(
-            'linkset' => array(),
-            'urlhashes' => array(),
-            'cluster_urls' => array(),
-          );
+          $headers['legiscope-regular-markup'] = 1;
 
-          if ( $url->is_custom_parse() ) {
-            // Defer parsing to per-site parsers
-            $structure = array();
-            $this->recursive_dump($url->get_response_header(),__LINE__);
-            $this->syslog( __FUNCTION__, __LINE__, "Deferring parsing to URL-specific parser");
-          } 
-          else {
+					// Defer parsing by setting the URL custom_parse flag in DB
+					$structure = $url->is_custom_parse()
+						? array()
+						: $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header())
+						;
 
-            // $this->recursive_dump($url->get_response_header(),__LINE__);
-            $this->syslog( __FUNCTION__, __LINE__, "Response headers for {$url}");
-            $structure = $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header()); // Pass by ref parameter; see RawparseUtility::parse_html(& $h)
-            if ( $parser->needs_custom_parser() && !$url->is_custom_parse() ) {
-              $this->syslog( __FUNCTION__, __LINE__, "Marking for special handling {$url}");
-              $url->set_custom_parse(TRUE);
-            }
-          }
+					// Only process <body> tag content
+					$body_content = $parser->fetch_body_generic_cleanup($pagecontent);
 
-          $body_content = preg_replace(
-            array(
-              // Remove mouse event handlers
-              '@^(.*)\<body([^>]*)\>(.*)\<\/body\>(.*)@mi',
-              '@(onmouseover|onmouseout)="([^"]*)"@',
-              "@(onmouseover|onmouseout)='([^']*)'@",
-            ),
-            array(
-              '$3', 
-              '',
-              '',
-            ),
-            $pagecontent
-          );
+					// Custom-parsed page handlers must generate navigation links
+					$linkset = $url->is_custom_parse()
+						? array('linkset' => array(),'urlhashes' => array(),'cluster_urls' => array())
+						: $this->generate_linkset($parser->get_containers(), $url->get_url())
+						;
 
-          $final_content = str_replace(
-            array('<br/>'  , '><'  , '<'  , '>'   , " "     , '{BREAK}'),
-            array('{BREAK}', ">{BREAK}<", '&lt;', '&gt;', "&nbsp;", '<br/>')  ,
-            $body_content
-          ); 
-
-          if ( FALSE == $url->is_custom_parse() ) {
-            // Build anchor links from normalized link array (complete with scheme and host parts)
-            $linkset        = $this->generate_linkset($parser->get_containers(), $url->get_url());
-          }
-          // $this->syslog( __FUNCTION__, __LINE__, "Linkset");
-          extract($linkset); // 'linkset', 'urlhashes', 'cluster_urls'
+					extract($linkset); // 'linkset', 'urlhashes', 'cluster_urls'
 
           $body_content = htmlspecialchars_decode($body_content, ENT_NOQUOTES | ENT_HTML401);
           $handler_list = $this->get_handler_names($url);
 
           $matched = FALSE;
+
           foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
+						// Break on first match
             if ( method_exists($this, $method_name) ) {/*{{{*/
               $matched |= TRUE;
               $parser->trigger_linktext = $linktext;
-              $parser->cluster_urldefs  = $cluster_urls;
-              $parser->urlhashes        = $urlhashes;
-              $parser->filtered_html    = $pagecontent;
               $parser->from_network     = $network_fetch;
-              $parser->structure_html   = $structure_html;
               $parser->json_reply       = $json_reply;
-              $parser->cache_filename   = $this->seek_cache_filename;
               $parser->target_url       = $target_url;
               $parser->metalink_url     = $faux_url; 
+
               $parser->linkset          = $linkset;
+              $parser->cluster_urldefs  = $cluster_urls;
+              $parser->urlhashes        = $urlhashes;
 
               $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name}");
               $this->$method_name($parser, $body_content, $url);
               $url->increment_hits()->stow();
 
               $linkset        = $parser->linkset;
-              $structure_html = $parser->structure_html;
               $json_reply     = $parser->json_reply; // Merged with response JSON
               $target_url     = $parser->target_url;
 
@@ -618,24 +584,10 @@ class LegiscopeBase extends SystemUtility {
             }/*}}}*/
           }/*}}}*/
 
-          if ( C('ENABLE_STRUCTURE_DUMP') == TRUE && FALSE == $url->is_custom_parse() ) {/*{{{*/
-            $seek_structure_filename = "{$this->seek_cache_filename}.structure";
-            $state = "Fetch";
-            if ( !file_exists($seek_structure_filename) || $network_fetch ) {
-              $this->recursive_file_dump(
-                $seek_structure_filename, 
-                $parser->structure_html,0,'-');
-              $state = "Wrote";
-            }  
-            $this->syslog(__FUNCTION__,__LINE__,"(marker) {$state} {$seek_structure_filename}");
-            $structure_html = file_get_contents($seek_structure_filename);
-          }/*}}}*/
-
           if ( !$matched ) {
             $this->syslog( __FUNCTION__, __LINE__, "No custom handler for path " . $url->get_url());
             $this->recursive_dump($handler_list,__LINE__);
           }
-          $headers['legiscope-regular-markup'] = 1;
 
         }/*}}}*/
         else if ( 1 == preg_match('@^application/pdf@i', $headers['content-type']) ) {/*{{{*/
@@ -644,8 +596,8 @@ class LegiscopeBase extends SystemUtility {
           $this->syslog( __FUNCTION__, __LINE__, "PDF fetch {$body_content_length} from " . $url->get_url());
           $headers['legiscope-regular-markup'] = 0;
           // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
-          // $json_reply = array('retainoriginal' => 'true');
-          $this->syslog( __FUNCTION__, __LINE__, "PDF loader, retain original frame");
+          $json_reply = array('retainoriginal' => 'true');
+          $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
         }/*}}}*/
       }
 
@@ -656,14 +608,16 @@ class LegiscopeBase extends SystemUtility {
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Freeze referrer {$referrer} for " . $url->get_url());
       }/*}}}*/
 
+			// Finally, reload the model so that it reflects any parser updates
       $url->fetch($url->get_url(),'url');
+
       $current_linktext = $url->get_linktext();
+
       if ( !is_null($linktext) && (!(0 < strlen($current_linktext)) || (1 == preg_match('@^\[@',$linktext))) && ($linktext != $current_linktext)  ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing link text '{$linktext}' (currently '{$current_linktext}') for " . $url->get_url());
         $url->set_linktext($linktext)->stow();
       }/*}}}*/
 
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible content length: " . strlen($body_content) );
       $final_body_content = preg_replace(
         array(
           '/<html([^>]*)>/imU',
@@ -682,7 +636,15 @@ class LegiscopeBase extends SystemUtility {
         ),
         $body_content
       );
+
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible content length: " . strlen($body_content) );
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible final length: " . strlen($final_body_content) );
+
+			$final_content = str_replace(
+				array('<br/>'  , '><'  , '<'  , '>'   , " "     , '{BREAK}'),
+				array('{BREAK}', ">{BREAK}<", '&lt;', '&gt;', "&nbsp;", '<br/>')  ,
+				$body_content
+			); 
 
       $json_reply = array_merge(
         array(
@@ -692,7 +654,6 @@ class LegiscopeBase extends SystemUtility {
           'contenttype'    => $url->get_content_type(),
           'linkset'        => $linkset,
           'markup'         => $headers['legiscope-regular-markup'] == 1 ? utf8_encode($final_content) : '[OBSCURED CONTENT]',
-          'structure'      => "<pre>{$structure_html}</pre>",
           'responseheader' => $responseheader,
           'httpcode'       => $headers['http-response-code'], 
           'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
@@ -701,14 +662,11 @@ class LegiscopeBase extends SystemUtility {
         $json_reply
       );
 
-      // $this->recursive_dump($json_reply,__LINE__);
-      // Post-processing hacks 
       $member_uuid = $this->filter_post('member_uuid');
-      if ( !is_null($member_uuid) && $json_reply['httpcode'] == 200 ) {/*{{{*/
-        if ( method_exists($this, 'member_uuid_handler') ) {
-          $this->member_uuid_handler($json_reply, $url, $member_uuid);
-        }
+      if ( !is_null($member_uuid) && $json_reply['httpcode'] == 200 && method_exists($this, 'member_uuid_handler')) {/*{{{*/
+				$this->member_uuid_handler($json_reply, $url, $member_uuid);
       }/*}}}*/
+
     }/*}}}*/
 
     $output_buffer = ob_get_clean();
@@ -720,17 +678,7 @@ class LegiscopeBase extends SystemUtility {
       $this->recursive_dump($output_buffer,__LINE__);
     }/*}}}*/
 
-    if ( get_class($this) == 'LegiscopeBase' ) {/*{{{*/
-      $pagecontent = json_encode($json_reply);
-      header('Content-Type: application/json');
-      header('Content-Length: ' . strlen($pagecontent));
-      $this->flush_output_buffer();
-      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-        file_put_contents($this->seek_cache_filename, $pagecontent);
-      }
-      echo $pagecontent;
-      exit(0);
-    }/*}}}*/
+		$this->exit_cache_json_reply($json_reply,'LegiscopeBase');
 
     return $json_reply;
   }/*}}}*/
@@ -1026,7 +974,7 @@ EOH
 			$linkset);
 		$cluster_list = array_filter($cluster_list);
 		$cluster_list = array_map(create_function('$a','return $a["position"];'),$cluster_list);
-		if ( count($cluster_list) == count($linkset) ) {
+		if ( is_array($cluster_list) && is_array($linkset) && (0 < count($cluster_list)) && count($cluster_list) == count($linkset) ) {
 			ksort($linkset);
 			$linkset = array_combine(
 				$cluster_list,
@@ -1141,57 +1089,15 @@ EOH
   }/*}}}*/
 
   function extract_form($containers) {/*{{{*/
-		$debug_method = FALSE;
+		$debug_method = TRUE;
     $extract_form   = create_function('$a', 'return array_key_exists("tagname", $a) && ("FORM" == strtoupper($a["tagname"])) ? $a : NULL;');
     $paginator_form = array_values(array_filter(array_map($extract_form, $containers)));
     if ( $debug_method ) $this->recursive_dump($paginator_form,'(marker) Old');
     return $paginator_form;
   }/*}}}*/
 
-  function extract_form_controls($form_control_source) {/*{{{*/
-
-    $form_controls        = array();
-    $select_options       = array();
-    $select_name          = NULL;
-    $select_option        = NULL;
-    $userset              = array();
-
-    if ((is_array($form_control_source) && (0 < count($form_control_source)))) {
-
-      $extract_hidden_input = create_function('$a','return strtoupper($a["tag"]) == "INPUT" &&  strtoupper($a["attrs"]["TYPE"]) == "HIDDEN" ? array("name" => $a["attrs"]["NAME"], "value" => $a["attrs"]["VALUE"]) : NULL;');
-      $extract_text_input   = create_function('$a','return strtoupper($a["tag"]) == "INPUT" &&  strtoupper($a["attrs"]["TYPE"]) == "TEXT"   ? array("name" => $a["attrs"]["NAME"], "value" => $a["attrs"]["VALUE"]) : NULL;');
-      $extract_select       = create_function('$a','return strtoupper($a["tagname"]) == "SELECT" ? array("name" => $a["attrs"]["NAME"], "keys" => $a["children"]) : NULL;');
-      foreach ( array_merge(
-        array_values(array_filter(array_map($extract_hidden_input,$form_control_source))),
-        array_values(array_filter(array_map($extract_text_input, $form_control_source)))
-      ) as $form_control ) {
-        $form_controls[$form_control['name']] = $form_control['value'];
-      };
-
-      $select_options = array_values(array_filter(array_map($extract_select, $form_control_source)));
-
-      $userset = array();
-      foreach ( $select_options as $select_option ) {
-        //$this->recursive_dump($select_options,__LINE__);
-        $select_name    = $select_option['name'];
-        $select_option  = $select_option['keys'];
-        foreach ( $select_option as $option ) {
-          if ( empty($option['value']) ) continue;
-          $userset[$select_name][$option['value']] = $option['text'];
-        }
-      }
-    }
-
-    return array(
-      'userset'        => $userset,
-      'form_controls'  => $form_controls,
-      'select_name'    => $select_name,
-      'select_options' => $select_option,
-    );
-  }/*}}}*/
-
   function perform_network_fetch( & $url, $referrer, $target_url, $faux_url, $metalink, $debug_dump = FALSE ) {/*{{{*/
-    // Cache response if it's length exceeds the maximum length of a varchar field. 
+
     $debug_dump = TRUE;
     $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
     if ( $debug_dump ) {/*{{{*/
@@ -1235,7 +1141,7 @@ EOH
 
     if ( !$skip_get ) {/*{{{*/
       if ( $debug_dump ) {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "Execute GET/HEAD to {$url_copy}" );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute GET/HEAD to {$url_copy}" );
       }/*}}}*/
       $response = $modifier == 'true'
         ? CurlUtility::head($url_copy, $curl_options)
@@ -1268,7 +1174,7 @@ EOH
     if ( $successful_fetch ) {/*{{{*/
       // If we used a metalink to specify POST action parameters, change to the faux URL first
 			if ( is_array($metalink) ) {
-			 	$url->set_url($faux_url,FALSE);
+			 	$url->set_is_fake(TRUE)->set_url($faux_url,FALSE);
 			}
       // Split response into header and content parts
       $transfer_info = CurlUtility::$last_transfer_info;
@@ -1288,14 +1194,15 @@ EOH
         $url->set_last_fetch(time());
         $url->set_linktext($linktext)->increment_hits()->stow();
         if ( is_array($metalink) ) {
+					$contenthash = sha1($response);
 					$faux_url_instance = new UrlModel($faux_url,TRUE);
 					$faux_url_instance->set_pagecontent($response);
-					$faux_stow = $faux_url_instance->stow();
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing content to fake URL {$faux_url} " );
+					$faux_stow = $faux_url_instance->set_is_fake(TRUE)->stow();
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing content [{$contenthash}] to fake URL {$faux_url} " );
 
 					$url->fetch($target_url,'url');
           $url->set_pagecontent($response);
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Assigned content to target URL {$target_url}" );
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Assigned content [{$contenthash}] to target URL {$target_url}" );
         }
         // $this->syslog( __FUNCTION__, __LINE__, "Final content length: " . strlen($url->get_pagecontent()) );
         // $this->syslog( __FUNCTION__, __LINE__, "Final content SHA1: " . sha1($url->get_pagecontent()) );

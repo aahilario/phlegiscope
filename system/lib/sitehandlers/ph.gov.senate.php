@@ -402,7 +402,7 @@ EOH;
               '1cb903bd644be9596931e7c368676982',
               $session_data
             );
-            $per_congress_pager = join('', $per_congress_pager);
+            $per_congress_pager = join('&nbsp;', $per_congress_pager);
             $linktext = array_values($linktext);
             $session = $linktext[0];
           }/*}}}*/
@@ -416,11 +416,12 @@ EOH;
             );
             // $this->recursive_dump($session_select,'(marker) Missing entry');
             // $session = UrlModel::create_metalink($session, $session_data  
+            $per_congress_pager = join('&nbsp;', $per_congress_pager);
           }
         }/*}}}*/
 
         $pagecontent .= <<<EOH
-<span class="indent-2">Session {$session} {$per_congress_pager}<br/>
+<div class="indent-2">Session {$session} <span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
 
 EOH;
         krsort($q);
@@ -440,7 +441,7 @@ EOH;
 EOH;
         }
         $pagecontent .= <<<EOH
-</span>
+</div>
 
 EOH;
       }

@@ -29,7 +29,7 @@ a {
   display: inline;
 }
 .cached {
-  color: #1A1;
+  color: #1A1 !important;
 }
 .panels {
   position: absolute;

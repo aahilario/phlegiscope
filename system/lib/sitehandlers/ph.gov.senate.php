@@ -254,8 +254,6 @@ EOH;
     }
 
     // Find all links that originate from this page
-    $edge_iterator    = new UrlEdgeModel();
-    $edge_iterator->where(array('a' => $urlmodel->id))->recordfetch_setup();
     $child_link       = array();
     $child_links      = array(array());
     $child_collection = array();
@@ -270,6 +268,9 @@ EOH;
     //  page, group those by Congress and session type, and display those.
     // First collect a list of unique URLs referenced from $urlmodel,
     //  partitioned into subsets of size $subset_size 
+
+    $edge_iterator  = new UrlEdgeModel();
+    $edge_iterator->where(array('a' => $urlmodel->id))->recordfetch_setup();
     while ( $edge_iterator->recordfetch($child_link) ) {/*{{{*/
       if ( !array_key_exists($child_link['b'], $child_collection) ) {/*{{{*/
         $b = $child_link['b'];
@@ -298,6 +299,7 @@ EOH;
     $query_regex = '@([^&=]*)=([^&]*)@';
     $link_batch  = 'REGEXP \'http://www.senate.gov.ph/lis/journal.aspx\\\\?congress=([^&]*)&session=([^&]*)&q=([0-9]*)\'';
     $url_iterator->where(array('url' => $link_batch))->recordfetch_setup();
+
     while ( $url_iterator->recordfetch($child_link) ) {/*{{{*/
       $url_query_components = array();
       $url_query_parts = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
@@ -328,6 +330,8 @@ EOH;
     $session_select  = $this->extract_senate_session_select($parser, $urlmodel, FALSE);
     $select_elements = join('', array_map(create_function('$a','return $a["markup"];'),$session_select));
 
+    $first_page = NULL;
+
     foreach ( $session_select as $metalink_hash => $s ) {
       $url_iterator->fetch($s['url_model'], 'url');
       $in_db = $url_iterator->in_database() ? 'Cached' : 'Missing';
@@ -344,7 +348,7 @@ EOH;
     krsort($child_collection);
 
     $target_congress = $urlmodel->get_query_element('congress');
-    $common = new SenateCommonParseUtility();
+    $common = new SenateJournalParseUtility();
 
     foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
 
@@ -355,7 +359,8 @@ EOH;
 
 EOH;
       krsort($session_q);
-      foreach ( $session_q as $session => $q ) {
+
+      foreach ( $session_q as $session => $q ) {/*{{{*/
 
         $per_congress_pager = '[---]';
         // Obtain matching session record
@@ -365,6 +370,7 @@ EOH;
         $linktext = array_filter(array_map(create_function(
           '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? str_replace($a["linktext"],$a["optval"],$a["markup"]) : NULL;'
         ), $session_select));
+
         if ( is_array($session_data) ) {/*{{{*/
           // Extract the pager for the current Congress and Session series 
           $extracted_links = array();
@@ -375,6 +381,7 @@ EOH;
           $in_db = $url_iterator->set_url($cached_url,TRUE);
           if ( $in_db ) {/*{{{*/
             $common->
+              reset()->
               set_parent_url($urlmodel->get_url())->
               parse_html($url_iterator->get_pagecontent(),$url_iterator->get_response_header());
             $cluster_urls = $this->
@@ -396,55 +403,110 @@ EOH;
             // unadorned link is "decorated" with the same fake URL + page
             // parameters.
             if ( is_array($cluster_urls) ) 
+            $per_congress_pager = $this->extract_pager_links( $extracted_links, $cluster_urls,
+              '1cb903bd644be9596931e7c368676982',
+              $session_data
+            );
+            if ( is_null($first_page) ) $first_page = $cached_url;
+            $per_congress_pager = join('', $per_congress_pager);
+            $linktext = array_values($linktext);
+            $session = $linktext[0];
+            //////////////////////////////////////////////////////////////
+            $r = array_combine(
+              array_map(create_function('$a','return UrlModel::get_url_hash($a["url"]);'), $q),
+              array_values($q)
+            );
+
+            if (is_array($r) && (0 < count($r))) foreach ( $extracted_links as $link ) {
+              $url_iterator->set_url($link,TRUE);
+              $common->
+                set_parent_url($url_iterator->get_url())->
+                parse_html($url_iterator->get_pagecontent(),$url_iterator->get_response_header());
+              $entries = $common->get_containers(
+                'children[tagname=div][attrs:STYLE*=right|left|i]'
+              );
+              // Clear URL entries that exist
+              foreach ( $entries as $found_links ) {
+                // Null out URLs that are already in this set
+                array_walk($found_links,create_function(
+                  '& $a, $k, $s', '$h = UrlModel::get_url_hash($a["url"]); if ( array_key_exists($h, $s) ) $a["url"] = NULL; else $a["hash"] = $h;'),
+                  $r
+                );
+                // Remove entries where the URL has been nulled out
+                $found_links = array_filter(array_map(create_function(
+                  '$a', 'return is_null($a["url"]) ? NULL : $a;'
+                ),$found_links));
+                // Make the URL hash be the key for this array of links
+                $r_hashes = array_map(create_function('$a','return $a["hash"];'), $found_links);
+                $found_links = array_values(array_map(create_function('$a','return array("_" => "_", "url" => $a["url"],"text" => $a["text"]);'), $found_links));
+                if ( is_array($r_hashes) && is_array($found_links) && (0 < count($r_hashes)) && (count($r_hashes) == count($found_links)) ) {
+                  $found_links = array_combine($r_hashes,$found_links);
+                  if ( is_array($found_links) && (0 < count($found_links)) ) $q = array_merge($q, $found_links);
+                }
+                $found_links = NULL;
+              }
+            }
+            //////////////////////////////////////////////////////////////
+          }/*}}}*/
+          else {/*{{{*/
+            $linktext = array_values($linktext);
+            $session = $linktext[0];
             $per_congress_pager = $this->extract_pager_links(
               $extracted_links,
               $cluster_urls,
               '1cb903bd644be9596931e7c368676982',
               $session_data
             );
-            $per_congress_pager = join('&nbsp;', $per_congress_pager);
-            $linktext = array_values($linktext);
-            $session = $linktext[0];
-          }/*}}}*/
-          else {
-            $linktext = array_values($linktext);
-            $session = $linktext[0];
-            $per_congress_pager = $this->extract_pager_links(
-              $extracted_links,
-              $cluster_urls,
-              '1cb903bd644be9596931e7c368676982'
-            );
+            // $this->recursive_dump($extracted_links, "(marker) NI -");
             // $this->recursive_dump($session_select,'(marker) Missing entry');
             // $session = UrlModel::create_metalink($session, $session_data  
-            $per_congress_pager = join('&nbsp;', $per_congress_pager);
-          }
+            $per_congress_pager = join('', $per_congress_pager);
+          }/*}}}*/
         }/*}}}*/
 
         $pagecontent .= <<<EOH
-<div class="indent-2">Session {$session} <span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
-
+<div class="indent-2">Session {$session}<br/>
+<span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
+<ul class="link-cluster">
 EOH;
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) ---------------------------------------------------------- ");
+
+        array_walk($q,create_function(
+          '& $a, $k', '$matches = array(); if ( 1 == preg_match("@\&q=([0-9]*)@i", $a["url"], $matches) ) $a["seq"] = $matches[1]; else $a["seq"] = 0;'  
+        ));
+
+        $q = array_combine(
+          array_map(create_function('$a','return $a["seq"];'),$q),
+          array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => !array_key_exists("_", $a));'),$q)
+        );
+
         krsort($q);
-        foreach ( $q as $child_link ) {
+
+        foreach ( $q as $child_link ) {/*{{{*/
+          // TODO: Insert missing links 
           $urlparts = UrlModel::parse_url($child_link['url'],PHP_URL_QUERY);
           $linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
+          $child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
           if ( $linktext == $child_link['url'] ) {
             $url_query_components = array();
-            $url_query_parts = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
+            $url_query_parts      = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
             preg_match_all($query_regex, $url_query_parts, $url_query_components);
-            $url_query_parts = array_combine($url_query_components[1],$url_query_components[2]);
+            $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
             $linktext = "No. {$url_query_parts['q']}";
           }
+          $cached = $child_link['cached'] ? "cached" : "";
           $pagecontent .= <<<EOH
-<a class="legiscope-remote cached indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a><br/>
+<li><a class="legiscope-remote {$cached} indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
 EOH;
-        }
+        }/*}}}*/
+        $q = NULL;
         $pagecontent .= <<<EOH
+</ul>
 </div>
 
 EOH;
-      }
+      }/*}}}*/
       $pagecontent .= <<<EOH
 </span>
 
@@ -456,9 +518,15 @@ EOH;
 
 <div class="alternate-original alternate-content" id="senate-journal-block">
 EOH;
-    $common = new SenateCommonParseUtility();
-    $common->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent .= join('',$common->get_filtered_doc());
+    $url_iterator->set_url($first_page, TRUE);
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Finally loading '{$first_page}'");
+    if ( !$url_iterator->in_database() ) $url_iterator->set_url($urlmodel->get_url());
+
+    $output = '';
+    $this->leg_sys_journal($common, $output, $url_iterator);
+    // $common->set_parent_url($url_iterator->get_url())->parse_html($url_iterator->get_pagecontent(),$url_iterator->get_response_header());
+    // $pagecontent .= join('',$common->get_filtered_doc());
+    $pagecontent .= $output;
     $pagecontent .= <<<EOH
 </div>
 EOH;
@@ -1396,6 +1464,34 @@ EOH;
     return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
+  function leg_sys_journal(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) " . $urlmodel->get_url() );
+
+    $common = new SenateJournalParseUtility();
+    $common->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+
+    // Journal entries are found in DIVs with float: left and float: right
+    $this->recursive_dump(($entries = $common->get_containers(
+      'children[tagname=div][attrs:STYLE*=right|left|i]'
+    )),"(------) " . __FUNCTION__ );
+
+    $pagecontent = '';
+    $items = array();
+
+    foreach ( $entries as $set ) {
+      foreach ( $set as $entry ) {
+        $items[] = <<<EOH
+<a class="legiscope-remote" href="{$entry['url']}">{$entry['text']}</a>
+EOH;
+      }
+    }
+    $pagecontent = join('<br/>', $items);
+
+    $pagecontent = utf8_encode($pagecontent);
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+  }/*}}}*/
+
   function seek_postparse_bypath_62f91d11784860d07dea11c53509a732(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     /** Router **/ 
     // http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=bill 
@@ -1416,8 +1512,7 @@ EOH;
         break;
       case 'journal':
         // return $this->canonical_journal_page_parser($parser,$pagecontent,$urlmodel);
-        $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
-        $parser->json_reply = array('retainoriginal' => TRUE);
+        return $this->leg_sys_journal($parser,$pagecontent,$urlmodel);
         break;
       default:
         $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
@@ -1716,7 +1811,7 @@ EOH;
   /** Utilities **/
 
   function generic(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
@@ -1750,7 +1845,7 @@ EOH;
     $check_cache     = FALSE;
     $links           = array();
     $pager_links     = array();
-    $senate_bill_url = ( $check_cache ) ? new UrlModel() : FALSE;
+    $senate_bill_url = new UrlModel();
 
     if ( $debug_method ) $this->recursive_dump($cluster_urldefs,'(warning)');
     //  20130401 - Typical entries found 
@@ -1766,14 +1861,16 @@ EOH;
     //    query_components =>
     //       361d558f79a9d15a277468b313f49528 => 15|14|13
     //    whole_url => http://www.senate.gov.ph/lis/pdf_sys.aspx?type=republic_act&congress=({PARAMS})
+    if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) )
     foreach( $cluster_urldefs as $url_uid => $urldef ) {/*{{{*/
       if ( !is_null($url_uuid) && !($url_uid == $url_uuid ) ) continue;
       $counter = 0;
       $have_pullin_link = FALSE;
       foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
         $parameters = array_flip(explode('|', $parameters));
+        if ( !array_key_exists(1, $parameters) ) $parameters[1] = 1;
         ksort($parameters);
-        $parameters = array_flip($parameters);
+        $parameters = array_keys($parameters);
         foreach ( $parameters as $parameter ) {/*{{{*/
           $counter++;
           $link_class = array("legiscope-remote");
@@ -1785,7 +1882,6 @@ EOH;
             if ( $is_in_cache ) $link_class[] = 'cached';
             if ( ($counter >= 5 || !$is_in_cache) && !$have_pullin_link ) {
               $have_pullin_link = TRUE;
-              // $link_class[] = "pull-in"; 
             }
           }/*}}}*/
           if ( !is_null($parent_state) ) {/*{{{*/
@@ -1799,11 +1895,14 @@ EOH;
               $parent_state,
               UrlModel::decompose_query_parts($link_components['query'])
             ); 
+            $senate_bill_url->set_url($href,FALSE);
             // $this->recursive_dump($query_parameters,"(marker) A");
+            $link = $this->get_faux_url($senate_bill_url,$query_parameters);
+            $links[UrlModel::get_url_hash($link)] = $link;  
             $link = UrlModel::create_metalink($parameter, $href, $query_parameters, join(' ', $link_class));
           }/*}}}*/
+          else $links[$urlhash] = $href;
           $link_class = join(' ',$link_class);
-          $links[$urlhash] = $href;
           if ( is_null($parent_state) ) $link = <<<EOH
 <span class="link-faux-menuitem"><a class="{$link_class}" href="{$href}" id="{$urlhash}">{$parameter}</a></span>
 

@@ -105,6 +105,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 				syslog( LOG_INFO,  __METHOD__ . ": Boolean result " . ($resultset ? 'TRUE' : 'FALSE') . " query {$sql}" );  
 				$this->ls_last_operation_errdesc = $this->error;
 				syslog( LOG_INFO,  __METHOD__ . ": Last error: {$this->ls_last_operation_errdesc}" );  
+				if ( C('DEBUG_STACKTRACE_ON_SQL_ERROR') == TRUE )
 				try {
 					throw new Exception('DB');
 				} catch ( Exception $e ) {

@@ -139,6 +139,18 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
+  function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
+    if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
+      $this->pop_tagstack();
+      $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
+      $this->push_tagstack();
+    }
+    return TRUE;
+  }/*}}}*/
+  function ru_span_close(& $parser, $tag) {/*{{{*/
+    return $this->embed_cdata_in_parent();
+  }/*}}}*/
+
   // For cmmittee reports only - BLOCKQUOTE tags wrap text lines
   function ru_blockquote_open(& $parser, & $attrs, $tag) {/*{{{*/
 		return $this->ru_li_open($parser,$attrs,$tag);

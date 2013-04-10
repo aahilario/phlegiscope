@@ -29,6 +29,7 @@ define('SELENIUM_WEBDRIVER', 'http://127.0.0.8:4444/wd/hub');
 
 // Debug flags
 define('ENABLE_STRUCTURE_DUMP', FALSE);
+define('DEBUG_STACKTRACE_ON_SQL_ERROR', TRUE);
 
 // Session handling
 define('LEGISCOPE_SESSION_NAME', 'LEGISCOPE');

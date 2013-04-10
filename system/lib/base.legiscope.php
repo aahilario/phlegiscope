@@ -404,7 +404,7 @@ class LegiscopeBase extends SystemUtility {
       // The POST action may be a URL which permits a GET action,
       // in which case we need to use a fake URL to store the results of 
       // the POST.  We'll generate the fake URL here. 
-      $metalink = json_decode(base64_decode($metalink), TRUE);
+			if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
       // Prepare faux metalink URL by combining the metalink components
       // with POST target URL query components. After the POST, a new cookie
       // may be returned; if so, it will be used to traverse sibling links
@@ -449,7 +449,6 @@ class LegiscopeBase extends SystemUtility {
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
     $faux_url = $this->get_faux_url($url, $metalink);
-
 
     $this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) {$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
     $this->recursive_dump($metalink,'(marker) Metalink URL src');
@@ -1091,7 +1090,7 @@ EOH
   }/*}}}*/
 
   function extract_form($containers) {/*{{{*/
-    $debug_method = TRUE;
+    $debug_method = FALSE;
     $extract_form   = create_function('$a', 'return array_key_exists("tagname", $a) && ("FORM" == strtoupper($a["tagname"])) ? $a : NULL;');
     $paginator_form = array_values(array_filter(array_map($extract_form, $containers)));
     if ( $debug_method ) $this->recursive_dump($paginator_form,'(marker) Old');
@@ -1100,7 +1099,7 @@ EOH
 
   function perform_network_fetch( & $url, $referrer, $target_url, $faux_url, $metalink, $debug_dump = FALSE ) {/*{{{*/
 
-    $debug_dump = TRUE;
+    $debug_dump = FALSE;
     $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
     if ( $debug_dump ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Referrer: {$referrer}");
@@ -1128,8 +1127,8 @@ EOH
     if ( is_array($metalink) ) {/*{{{*/
       // FIXME:  SECURITY DEFECT: Don't forward user-submitted input 
       if ( $debug_dump ) {/*{{{*/
-        $this->recursive_dump($metalink,'(marker)');
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute POST to {$url_copy}" );
+        $this->recursive_dump($metalink,'(marker)');
       }/*}}}*/
 			if ( array_key_exists('_', $metalink) && $metalink['_'] == 1 ) {
 				// Pager or other link whose behavior depends on antecedent state.

@@ -120,7 +120,7 @@ EOH;
 EOH;
       $lines = array();
       $sorttype = NULL;
-      foreach ($e['content'] as $entry) {/*{{{*/
+      if ( is_array($e) && array_key_exists('content',$e) && is_array($e['content']) ) foreach ($e['content'] as $entry) {/*{{{*/
         $properties = array('legiscope-remote');
         $matches = array();
         $title = $entry['text'];
@@ -174,7 +174,7 @@ EOH;
 
     $this->recursive_dump(($paginator_form = array_values($parser->get_containers(
       "children[tagname=form]{$form_selector}"
-    ))),'(marker) StructureParser');
+    ))),'(------) StructureParser');
 
     $paginator_form = $paginator_form[0];
     $control_set    = $parser->extract_form_controls($paginator_form);
@@ -184,27 +184,29 @@ EOH;
 
     // Extract the Session selector (First Regular Session, etc.)
     $select_elements = array();
+    // $this->recursive_dump($select_options,"(marker) FOo");
     if ( is_array($select_options) ) foreach ( $select_options as $select_option ) {/*{{{*/
       // Take a copy of the rest of the form controls
       $control_set                    = $form_controls;
       $control_set[$select_name]      = $select_option['value'];
       $control_set['__EVENTTARGET']   = $select_name;
       $control_set['__EVENTARGUMENT'] = NULL;
-      ksort($control_set);
-      $controlset_json_base64 = base64_encode(json_encode($control_set));
-      $controlset_hash        = md5($controlset_json_base64);
-      $faux_url               = $urlmodel->get_url();
-      $generated_link = <<<EOH
-<a href="{$faux_url}" class="fauxpost" id="switch-{$controlset_hash}">{$select_option['text']}</a>
-<span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
-EOH;
+      $generated_link = UrlModel::create_metalink(
+        $select_option['text'],
+        $urlmodel->get_url(),
+        $control_set,
+        'fauxpost'
+      );
+
       if ( $return_a_tags ) {
         $select_elements[] = $generated_link;
       } else {
+        $controlset_json_base64 = base64_encode(json_encode($control_set));
+        $controlset_hash        = md5($controlset_json_base64);
         $select_elements[$controlset_hash] = array(
           'metalink'        => $controlset_json_base64,
           'metalink_source' => $control_set,
-          'faux_url'        => $faux_url,
+          'faux_url'        => $urlmodel->get_url(),
           'linktext'        => $select_option['text'],
           'optval'          => $select_option['value'],
           'markup'          => $generated_link,
@@ -318,16 +320,11 @@ EOH;
     );
     $congress_change_link = join('', $congress_change_link);
 
-    // Extract the pager for the current Congress and Session series 
-    $extracted_links = array();
-    $per_congress_pager = $this->extract_pager_links(
-      $extracted_links,
-      $parser->cluster_urldefs,
-      '1cb903bd644be9596931e7c368676982'
-    );
-    $per_congress_pager = join('', $per_congress_pager);
-
     // Extract the session selector
+    // Each record encodes HTTP session state for a cluster of Senate 
+    // journals belonging to a House session.  Child page content is
+    // bound implicitly to the same HTTP session state (during live network
+    // fetch), and explicitly in  
     $session_select  = $this->extract_senate_session_select($parser, $urlmodel, FALSE);
     $select_elements = join('', array_map(create_function('$a','return $a["markup"];'),$session_select));
 
@@ -335,26 +332,93 @@ EOH;
       $url_iterator->fetch($s['url_model'], 'url');
       $in_db = $url_iterator->in_database() ? 'Cached' : 'Missing';
       $this->syslog(__FUNCTION__,__LINE__,"(marker) {$in_db} URL {$s['url_model']}");
+      // $this->recursive_dump($s,'(marker) House Session SELECT');
     }
 
     $pagecontent = <<<EOH
 <div class="senate-journal">
-{$select_elements}
 EOH;
+//{$select_elements}
 
     // Iteratively generate sets of columns
     krsort($child_collection);
 
     $target_congress = $urlmodel->get_query_element('congress');
+    $common = new SenateCommonParseUtility();
 
     foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
+
       if ( !($target_congress == $congress) ) continue;
+
       $pagecontent .= <<<EOH
 <span class="indent-1">Congress {$congress} {$congress_change_link}<br/>
 
 EOH;
       krsort($session_q);
       foreach ( $session_q as $session => $q ) {
+
+        $per_congress_pager = '[---]';
+        // Obtain matching session record
+        $session_data = array_filter(array_map(create_function(
+          '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? $a["metalink"] : NULL;'
+        ), $session_select));
+        $linktext = array_filter(array_map(create_function(
+          '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? str_replace($a["linktext"],$a["optval"],$a["markup"]) : NULL;'
+        ), $session_select));
+        if ( is_array($session_data) ) {/*{{{*/
+          // Extract the pager for the current Congress and Session series 
+          $extracted_links = array();
+          $session_data = array_values($session_data);
+          $session_data = $session_data[0];
+          $url_iterator->set_url($urlmodel->get_url(),FALSE);
+          $cached_url = $this->get_faux_url($url_iterator, $session_data);
+          $in_db = $url_iterator->set_url($cached_url,TRUE);
+          if ( $in_db ) {/*{{{*/
+            $common->
+              set_parent_url($urlmodel->get_url())->
+              parse_html($url_iterator->get_pagecontent(),$url_iterator->get_response_header());
+            $cluster_urls = $this->
+              generate_linkset($common->get_containers(),$urlmodel->get_url());
+            extract($cluster_urls);
+            // These pager links are bound to the state variable "dlBillType",
+            // which corresponds to the human-readable labels "First Regular Session",
+            // "Second Regular Session", and so on.  We can simply extend
+            // the set of state variables to include "page", so that we can
+            // cache the URLs for those pages uniquely.
+            //
+            // The implementation here treats pager links differently when
+            // using them to trigger a network fetch (live), from how these
+            // links are treated to access site-local resource:  The unadorned
+            // link is used in a cookie-aware request to the live site. Retrieved
+            // content is stored using a fake URL to which is appended page-
+            // specific query parameter values.  When
+            // a spider operator requests content from the main site, the
+            // unadorned link is "decorated" with the same fake URL + page
+            // parameters.
+            if ( is_array($cluster_urls) ) 
+            $per_congress_pager = $this->extract_pager_links(
+              $extracted_links,
+              $cluster_urls,
+              '1cb903bd644be9596931e7c368676982',
+              $session_data
+            );
+            $per_congress_pager = join('', $per_congress_pager);
+            $linktext = array_values($linktext);
+            $session = $linktext[0];
+          }/*}}}*/
+          else {
+            $linktext = array_values($linktext);
+            $session = $linktext[0];
+            $per_congress_pager = $this->extract_pager_links(
+              $extracted_links,
+              $cluster_urls,
+              '1cb903bd644be9596931e7c368676982'
+            );
+            // $this->recursive_dump($session_select,'(marker) Missing entry');
+            // $session = UrlModel::create_metalink($session, $session_data  
+          }
+        }/*}}}*/
+
         $pagecontent .= <<<EOH
 <span class="indent-2">Session {$session} {$per_congress_pager}<br/>
 
@@ -1349,8 +1413,13 @@ EOH;
       case 'resolution':
         return $this->leg_sys_resolution($parser,$pagecontent,$urlmodel);
         break;
+      case 'journal':
+        // return $this->canonical_journal_page_parser($parser,$pagecontent,$urlmodel);
+        $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+        $parser->json_reply = array('retainoriginal' => TRUE);
+        break;
       default:
-        return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+        $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
         break;
     }
 
@@ -1675,7 +1744,7 @@ EOH;
     return $returnset;
   }/*}}}*/
 
-  function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL) {/*{{{*/
+  function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL) {/*{{{*/
     $debug_method    = FALSE;
     $check_cache     = FALSE;
     $links           = array();
@@ -1709,7 +1778,7 @@ EOH;
           $link_class = array("legiscope-remote");
           $href = str_replace('({PARAMS})',"{$parameter}","{$urldef['whole_url']}");
           $urlhash = UrlModel::get_url_hash($href);
-          if ( $check_cache ) {
+          if ( $check_cache ) {/*{{{*/
             $senate_bill_url->fetch($urlhash,'urlhash');
             $is_in_cache = $senate_bill_url->in_database();
             if ( $is_in_cache ) $link_class[] = 'cached';
@@ -1717,13 +1786,28 @@ EOH;
               $have_pullin_link = TRUE;
               // $link_class[] = "pull-in"; 
             }
-          }
+          }/*}}}*/
+          if ( !is_null($parent_state) ) {/*{{{*/
+            // Client-side JS sees a selector class attribute 'session-lead'
+            //$link_class[] = 'session-lead';
+            //$link_class[] = 'fauxpost';
+            $link_class = array("fauxpost");
+            $link_components = UrlModel::parse_url($href);
+            $query_parameters = array_merge(
+              array('_' => '1'),
+              $parent_state,
+              UrlModel::decompose_query_parts($link_components['query'])
+            ); 
+            // $this->recursive_dump($query_parameters,"(marker) A");
+            $link = UrlModel::create_metalink($parameter, $href, $query_parameters, join(' ', $link_class));
+          }/*}}}*/
           $link_class = join(' ',$link_class);
           $links[$urlhash] = $href;
-          $pager_links[] = <<<EOH
+          if ( is_null($parent_state) ) $link = <<<EOH
 <span class="link-faux-menuitem"><a class="{$link_class}" href="{$href}" id="{$urlhash}">{$parameter}</a></span>
 
 EOH;
+          $pager_links[] = $link;
         }/*}}}*/
       }/*}}}*/
     }/*}}}*/

@@ -306,7 +306,6 @@ class UrlModel extends DatabaseUtility {
       array(
         'http_response_code'      => $http_response_code,
         'parsed_headers'          => $final_headers,
-        'response_headers'        => join("\n", $final_headers),
         'response_regular_markup' => $response_regular_markup ? 1 : 0,
       );
     // $this->syslog(__FUNCTION__, __LINE__, "Response data for " . $this->get_url());
@@ -500,4 +499,15 @@ class UrlModel extends DatabaseUtility {
 
   function & set_update_time($v) { $this->update_time_utx = $v; return $this; }
   function get_update_time($v = NULL) { if (!is_null($v)) $this->set_update_time($v); return $this->update_time_utx; }
+
+	static function create_metalink($linktext, $target_url, $control_set, $classname) {
+		ksort($control_set);
+		$controlset_json_base64 = base64_encode(json_encode($control_set));
+		$controlset_hash        = md5($controlset_json_base64);
+		$generated_link = <<<EOH
+<a href="{$target_url}" class="{$classname}" id="switch-{$controlset_hash}">{$linktext}</a>
+<span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
+EOH;
+		return $generated_link;
+	}
 }

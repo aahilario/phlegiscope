@@ -233,35 +233,35 @@ class LegiscopeBase extends SystemUtility {
     $clusterid = $this->filter_post('clusterid');
     $move      = $this->filter_post('move');
     $referrer  = $this->filter_session('referrer');
-		// Required by generate_linkset
-		$this->subject_host_hash = UrlModel::get_url_hash($referrer,PHP_URL_HOST);
+    // Required by generate_linkset
+    $this->subject_host_hash = UrlModel::get_url_hash($referrer,PHP_URL_HOST);
 
-		// Extract link cluster ID parts
-		$cluster_id_parts = array();
-	  preg_match('@([[:xdigit:]]{32})-([[:xdigit:]]{32})-([[:xdigit:]]{40})@', $clusterid, $cluster_id_parts);
+    // Extract link cluster ID parts
+    $cluster_id_parts = array();
+    preg_match('@([[:xdigit:]]{32})-([[:xdigit:]]{32})-([[:xdigit:]]{40})@', $clusterid, $cluster_id_parts);
 
     $json_reply = array('referrer' => $referrer);
 
-		// Retrieve and parse links on page
-		$cluster   = new UrlClusterModel();
-		$parser    = new GenericParseUtility();
-		$page      = new UrlModel($referrer,TRUE);
-		$clusterid = $cluster_id_parts[3];
-		$parser->
-			set_parent_url($page->get_url())->
-			parse_html($page->get_pagecontent(),$page->get_response_header());
+    // Retrieve and parse links on page
+    $cluster   = new UrlClusterModel();
+    $parser    = new GenericParseUtility();
+    $page      = new UrlModel($referrer,TRUE);
+    $clusterid = $cluster_id_parts[3];
+    $parser->
+      set_parent_url($page->get_url())->
+      parse_html($page->get_pagecontent(),$page->get_response_header());
 
-		$cluster->dump_accessor_defs_to_syslog();
+    $cluster->dump_accessor_defs_to_syslog();
 
-		$cluster->reposition($page, $clusterid, $move);
+    $cluster->reposition($page, $clusterid, $move);
 
-		// Regenerate the link set
-		if ( FALSE == $page->is_custom_parse() ) {
-			$linkset = $this->generate_linkset($parser->get_containers(), $page->get_url());
-			$json_reply['linkset'] = $linkset['linkset'];
-		}
+    // Regenerate the link set
+    if ( FALSE == $page->is_custom_parse() ) {
+      $linkset = $this->generate_linkset($parser->get_containers(), $page->get_url());
+      $json_reply['linkset'] = $linkset['linkset'];
+    }
 
-		// Transmit response (just the regenerated set of links for that page)
+    // Transmit response (just the regenerated set of links for that page)
     $this->recursive_dump($json_reply,'(marker)');
 
     $response = json_encode($json_reply);
@@ -365,7 +365,7 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
-	function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
+  function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
       $pagecontent = json_encode($json_reply);
       header('Content-Type: application/json');
@@ -377,11 +377,11 @@ class LegiscopeBase extends SystemUtility {
       echo $pagecontent;
       exit(0);
     }/*}}}*/
-	}/*}}}*/
+  }/*}}}*/
 
-	function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
+  function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
     if ( FALSE === ( $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST) ) ) {
-			$this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do.");
+      $this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do.");
       header('HTTP/1.0 404 Not Found');
       exit(0);
     }
@@ -396,32 +396,31 @@ class LegiscopeBase extends SystemUtility {
         exit(0);
       }
     }/*}}}*/
-	}/*}}}*/
+  }/*}}}*/
 
-	function get_faux_url(UrlModel & $url, & $metalink) {/*{{{*/
-		$faux_url = NULL;
-		if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
-			// The POST action may be a URL which permits a GET action,
-			// in which case we need to use a fake URL to store the results of 
-			// the POST.  We'll generate the fake URL here. 
-			$metalink = json_decode(base64_decode($metalink), TRUE);
-			// Prepare faux metalink URL by combining the metalink components
-			// with POST target URL query components. After the POST, a new cookie
-			// may be returned; if so, it will be used to traverse sibling links
-			// which content hasn't yet been cached in the UrlModel backing store.
-		  $this->recursive_dump($metalink,'(marker) Metalink data');
-		  if ( $metalink == FALSE ) {
-				$metalink = NULL;
-			} else if ( 0 < count($metalink) ) {/*{{{*/
+  function get_faux_url(UrlModel & $url, & $metalink) {/*{{{*/
+    $faux_url = NULL;
+    if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
+      // The POST action may be a URL which permits a GET action,
+      // in which case we need to use a fake URL to store the results of 
+      // the POST.  We'll generate the fake URL here. 
+      $metalink = json_decode(base64_decode($metalink), TRUE);
+      // Prepare faux metalink URL by combining the metalink components
+      // with POST target URL query components. After the POST, a new cookie
+      // may be returned; if so, it will be used to traverse sibling links
+      // which content hasn't yet been cached in the UrlModel backing store.
+      if ( $metalink == FALSE ) {
+        $metalink = NULL;
+      } else if ( 0 < count($metalink) ) {/*{{{*/
 
-				$faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
-				$in_db    = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh';
+        $faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
+        $in_db    = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh';
 
-			}/*}}}*/
-			else $metalink = NULL;
-		}/*}}}*/
-		return $faux_url;
-	}/*}}}*/
+      }/*}}}*/
+      else $metalink = NULL;
+    }/*}}}*/
+    return $faux_url;
+  }/*}}}*/
 
   function seek() {/*{{{*/
 
@@ -436,7 +435,6 @@ class LegiscopeBase extends SystemUtility {
     $freeze_referrer    = $this->filter_post('fr');
     $cache_force        = $this->filter_post('cache');
     $referrer           = $this->filter_session('referrer');
-    $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
     $url                = new UrlModel($target_url, TRUE);
 
     $this->syslog( __FUNCTION__,__LINE__,"(marker) Use cache = {$cache_force} ----------------------------------");
@@ -444,14 +442,17 @@ class LegiscopeBase extends SystemUtility {
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
     $displayed_target_url = $target_url;
 
-		$this->exit_emit_cached_content($url, $cache_force, $network_fetch);
-	
+    $this->exit_emit_cached_content($url, $cache_force, $network_fetch);
+  
+    $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
+
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
-		$faux_url = $this->get_faux_url($url, $metalink);
+    $faux_url = $this->get_faux_url($url, $metalink);
 
-		$this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) {$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
-		$this->recursive_dump($metalink,'(marker) Metalink URL src');
+
+    $this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) {$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
+    $this->recursive_dump($metalink,'(marker) Metalink URL src');
 
     $json_reply = array(
       'url'            => $target_url,
@@ -475,9 +476,11 @@ class LegiscopeBase extends SystemUtility {
       : "Reloading"
       ;
 
+		if ( $retrieved ) $url->increment_hits()->stow();
+
     if ( $network_fetch ) {/*{{{*/
 
-			if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
+      if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
       $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink );
       $action = $retrieved
         ? "(marker) Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
@@ -504,14 +507,14 @@ class LegiscopeBase extends SystemUtility {
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Network fetch " . ($network_fetch ? 'OK' : 'NO') . ", successful " . ($retrieved ? 'YES' : 'NO'));
 
-		$headers['legiscope-regular-markup'] = 0;
+    $headers['legiscope-regular-markup'] = 0;
 
     if ( !$retrieved ) {/*{{{*/
 
       // Unsuccessful fetch attempt
       $cache_filename = $url->get_cache_filename();
       $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing {$url}. Must remove cache file {$cache_filename}" );
-		  if ( file_exists($cache_filename) ) unlink($cache_filename);
+      if ( file_exists($cache_filename) ) unlink($cache_filename);
       $url->remove();
 
     }/*}}}*/
@@ -536,22 +539,22 @@ class LegiscopeBase extends SystemUtility {
 
           $headers['legiscope-regular-markup'] = 1;
 
-					// Defer parsing by setting the URL custom_parse flag in DB
-					$structure = $url->is_custom_parse()
-						? array()
-						: $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header())
-						;
+          // Defer parsing by setting the URL custom_parse flag in DB
+          $structure = $url->is_custom_parse()
+            ? array()
+            : $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header())
+            ;
 
-					// Only process <body> tag content
-					$body_content = $parser->fetch_body_generic_cleanup($pagecontent);
+          // Only process <body> tag content
+          $body_content = $parser->fetch_body_generic_cleanup($pagecontent);
 
-					// Custom-parsed page handlers must generate navigation links
-					$linkset = $url->is_custom_parse()
-						? array('linkset' => array(),'urlhashes' => array(),'cluster_urls' => array())
-						: $this->generate_linkset($parser->get_containers(), $url->get_url())
-						;
+          // Custom-parsed page handlers must generate navigation links
+          $linkset = $url->is_custom_parse()
+            ? array('linkset' => array(),'urlhashes' => array(),'cluster_urls' => array())
+            : $this->generate_linkset($parser->get_containers(), $url->get_url())
+            ;
 
-					extract($linkset); // 'linkset', 'urlhashes', 'cluster_urls'
+          extract($linkset); // 'linkset', 'urlhashes', 'cluster_urls'
 
           $body_content = htmlspecialchars_decode($body_content, ENT_NOQUOTES | ENT_HTML401);
           $handler_list = $this->get_handler_names($url);
@@ -559,7 +562,7 @@ class LegiscopeBase extends SystemUtility {
           $matched = FALSE;
 
           foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
-						// Break on first match
+            // Break on first match
             if ( method_exists($this, $method_name) ) {/*{{{*/
               $matched |= TRUE;
               $parser->trigger_linktext = $linktext;
@@ -574,7 +577,6 @@ class LegiscopeBase extends SystemUtility {
 
               $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name}");
               $this->$method_name($parser, $body_content, $url);
-              $url->increment_hits()->stow();
 
               $linkset        = $parser->linkset;
               $json_reply     = $parser->json_reply; // Merged with response JSON
@@ -608,7 +610,7 @@ class LegiscopeBase extends SystemUtility {
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Freeze referrer {$referrer} for " . $url->get_url());
       }/*}}}*/
 
-			// Finally, reload the model so that it reflects any parser updates
+      // Finally, reload the model so that it reflects any parser updates
       $url->fetch($url->get_url(),'url');
 
       $current_linktext = $url->get_linktext();
@@ -640,11 +642,11 @@ class LegiscopeBase extends SystemUtility {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible content length: " . strlen($body_content) );
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible final length: " . strlen($final_body_content) );
 
-			$final_content = str_replace(
-				array('<br/>'  , '><'  , '<'  , '>'   , " "     , '{BREAK}'),
-				array('{BREAK}', ">{BREAK}<", '&lt;', '&gt;', "&nbsp;", '<br/>')  ,
-				$body_content
-			); 
+      $final_content = str_replace(
+        array('<br/>'  , '><'  , '<'  , '>'   , " "     , '{BREAK}'),
+        array('{BREAK}', ">{BREAK}<", '&lt;', '&gt;', "&nbsp;", '<br/>')  ,
+        $body_content
+      ); 
 
       $json_reply = array_merge(
         array(
@@ -664,7 +666,7 @@ class LegiscopeBase extends SystemUtility {
 
       $member_uuid = $this->filter_post('member_uuid');
       if ( !is_null($member_uuid) && $json_reply['httpcode'] == 200 && method_exists($this, 'member_uuid_handler')) {/*{{{*/
-				$this->member_uuid_handler($json_reply, $url, $member_uuid);
+        $this->member_uuid_handler($json_reply, $url, $member_uuid);
       }/*}}}*/
 
     }/*}}}*/
@@ -678,7 +680,7 @@ class LegiscopeBase extends SystemUtility {
       $this->recursive_dump($output_buffer,__LINE__);
     }/*}}}*/
 
-		$this->exit_cache_json_reply($json_reply,'LegiscopeBase');
+    $this->exit_cache_json_reply($json_reply,'LegiscopeBase');
 
     return $json_reply;
   }/*}}}*/
@@ -686,7 +688,7 @@ class LegiscopeBase extends SystemUtility {
   protected function get_handler_names(UrlModel & $url) {/*{{{*/
 
     // Construct post-processing method name from path parts
-    $debug_method = FALSE;
+    $debug_method = TRUE;
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
     $urlpathhash_sans_script = $urlpathhash; 
@@ -783,14 +785,14 @@ class LegiscopeBase extends SystemUtility {
     $link_generator = create_function('$a', <<<EOH
 return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a><span class="reload-texticon legiscope-refresh {refresh-' . \$a["urlhash"] . '}" id="refresh-' . \$a["urlhash"] . '">reload</span></li>';
 EOH
-		);
+    );
     $hash_extractor = create_function('$a', <<<EOH
 return array( 'hash' => \$a['urlhash'], 'url' => \$a['url'] ); 
 EOH
     );
 
     $parent_page = new UrlModel($url,TRUE);
-		$cluster = new UrlClusterModel();
+    $cluster = new UrlClusterModel();
 
     // Each container (div, table, or head)  encloses a set of tags
     // Generate clusters of links
@@ -801,191 +803,191 @@ EOH
     $container_counter   = 0;
     $parent_page_urlhash = $parent_page->get_urlhash();
 
-		$cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
+    $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
 
-		foreach ( $containers as $container ) {/*{{{*/
+    foreach ( $containers as $container ) {/*{{{*/
 
-			// $this->syslog( __FUNCTION__, __LINE__, "Container #{$container_counter}");
-			// $this->recursive_dump($container, __LINE__);
+      // $this->syslog( __FUNCTION__, __LINE__, "Container #{$container_counter}");
+      // $this->recursive_dump($container, __LINE__);
 
-			if ( $container['tagname'] == 'head' ) continue;
+      if ( $container['tagname'] == 'head' ) continue;
 
-			$raw_links            = $this->normalize_links($url, $parser, $container['children']);
-			$normalized_links     = array();
+      $raw_links            = $this->normalize_links($url, $parser, $container['children']);
+      $normalized_links     = array();
 
-			// Deduplication and pager detection (link clusters sharing query parameters)
-			$skip_pager_detection = FALSE;
-			$query_part_hashes    = array();
-			$query_hash           = '';
+      // Deduplication and pager detection (link clusters sharing query parameters)
+      $skip_pager_detection = FALSE;
+      $query_part_hashes    = array();
+      $query_hash           = '';
 
-			foreach ( $raw_links as $linkitem ) {/*{{{*/
-				if ( array_key_exists($linkitem['urlhash'], $normalized_links) ) continue;
-				// Use a PCRE regex to extract query key-value pairs
-				$parsed_url = parse_url($linkitem['url']);
-				$query_match = '@([^=]*)=([^&]*)&?@';
-				$match_parts = array();
-				$query_parts = preg_match_all($query_match, $parsed_url['query'], $query_match);
-				unset($parsed_url['query']);
-				$query_match = array_filter(array(
-					$query_match[1],
-					$query_match[2],
-				));
-				$linkitem['base_url'] = NULL;
-				// Iterate through the nonempty set of matched key-value pairs
-				if ( is_array($query_match) && ( 0 < count($query_match) ) ) {/*{{{*/
-					$query_match = array_combine($query_match[0], $query_match[1]);
-					ksort($query_match);
-					// Hash all the keys, and count occurrences of that entire set
-					$query_hash = UrlModel::get_url_hash(join('!',array_keys($query_match)));
-					if ( !array_key_exists($query_hash,$query_part_hashes) ) $query_part_hashes[$query_hash] = array();
-					// Then count the occurrence of value elements
-					foreach ( $query_match as $key => $val ) {
-						if ( !array_key_exists($key, $query_part_hashes[$query_hash]) )
-							$query_part_hashes[$query_hash][$key] = array();
-						if ( !array_key_exists($val, $query_part_hashes[$query_hash][$key]) )
-							$query_part_hashes[$query_hash][$key][$val] = 0;
-						$query_part_hashes[$query_hash][$key][$val]++;
-					}
-					$query_part_hashes[$query_hash]['BASE_URL'] = UrlModel::recompose_url($parsed_url);
-					$linkitem['query_parts'] = $query_match;
+      foreach ( $raw_links as $linkitem ) {/*{{{*/
+        if ( array_key_exists($linkitem['urlhash'], $normalized_links) ) continue;
+        // Use a PCRE regex to extract query key-value pairs
+        $parsed_url = parse_url($linkitem['url']);
+        $query_match = '@([^=]*)=([^&]*)&?@';
+        $match_parts = array();
+        $query_parts = preg_match_all($query_match, $parsed_url['query'], $query_match);
+        unset($parsed_url['query']);
+        $query_match = array_filter(array(
+          $query_match[1],
+          $query_match[2],
+        ));
+        $linkitem['base_url'] = NULL;
+        // Iterate through the nonempty set of matched key-value pairs
+        if ( is_array($query_match) && ( 0 < count($query_match) ) ) {/*{{{*/
+          $query_match = array_combine($query_match[0], $query_match[1]);
+          ksort($query_match);
+          // Hash all the keys, and count occurrences of that entire set
+          $query_hash = UrlModel::get_url_hash(join('!',array_keys($query_match)));
+          if ( !array_key_exists($query_hash,$query_part_hashes) ) $query_part_hashes[$query_hash] = array();
+          // Then count the occurrence of value elements
+          foreach ( $query_match as $key => $val ) {
+            if ( !array_key_exists($key, $query_part_hashes[$query_hash]) )
+              $query_part_hashes[$query_hash][$key] = array();
+            if ( !array_key_exists($val, $query_part_hashes[$query_hash][$key]) )
+              $query_part_hashes[$query_hash][$key][$val] = 0;
+            $query_part_hashes[$query_hash][$key][$val]++;
+          }
+          $query_part_hashes[$query_hash]['BASE_URL'] = UrlModel::recompose_url($parsed_url);
+          $linkitem['query_parts'] = $query_match;
 
-				}/*}}}*/
-				else $skip_pager_detection = TRUE;
-				$normalized_links[$linkitem['urlhash']] = $linkitem;
-				// $this->syslog(__FUNCTION__, __LINE__, $linkitem['url']);
-			}/*}}}*/
+        }/*}}}*/
+        else $skip_pager_detection = TRUE;
+        $normalized_links[$linkitem['urlhash']] = $linkitem;
+        // $this->syslog(__FUNCTION__, __LINE__, $linkitem['url']);
+      }/*}}}*/
 
-			// $this->recursive_dump($normalized_links, __LINE__);
-			if ( !($skip_pager_detection || ( 0 < strlen($query_hash)) ) ) {/*{{{*/
-				// $this->syslog(__FUNCTION__, __LINE__, "- Skip container: {$query_hash}" );
-				// $this->recursive_dump($query_part_hashes[$query_hash],__LINE__);
-				continue;
-			}/*}}}*/
+      // $this->recursive_dump($normalized_links, __LINE__);
+      if ( !($skip_pager_detection || ( 0 < strlen($query_hash)) ) ) {/*{{{*/
+        // $this->syslog(__FUNCTION__, __LINE__, "- Skip container: {$query_hash}" );
+        // $this->recursive_dump($query_part_hashes[$query_hash],__LINE__);
+        continue;
+      }/*}}}*/
 
-			if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(warning) -------- Normalized links, query hash [{$query_hash}]" );
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(warning) -------- Normalized links, query hash [{$query_hash}]" );
 
-			$linkset_class = array("link-cluster");
-			if ( !$skip_pager_detection && ( 0 < strlen($query_hash) ) && is_array($query_part_hashes[$query_hash]) ) {/*{{{*/
-				// Evaluate whether this set of URLs is a pager (from a hash of query components)
-				$occurrence_count = NULL;
-				$variable_params  = array();
-				$fixed_params     = array();
-				$base_url         = NULL;
-				//$this->recursive_dump($pager_clusters, __LINE__);
-				foreach ($query_part_hashes[$query_hash] as $query_param_name => $occurrences ) {/*{{{*/
-					if ( $query_param_name == 'BASE_URL' ) {
-						$base_url = $occurrences;
-						// $this->syslog(__FUNCTION__, __LINE__, "-------- Base URL for this set: [{$base_url}]" );
-						// $this->recursive_dump($query_part_hashes[$query_hash], __LINE__);
-						continue;
-					}
-					if ( 1 == count($occurrences) ) {
-						// If a query part has a fixed value between all links found in the link set,
-						// then any other query part which also has a fixed value must 
-						// occur the same number of times.
-						list( $param_value, $param_occurrences ) = each( $occurrences );
-						if ( is_null($occurence_count) ) $occurrence_count = $param_occurrences;
-						else if ( $occurrence_count != $param_occurrences ) {
-							// One of the [more than 1] query parameters does not occur with the same frequency
-							// as the other fixed query parameters for this set of links.
-							// We should not treat the set of links as a pager.
-						}
-						// $this->syslog( __FUNCTION__, __LINE__, "- Key-value pair {$query_param_name}:{$param_value} is a fixed pager parameter occurring {$param_occurrences} times" );
-						$fixed_params[] = "{$query_param_name}={$param_value}";
-					} else {
-						if ( 0 == count($variable_params) ) { 
-							$variable_params = array(
-								'key'    => $query_param_name,
-								'values' => array_keys($occurrences),
-							);
-							// $this->syslog( __FUNCTION__, __LINE__, "- Key {$query_param_name} is a variable pager parameter with " . count($occurrences) . " keys" );
-						} else {
-							// At this time (SVN #332) we'll only accept a single variable parameter.
-							$occurrence_count = NULL;
-							break;
-						}
-					}
-				}/*}}}*/
-				if ( !is_null($occurrence_count) && (0 < count($variable_params)) ) {/*{{{*/
-					$fixed_params[]  = "{$variable_params['key']}=(". join('|',$variable_params['values']) .")";
-					$variable_params = join('&',$fixed_params);
-					$fixed_params    = preg_replace('@\(([^)]*)\)@','({PARAMS})', $variable_params); 
-					$variable_params = preg_replace('@^(.*)\(([^)]*)\)(.*)@','$2', $variable_params); 
-					// Get the hash of the query template
-					$component_set_hash = md5($variable_params);
-					if ( array_key_exists($query_hash, $cluster_urls) ) {
-						$cluster_urls[$query_hash]['query_components'][$component_set_hash] = $variable_params;
-					} else {
-						$cluster_urls[$query_hash] = array(
-							'query_base_url' => $base_url,
-							'query_template' => $fixed_params,
-							'query_components' => array($component_set_hash => $variable_params),
-						);
-					}
-					$linkset_class[] = 'linkset-pager';
-				}/*}}}*/
-			}/*}}}*/
-			$normalized_links = array_values($normalized_links);
-			// Create a unique identifier based on the sorted list of URLs contained in this cluster of links
-			if ( 0 == count($normalized_links) ) continue;
-			// LINK CLUSTER ID
-			$contained_url_set_hash = sha1(join('-',array_filter(array_map(create_function('$a','return $a["urlhash"];'),$normalized_links))));
-			$linklist       = join('',array_map($link_generator, $normalized_links));
-			$linkset_class  = join(' ', $linkset_class);
-			$linkset_id     = "{$this->subject_host_hash}-{$parent_page_urlhash}-{$contained_url_set_hash}";
-			$linklist       = "<ul class=\"{$linkset_class}\" id=\"{$linkset_id}\" title=\"Cluster {$contained_url_set_hash}\">{$linklist}</ul>";
-			// Reorder URLs by imposing an ordinal key on this array $linkset
-			if ( !array_key_exists($contained_url_set_hash, $pager_clusters) ) {
-			 	$linkset[$contained_url_set_hash] = "{$linklist}<hr/>";
-			}
-			$pager_clusters[$contained_url_set_hash] = array_key_exists($contained_url_set_hash,$cluster_list) ? $cluster_list[$contained_url_set_hash]['id'] : NULL;
-			$url_hashes     = array_filter(array_map($hash_extractor, $normalized_links));
-			if ( !(0 < count($url_hashes) ) ) continue;
-			foreach ( $url_hashes as $url_hash_pairs ) {
-				$urlhashes[$url_hash_pairs['hash']] = $url_hash_pairs['url'];
-			}
-			$container_counter++;
-		}/*}}}*/
+      $linkset_class = array("link-cluster");
+      if ( !$skip_pager_detection && ( 0 < strlen($query_hash) ) && is_array($query_part_hashes[$query_hash]) ) {/*{{{*/
+        // Evaluate whether this set of URLs is a pager (from a hash of query components)
+        $occurrence_count = NULL;
+        $variable_params  = array();
+        $fixed_params     = array();
+        $base_url         = NULL;
+        //$this->recursive_dump($pager_clusters, __LINE__);
+        foreach ($query_part_hashes[$query_hash] as $query_param_name => $occurrences ) {/*{{{*/
+          if ( $query_param_name == 'BASE_URL' ) {
+            $base_url = $occurrences;
+            // $this->syslog(__FUNCTION__, __LINE__, "-------- Base URL for this set: [{$base_url}]" );
+            // $this->recursive_dump($query_part_hashes[$query_hash], __LINE__);
+            continue;
+          }
+          if ( 1 == count($occurrences) ) {
+            // If a query part has a fixed value between all links found in the link set,
+            // then any other query part which also has a fixed value must 
+            // occur the same number of times.
+            list( $param_value, $param_occurrences ) = each( $occurrences );
+            if ( is_null($occurence_count) ) $occurrence_count = $param_occurrences;
+            else if ( $occurrence_count != $param_occurrences ) {
+              // One of the [more than 1] query parameters does not occur with the same frequency
+              // as the other fixed query parameters for this set of links.
+              // We should not treat the set of links as a pager.
+            }
+            // $this->syslog( __FUNCTION__, __LINE__, "- Key-value pair {$query_param_name}:{$param_value} is a fixed pager parameter occurring {$param_occurrences} times" );
+            $fixed_params[] = "{$query_param_name}={$param_value}";
+          } else {
+            if ( 0 == count($variable_params) ) { 
+              $variable_params = array(
+                'key'    => $query_param_name,
+                'values' => array_keys($occurrences),
+              );
+              // $this->syslog( __FUNCTION__, __LINE__, "- Key {$query_param_name} is a variable pager parameter with " . count($occurrences) . " keys" );
+            } else {
+              // At this time (SVN #332) we'll only accept a single variable parameter.
+              $occurrence_count = NULL;
+              break;
+            }
+          }
+        }/*}}}*/
+        if ( !is_null($occurrence_count) && (0 < count($variable_params)) ) {/*{{{*/
+          $fixed_params[]  = "{$variable_params['key']}=(". join('|',$variable_params['values']) .")";
+          $variable_params = join('&',$fixed_params);
+          $fixed_params    = preg_replace('@\(([^)]*)\)@','({PARAMS})', $variable_params); 
+          $variable_params = preg_replace('@^(.*)\(([^)]*)\)(.*)@','$2', $variable_params); 
+          // Get the hash of the query template
+          $component_set_hash = md5($variable_params);
+          if ( array_key_exists($query_hash, $cluster_urls) ) {
+            $cluster_urls[$query_hash]['query_components'][$component_set_hash] = $variable_params;
+          } else {
+            $cluster_urls[$query_hash] = array(
+              'query_base_url' => $base_url,
+              'query_template' => $fixed_params,
+              'query_components' => array($component_set_hash => $variable_params),
+            );
+          }
+          $linkset_class[] = 'linkset-pager';
+        }/*}}}*/
+      }/*}}}*/
+      $normalized_links = array_values($normalized_links);
+      // Create a unique identifier based on the sorted list of URLs contained in this cluster of links
+      if ( 0 == count($normalized_links) ) continue;
+      // LINK CLUSTER ID
+      $contained_url_set_hash = sha1(join('-',array_filter(array_map(create_function('$a','return $a["urlhash"];'),$normalized_links))));
+      $linklist       = join('',array_map($link_generator, $normalized_links));
+      $linkset_class  = join(' ', $linkset_class);
+      $linkset_id     = "{$this->subject_host_hash}-{$parent_page_urlhash}-{$contained_url_set_hash}";
+      $linklist       = "<ul class=\"{$linkset_class}\" id=\"{$linkset_id}\" title=\"Cluster {$contained_url_set_hash}\">{$linklist}</ul>";
+      // Reorder URLs by imposing an ordinal key on this array $linkset
+      if ( !array_key_exists($contained_url_set_hash, $pager_clusters) ) {
+         $linkset[$contained_url_set_hash] = "{$linklist}<hr/>";
+      }
+      $pager_clusters[$contained_url_set_hash] = array_key_exists($contained_url_set_hash,$cluster_list) ? $cluster_list[$contained_url_set_hash]['id'] : NULL;
+      $url_hashes     = array_filter(array_map($hash_extractor, $normalized_links));
+      if ( !(0 < count($url_hashes) ) ) continue;
+      foreach ( $url_hashes as $url_hash_pairs ) {
+        $urlhashes[$url_hash_pairs['hash']] = $url_hash_pairs['url'];
+      }
+      $container_counter++;
+    }/*}}}*/
 
-		// Now add clusters missing from the database
-		$not_in_clusterlist = array_filter(array_map(create_function(
-			'$a', 'return is_null($a) ? 1 : NULL;'
-		), $pager_clusters));
+    // Now add clusters missing from the database
+    $not_in_clusterlist = array_filter(array_map(create_function(
+      '$a', 'return is_null($a) ? 1 : NULL;'
+    ), $pager_clusters));
 
-		if ( 0 < count($not_in_clusterlist) ) {
-			foreach ( $not_in_clusterlist as $clusterid => $nonce ) {
-				$cluster->fetch($parent_page, $clusterid);
-				$cluster->
-					set_clusterid($clusterid)->
-					set_parent_page($parent_page->get_urlhash())->
-					set_position(100)->
-					set_host($this->subject_host_hash)->
-					stow();
-			}
-			// At this point, the list order is updated by fetching the cluster list
-			$cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
-		}
+    if ( 0 < count($not_in_clusterlist) ) {
+      foreach ( $not_in_clusterlist as $clusterid => $nonce ) {
+        $cluster->fetch($parent_page, $clusterid);
+        $cluster->
+          set_clusterid($clusterid)->
+          set_parent_page($parent_page->get_urlhash())->
+          set_position(100)->
+          set_host($this->subject_host_hash)->
+          stow();
+      }
+      // At this point, the list order is updated by fetching the cluster list
+      $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
+    }
 
-		// Now use the cluster list to obtain list position
-		ksort($cluster_list);
-		// Reduce the cluster list to elements that are also in the linkset on this page.
-		array_walk($cluster_list,create_function(
-			'& $a, $k, $s', '$a = array_key_exists($k,$s) ? $a : NULL;'),
-			$linkset);
-		$cluster_list = array_filter($cluster_list);
-		$cluster_list = array_map(create_function('$a','return $a["position"];'),$cluster_list);
-		if ( is_array($cluster_list) && is_array($linkset) && (0 < count($cluster_list)) && count($cluster_list) == count($linkset) ) {
-			ksort($linkset);
-			$linkset = array_combine(
-				$cluster_list,
-				$linkset
-			);
-			ksort($linkset);
-		} else {
-			$this->syslog( __FUNCTION__, __LINE__, "(warning) Mismatch between link and cluster link tables" );
-			$this->syslog( __FUNCTION__, __LINE__, "(warning)  Linkset: " . count($linkset) );
-			$this->syslog( __FUNCTION__, __LINE__, "(warning) Clusters: " . count($cluster_list) );
-		}
+    // Now use the cluster list to obtain list position
+    ksort($cluster_list);
+    // Reduce the cluster list to elements that are also in the linkset on this page.
+    array_walk($cluster_list,create_function(
+      '& $a, $k, $s', '$a = array_key_exists($k,$s) ? $a : NULL;'),
+      $linkset);
+    $cluster_list = array_filter($cluster_list);
+    $cluster_list = array_map(create_function('$a','return $a["position"];'),$cluster_list);
+    if ( is_array($cluster_list) && is_array($linkset) && (0 < count($cluster_list)) && count($cluster_list) == count($linkset) ) {
+      ksort($linkset);
+      $linkset = array_combine(
+        $cluster_list,
+        $linkset
+      );
+      ksort($linkset);
+    } else {
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Mismatch between link and cluster link tables" );
+      $this->syslog( __FUNCTION__, __LINE__, "(warning)  Linkset: " . count($linkset) );
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Clusters: " . count($cluster_list) );
+    }
     ksort($urlhashes);
 
     if ( 0 < count($cluster_urls) ) {/*{{{*/
@@ -1047,15 +1049,15 @@ EOH
 
     // FIXME: Time- and space- intensive
     // Stow edges.  This should probably be performed in a stored procedure.
-		if (!(TRUE == C('DISABLE_AUTOMATIC_URL_EDGES'))) {/*{{{*/
-			$edge = new UrlEdgeModel();
-			foreach ( $idlist as $idval ) {/*{{{*/
-				$edge->fetch($parent_page->id, $idval);
-				if ( !$edge->in_database() ) {
-					$edge->stow($parent_page->id, $idval);
-				}
-			}/*}}}*/
-		}/*}}}*/
+    if (!(TRUE == C('DISABLE_AUTOMATIC_URL_EDGES'))) {/*{{{*/
+      $edge = new UrlEdgeModel();
+      foreach ( $idlist as $idval ) {/*{{{*/
+        $edge->fetch($parent_page->id, $idval);
+        if ( !$edge->in_database() ) {
+          $edge->stow($parent_page->id, $idval);
+        }
+      }/*}}}*/
+    }/*}}}*/
 
     $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
 
@@ -1089,7 +1091,7 @@ EOH
   }/*}}}*/
 
   function extract_form($containers) {/*{{{*/
-		$debug_method = TRUE;
+    $debug_method = TRUE;
     $extract_form   = create_function('$a', 'return array_key_exists("tagname", $a) && ("FORM" == strtoupper($a["tagname"])) ? $a : NULL;');
     $paginator_form = array_values(array_filter(array_map($extract_form, $containers)));
     if ( $debug_method ) $this->recursive_dump($paginator_form,'(marker) Old');
@@ -1129,14 +1131,21 @@ EOH
         $this->recursive_dump($metalink,'(marker)');
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute POST to {$url_copy}" );
       }/*}}}*/
-      $response = CurlUtility::post($url_copy, $metalink, $curl_options);
-      //$this->recursive_dump(CurlUtility::$last_transfer_info, __LINE__);
-      if ( array_key_exists(intval(CurlUtility::$last_transfer_info['http_code']),array_flip(array(100,302,301,504))))
-        $skip_get = FALSE;
-      else
-        $skip_get = TRUE;
-      $url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
-      $successful_fetch = CurlUtility::$last_error_number == 0;
+			if ( array_key_exists('_', $metalink) && $metalink['_'] == 1 ) {
+				// Pager or other link whose behavior depends on antecedent state.
+				// See extract_pager_links() 
+				$skip_get = FALSE;
+			} else {
+				$response = CurlUtility::post($url_copy, $metalink, $curl_options);
+				if ( array_key_exists(intval(CurlUtility::$last_transfer_info['http_code']),
+					array_flip(array(100,302,301,504))))
+					$skip_get = FALSE;
+				else
+					$skip_get = TRUE;
+				$url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
+				$successful_fetch = CurlUtility::$last_error_number == 0;
+				$this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) POST");
+			}
     }/*}}}*/
 
     if ( !$skip_get ) {/*{{{*/
@@ -1147,7 +1156,7 @@ EOH
         ? CurlUtility::head($url_copy, $curl_options)
         : CurlUtility::get($url_copy, $curl_options)
         ;
-      $this->recursive_dump(CurlUtility::$last_transfer_info, __LINE__);
+      $this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) GET/HEAD");
       $successful_fetch = CurlUtility::$last_error_number == 0;
     }/*}}}*/
 
@@ -1158,7 +1167,7 @@ EOH
       if ( 0 < count($cookie_lines) ) {
         $curl_cookie = array();
         foreach ( $cookie_lines as $cookie_item ) {
-          // $this->syslog( __FUNCTION__, __LINE__, "Extracting cookie {$cookie_item}" );
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Extracting cookie {$cookie_item}" );
           $cookie_parts = array();
           if (!( 0 < intval(preg_match_all('@([^=]*)=([^;]*)[; ]?@',$cookie_item,$cookie_parts,PREG_SET_ORDER)))) continue;
           // $this->recursive_dump($cookie_parts,__LINE__);
@@ -1173,9 +1182,9 @@ EOH
 
     if ( $successful_fetch ) {/*{{{*/
       // If we used a metalink to specify POST action parameters, change to the faux URL first
-			if ( is_array($metalink) ) {
-			 	$url->set_is_fake(TRUE)->set_url($faux_url,FALSE);
-			}
+      if ( is_array($metalink) ) {
+         $url->set_is_fake(TRUE)->set_url($faux_url,FALSE);
+      }
       // Split response into header and content parts
       $transfer_info = CurlUtility::$last_transfer_info;
       $http_code = array_key_exists('http_code', $transfer_info) ? intval($transfer_info['http_code']) : 400;
@@ -1187,20 +1196,20 @@ EOH
         // Store contents to disk (DB/cache file)
         $page_content_result = $url->set_pagecontent($response); // No stow() yet
         if ( $debug_dump ) {/*{{{*/
-					$hash = $url->get_content_hash();
+          $hash = $url->get_content_hash();
           $this->syslog( __FUNCTION__, __LINE__, "(marker) Result [{$hash}] set_pagecontent for " . $url->get_url() );
           $this->recursive_dump($page_content_result,"(marker)");
         }/*}}}*/
         $url->set_last_fetch(time());
         $url->set_linktext($linktext)->increment_hits()->stow();
         if ( is_array($metalink) ) {
-					$contenthash = sha1($response);
-					$faux_url_instance = new UrlModel($faux_url,TRUE);
-					$faux_url_instance->set_pagecontent($response);
-					$faux_stow = $faux_url_instance->set_is_fake(TRUE)->stow();
+          $contenthash = sha1($response);
+          $faux_url_instance = new UrlModel($faux_url,TRUE);
+          $faux_url_instance->set_pagecontent($response);
+          $faux_stow = $faux_url_instance->set_is_fake(TRUE)->stow();
           $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing content [{$contenthash}] to fake URL {$faux_url} " );
 
-					$url->fetch($target_url,'url');
+          $url->fetch($target_url,'url');
           $url->set_pagecontent($response);
           $this->syslog( __FUNCTION__, __LINE__, "(marker) Assigned content [{$contenthash}] to target URL {$target_url}" );
         }

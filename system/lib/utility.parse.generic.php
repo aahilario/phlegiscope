@@ -472,4 +472,417 @@ EOH
     return $s;
   }
 
+  function get_faux_url(UrlModel & $url, & $metalink) {/*{{{*/
+    $faux_url = NULL;
+    if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
+      // The POST action may be a URL which permits a GET action,
+      // in which case we need to use a fake URL to store the results of 
+      // the POST.  We'll generate the fake URL here. 
+			if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
+      // Prepare faux metalink URL by combining the metalink components
+      // with POST target URL query components. After the POST, a new cookie
+      // may be returned; if so, it will be used to traverse sibling links
+      // which content hasn't yet been cached in the UrlModel backing store.
+      if ( $metalink == FALSE ) {
+        $metalink = NULL;
+      } else if ( 0 < count($metalink) ) {/*{{{*/
+
+        $faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
+        $in_db    = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh';
+
+      }/*}}}*/
+      else $metalink = NULL;
+    }/*}}}*/
+    return $faux_url;
+  }/*}}}*/
+
+  function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL) {/*{{{*/
+    $debug_method    = FALSE;
+    $check_cache     = FALSE;
+    $links           = array();
+    $pager_links     = array();
+    $senate_bill_url = new UrlModel();
+
+    if ( $debug_method ) $this->recursive_dump($cluster_urldefs,'(warning)');
+    //  20130401 - Typical entries found 
+    //  1cb903bd644be9596931e7c368676982 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/pdf_sys.aspx
+    //    query_template => congress=15&type=republic_act&p=({PARAMS})
+    //    query_components =>
+    //       93e32b68fb9806571523b93e5ca786da => 2|3|4|5|6|7|8|9|10
+    //    whole_url => http://www.senate.gov.ph/lis/pdf_sys.aspx?congress=15&type=republic_act&p=({PARAMS})
+    //  9f35fc4cce1f01b32697e7c34b397a99 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/pdf_sys.aspx
+    //    query_template => type=republic_act&congress=({PARAMS})
+    //    query_components =>
+    //       361d558f79a9d15a277468b313f49528 => 15|14|13
+    //    whole_url => http://www.senate.gov.ph/lis/pdf_sys.aspx?type=republic_act&congress=({PARAMS})
+    if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) )
+    foreach( $cluster_urldefs as $url_uid => $urldef ) {/*{{{*/
+      if ( !is_null($url_uuid) && !($url_uid == $url_uuid ) ) continue;
+      $counter = 0;
+      $have_pullin_link = FALSE;
+      foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
+        $parameters = array_flip(explode('|', $parameters));
+        if ( !array_key_exists(1, $parameters) ) $parameters[1] = 1;
+        ksort($parameters);
+        $parameters = array_keys($parameters);
+        foreach ( $parameters as $parameter ) {/*{{{*/
+          $counter++;
+          $link_class = array("legiscope-remote");
+          $href = str_replace('({PARAMS})',"{$parameter}","{$urldef['whole_url']}");
+          $urlhash = UrlModel::get_url_hash($href);
+          if ( $check_cache ) {/*{{{*/
+            $senate_bill_url->fetch($urlhash,'urlhash');
+            $is_in_cache = $senate_bill_url->in_database();
+            if ( $is_in_cache ) $link_class[] = 'cached';
+            if ( ($counter >= 5 || !$is_in_cache) && !$have_pullin_link ) {
+              $have_pullin_link = TRUE;
+            }
+          }/*}}}*/
+          if ( !is_null($parent_state) ) {/*{{{*/
+            // Client-side JS sees a selector class attribute 'session-lead'
+            //$link_class[] = 'session-lead';
+            //$link_class[] = 'fauxpost';
+            $link_class = array("fauxpost");
+            $link_components = UrlModel::parse_url($href);
+            $query_parameters = array_merge(
+              array('_' => '1'),
+              $parent_state,
+              UrlModel::decompose_query_parts($link_components['query'])
+            ); 
+            $senate_bill_url->set_url($href,FALSE);
+            // $this->recursive_dump($query_parameters,"(marker) A");
+            $link = $this->get_faux_url($senate_bill_url,$query_parameters);
+            $links[UrlModel::get_url_hash($link)] = $link;  
+            $link = UrlModel::create_metalink($parameter, $href, $query_parameters, join(' ', $link_class));
+          }/*}}}*/
+          else $links[$urlhash] = $href;
+          $link_class = join(' ',$link_class);
+          if ( is_null($parent_state) ) $link = <<<EOH
+<span class="link-faux-menuitem"><a class="{$link_class}" href="{$href}" id="{$urlhash}">{$parameter}</a></span>
+
+EOH;
+          $pager_links[] = $link;
+        }/*}}}*/
+      }/*}}}*/
+    }/*}}}*/
+    return $pager_links;
+  }/*}}}*/
+
+  final function generate_linkset($url) {/*{{{*/
+
+    $debug_method = FALSE;
+		$containers = $this->get_containers();
+    $link_generator = create_function('$a', <<<EOH
+return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a><span class="reload-texticon legiscope-refresh {refresh-' . \$a["urlhash"] . '}" id="refresh-' . \$a["urlhash"] . '">reload</span></li>';
+EOH
+    );
+    $hash_extractor = create_function('$a', <<<EOH
+return array( 'hash' => \$a['urlhash'], 'url' => \$a['url'] ); 
+EOH
+    );
+
+    $parent_page = new UrlModel($url,TRUE);
+    $cluster = new UrlClusterModel();
+
+    // Each container (div, table, or head)  encloses a set of tags
+    // Generate clusters of links
+    $linkset             = array();
+    $urlhashes           = array();
+    $pager_clusters      = array();
+    $cluster_urls        = array();
+    $container_counter   = 0;
+    $parent_page_urlhash = $parent_page->get_urlhash();
+		$subject_host_hash   = UrlModel::get_url_hash($parent_page->get_url(),PHP_URL_HOST);
+
+    $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
+
+    foreach ( $containers as $container ) {/*{{{*/
+
+      // $this->syslog( __FUNCTION__, __LINE__, "Container #{$container_counter}");
+      // $this->recursive_dump($container, __LINE__);
+
+      if ( $container['tagname'] == 'head' ) continue;
+
+      $raw_links            = $this->normalize_links($url, $container['children']);
+      $normalized_links     = array();
+
+      // Deduplication and pager detection (link clusters sharing query parameters)
+      $skip_pager_detection = FALSE;
+      $query_part_hashes    = array();
+      $query_hash           = '';
+
+      foreach ( $raw_links as $linkitem ) {/*{{{*/
+        if ( array_key_exists($linkitem['urlhash'], $normalized_links) ) continue;
+        // Use a PCRE regex to extract query key-value pairs
+        $parsed_url = parse_url($linkitem['url']);
+        $query_match = '@([^=]*)=([^&]*)&?@';
+        $match_parts = array();
+        $query_parts = preg_match_all($query_match, $parsed_url['query'], $query_match);
+        unset($parsed_url['query']);
+        $query_match = array_filter(array(
+          $query_match[1],
+          $query_match[2],
+        ));
+        $linkitem['base_url'] = NULL;
+        // Iterate through the nonempty set of matched key-value pairs
+        if ( is_array($query_match) && ( 0 < count($query_match) ) ) {/*{{{*/
+          $query_match = array_combine($query_match[0], $query_match[1]);
+          ksort($query_match);
+          // Hash all the keys, and count occurrences of that entire set
+          $query_hash = UrlModel::get_url_hash(join('!',array_keys($query_match)));
+          if ( !array_key_exists($query_hash,$query_part_hashes) ) $query_part_hashes[$query_hash] = array();
+          // Then count the occurrence of value elements
+          foreach ( $query_match as $key => $val ) {
+            if ( !array_key_exists($key, $query_part_hashes[$query_hash]) )
+              $query_part_hashes[$query_hash][$key] = array();
+            if ( !array_key_exists($val, $query_part_hashes[$query_hash][$key]) )
+              $query_part_hashes[$query_hash][$key][$val] = 0;
+            $query_part_hashes[$query_hash][$key][$val]++;
+          }
+          $query_part_hashes[$query_hash]['BASE_URL'] = UrlModel::recompose_url($parsed_url);
+          $linkitem['query_parts'] = $query_match;
+
+        }/*}}}*/
+        else $skip_pager_detection = TRUE;
+        $normalized_links[$linkitem['urlhash']] = $linkitem;
+        // $this->syslog(__FUNCTION__, __LINE__, $linkitem['url']);
+      }/*}}}*/
+
+      // $this->recursive_dump($normalized_links, __LINE__);
+      if ( !($skip_pager_detection || ( 0 < strlen($query_hash)) ) ) {/*{{{*/
+        // $this->syslog(__FUNCTION__, __LINE__, "- Skip container: {$query_hash}" );
+        // $this->recursive_dump($query_part_hashes[$query_hash],__LINE__);
+        continue;
+      }/*}}}*/
+
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(warning) -------- Normalized links, query hash [{$query_hash}]" );
+
+      $linkset_class = array("link-cluster");
+      if ( !$skip_pager_detection && ( 0 < strlen($query_hash) ) && is_array($query_part_hashes[$query_hash]) ) {/*{{{*/
+        // Evaluate whether this set of URLs is a pager (from a hash of query components)
+        $occurrence_count = NULL;
+        $variable_params  = array();
+        $fixed_params     = array();
+        $base_url         = NULL;
+        //$this->recursive_dump($pager_clusters, __LINE__);
+        foreach ($query_part_hashes[$query_hash] as $query_param_name => $occurrences ) {/*{{{*/
+          if ( $query_param_name == 'BASE_URL' ) {
+            $base_url = $occurrences;
+            // $this->syslog(__FUNCTION__, __LINE__, "-------- Base URL for this set: [{$base_url}]" );
+            // $this->recursive_dump($query_part_hashes[$query_hash], __LINE__);
+            continue;
+          }
+          if ( 1 == count($occurrences) ) {
+            // If a query part has a fixed value between all links found in the link set,
+            // then any other query part which also has a fixed value must 
+            // occur the same number of times.
+            list( $param_value, $param_occurrences ) = each( $occurrences );
+            if ( is_null($occurence_count) ) $occurrence_count = $param_occurrences;
+            else if ( $occurrence_count != $param_occurrences ) {
+              // One of the [more than 1] query parameters does not occur with the same frequency
+              // as the other fixed query parameters for this set of links.
+              // We should not treat the set of links as a pager.
+            }
+            // $this->syslog( __FUNCTION__, __LINE__, "- Key-value pair {$query_param_name}:{$param_value} is a fixed pager parameter occurring {$param_occurrences} times" );
+            $fixed_params[] = "{$query_param_name}={$param_value}";
+          } else {
+            if ( 0 == count($variable_params) ) { 
+              $variable_params = array(
+                'key'    => $query_param_name,
+                'values' => array_keys($occurrences),
+              );
+              // $this->syslog( __FUNCTION__, __LINE__, "- Key {$query_param_name} is a variable pager parameter with " . count($occurrences) . " keys" );
+            } else {
+              // At this time (SVN #332) we'll only accept a single variable parameter.
+              $occurrence_count = NULL;
+              break;
+            }
+          }
+        }/*}}}*/
+        if ( !is_null($occurrence_count) && (0 < count($variable_params)) ) {/*{{{*/
+          $fixed_params[]  = "{$variable_params['key']}=(". join('|',$variable_params['values']) .")";
+          $variable_params = join('&',$fixed_params);
+          $fixed_params    = preg_replace('@\(([^)]*)\)@','({PARAMS})', $variable_params); 
+          $variable_params = preg_replace('@^(.*)\(([^)]*)\)(.*)@','$2', $variable_params); 
+          // Get the hash of the query template
+          $component_set_hash = md5($variable_params);
+          if ( array_key_exists($query_hash, $cluster_urls) ) {
+            $cluster_urls[$query_hash]['query_components'][$component_set_hash] = $variable_params;
+          } else {
+            $cluster_urls[$query_hash] = array(
+              'query_base_url' => $base_url,
+              'query_template' => $fixed_params,
+              'query_components' => array($component_set_hash => $variable_params),
+            );
+          }
+          $linkset_class[] = 'linkset-pager';
+        }/*}}}*/
+      }/*}}}*/
+      $normalized_links = array_values($normalized_links);
+      // Create a unique identifier based on the sorted list of URLs contained in this cluster of links
+      if ( 0 == count($normalized_links) ) continue;
+      // LINK CLUSTER ID
+      $contained_url_set_hash = sha1(join('-',array_filter(array_map(create_function('$a','return $a["urlhash"];'),$normalized_links))));
+      $linklist       = join('',array_map($link_generator, $normalized_links));
+      $linkset_class  = join(' ', $linkset_class);
+      $linkset_id     = "{$subject_host_hash}-{$parent_page_urlhash}-{$contained_url_set_hash}";
+      $linklist       = "<ul class=\"{$linkset_class}\" id=\"{$linkset_id}\" title=\"Cluster {$contained_url_set_hash}\">{$linklist}</ul>";
+      // Reorder URLs by imposing an ordinal key on this array $linkset
+      if ( !array_key_exists($contained_url_set_hash, $pager_clusters) ) {
+         $linkset[$contained_url_set_hash] = "{$linklist}<hr/>";
+      }
+      $pager_clusters[$contained_url_set_hash] = array_key_exists($contained_url_set_hash,$cluster_list) ? $cluster_list[$contained_url_set_hash]['id'] : NULL;
+      $url_hashes     = array_filter(array_map($hash_extractor, $normalized_links));
+      if ( !(0 < count($url_hashes) ) ) continue;
+      foreach ( $url_hashes as $url_hash_pairs ) {
+        $urlhashes[$url_hash_pairs['hash']] = $url_hash_pairs['url'];
+      }
+      $container_counter++;
+    }/*}}}*/
+
+    // Now add clusters missing from the database
+    $not_in_clusterlist = array_filter(array_map(create_function(
+      '$a', 'return is_null($a) ? 1 : NULL;'
+    ), $pager_clusters));
+
+    if ( 0 < count($not_in_clusterlist) ) {
+      foreach ( $not_in_clusterlist as $clusterid => $nonce ) {
+        $cluster->fetch($parent_page, $clusterid);
+        $cluster->
+          set_clusterid($clusterid)->
+          set_parent_page($parent_page->get_urlhash())->
+          set_position(100)->
+          set_host($subject_host_hash)->
+          stow();
+      }
+      // At this point, the list order is updated by fetching the cluster list
+      $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
+    }
+
+    // Now use the cluster list to obtain list position
+    ksort($cluster_list);
+    // Reduce the cluster list to elements that are also in the linkset on this page.
+    array_walk($cluster_list,create_function(
+      '& $a, $k, $s', '$a = array_key_exists($k,$s) ? $a : NULL;'),
+      $linkset);
+    $cluster_list = array_filter($cluster_list);
+    $cluster_list = array_map(create_function('$a','return $a["position"];'),$cluster_list);
+    if ( is_array($cluster_list) && is_array($linkset) && (0 < count($cluster_list)) && count($cluster_list) == count($linkset) ) {
+      ksort($linkset);
+      $linkset = array_combine(
+        $cluster_list,
+        $linkset
+      );
+      ksort($linkset);
+    } else {
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Mismatch between link and cluster link tables" );
+      $this->syslog( __FUNCTION__, __LINE__, "(warning)  Linkset: " . count($linkset) );
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Clusters: " . count($cluster_list) );
+    }
+    ksort($urlhashes);
+
+    if ( 0 < count($cluster_urls) ) {/*{{{*/
+      // $this->syslog(__FUNCTION__, __LINE__, "- Found pager query parameters" );
+      // $this->recursive_dump($cluster_urls,__LINE__);
+      // Normalize pager query URLs
+      foreach( $cluster_urls as $cluster_url_uid => $pager_def ) {
+        $urlparts = UrlModel::parse_url($pager_def['query_base_url']);
+        $urlparts['query'] = $pager_def['query_template'];
+        $cluster_urls[$cluster_url_uid]['whole_url'] = UrlModel::recompose_url($urlparts);
+      }
+    }/*}}}*/
+    // Initial implementation of recordset iterator (not from in-memory array)
+    $this->syslog( __FUNCTION__, __LINE__, "-- Selecting a cluster of URLs associated with {$url}" );
+    $record = array();
+    // FIXME: Break up long queries like this at the caller level.
+    // For general-purpose use, limits to the total SQL query length
+    // allow for a reasonably usable mechanism for executing 
+    // SELECT ... WHERE a IN (<list>)
+    // query statements with short lists, without additional code complexity.
+
+    // Partition the list of hashes
+    $partition_index  = 0;
+    $partitioned_list = array(0 => array());
+    foreach ( $urlhashes as $urlhash => $url ) {/*{{{*/
+      $partitioned_list[$partition_index][$urlhash] = $url;
+      if ( count($partitioned_list[$partition_index]) >= 10 ) {
+        // $this->syslog( __FUNCTION__, __LINE__, "- Tick {$partition_index}");
+        $partition_index++;
+        $partitioned_list[$partition_index] = array();
+      }
+    }/*}}}*/
+    $n = 0;
+
+    $url_cache_iterator = new UrlModel();
+    $idlist             = array();
+    $linkset            = join("\n", $linkset);
+
+    foreach ( $partitioned_list as $partition ) {  /*{{{*/
+      $url_cache_iterator->
+        where(array('urlhash' => array_keys($partition)))->
+        recordfetch_setup();
+      $hashlist = array();
+      // Collect all URL hashes.
+      // Construct UrlEdgeModel join table entries for extant records. 
+      while ( $url_cache_iterator->recordfetch($result) ) {/*{{{*/
+        // $this->recursive_dump($result, $h > 2 ? '(skip)' : __LINE__);
+        $idlist[] = $result['id'];
+        $hashlist[] = $result['urlhash'];
+        $n++;
+      }/*}}}*/
+      $hashlist = join('|', $hashlist);
+      // Add 'cached' and 'refresh' class to selectors
+      $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
+      // TODO: Implement link aging
+      $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
+      $this->syslog( __FUNCTION__, __LINE__, "-- Marked {$n}/{$partition_index} links on {$url} as being 'cached'" );
+    }/*}}}*/
+
+    // FIXME: Time- and space- intensive
+    // Stow edges.  This should probably be performed in a stored procedure.
+    if (!(TRUE == C('DISABLE_AUTOMATIC_URL_EDGES'))) {/*{{{*/
+      $edge = new UrlEdgeModel();
+      foreach ( $idlist as $idval ) {/*{{{*/
+        $edge->fetch($parent_page->id, $idval);
+        if ( !$edge->in_database() ) {
+          $edge->stow($parent_page->id, $idval);
+        }
+      }/*}}}*/
+    }/*}}}*/
+
+    $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
+
+    return array(
+      'linkset' => $linkset,
+      'urlhashes' => $urlhashes,
+      'cluster_urls' => $cluster_urls,
+    );
+  }/*}}}*/
+
+  private final function normalize_links($source_url, $container = NULL ) {/*{{{*/
+    // -- Construct sitemap
+    $parent_url = UrlModel::parse_url($source_url);
+    $normalized_links = array();
+
+    foreach ( is_null($container) ? $this->get_links() : $container as $link_item ) {/*{{{*/
+
+      if ( FALSE === ($normalized_link = UrlModel::normalize_url($parent_url, $link_item)) ) continue;
+
+      // $this->syslog( __FUNCTION__, __LINE__, "{$normalized_link} ({$link_item['text']}) <- {$link_item['url']} [" . join(',',array_keys($link_item['urlparts'])) . " -> " .join(',',$link_item['urlparts']) . "] <{$q['path']}>");
+
+      $normalized_links[] = array(
+        'url'      => $normalized_link,
+        'urlhash'  => UrlModel::get_url_hash($normalized_link),
+        'origpath' => $link_item['url'],
+        'text'     => $link_item['text'],
+      );
+    }/*}}}*/
+
+    return $normalized_links;
+  }/*}}}*/
+
+
+
 }

@@ -151,5 +151,112 @@ class SenateCommonParseUtility extends GenericParseUtility {
     return !(1 == preg_match('@(nav_logo)@i',$this->current_tag['attrs']['CLASS']));
   }/*}}}*/
 
+  function get_per_congress_pager(UrlModel & $urlmodel, UrlModel & $url_iterator, & $session, & $q, & $session_select) {/*{{{*/
+
+    $per_congress_pager = '[---]';
+    // Obtain matching session record
+    $session_data = array_filter(array_map(create_function(
+      '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? $a["metalink"] : NULL;'
+    ), $session_select));
+    $linktext = array_filter(array_map(create_function(
+      '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? str_replace($a["linktext"],$a["optval"],$a["markup"]) : NULL;'
+    ), $session_select));
+
+    if ( is_array($session_data) ) {/*{{{*/
+      // Extract the pager for the current Congress and Session series 
+      $extracted_links = array();
+      $session_data    = array_values($session_data);
+      $session_data    = $session_data[0];
+      $url_iterator->set_url($urlmodel->get_url(),FALSE);
+      $cached_url      = $this->get_faux_url($url_iterator, $session_data);
+      $in_db           = $url_iterator->set_url($cached_url,TRUE);
+      if ( $in_db ) {/*{{{*/
+        $this->
+          reset()->
+          set_parent_url($urlmodel->get_url())->
+          parse_html($url_iterator->get_pagecontent(),$url_iterator->get_response_header());
+        $cluster_urls = $this->generate_linkset($urlmodel->get_url());
+        extract($cluster_urls);
+        // These pager links are bound to the state variable "dlBillType",
+        // which corresponds to the human-readable labels "First Regular Session",
+        // "Second Regular Session", and so on.  We can simply extend
+        // the set of state variables to include "page", so that we can
+        // cache the URLs for those pages uniquely.
+        //
+        // The implementation here treats pager links differently when
+        // using them to trigger a network fetch (live), from how these
+        // links are treated to access site-local resource:  The unadorned
+        // link is used in a cookie-aware request to the live site. Retrieved
+        // content is stored using a fake URL to which is appended page-
+        // specific query parameter values.  When
+        // a spider operator requests content from the main site, the
+        // unadorned link is "decorated" with the same fake URL + page
+        // parameters.
+        if ( is_array($cluster_urls) ) 
+          $per_congress_pager = $this->extract_pager_links( $extracted_links, $cluster_urls,
+            '1cb903bd644be9596931e7c368676982',
+            $session_data
+          );
+        if ( is_null($first_page) ) $first_page = $cached_url;
+        $per_congress_pager = join('', $per_congress_pager);
+        $linktext = array_values($linktext);
+        $session = $linktext[0];
+        //////////////////////////////////////////////////////////////
+        $r = array_combine(
+          array_map(create_function('$a','return UrlModel::get_url_hash($a["url"]);'), $q),
+          array_values($q)
+        );
+
+        if (is_array($r) && (0 < count($r)))
+          foreach ( $extracted_links as $link ) {/*{{{*/
+            $url_iterator->set_url($link,TRUE);
+            $this->
+              set_parent_url($url_iterator->get_url())->
+              parse_html($url_iterator->get_pagecontent(),$url_iterator->get_response_header());
+            $entries = $this->get_containers(
+              'children[tagname=div][attrs:STYLE*=right|left|i]'
+            );
+            // Clear URL entries that exist
+            foreach ( $entries as $found_links ) {
+              // Null out URLs that are already in this set
+              array_walk($found_links,create_function(
+                '& $a, $k, $s', '$h = UrlModel::get_url_hash($a["url"]); if ( array_key_exists($h, $s) ) $a["url"] = NULL; else $a["hash"] = $h;'),
+              $r
+            );
+              // Remove entries where the URL has been nulled out
+              $found_links = array_filter(array_map(create_function(
+                '$a', 'return is_null($a["url"]) ? NULL : $a;'
+              ),$found_links));
+              // Make the URL hash be the key for this array of links
+              $r_hashes = array_map(create_function('$a','return $a["hash"];'), $found_links);
+              $found_links = array_values(array_map(create_function('$a','return array("_" => "_", "url" => $a["url"],"text" => $a["text"]);'), $found_links));
+              if ( is_array($r_hashes) && is_array($found_links) && (0 < count($r_hashes)) && (count($r_hashes) == count($found_links)) ) {
+                $found_links = array_combine($r_hashes,$found_links);
+                if ( is_array($found_links) && (0 < count($found_links)) ) $q = array_merge($q, $found_links);
+              }
+              $found_links = NULL;
+            }
+          }/*}}}*/
+        //////////////////////////////////////////////////////////////
+      }/*}}}*/
+      else {/*{{{*/
+        $linktext = array_values($linktext);
+        $session = $linktext[0];
+        $per_congress_pager = $this->extract_pager_links(
+          $extracted_links,
+          $cluster_urls,
+          '1cb903bd644be9596931e7c368676982',
+          $session_data
+        );
+        // $this->recursive_dump($extracted_links, "(marker) NI -");
+        // $this->recursive_dump($session_select,'(marker) Missing entry');
+        // $session = UrlModel::create_metalink($session, $session_data  
+        $per_congress_pager = join('', $per_congress_pager);
+      }/*}}}*/
+    }/*}}}*/
+    return $per_congress_pager;
+  }/*}}}*/
+
+
 }
 

@@ -230,4 +230,5 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
+
 }

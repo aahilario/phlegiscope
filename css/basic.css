@@ -115,6 +115,13 @@ ul.linkset-pager {
 ul.linkset-pager > li {
   padding-bottom: 4px;
 }
+.no-bullets {
+  list-style-type: none;
+  marker-offset: 0;
+  text-indent: 0;
+  margin-left: 0;
+  padding-left: 0;
+}
 .hotsearch-active {
   background-color: #DFD !important;
 }
@@ -156,7 +163,7 @@ ul.linkset-pager > li {
 
 #senate-journal-block {
   display: block;
-	background-color: #DDD;
+	background-color: #F4F4F4;
 	float: right;
 	clear: right;
 	width: 49%;

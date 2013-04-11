@@ -443,7 +443,7 @@ EOH
     return TRUE;
   }/*}}}*/
 
-  function standard_cdata_container_close() {
+  function standard_cdata_container_close() {/*{{{*/
     $this->current_tag();
     $paragraph = array(
       'text' => join('', $this->current_tag['cdata']),
@@ -452,9 +452,9 @@ EOH
     if ( 0 < strlen($paragraph['text']) ) 
     $this->add_to_container_stack($paragraph);
     return TRUE;
-  }
+  }/*}}}*/
 
-  function embed_cdata_in_parent() {
+  function embed_cdata_in_parent() {/*{{{*/
     $i = $this->pop_tagstack();
     $content = join('',$this->current_tag['cdata']);
     $parent = $this->pop_tagstack();
@@ -462,15 +462,17 @@ EOH
     $this->push_tagstack($parent);
     $this->push_tagstack($i);
     return FALSE;
-  }
+  }/*}}}*/
 
-  function reduce_containers_to_string($s) {
+	/** Miscellaneous utility methods used in one or more derived classes **/
+
+  function reduce_containers_to_string($s) {/*{{{*/
     $s = is_array($s) ? array_values($s) : NULL;
     $s = is_array($s) && 1 == count($s) ? array_values($s[0]) : NULL;
     // $s = is_array($s) ? join(' ',$s) : NULL;
     $s = is_array($s) ? trim($s[0]) : NULL;
     return $s;
-  }
+  }/*}}}*/
 
   function get_faux_url(UrlModel & $url, & $metalink) {/*{{{*/
     $faux_url = NULL;
@@ -496,8 +498,8 @@ EOH
     return $faux_url;
   }/*}}}*/
 
-  function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL) {/*{{{*/
-    $debug_method    = FALSE;
+  function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL, $insert_p1_link = FALSE) {/*{{{*/
+    $debug_method    = TRUE;
     $check_cache     = FALSE;
     $links           = array();
     $pager_links     = array();
@@ -524,7 +526,7 @@ EOH
       $have_pullin_link = FALSE;
       foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
         $parameters = array_flip(explode('|', $parameters));
-        if ( !array_key_exists(1, $parameters) ) $parameters[1] = 1;
+        if ($insert_p1_link && !array_key_exists(1, $parameters) ) $parameters[1] = 1;
         ksort($parameters);
         $parameters = array_keys($parameters);
         foreach ( $parameters as $parameter ) {/*{{{*/
@@ -541,9 +543,7 @@ EOH
             }
           }/*}}}*/
           if ( !is_null($parent_state) ) {/*{{{*/
-            // Client-side JS sees a selector class attribute 'session-lead'
-            //$link_class[] = 'session-lead';
-            //$link_class[] = 'fauxpost';
+            // Client-side JS sees a selector class attribute 'fauxpost'
             $link_class = array("fauxpost");
             $link_components = UrlModel::parse_url($href);
             $query_parameters = array_merge(
@@ -570,9 +570,22 @@ EOH;
     return $pager_links;
   }/*}}}*/
 
-  final function generate_linkset($url) {/*{{{*/
+  final function generate_linkset($url, $only_key = NULL) {/*{{{*/
 
     $debug_method = FALSE;
+
+		$return_value = array(
+      'linkset' => array(),
+      'urlhashes' => array(),
+      'cluster_urls' => array(),
+    );
+
+    $parent_page = new UrlModel($url,TRUE);
+
+		if ( !$parent_page->in_database() ) return $return_value;
+
+    $cluster = new UrlClusterModel();
+
 		$containers = $this->get_containers();
     $link_generator = create_function('$a', <<<EOH
 return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a><span class="reload-texticon legiscope-refresh {refresh-' . \$a["urlhash"] . '}" id="refresh-' . \$a["urlhash"] . '">reload</span></li>';
@@ -582,9 +595,6 @@ EOH
 return array( 'hash' => \$a['urlhash'], 'url' => \$a['url'] ); 
 EOH
     );
-
-    $parent_page = new UrlModel($url,TRUE);
-    $cluster = new UrlClusterModel();
 
     // Each container (div, table, or head)  encloses a set of tags
     // Generate clusters of links
@@ -747,7 +757,7 @@ EOH
       '$a', 'return is_null($a) ? 1 : NULL;'
     ), $pager_clusters));
 
-    if ( 0 < count($not_in_clusterlist) ) {
+    if ( 0 < count($not_in_clusterlist) ) {/*{{{*/
       foreach ( $not_in_clusterlist as $clusterid => $nonce ) {
         $cluster->fetch($parent_page, $clusterid);
         $cluster->
@@ -759,7 +769,7 @@ EOH
       }
       // At this point, the list order is updated by fetching the cluster list
       $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
-    }
+    }/*}}}*/
 
     // Now use the cluster list to obtain list position
     ksort($cluster_list);
@@ -801,24 +811,20 @@ EOH
     // allow for a reasonably usable mechanism for executing 
     // SELECT ... WHERE a IN (<list>)
     // query statements with short lists, without additional code complexity.
+		// Partition the list of hashes
 
-    // Partition the list of hashes
-    $partition_index  = 0;
-    $partitioned_list = array(0 => array());
-    foreach ( $urlhashes as $urlhash => $url ) {/*{{{*/
-      $partitioned_list[$partition_index][$urlhash] = $url;
-      if ( count($partitioned_list[$partition_index]) >= 10 ) {
-        // $this->syslog( __FUNCTION__, __LINE__, "- Tick {$partition_index}");
-        $partition_index++;
-        $partitioned_list[$partition_index] = array();
-      }
-    }/*}}}*/
-    $n = 0;
+		$partitioned_list = $this->partition_array( $urlhashes, 10 );
 
     $url_cache_iterator = new UrlModel();
     $idlist             = array();
     $linkset            = join("\n", $linkset);
 
+		if ( $debug_method ) {
+			$this->recursive_dump($partitioned_list,"(marker)");
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) Partitions: {$partition_index} " . count($urlhashes));
+		}
+
+		$n = 0;
     foreach ( $partitioned_list as $partition ) {  /*{{{*/
       $url_cache_iterator->
         where(array('urlhash' => array_keys($partition)))->
@@ -837,10 +843,9 @@ EOH
       $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
       // TODO: Implement link aging
       $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
-      $this->syslog( __FUNCTION__, __LINE__, "-- Marked {$n}/{$partition_index} links on {$url} as being 'cached'" );
+			if ( $debug_method )  $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/
 
-    // FIXME: Time- and space- intensive
     // Stow edges.  This should probably be performed in a stored procedure.
     if (!(TRUE == C('DISABLE_AUTOMATIC_URL_EDGES'))) {/*{{{*/
       $edge = new UrlEdgeModel();
@@ -854,11 +859,14 @@ EOH
 
     $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
 
-    return array(
+    $return_value = array(
       'linkset' => $linkset,
       'urlhashes' => $urlhashes,
       'cluster_urls' => $cluster_urls,
     );
+
+		return is_null($only_key) ? $return_value : $return_value[$only_key];
+
   }/*}}}*/
 
   private final function normalize_links($source_url, $container = NULL ) {/*{{{*/
@@ -883,6 +891,40 @@ EOH
     return $normalized_links;
   }/*}}}*/
 
+	function reorder_url_array_by_queryfragment(& $q, $fragment) { /*{{{*/
+		// Reorder an array of (text,url) pairs in place,
+		// using a regex-matched fragment of the URL
+		array_walk($q,create_function(
+			'& $a, $k', '$matches = array(); if ( 1 == preg_match("@\&q=([0-9]*)@i", $a["url"], $matches) ) $a["seq"] = $matches[1]; else $a["seq"] = 0;'  
+		));
+		// Reorder array
+		$q = array_combine(
+			array_map(create_function('$a','return $a["seq"];'),$q),
+			array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => !array_key_exists("_", $a));'),$q)
+		);
+		krsort($q);
+	}/*}}}*/
 
+	function partition_array( & $k_v_array, $n ) {/*{{{*/
+    $partition_index  = 0;
+    $partitioned_list = array(0 => array());
+    foreach ( $k_v_array as $urlhash => $url ) {/*{{{*/
+      $partitioned_list[$partition_index][$urlhash] = $url;
+      if ( count($partitioned_list[$partition_index]) >= $n ) {
+        // $this->syslog( __FUNCTION__, __LINE__, "- Tick {$partition_index}");
+        $partition_index++;
+        $partitioned_list[$partition_index] = array();
+      }
+    }/*}}}*/
+    $n = 0;
+
+		array_walk($partitioned_list,create_function(
+			'& $a, $k', 'if ( !(0 < count($a) ) ) $a = NULL;'
+		));
+
+		$partitioned_list = array_filter($partitioned_list);
+
+		return $partitioned_list;
+	}/*}}}*/
 
 }

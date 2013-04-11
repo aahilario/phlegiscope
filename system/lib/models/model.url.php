@@ -485,7 +485,12 @@ class UrlModel extends DatabaseUtility {
   }
 
   function set_custom_parse($v) {
-    return $this->custom_parse_bool = $v;
+    $this->custom_parse_bool = $v;
+    return $this;
+  }
+
+  function ensure_custom_parse() {
+    if ( !$this->is_custom_parse() ) $this->set_custom_parse(TRUE)->stow();
   }
 
   function & set_is_fake($v) { $this->is_fake_bool = $v; return $this; }

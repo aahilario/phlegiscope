@@ -513,8 +513,12 @@ class LegiscopeBase extends SystemUtility {
 
           $headers['legiscope-regular-markup'] = 1;
 
+          $is_custom_parse = $url->is_custom_parse();
+
+          if ( $is_custom_parse ) $this->syslog( __FUNCTION__, __LINE__, "(warning) Custom parse" );
+
           // Defer parsing by setting the URL custom_parse flag in DB
-          $structure = $url->is_custom_parse()
+          $structure = $is_custom_parse
             ? array()
             : $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header())
             ;
@@ -523,7 +527,7 @@ class LegiscopeBase extends SystemUtility {
           $body_content = $parser->fetch_body_generic_cleanup($pagecontent);
 
           // Custom-parsed page handlers must generate navigation links
-          $linkset = $url->is_custom_parse()
+          $linkset = $is_custom_parse
             ? array('linkset' => array(),'urlhashes' => array(),'cluster_urls' => array())
             : $parser->generate_linkset($url->get_url())
             ;
@@ -602,6 +606,9 @@ class LegiscopeBase extends SystemUtility {
           '/<!--(.*)-->/imUx',
           '@<noscript>(.*)</noscript>@imU',
           '@<script([^>]*)>(.*)</script>@imU',
+          "@\&\#10;@",
+          "@\&\#9;@",
+          "@\n@",
         ),
         array(
           '<html>',
@@ -610,6 +617,9 @@ class LegiscopeBase extends SystemUtility {
           '',
           '',
           '',
+          "",
+          " ",
+          "",
         ),
         $body_content
       );

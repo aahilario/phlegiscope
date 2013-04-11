@@ -221,35 +221,35 @@ EOH;
     $this->removable_containers = array();
     if ( !is_null($docpath) ) {
       $filter_map = $this->get_map_functions($docpath);
-      if ( $this->debug_operators ) {
+      if ( $this->debug_operators ) {/*{{{*/
         $this->syslog(__FUNCTION__,__LINE__,"------ (marker) Containers to process: " . count($this->containers));
         $this->recursive_dump($filter_map,'(marker)');
-      }
+      }/*}}}*/
       $this->filtered_containers = $this->containers;
       foreach ( $filter_map as $i => $map ) {
         if ( $i == 0 ) {
-          if ( $this->debug_operators ) {
+          if ( $this->debug_operators ) {/*{{{*/
             $n = count($this->filtered_containers);
             $this->syslog(__FUNCTION__,__LINE__,"A ------ (marker) N = {$n} Map: {$map}");
-          }
+          }/*}}}*/
           $this->filtered_containers = array_filter(array_map(create_function('$a',$map), $this->filtered_containers));
-          if ( $this->debug_operators ) {
+          if ( $this->debug_operators ) {/*{{{*/
             $n = count($this->filtered_containers);
             $this->syslog(__FUNCTION__,__LINE__,"A <<<<<< (marker) N = {$n} Map: {$map}");
-          }
+          }/*}}}*/
           $this->resequence_children($this->filtered_containers);
         } else {
-          if ( $this->debug_operators ) {
+          if ( $this->debug_operators ) {/*{{{*/
             $this->syslog(__FUNCTION__,__LINE__,"B ------ (marker) N = {$n} Map: {$a}");
-          }
+          }/*}}}*/
           foreach ( $this->filtered_containers as $seq => $m ) {
             $this->filtered_containers[$seq] = array_filter(array_map(create_function('$a',$map), $m));
           }
         }
-        if ( $this->debug_operators ) {
+        if ( $this->debug_operators ) {/*{{{*/
           $this->syslog(__FUNCTION__,__LINE__,"(marker) - Map #{$i} - {$map}");
           $this->recursive_dump($this->filtered_containers,'(marker)');
-        }
+        }/*}}}*/
       }
       return $this->filtered_containers;
     }

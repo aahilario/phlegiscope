@@ -151,7 +151,9 @@ class SenateCommonParseUtility extends GenericParseUtility {
     return !(1 == preg_match('@(nav_logo)@i',$this->current_tag['attrs']['CLASS']));
   }/*}}}*/
 
-  function get_per_congress_pager(UrlModel & $urlmodel, UrlModel & $url_iterator, & $session, & $q, & $session_select) {/*{{{*/
+  function get_per_congress_pager(UrlModel & $urlmodel, & $session, & $q, & $session_select) {/*{{{*/
+
+    $url_iterator = new UrlModel();
 
     $per_congress_pager = '[---]';
     // Obtain matching session record
@@ -193,11 +195,12 @@ class SenateCommonParseUtility extends GenericParseUtility {
         // unadorned link is "decorated" with the same fake URL + page
         // parameters.
         if ( is_array($cluster_urls) ) 
-          $per_congress_pager = $this->extract_pager_links( $extracted_links, $cluster_urls,
+          $per_congress_pager = $this->extract_pager_links(
+            $extracted_links, $cluster_urls,
             '1cb903bd644be9596931e7c368676982',
-            $session_data
+            $session_data,
+            TRUE
           );
-        if ( is_null($first_page) ) $first_page = $cached_url;
         $per_congress_pager = join('', $per_congress_pager);
         $linktext = array_values($linktext);
         $session = $linktext[0];
@@ -248,7 +251,7 @@ class SenateCommonParseUtility extends GenericParseUtility {
           '1cb903bd644be9596931e7c368676982',
           $session_data
         );
-        // $this->recursive_dump($extracted_links, "(marker) NI -");
+        // $this->recursive_dump($per_congress_pager, "(marker) NI -");
         // $this->recursive_dump($session_select,'(marker) Missing entry');
         // $session = UrlModel::create_metalink($session, $session_data  
         $per_congress_pager = join('', $per_congress_pager);
@@ -257,6 +260,149 @@ class SenateCommonParseUtility extends GenericParseUtility {
     return $per_congress_pager;
   }/*}}}*/
 
+  function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99') {/*{{{*/
+
+    if ( !isset($this->cluster_urldefs) ) throw new Exception("Missing cluster_urldefs");
+
+    $target_congress = $urlmodel->get_query_element('congress');
+
+    // Extract Congress selector (15th, 14th, 13th [as of 2013 April 9])
+    $extracted_links = array();
+    $congress_change_link = $this->extract_pager_links(
+      $extracted_links,
+      $this->cluster_urldefs,
+      $pager_regex_uid 
+    );
+    $congress_change_link = join('', $congress_change_link);
+
+    $pagecontent = <<<EOH
+<div class="senate-journal">
+EOH;
+
+    foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
+
+      if ( !($target_congress == $congress) ) continue;
+
+      $pagecontent .= <<<EOH
+<span class="indent-1">Congress {$congress} {$congress_change_link}<br/>
+
+EOH;
+      krsort($session_q);
+
+      foreach ( $session_q as $session => $q ) {/*{{{*/
+
+        $per_congress_pager = $this->get_per_congress_pager($urlmodel, $session, $q, $session_select);
+
+        $pagecontent .= <<<EOH
+<div class="indent-2">Session {$session}<br/>
+<span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
+<ul class="link-cluster no-bullets">
+EOH;
+        // Extract sequence position from query component "q"
+        $this->reorder_url_array_by_queryfragment($q, '\&q=([0-9]*)');
+
+        $query_regex = '@([^&=]*)=([^&]*)@';
+
+        foreach ( $q as $child_link ) {/*{{{*/
+          $urlparts = UrlModel::parse_url($child_link['url'],PHP_URL_QUERY);
+          $linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
+          $child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
+          if ( $linktext == $child_link['url'] ) {
+            $url_query_components = array();
+            $url_query_parts      = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
+            preg_match_all($query_regex, $url_query_parts, $url_query_components);
+            $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
+            $linktext = "No. {$url_query_parts['q']}";
+          }
+          $cached = $child_link['cached'] ? "cached" : "";
+          $pagecontent .= <<<EOH
+<li class="no-bullets"><a class="legiscope-remote {$cached} indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
+
+EOH;
+        }/*}}}*/
+        $q = NULL;
+        $pagecontent .= <<<EOH
+</ul>
+</div>
+
+EOH;
+      }/*}}}*/
+      $pagecontent .= <<<EOH
+</span>
+
+EOH;
+    }/*}}}*/
+
+    $pagecontent .= <<<EOH
+</div>
+
+EOH;
+    return $pagecontent;
+  }/*}}}*/
+
+  function extract_senate_session_select(UrlModel & $urlmodel, $return_a_tags = TRUE, $form_selector = '[class*=lis_div]') {/*{{{*/
+
+    // Extract the session selector
+    // Each record encodes HTTP session state for a cluster of Senate 
+    // journals belonging to a House session.  Child page content is
+    // bound implicitly to the same HTTP session state (during live network
+    // fetch), and explicitly in  
+
+    $debug_method = FALSE;
+
+    $this->recursive_dump(($paginator_form = array_values($this->get_containers(
+      "children[tagname=form]{$form_selector}"
+    ))),'(------) StructureParser');
+
+    $paginator_form = $paginator_form[0];
+    $control_set    = $this->extract_form_controls($paginator_form);
+    $test_url       = new UrlModel($urlmodel->get_url(),TRUE);
+
+    extract($control_set); // form_controls, select_name, select_options, userset
+
+    // Extract the Session selector (First Regular Session, etc.)
+    $select_elements = array();
+    // $this->recursive_dump($select_options,"(marker) FOo");
+    if ( is_array($select_options) ) foreach ( $select_options as $select_option ) {/*{{{*/
+      // Take a copy of the rest of the form controls
+      $control_set                    = $form_controls;
+      $control_set[$select_name]      = $select_option['value'];
+      $control_set['__EVENTTARGET']   = $select_name;
+      $control_set['__EVENTARGUMENT'] = NULL;
+      $generated_link = UrlModel::create_metalink(
+        $select_option['text'],
+        $urlmodel->get_url(),
+        $control_set,
+        'fauxpost'
+      );
+
+      if ( $return_a_tags ) {
+        $select_elements[] = $generated_link;
+      } else {
+        $controlset_json_base64 = base64_encode(json_encode($control_set));
+        $controlset_hash        = md5($controlset_json_base64);
+        $select_elements[$controlset_hash] = array(
+          'metalink'        => $controlset_json_base64,
+          'metalink_source' => $control_set,
+          'faux_url'        => $urlmodel->get_url(),
+          'linktext'        => $select_option['text'],
+          'optval'          => $select_option['value'],
+          'markup'          => $generated_link,
+          'url_model'       => $this->get_faux_url($test_url, $controlset_json_base64),
+        );
+      }
+    }/*}}}*/
+
+    if ( $debug_method )
+    foreach ( $select_elements as $metalink_hash => $s ) {
+      $test_url->fetch($s['url_model'], 'url');
+      $in_db = $test_url->in_database() ? 'Cached' : 'Missing';
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) {$in_db} URL {$s['url_model']}");
+      // $this->recursive_dump($s,'(marker) House Session SELECT');
+    }
+
+    return $select_elements;
+  }/*}}}*/
 
 }
 

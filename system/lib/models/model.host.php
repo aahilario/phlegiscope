@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class HostModel extends DatabaseUtility {
+class HostModel extends UrlModel {
   
   // Model fields are used to generate typed fields. See DatabaseUtility::fetch_typemap()
   // BEGIN ModelFields
@@ -26,7 +26,7 @@ class HostModel extends DatabaseUtility {
       $this->hostname_hash_vc128uniq = UrlModel::get_url_hash($this->hostname_vc512);
       $this->fetch($this->hostname_hash_vc128uniq, 'hostname_hash');
       $state = $this->in_database() ? "Fetched {$this->id}" : "Recording";
-      $this->syslog( __FUNCTION__, 'FORCE', "{$state} URL {$this->hostname_vc512} [{$this->hostname_hash_vc128uniq}]" ); 
+      $this->syslog( __FUNCTION__, 'FORCE', "(marker) {$state} URL {$this->hostname_vc512} [{$this->hostname_hash_vc128uniq}]" ); 
     }
   }
 

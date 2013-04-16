@@ -18,6 +18,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
   var $member_uuid_vc64 = NULL; // Basically a hash of the URL and full name
   var $avatar_image_blob = NULL; // Avatar image base64-encoded
   var $avatar_url_vc1024 = NULL;
+  var $committees_CongressionalCommitteeDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();

@@ -875,8 +875,14 @@ EOH;
 
   function seek_postparse_9e8648ad99163238295d15cfa534be86(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/committees/search.php?congress=15&id=A505
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
-    $p = new CongressCommitteeListParseUtility();
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $p          = new CongressCommitteeListParseUtility();
+    $committees = new CongressionalCommitteeDocumentModel();
+    $link       = new CongressionalCommitteeRepresentativeDossierJoin();
+
+    $committees->dump_accessor_defs_to_syslog();
+
     $p->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
     $pagecontent = join('', $p->get_filtered_doc());
@@ -884,7 +890,7 @@ EOH;
     $p->debug_operators = FALSE;
     $this->recursive_dump($containers = $p->get_containers(
       'children[tagname=div][id=main-ol]'
-    ),"(marker) ++ All containers");
+    ),"(----) ++ All containers");
 
     if ( 0 < count($containers) ) {
       $pagecontent = '';

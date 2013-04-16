@@ -205,10 +205,31 @@ class UrlModel extends DatabaseUtility {
   }
 
 	function is_cached($url) {
-		return TRUE;
 		$this->fetch($url,'url');
 		return $this->in_database();
 	}
+
+  function get_caching_state($links) {/*{{{*/
+    // Return a list of URLs (extracted from $links) that are NOT cached in UrlModel backing store.
+    $debug_method = FALSE;
+    // Determine caching state of every URL in $links = array('url' => [URL],...)
+    if ( !is_array($links) || !(0 < count($links)) ) return NULL;
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Testing " . count($links));
+    $links = array_combine(
+      array_map(create_function('$a', 'return UrlModel::get_url_hash($a["url"]);'), $links),
+      array_map(create_function('$a', 'return $a["url"];'), $links)
+    );
+    if ( $debug_method ) $this->recursive_dump($links,'(marker) To Test');
+    $this->where(array('urlhash' => array_keys($links)))->recordfetch_setup();
+    $r = array();
+    while ( $this->recordfetch($r) ) {
+      $hash = UrlModel::get_url_hash($r['url']);
+      $links[$hash] = NULL;
+    }
+    if ( $debug_method ) $this->recursive_dump($links,'(marker) Cached if NULL');
+    // Return as array(<URL> -> <hash>)
+    return array_flip(array_filter($links));
+  }/*}}}*/
 
   function stow($url_or_urlarray = NULL, $parent_url = NULL) {/*{{{*/
     // FIXME:  Permit use of an array parameter (to save sets of links)

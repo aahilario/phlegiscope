@@ -94,175 +94,27 @@ EOH;
     return $this;
   }/*}}}*/
 
-  function get_map_functions($docpath, $d = 0) {/*{{{*/
-    // A mutable alternative to XPath
-    // Extract content from parse containers
-    $map_functions = array();
-    if ( $d > 4 ) return $map_functions;
-    $selector_regex = '@({([^}]*)}|\[([^]]*)\]|(([-_0-9a-z=]*)*)[,]*)@';
-    // Pattern yields the selectors in match component #3,
-    // and the subject item description in component #2.
-    $matches = array();
-    preg_match_all($selector_regex, $docpath, $matches);
-
-    array_walk($matches,create_function('& $a, $k','$a = is_array($a) ? array_filter($a) : NULL; if (empty($a)) $a = "*";'));
-
-    $subjects   = $matches[2]; // 
-    $selectors  = $matches[3]; // Key-value match pairs (A=B, match exactly; A*=B regex match)
-    $returnable = $matches[4]; // Return this key from all containers
-
-    $conditions = array(); // Concatenate elements of this array to form the array_map condition
-
-    foreach ( $selectors as $condition ) {
-
-      if ( $this->debug_operators ) $this->syslog(__FUNCTION__,__LINE__,">>> Decomposing '{$condition}'");
-
-      if ( !(1 == preg_match('@([^*=]*)(\*=|=)*(.*)@', $condition, $p)) ) {
-        $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Unparseable condition. Terminating recursion.");
-        return array();
-      }
-      $attr = $p[1];
-      $conn = $p[2]; // *= for regex match; = for equality
-      $val  = $p[3];
-
-      if ($this->debug_operators) {/*{{{*/
-        $this->recursive_dump($p,"(marker) Selector components" );
-      }/*}}}*/
-
-      $attparts = '';
-      if ( !empty($attr) ) {
-        // Specify a match on nested arrays using [kd1:kd2] to match against
-        // $a[kd1][kd2] 
-        foreach ( explode(':', $attr) as $sa ) {
-          $conditions[] = 'array_key_exists("'.$sa.'", $a'.$attparts.')';
-          $attparts .= "['{$sa}']";
-        }
-      }
-
-      if ( empty($val) ) {
-        // There is only an attribute to check for.  Include source element if the attribute exists 
-        if (!is_array($returnable)) $returnable = '$a["'.$attr.'"]';
-      } else if ( $conn == '=' ) {
-        // Allow condition '*' to stand for any matchable value; 
-        // if an asterisk is specified, then the match for a specific
-        // value is omitted, so only existence of the key is required.
-        if ( $val != '*' ) $conditions[] = '$a["'.$attr.'"] == "'.$val.'"';
-      } else if ($conn == '*=') {
-        $split_val = explode('|', $val);
-        $regex_modifier = NULL;
-        if ( 1 < count($split_val) ) {
-          $regex_modifier = $split_val[count($split_val)-1];
-          array_pop($split_val);
-          $val = join('|',$split_val);
-        }
-        $conditions[] = '1 == preg_match("@('.$val.')@'.$regex_modifier.'",$a'.$attparts.')';
-        if ( $returnable == '*' ) $returnable = '$a["'.$attr.'"]';
-      } else {
-        $this->syslog(__FUNCTION__,__LINE__,"Unrecognized comparison operator '{$conn}'");
-      }
-    }
-
-    if ( is_array($returnable) ) {
-      if ( 1 == count($returnable) ) {
-        $returnable_map   = create_function('$a', 'return "\$a[\"{$a}\"]";');
-        $returnable_match = join(',',array_map($returnable_map, $returnable));
-      } else {
-        $returnable_map   = create_function('$a', 'return "\"{$a}\" => \$a[\"{$a}\"]";');
-        $returnable_match = is_array($returnable) 
-          ? ('array(' . join(',',array_map($returnable_map, $returnable)) .')') 
-          : $returnable;
-      }
-    } else {
-      if ( $returnable == '*' ) {
-        // If the returnable attribute is given as '*', return the entire array value.
-        // $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Map function will be unusable, no return value (currently '{$returnable}') in map function.  Bailing out");
-        $returnable_match = '$a';
-      } else {
-        $returnable_match = $returnable;
-      }
-    }
-    $map_condition   = 'return ' . join(' && ', $conditions) . ' ? ' . $returnable_match . ' : NULL;';
-    $map_functions[] = $map_condition;
-
-    if ($this->debug_operators) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Extracting from '{$docpath}'");
-      $this->recursive_dump($matches,"(marker) matches");
-      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Map function derived at depth {$d}: {$map_condition}");
-      $this->recursive_dump($conditions,"(marker) conditions");
-    }/*}}}*/
-
-    if ( is_array($subjects) && 0 < count($subjects) ) {
-      foreach ( $subjects as $subpath ) {
-        if ($this->debug_operators) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Passing sub-path at depth {$d}: {$subpath}");
-        }/*}}}*/
-        $submap = $this->get_map_functions($subpath, $d+1);
-        if ( is_array($submap) ) $map_functions = array_merge($map_functions, $submap);
-      }
-    }
-
-    return $map_functions;
-  }/*}}}*/
-
-  function resequence_children(& $containers) {/*{{{*/
-    return array_walk(
-      $containers,
-      // create_function('& $a, $k, $s', 'if ( array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'),
-      create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
-      $this
-    );
-  }/*}}}*/
-
-  function & get_containers($docpath = NULL) {
+  function & get_containers($docpath = NULL) {/*{{{*/
     $this->filtered_containers = array();
     foreach ( $this->removable_containers as $remove ) {
       unset($this->containers[$remove]);
     }
     $this->removable_containers = array();
+
     if ( !is_null($docpath) ) {
-      $filter_map = $this->get_map_functions($docpath);
-      if ( $this->debug_operators ) {/*{{{*/
-        $this->syslog(__FUNCTION__,__LINE__,"------ (marker) Containers to process: " . count($this->containers));
-        $this->recursive_dump($filter_map,'(marker)');
-      }/*}}}*/
       $this->filtered_containers = $this->containers;
-      foreach ( $filter_map as $i => $map ) {
-        if ( $i == 0 ) {
-          if ( $this->debug_operators ) {/*{{{*/
-            $n = count($this->filtered_containers);
-            $this->syslog(__FUNCTION__,__LINE__,"A ------ (marker) N = {$n} Map: {$map}");
-          }/*}}}*/
-          $this->filtered_containers = array_filter(array_map(create_function('$a',$map), $this->filtered_containers));
-          if ( $this->debug_operators ) {/*{{{*/
-            $n = count($this->filtered_containers);
-            $this->syslog(__FUNCTION__,__LINE__,"A <<<<<< (marker) N = {$n} Map: {$map}");
-          }/*}}}*/
-          $this->resequence_children($this->filtered_containers);
-        } else {
-          if ( $this->debug_operators ) {/*{{{*/
-            $this->syslog(__FUNCTION__,__LINE__,"B ------ (marker) N = {$n} Map: {$a}");
-          }/*}}}*/
-          foreach ( $this->filtered_containers as $seq => $m ) {
-            $this->filtered_containers[$seq] = array_filter(array_map(create_function('$a',$map), $m));
-          }
-        }
-        if ( $this->debug_operators ) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Map #{$i} - {$map}");
-          $this->recursive_dump($this->filtered_containers,'(marker)');
-        }/*}}}*/
-      }
-      return $this->filtered_containers;
+			return $this->filter_nested_array($this->filtered_containers, $docpath);
     }
     return $this->containers;
-  }
+  }/*}}}*/
 
-  function & get_headers() {
+  function & get_headers() {/*{{{*/
     return $this->headerset;
-  }
+  }/*}}}*/
 
-  function & get_links() {
+  function & get_links() {/*{{{*/
     return $this->links;
-  }
+  }/*}}}*/
 
   function & get_filtered_doc() {
     return $this->filtered_doc;

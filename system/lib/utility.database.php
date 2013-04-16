@@ -3,23 +3,29 @@
 class DatabaseUtility extends ReflectionClass {
 
   static $dbhandle = NULL;
+  protected static $obj_attrdefs = array(); // Lookup table of class attributes and names
+  protected static $obj_ondisk = array();
 
   protected $tablename = NULL;
   protected $query_conditions = array();
   protected $order_by_attrs = array();
   protected $limit = array();
-
   protected $query_result = NULL;
-
   protected $attrlist = NULL;
 
   protected $disable_logging = array(
     '-RawparseUtility'
   );
 
+  protected function get_attrdefs() {
+    return array_key_exists(get_class($this), self::$obj_attrdefs)
+      ? self::$obj_attrdefs[get_class($this)]
+      : array(get_class($this) => 'No Definition')
+      ;
+  }
   function __construct() {/*{{{*/
     parent::__construct($this);
-    if (!(FALSE === stripos(get_class($this), 'Model'))) 
+    if (1 == preg_match('@(Model|Join)$@i',get_class($this))) 
       $this->initialize_derived_class_state();
   }/*}}}*/
 
@@ -56,14 +62,32 @@ EOS;
     return $this;
   }/*}}}*/
 
-  function fetch_property_list() {/*{{{*/
+  function log_stack() {
+    try {
+      throw new Exception('DB');
+    } catch ( Exception $e ) {
+      foreach ( $e->getTrace() as $st )
+      syslog( LOG_INFO, " @ {$st['line']} {$st['class']}::{$st['function']}() in {$st['file']}");
+    }
+  }
+
+  function fetch_property_list($include_omitted = FALSE) {/*{{{*/
     // Get list of public properties of the derived class 
+    $debug_method = FALSE;
     $members = array();
+    $omitted_members = array();
+    $myname = get_class($this);
+    if ( array_key_exists($myname, self::$obj_attrdefs) ) {
+      return $include_omitted
+        ? self::$obj_attrdefs[$myname]
+        : array_filter(array_map(create_function('$a', 'return array_key_exists("joinobject",$a) ? NULL : $a;'), self::$obj_attrdefs[$myname]))
+        ;
+    }
     foreach ( $this->getProperties(ReflectionProperty::IS_PUBLIC) as $p ) {
       if ( $p->getDeclaringClass()->getName() != get_class($this) ) continue;
       $defvalue = $p->getValue($this);
       if ( strlen($defvalue) > 200 ) $defvalue = substr($defvalue,0,200) . '... (' . strlen($defvalue) . ')'; 
-      $this->syslog(__FUNCTION__, '-', "- Value '{$defvalue}' type " . gettype($defvalue) );
+      // $this->syslog(__FUNCTION__, '-', "(marker) - Value '{$defvalue}' type " . gettype($defvalue) );
       $nameparts = array();
       preg_match_all('/^(.*)_(.*)$/i',$p->getName(),$nameparts);
       $use_nametype = 0 < strlen($nameparts[1][0]);
@@ -71,17 +95,62 @@ EOS;
         'name' => $use_nametype ? $nameparts[1][0] : $p->getName(),
         'type' => $use_nametype ? $nameparts[2][0] : 'pkey',
       );
-      $propername = join('_',camelcase_to_array($member['name']));
-      if (!( str_replace('__','_',$propername) == $member['name'] ) && ('pkey' == $member['type'])) {
-        $member['propername'] = $propername;
+      $attr_is_model = class_exists("{$member['type']}",FALSE);
+      if ( $attr_is_model || (1 == preg_match('@(.*)Model$@',$member['type'])) ) {
+        // Model attribute check.  Treat object references as invisible;
+        // they do not correspond to a field/column in the object's backing
+        // store table. 
+        if ( $debug_method ) { 
+          $extant = $attr_is_model ? "Including extant" : "Excluding unavailable";
+          $this->syslog(__FUNCTION__, __LINE__, "(marker) {$extant} class name {$member['type']}" );
+        }
+        $member['propername'] = $member['type'];
+        if (1 == preg_match('@(.*)Join$@i', $myname)) {
+          $members[$member['name']] = $member;
+           continue;
+        }
+        // Compute Join object name if this isn't already a Join model
+        $realnames   = array($member['type']);
+        $realnames[] = $myname;
+        $realnames   = array_flip($realnames);
+        ksort($realnames); // Avoid guessing whether the join class ClassAClassBJoin or ClassBClassAJoin
+        $realnames   = array_flip($realnames);
+        $fakename    = array_map(create_function('$a', 'return preg_replace("@(Document)*Model$@i","",$a);'), $realnames);
+        // The '_PLUS_' conjunction causes the class loader to generate
+        // a new class definition file with the two object names used
+        // to declare the join. 
+        $autoloader_trigger   = join('_Plus_',$realnames) . "Join";
+        $member['joinobject'] = join('',$fakename) . "Join";
+        $autoload_result      = FALSE;
+        $omitted_members[$member['name']] = $member;
+        $autoload_result = class_exists($autoloader_trigger);
+        if ( $attr_is_model ) {
+          // Cause instantiation (hence auto-generation) of the join table class.
+          $autoload_result |= class_exists($member['joinobject']);
+        }
+        if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) Test for {$member['joinobject']} (trigger name '{$autoloader_trigger}'): " . ($autoload_result ? "Exists" : "Does not exist") );
+        continue;
       }
       $members[$member['name']] = $member;
     }
-    $this->recursive_dump($members,get_class($this));
-    return $members;
+    // Keep track of all derived class attribute definitions
+    // TODO:  If we run into a race condition that cannot be remedied by reordering instance declarations, roll back to SVN #418 (internal schedule)
+    if ( !array_key_exists($myname,self::$obj_attrdefs) ) {
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Inserting attrdefs {$myname}");
+      self::$obj_attrdefs[$myname] = array_merge(
+        $members,
+        $omitted_members
+      );
+    }
+    $returnval = $include_omitted ? self::$obj_attrdefs[$myname] : $members;
+    if ( $debug_method ) $this->recursive_dump($returnval,"(marker) Finally " . get_class($this));
+    return $returnval;
   }/*}}}*/
 
-  private final function fetch_typemap($attrs) {/*{{{*/
+  private final function fetch_typemap($attrinfo, $mode = NULL) {/*{{{*/
+
+    // Get type map information for a SINGLE model attribute.
+    $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
     $type_map = array(
       'pkey' => array('attrname' => 'pkey'              , 'quot' => FALSE),
       'utx'  => array('attrname' => 'INT(11)'           , 'quot' => FALSE),
@@ -95,46 +164,86 @@ EOS;
     $sqlmodif = array(
       'uniq'  => 'UNIQUE',
     );
-    $fieldname     = $attrs['name'];
+    $fieldname     = $attrinfo['name'];
     $modifiers     = '/([A-Za-z]+)([0-9]+)?(uniq)?$/';
     $matches       = array();
-    $match_result  = preg_match_all($modifiers, $attrs['type'], $matches);
+    $match_result  = preg_match_all($modifiers, $attrinfo['type'], $matches);
     $size          = $matches[2][0];
     $modifier      = array_key_exists(3,$matches) && array_key_exists($matches[3][0],$sqlmodif) ? $sqlmodif[$matches[3][0]] : NULL;
 
-    $attrs['type'] = $matches[1][0];
-    if (C('DEBUG_' . strtoupper(get_class($this)))) {
-      $this->syslog(__FUNCTION__, '-', "Type spec '{$attrs['type']}'" );
-      $this->recursive_dump($matches, $attrs['type']);
+    if ($debug_method) {
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) Called with array " . count($attrinfo)  );
+      $this->recursive_dump($attrinfo, "(marker)");
+      // $this->log_stack();
     }
 
-    $quoting    = array_key_exists($attrs['type'],$type_map) ? $type_map[$attrs['type']]['quot'] : FALSE;
-    $bindparam  = array_key_exists($attrs['type'],$type_map) && array_key_exists('mustbind', $type_map[$attrs['type']]) ? $type_map[$attrs['type']]['mustbind'] : FALSE;
-    $properties = array_key_exists($attrs['type'],$type_map) ? $type_map[$attrs['type']]['attrname'] : 'VARCHAR(64)';
+    $attrinfo['type'] = $matches[1][0];
+    if ($debug_method || C('DEBUG_' . strtoupper(get_class($this)))) {
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) Type spec '{$attrinfo['type']}'" );
+      $this->recursive_dump($matches, "(marker) {$attrinfo['type']}");
+    }
+
+    $quoting    = array_key_exists($attrinfo['type'],$type_map) ? $type_map[$attrinfo['type']]['quot'] : FALSE;
+    $bindparam  = array_key_exists($attrinfo['type'],$type_map) && array_key_exists('mustbind', $type_map[$attrinfo['type']]) ? $type_map[$attrinfo['type']]['mustbind'] : FALSE;
+    $properties = array_key_exists($attrinfo['type'],$type_map) ? $type_map[$attrinfo['type']]['attrname'] : 'VARCHAR(64)';
     $properties = preg_replace('/\((s)\)/',"({$size})",$type_map[$matches[1][0]]['attrname']);
     $properties = "{$properties} {$modifier}";
 
     // TODO: Implement model references
-    if (array_key_exists('propername',$attrs)) {
-      $fieldname = $attrs['propername'];
-      $properties = "INT(11) REFERENCES `{$attrs['propername']}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT";
+    if (array_key_exists('propername',$attrinfo)) {
+      $fieldname = $attrinfo['name'];
+      // Only return something meaningful when this is an edge object
+      $ft_propername = join('_',camelcase_to_array($attrinfo['propername']));
+      $properties = <<<EOS
+INT(11) REFERENCES `{$ft_propername}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT
+EOS;
+      if ($debug_method) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker)  Attribute: {$fieldname}" );
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) Properties: {$properties}" );
+      }
+      // Notes:
+      // This method is called in __ contexts:
+      // - ALTER TABLE ... ADD COLUMN:  initialize_derived_class_state()
+      //   To add or remove columns, requires properties attr
+      // - CREATE TABLE: construct_backing_table().
+      // - full_property_list() 
+      // TODO: Check whether the referenced model B has a matching attribute.
+      // If the peer has an attribute of $this type, use an edge node
+      // (effectively a link table), and omit declaration of a foreign key
+      // reference attr. 
+      // Otherwise, when referenced model B does NOT have a matching attribute
+      // then this attribute implements a 1-1 join.
+      if ( is_null($mode) ) return NULL;
+      if (!(1 == preg_match('@(.*)Join$@i', get_class($this)))) return NULL;
+    }
+    else if (1 == preg_match('@(.*)Join$@i', get_class($this))) {
+      $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
     }
     return array(
-      'fieldname' => $fieldname,
+      'fieldname'  => $fieldname,
       'properties' => $properties,
-      'quoted' => $quoting,
-      'unique' => !is_null($modifier),
-      'size' => empty($size) ? NULL : intval($size),
-      'mustbind' => $bindparam,
+      'quoted'     => $quoting,
+      'unique'     => !is_null($modifier),
+      'size'       => empty($size) ? NULL : intval($size),
+      'mustbind'   => $bindparam,
     );
   }/*}}}*/
 
   private final function construct_backing_table($tablename, $members) {/*{{{*/
-    $this->syslog( '?', '-', "Constructing backing table '{$tablename}' for " . get_class($this) );
+    $debug_method = FALSE;
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Constructing backing table '{$tablename}' for " . get_class($this) );
     $attrset = array('`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY'); 
     // Detect class names
     foreach ( $members as $attrs ) {
-      extract($this->fetch_typemap($attrs));
+      // GRAPHEDGE_DISCARD: Discard declaration here IF this object's name
+      // does not end in Join; in that case, we replace the field name and
+      // properties:
+      // - $fieldname: Change to *_int11
+      // - $properties: INT(11) REFERENCES `{ftable}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT";  
+      // Also add UNIQUE INDEX ($a,$b)  
+      $attrdef = $this->fetch_typemap($attrs,'CREATE');
+      if ( is_null($attrdef) ) continue;
+      extract($attrdef);
       $attrset[] = <<<EOH
 `{$fieldname}` {$properties}
 EOH;
@@ -144,28 +253,52 @@ EOH;
     $create_table =<<<EOH
 CREATE TABLE `{$tablename}` ( {$attrset} ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
 EOH;
+    // A link table will contain at least two attributes which must be declared
+    // jointly unique, with cascadable update and delete
     $create_result = $this->query($create_table)->resultset();
-    $result_type = gettype($create_result);
-    if ( is_bool($create_result) ) $create_result = $create_result ? 'TRUE' : 'FALSE';
-    $this->syslog('..','-', "Create   stmt: {$create_table}" );
-    $this->syslog('..','-', "Create result: {$create_result} ({$result_type}). " . $this->error() );
+    if ( $debug_method ) {
+      $result_type = gettype($create_result);
+      if ( is_bool($create_result) ) $create_result = $create_result ? 'TRUE' : 'FALSE';
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) Create   stmt: {$create_table}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) Create result: {$create_result} ({$result_type}). " . $this->error() );
+    }
+    return $create_result;
   }/*}}}*/
 
   function fetch_structure_backing_diffs($tablename, $members) {/*{{{*/
+    $debug_method = FALSE;
+    if ( array_key_exists($tablename, self::$obj_ondisk) ) {
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - Assume no diffs for {$tablename}" );
+      return array(
+        'added_columns'   => array(),
+        'removed_columns' => array(), 
+      );
+    }
+    $is_join_table  = 1 == preg_match('@(.*)Join$@i',get_class($this));
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - Treating {$tablename} as " . ($is_join_table ? "join" : "regular table") );
+    self::$obj_ondisk[$tablename] = $members;
     $attrdefs        = $this->query("SHOW COLUMNS FROM `{$tablename}`")->resultset();
-    $current_columns = create_function('$a', 'return isset($a["propername"]) ? $a["propername"] : ( $a["name"] == "id" ? NULL : $a["name"]);');
+    // TODO: Allow join tables to possess member reference attributes
+    // TODO: Test individual attributes, instead of depending on the 'Join' suffix
+    $current_columns = $is_join_table
+      ?  create_function('$a', 'return $a["name"] == "id" ? NULL : $a["name"];')
+      :  create_function('$a', 'return isset($a["propername"]) ? $a["propername"] : ( $a["name"] == "id" ? NULL : $a["name"]);')
+      ;
     $removed_columns = array_flip(array_filter(array_map($current_columns, $members))); // In DB, not in memory
     $added_columns   = $members; // Attributes in classdef, but not in backing store 
     $attribute_map   = array_flip($attrdefs['attrnames']);
     // $this->recursive_dump($removed_columns, '-%');
     foreach ( $attrdefs['values'] as $attrs ) {
       $attrname   = $attrs[$attribute_map['Field']];
-      // $this->syslog( __FUNCTION__, __LINE__, "A+ {$attrname} vs " . join('',camelcase_to_array($attrname)) );
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) A+ {$attrname} vs " . join('',camelcase_to_array($attrname)) );
       if ( $attrname == 'id' ) continue;
       $attrname   = join('',camelcase_to_array($attrname)) == $attrname ? $attrname : join('_',camelcase_to_array($attrname));
       $attrtype   = $attrs[$attribute_map['Type']];
       // Reduce list of extant columns to those that are not in the class
-      $remove_extant = create_function('$a', 'return ((array_key_exists("propername", $a) && ($a["propername"] == "'. $attrname .'")) || ($a["name"] == "'. $attrname .'")) ? NULL : $a;');
+      $remove_extant = $is_join_table
+        ?  create_function('$a', 'return ($a["name"] == "'. $attrname .'") ? NULL : $a;')
+        :  create_function('$a', 'return ((array_key_exists("propername", $a) && ($a["propername"] == "'. $attrname .'")) || ($a["name"] == "'. $attrname .'")) ? NULL : $a;')
+        ;
       $added_columns = array_filter(array_map($remove_extant, $added_columns));
       // Reduce list of attributes removed from the class by excluding columns that are still attributes of the on-disk table 
       $removed_columns[$attrname] = array_key_exists($attrname, $removed_columns)
@@ -173,14 +306,10 @@ EOH;
         : $attrname
         ;
     }
-    // $this->recursive_dump($added_columns, '%');
     foreach ( $added_columns as $t => $column ) {/*{{{*/
-      // $this->recursive_dump($column, $t . '-i');
       $removed_columns[$column[array_key_exists("propername", $column) ? "propername" : "name"]] = NULL;
     }/*}}}*/
     $removed_columns = array_values(array_filter($removed_columns));
-    // $this->recursive_dump($added_columns, '+');
-    // $this->recursive_dump($removed_columns, '-');
     return array(
       'added_columns'   => array_values($added_columns),
       'removed_columns' => $removed_columns,
@@ -188,16 +317,18 @@ EOH;
   }/*}}}*/
 
   protected final function initialize_derived_class_state() {/*{{{*/
+    $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
     $this->tablename = join('_', camelcase_to_array(get_class($this)));
     $this->initialize_db_handle();
     if ( C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {
 
-      $members        = $this->fetch_property_list();
-
       // Determine if the backing table exists; construct it if it does not.
+      $is_join_table  = 1 == preg_match('@(.*)Join$@i',get_class($this));
+      $members        = $this->fetch_property_list($is_join_table);
+      if ( $debug_method ) $this->recursive_dump($members,"(marker) - From fetch_property_list");
       $matched_tables = array();
-
       $result         = $this->query('SHOW TABLES')->resultset();
+
       if ( is_array($result) && array_key_exists('values',$result) ) {
         $matched_tables = array_filter(
           array_map(
@@ -206,29 +337,56 @@ EOH;
           )
         );
       }
-      if ( count($matched_tables) == 0 ) $this->construct_backing_table($this->tablename, $members);
+
+      if ( $debug_method ) { 
+        $this->syslog( __FUNCTION__, __LINE__, "WARNING: members table before construct_backing_table" );
+        $this->recursive_dump($members,"(marker) Class members as found");
+      }
+
+      if ( count($matched_tables) == 0 ) {
+        $this->construct_backing_table($this->tablename, $members);
+      }
+
+      if ( $debug_method ) { 
+        $this->syslog( __FUNCTION__, __LINE__, "WARNING: members table AFTER construct_backing_table" );
+        $this->recursive_dump($members,"(marker) Class members as found");
+      }
 
       // Synchronize table columns and class attributes
-      extract($this->fetch_structure_backing_diffs($this->tablename, $members));
+      $structure_deltas = $this->fetch_structure_backing_diffs($this->tablename, $members);
+      if ( $debug_method ) { 
+        $this->syslog( __FUNCTION__, __LINE__, "WARNING: Structure differences" );
+        $this->recursive_dump($structure_deltas,"(marker) ------ --- -- - ");
+      }
+      extract($structure_deltas);
+
       // Remove newly undefined columns
-      //$this->syslog( __FUNCTION__, __LINE__, "Test for removable columns" );
-      //$this->recursive_dump($removed_columns,__LINE__);
-      //$this->recursive_dump($members,__LINE__);
+      // FIXME:  Ensure that join table attributes referring to models aren't nuked
+      if ( $is_join_table && $debug_method ) {
+        $this->syslog( __FUNCTION__, __LINE__, "WARNING: Join table columns must be excluded from the attribute lists to follow:" );
+        $this->recursive_dump($removed_columns,"(marker) Apparently Removed");
+        $this->recursive_dump($added_columns  ,"(marker)   Apparently Added");
+        $this->syslog( __FUNCTION__, __LINE__, "WARNING: End. --------------------------------- " );
+      }
+
       foreach ( $removed_columns as $removed_column ) {
         $sql = <<<EOH
 ALTER TABLE `{$this->tablename}` DROP COLUMN `{$removed_column}`
 EOH;
         $result = is_bool($result = $this->query($sql)->resultset()) ? ($result ? 'TRUE' : 'FALSE') : '---';
-        $this->syslog( __FUNCTION__, __LINE__, "Remove {$removed_column}: {$result}" );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Remove {$removed_column}: {$result}" );
       }
       foreach ( $added_columns as $added_column ) {
         $column_name = $added_column['name'];
-        extract($this->fetch_typemap($added_column));
+        // GRAPHEDGE_DISCARD: Allow an attribute to be discarded if it describes an edge node.
+        $attrdef = $this->fetch_typemap($added_column);
+        if ( is_null($attrdef) ) continue;
+        extract($attrdef);
         $sql = <<<EOH
 ALTER TABLE `{$this->tablename}` ADD COLUMN `{$column_name}` {$properties} AFTER `id`
 EOH;
         $result = is_bool($result = $this->query($sql)->resultset()) ? ($result ? 'TRUE' : 'FALSE ' . $sql) : '---';
-        $this->syslog( __FUNCTION__, __LINE__, "Add {$column_name}: {$result}" );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Add {$column_name}: {$result}" );
       }
     }
   }/*}}}*/
@@ -247,7 +405,10 @@ EOH;
     $attrlist     = $this->fetch_property_list();
     foreach ( $attrlist as $member_index => $attrs ) {
       $attrname = "{$attrs['name']}_{$attrs['type']}";
-      $attrlist[$member_index]['attrs'] = $this->fetch_typemap($attrs);
+      // GRAPHEDGE_DISCARD: Simply discard model to model edges 
+      $attrdef = $this->fetch_typemap($attrs);
+      if ( is_null($attrdef) ) continue;
+      $attrlist[$member_index]['attrs'] = $attrdef;
       $value    = $this->$attrname;
       if ( is_null( $value ) ) $value = 'NULL';
       else $value = $attrlist[$member_index]['attrs']['quoted']
@@ -636,11 +797,11 @@ EOS;
     }
   }/*}}}*/
 
-  final protected function recursive_dump($a, $prefix = NULL) {
+  final protected function recursive_dump($a, $prefix = NULL) {/*{{{*/
     if ( !is_array($a) ) return;
     if ( !$this->logging_ok($prefix) ) return;
     $this->recursive_dump_worker($a, 0, $prefix);
-  }
+  }/*}}}*/
 
   final private function recursive_dump_worker($a, $depth = 0, $prefix = NULL) {/*{{{*/
     if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));
@@ -693,19 +854,188 @@ EOP
     return $this;
   }/*}}}*/
 
-  function slice($s) {
+  function slice($s) {/*{{{*/
     // Duplicated in RawparseUtility
     return create_function('$a', 'return $a["'.$s.'"];');
-  }
+  }/*}}}*/
 
-  function dump_accessor_defs_to_syslog() {
+  function dump_accessor_defs_to_syslog() {/*{{{*/
     $data_items = array_flip(array_map($this->slice('name'), $this->fetch_property_list()));
     $this->recursive_dump($data_items,'(marker)');
     $this->set_contents_from_array($data_items,FALSE);
-  }  
+  }  /*}}}*/
 
-  function get_id() {
+  function get_id() {/*{{{*/
     return $this->in_database() ? $this->id : NULL;
-  }
+  }/*}}}*/
+
+  function get_map_functions($docpath, $d = 0) {/*{{{*/
+    // A mutable alternative to XPath
+    // Extract content from parse containers
+    $map_functions = array();
+    // Disallow recursion beyond the depth we can possibly use. parse_html() returns a shallow nested array
+    if ( $d > 4 ) return $map_functions;
+    // A hash for the tag selector is interpreted to mean "return siblings of an element which match the selector"
+    $selector_regex = '@({([^}]*)}|\[([^]]*)\]|(([-_0-9a-z=#]*)*)[,]*)@';
+    // Pattern yields the selectors in match component #3,
+    // and the subject item description in component #2.
+    $matches = array();
+    preg_match_all($selector_regex, $docpath, $matches);
+
+    array_walk($matches,create_function('& $a, $k','$a = is_array($a) ? array_filter($a) : NULL; if (empty($a)) $a = "*";'));
+
+    $subjects   = $matches[2]; // 
+    $selectors  = $matches[3]; // Key-value match pairs (A=B, match exactly; A*=B regex match)
+    $returnable = $matches[4]; // Return this key from all containers
+
+    $conditions = array(); // Concatenate elements of this array to form the array_map condition
+
+    foreach ( $selectors as $condition ) {
+
+      if ( $this->debug_operators ) $this->syslog(__FUNCTION__,__LINE__,">>> Decomposing '{$condition}'");
+
+      if ( !(1 == preg_match('@([^*=]*)(\*=|=)*(.*)@', $condition, $p)) ) {
+        // A condition must take the form of an equality test.
+        // The test itself is implemented as either a simple comparison or a regex match.
+        $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Unparseable condition. Terminating recursion.");
+        return array();
+      }
+      $attr = $p[1];
+      $conn = $p[2]; // *= for regex match; = for equality
+      $val  = $p[3];
+
+      if ($this->debug_operators) {/*{{{*/
+        $this->recursive_dump($p,"(marker) Selector components" );
+      }/*}}}*/
+
+      $attparts = '';
+      if ( !empty($attr) ) {
+        // Specify a match on nested arrays using [kd1:kd2] to match against
+        // $a[kd1][kd2] 
+        foreach ( explode(':', $attr) as $sa ) {
+          $conditions[] = 'array_key_exists("'.$sa.'", $a'.$attparts.')';
+          $attparts .= "['{$sa}']";
+        }
+      }
+
+      if ( empty($val) ) {
+        // There is only an attribute to check for.  Include source element if the attribute exists 
+        if (!is_array($returnable)) $returnable = '$a["'.$attr.'"]';
+      } else if ( $conn == '=' ) {
+        // Allow condition '*' to stand for any matchable value; 
+        // if an asterisk is specified, then the match for a specific
+        // value is omitted, so only existence of the key is required.
+        if ( $val != '*' ) $conditions[] = '$a["'.$attr.'"] == "'.$val.'"';
+      } else if ($conn == '*=') {
+        $split_val = explode('|', $val);
+        $regex_modifier = NULL;
+        if ( 1 < count($split_val) ) {
+          $regex_modifier = $split_val[count($split_val)-1];
+          array_pop($split_val);
+          $val = join('|',$split_val);
+        }
+        $conditions[] = '1 == preg_match("@('.$val.')@'.$regex_modifier.'",$a'.$attparts.')';
+        if ( $returnable == '*' ) $returnable = '$a["'.$attr.'"]';
+      } else {
+        $this->syslog(__FUNCTION__,__LINE__,"Unrecognized comparison operator '{$conn}'");
+      }
+    }
+
+    if ( is_array($returnable) ) {
+      if ( 1 == count($returnable) ) {
+        // If the returnable is specified as '#', then all siblings of the matching element(s) are returned.
+        $returnable_map   = create_function('$a', '$m = array(); return !(1 == preg_match("@^([#])(.*)@i", $a, $m)) ? "\$a[\"{$a}\"]" : ( 0 < strlen($m[2]) ? "\$a[\"$m[2]\"]" : "\$a" ) ;');
+        $returnable_match = join(',',array_map($returnable_map, $returnable));
+      } else {
+        $returnable_map   = create_function('$a', 'return "\"{$a}\" => \$a[\"{$a}\"]";');
+        $returnable_match = is_array($returnable) 
+          ? ('array(' . join(',',array_map($returnable_map, $returnable)) .')') 
+          : $returnable;
+      }
+    } else {
+      if ( $returnable == '*' ) {
+        // If the returnable attribute is given as '*', return the entire array value.
+        // $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Map function will be unusable, no return value (currently '{$returnable}') in map function.  Bailing out");
+        $returnable_match = '$a';
+      } else {
+        $returnable_match = $returnable;
+      }
+    }
+    $map_condition   = 'return ' . join(' && ', $conditions) . ' ? ' . $returnable_match . ' : NULL;';
+    $map_functions[] = $map_condition;
+
+    if ($this->debug_operators) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Extracting from '{$docpath}'");
+      $this->recursive_dump($matches,"(marker) matches");
+      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Map function derived at depth {$d}: {$map_condition}");
+      $this->recursive_dump($conditions,"(marker) conditions");
+    }/*}}}*/
+
+    if ( is_array($subjects) && 0 < count($subjects) ) {
+      foreach ( $subjects as $subpath ) {
+        if ($this->debug_operators) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Passing sub-path at depth {$d}: {$subpath}");
+        }/*}}}*/
+        $submap = $this->get_map_functions($subpath, $d+1);
+        if ( is_array($submap) ) $map_functions = array_merge($map_functions, $submap);
+      }
+    }
+
+    return $map_functions;
+  }/*}}}*/
+
+  function resequence_children(& $containers) {/*{{{*/
+    return array_walk(
+      $containers,
+      // create_function('& $a, $k, $s', 'if ( array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'),
+      create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
+      $this
+    );
+  }/*}}}*/
+
+  function & filter_nested_array(& $a, $docpath, $reduce_to_element = FALSE) {/*{{{*/
+    $filter_map = $this->get_map_functions($docpath);
+    if ( $this->debug_operators ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"------ (marker) Containers to process: " . count($this->containers));
+      $this->recursive_dump($filter_map,'(marker)');
+    }/*}}}*/
+    foreach ( $filter_map as $i => $map ) {
+      if ( $i == 0 ) {
+        if ( $this->debug_operators ) {/*{{{*/
+          $n = count($a);
+          $this->syslog(__FUNCTION__,__LINE__,"A ------ (marker) N = {$n} Map: {$map}");
+        }/*}}}*/
+        $a = array_filter(array_map(create_function('$a',$map), $a));
+        if ( $this->debug_operators ) {/*{{{*/
+          $n = count($a);
+          $this->syslog(__FUNCTION__,__LINE__,"A <<<<<< (marker) N = {$n} Map: {$map}");
+        }/*}}}*/
+        $this->resequence_children($a);
+      } else {
+        if ( $this->debug_operators ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"B ------ (marker) N = {$n} Map: {$a}");
+        }/*}}}*/
+        foreach ( $a as $seq => $m ) {
+          $a[$seq] = array_filter(array_map(create_function('$a',$map), $m));
+        }
+      }
+      if ( $this->debug_operators ) {/*{{{*/
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - Map #{$i} - {$map}");
+        $this->recursive_dump($a,'(marker)');
+      }/*}}}*/
+    }
+    if ( is_numeric($reduce_to_element) ) {
+      $a = is_array($a) ? array_values($a) : array(NULL);
+      return array_key_exists(intval($reduce_to_element), $a) ? $a[intval($reduce_to_element)] : NULL;
+    } else if ( FALSE === $reduce_to_element ) { 
+      return $a;
+    } else if ( is_null($reduce_to_element) ) {
+      $a = is_array($a) ? array_values($a) : array(NULL);
+      return $a[0];
+    }
+    return $a;
+    
+  }/*}}}*/
+
 
 }

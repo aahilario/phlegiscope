@@ -282,7 +282,7 @@ class LegiscopeBase extends SystemUtility {
     $link_hashes = $this->filter_post('links', array());
     $modifier    = $this->filter_post('modifier');
 
-    $this->recursive_dump($link_hashes,__LINE__);
+    $this->recursive_dump($link_hashes,"(marker)");
 
     $url = new UrlModel();
 

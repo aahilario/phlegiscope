@@ -31,10 +31,10 @@ function camelcase_to_array($classname) {
 spl_autoload_register(function ($classname) {
   // Transform class names in the form AxxxByyyCzzz 
   // to class filename czzz.byyy.axxx.php
-  // syslog( LOG_INFO, "Finding class {$classname}");
+  syslog( LOG_INFO, "----- ---- --- -- - --------------- Finding class {$classname}");
   $name_components = camelcase_to_array($classname);
   $target_filename = join('.', array_reverse(array_filter($name_components))) . '.php';
-  $target_filename = preg_replace('/^' . getcwd . '/', '', $target_filename);
+  $target_filename = preg_replace('@/^' . getcwd() . '/@', '', $target_filename);
   if ( file_exists( "./system/lib/{$target_filename}" ) ) {
     $target_filename = "./system/lib/{$target_filename}";
   } else {
@@ -60,6 +60,60 @@ class {$classname} {$base} {
   function __construct() {
     parent::__construct();
   }
+
+}
+
+EOH;
+    } else if ( 1 == preg_match('@(.*)Join$@i', $classname) ) {
+      $components = array();
+      $builtins = '';
+      // syslog( LOG_INFO, "- Generating {$classname}");
+      // Note: If the file containing this class declaration does not
+      // exist yet, then neither has the backing store (linking table)
+      // been created for the object defined by this class.
+      syslog( LOG_INFO, "---- Classname {$classname}" );
+
+      if ( 1 == preg_match('@\_Plus\_@i', $classname) ) {
+        $components_real = explode('_Plus_',  preg_replace("@Join$@i","",$classname));
+        $varnames        = $components_real;
+        $components      = array_map(create_function('$a', 'return preg_replace("@(Document)*Model$@i","",$a);'), $components_real);
+        $classname       = join('', $components) . 'Join';
+        $name_components = camelcase_to_array($classname);
+        $target_filename = join('.', array_reverse(array_filter($name_components))) . '.php';
+        array_walk($components,create_function(
+          '& $a, $k', '$a = join("_", camelcase_to_array($a));'));
+        $builtins = <<<EOH
+  function & set_{$components[0]}(\$v) { \$this->{$components[0]}_{$varnames[0]} = \$v; return \$this; }
+  function get_{$components[0]}(\$v = NULL) { if (!is_null(\$v)) \$this->set_{$components[0]}(\$v); return \$this->{$components[0]}_{$varnames[0]}; }
+
+  function & set_{$components[1]}(\$v) { \$this->{$components[1]}_{$varnames[1]} = \$v; return \$this; }
+  function get_{$components[1]}(\$v = NULL) { if (!is_null(\$v)) \$this->set_{$components[1]}(\$v); return \$this->{$components[1]}_{$varnames[1]}; }
+EOH;
+        array_walk($components,create_function(
+          '& $a, $k, $s', '$a = "  var \${$a}_{$s[$k]};";'),
+          $varnames
+        );
+      }
+      $components = join("\n", $components);
+      $target_filename = "./system/lib/models/{$target_filename}";
+
+      syslog( LOG_INFO, "---- Target filename: {$target_filename}" );
+      syslog( LOG_INFO, "---- Final classname: {$classname}" );
+
+      $base = 'extends DatabaseUtility';
+      $classdef = <<<EOH
+class {$classname} {$base} {
+  
+  // Join table model
+{$components}
+
+  function __construct() {
+    parent::__construct();
+    \$this->dump_accessor_defs_to_syslog();
+    \$this->recursive_dump(\$this->get_attrdefs(),'(marker) "+++++++"');
+  }
+
+{$builtins}
 
 }
 

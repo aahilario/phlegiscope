@@ -54,127 +54,27 @@ class SenateGovPh extends LegiscopeBase {
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $report         = new SenateCommitteeReportDocumentModel();
+    $journal        = new SenateJournalDocumentModel();
     $journal_parser = new SenateJournalParseUtility();
+    $reportjournal  = new SenateCommitteeReportSenateJournalJoin();
+    $reportjournal->dump_accessor_defs_to_syslog();
+
     $journal_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = preg_replace(
-      array(
-        "@\&\#10;@",
-        "@\&\#9;@",
-        "@\n@",
-      ),
-      array(
-        "",
-        " ",
-        "",
-      ),
-      join('',$journal_parser->get_filtered_doc())
+
+    $journal_data = array();
+    $pagecontent = $journal_parser->parse_activity_summary($journal_data);
+
+    // Store this Journal
+    $journal->store($journal_data, $urlmodel, $pagecontent);
+
+    // Extract committee report list from journal entry data
+    $journal_parser->debug_operators = FALSE;
+    $committee_reports = $journal_parser->filter_nested_array($journal_data,
+      '#content[tag*=CR]',0 // Return the zeroth element, there can only be one CR set 
     );
 
-    if (0) $this->recursive_dump(($journal_properties = $journal_parser->get_containers(
-      //'children[tagname=div][class*=lis_doctitle]'
-    )),'(marker) J');
-    
-    $journal_data = array_filter($journal_parser->activity_summary);
-
-    if (0) $this->recursive_dump($journal_data,'(marker) A');
-
-    $pagecontent = '';
-
-    $test_url = new UrlModel();
-
-    foreach ( $journal_data as $n => $e ) {/*{{{*/
-      if ( array_key_exists('metadata',$e) ) {/*{{{*/
-        $e = $e['metadata'];
-        $pagecontent .= <<<EOH
-<br/>
-<div>
-Journal of the {$e['congress']} Congress, {$e['session']}<br/>
-Recorded: {$e['date']}<br/>
-Approved: {$e['approved']}
-</div>
-EOH;
-        continue;
-      }/*}}}*/
-      if ( intval($n) == 0 ) {/*{{{*/
-        foreach ($e['content'] as $entry) {
-          $properties = array('legiscope-remote');
-          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
-          $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
-          if ( array_key_exists('url',$entry) ) {/*{{{*/
-            $pagecontent .= <<<EOH
-<b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
-EOH;
-
-            continue;
-          }/*}}}*/
-          if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
-            $pagecontent .= <<<EOH
-Published {$entry['text']}<br/><br/>
-EOH;
-            continue;
-          }/*}}}*/
-        }
-        continue;
-      } /*}}}*/
-      $pagecontent .= <<<EOH
-<br/>
-<b>{$e['section']}</b>
-<br/>
-EOH;
-
-      // Add R1, R2, R3, and CR tags to the array
-      $tag = preg_replace(
-        array(
-          '@(.*)first reading@i',
-          '@(.*)second reading(.*)@i',
-          '@(.*)third reading(.*)@i',
-          '@(.*)committee report(.*)@i',
-        ),
-        array(
-          'R1',
-          'R2',
-          'R3',
-          'CR',
-        ),
-        $e['section']
-      );
-      if ( 1 == preg_match('@^(R1|R2|R3|CR)@i', $tag) ) $journal_data[$n]['tag'] = $tag; 
-
-      $lines = array();
-      $sorttype = NULL;
-      if ( is_array($e) && array_key_exists('content',$e) && is_array($e['content']) ) {
-        foreach ($e['content'] as $entry) {/*{{{*/
-          $properties = array('legiscope-remote');
-          $matches = array();
-          $title = $entry['text'];
-          // Split these patterns:
-          // SBN-3928: Description
-          // No. 123 - Description
-          $pattern = '@^([^:]*)(:|[ ]*-[ ]*)(.*)@i';
-          preg_match($pattern, $title, $matches);
-          $title = $matches[1];
-          $desc = $matches[3];
-          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
-          $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
-          $sortkey = preg_replace('@[^0-9]@','',$title);
-          if ( is_null($sorttype) ) $sorttype = 0 < intval($sortkey) ? SORT_NUMERIC : SORT_REGULAR;
-          $sortkey = 0 < intval($sortkey) ? intval($sortkey) : $title;
-          $lines[$sortkey] = <<<EOH
-<li><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</li>
-
-EOH;
-        }/*}}}*/
-        ksort($lines,$sorttype);
-      }
-      $lines = join(' ',$lines);
-      $pagecontent .= <<<EOH
-<ul>{$lines}</ul>
-EOH;
-    }/*}}}*/
-
-    if (1) $this->recursive_dump($journal_data,'(marker) F');
+    if ( !is_null($committee_reports) ) $report->store_uncached_reports($committee_reports);
 
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
@@ -226,22 +126,26 @@ EOH;
     
     // Iteratively generate sets of columns
 
-    $common = new SenateJournalParseUtility();
+    $journal_parser = new SenateJournalParseUtility();
 
     // Prevent parsing this particular URL in the parent
     $urlmodel->ensure_custom_parse();
 
-    $common->
+    $journal_parser->
       reset()->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $inserted_content = join('',$common->get_filtered_doc());
+    $inserted_content = join('',$journal_parser->get_filtered_doc());
 
-    $common->cluster_urldefs = $common->generate_linkset($urlmodel->get_url(),'cluster_urls');
+    $journal_parser->cluster_urldefs = $journal_parser->generate_linkset($urlmodel->get_url(),'cluster_urls');
 
-    $session_select = $common->extract_senate_session_select($urlmodel, FALSE);
+    $session_select = $journal_parser->extract_senate_session_select($urlmodel, FALSE);
 
-    $pagecontent = $common->generate_congress_session_item_markup($urlmodel, $child_collection, $session_select);
+    $pagecontent = $journal_parser->generate_congress_session_item_markup(
+      $urlmodel,
+      $child_collection,
+      $session_select
+    );
 
     // Insert the stripped, unparsed document
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Inserting '{$urlmodel}'");
@@ -1010,17 +914,17 @@ EOH
       $test_url->fetch($page_url,'url');
       if ( $test_url->in_database() ) {
         $url_id = $test_url->get_id();
-        $this->syslog(__FUNCTION__,__LINE__, "? Testing URL #{$url_id} {$page_url}");
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) ? Testing URL #{$url_id} {$page_url}");
         $pages[$page_url] = $urlmodel->get_id() != $url_id
           ? $url_id
           : NULL // We want to skip this page
           ;
         if ( is_null($pages[$page_url]) ) {
-          $this->syslog(__FUNCTION__,__LINE__, "- Skipping URL #{$url_id} {$page_url}");
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) - Skipping URL #{$url_id} {$page_url}");
           $republic_acts = $on_this_page;
         } else {
           $content_length = $test_url->get_content_length();
-          $this->syslog(__FUNCTION__,__LINE__, "* Loading URL #{$url_id} {$content_length} octets {$page_url}:");
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) * Loading URL #{$url_id} {$content_length} octets {$page_url}:");
           $ra_parser->
             reset()->
             set_parent_url($urlmodel->get_url())->
@@ -1607,22 +1511,15 @@ EOH;
     // based on the URL hash.
     $link_lookup = array();
     foreach ( $links as $set => $link ) {/*{{{*/
-      array_walk($link,create_function(
-        '& $a, $k', '$a["hash"] = UrlModel::get_url_hash($a["url"]);'
-      ));
-      $link = array_combine(
-        array_map(create_function('$a', 'return $a["hash"];'), $link),
-        array_map(create_function('$a', 'return array("url" => $a["url"], "hash" => $a["hash"], "text" => $a["text"], "cached" => FALSE);'), $link)
-      );
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) --- Set {$set}");
-      $pagers = array();
-      $test_url->where(array('urlhash' => array_keys($link)))->recordfetch_setup();
-      while ( $test_url->recordfetch($pagers) ) {
-        $link[$pagers['urlhash']]['cached'] = TRUE;
-        $pagers = array();
+      // $this->syslog(__FUNCTION__,__LINE__,"(marker) --- Set {$set}");
+      $lookup_table = $test_url->get_caching_state($link);
+      foreach ( $link as $urlhash => $urlinfo ) {
+        $link[$urlhash]['cached'] = !array_key_exists($urlinfo['url'], $lookup_table);
+        $link[$urlhash]['hash'] = UrlModel::get_url_hash($urlinfo['url']); 
       }
       $link_lookup = array_merge($link_lookup, $link);
     }/*}}}*/
+    // $this->recursive_dump($link_lookup,'(marker) Link Lookup');
     // Emit committee report links
     $links = $link_lookup;
     $link_lookup = NULL;
@@ -1640,7 +1537,7 @@ EOH;
 
     }
     krsort($pagers);
-    $this->recursive_dump($pagers,'(marker)');
+    // $this->recursive_dump($pagers,'(marker) ' . __METHOD__);
     $inserted_content .= join(' ', $pagers);
     $pagers = NULL;
     $inserted_content .= <<<EOH

@@ -125,11 +125,11 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
   }
 
   public function begin($lock = TRUE) {
-    throw new Exception("Unimplemented");
+    throw new Exception(__METHOD__.":Unimplemented");
   }
 
   public function commit() {
-    throw new Exception("Unimplemented");
+    throw new Exception(__METHOD__.":Unimplemented");
   }
 
   public function last_query_rows() {

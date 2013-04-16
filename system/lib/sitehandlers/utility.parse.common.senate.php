@@ -251,7 +251,7 @@ class SenateCommonParseUtility extends GenericParseUtility {
           '1cb903bd644be9596931e7c368676982',
           $session_data
         );
-        // $this->recursive_dump($per_congress_pager, "(marker) NI -");
+        $this->recursive_dump($per_congress_pager, "(marker) NI -");
         // $this->recursive_dump($session_select,'(marker) Missing entry');
         // $session = UrlModel::create_metalink($session, $session_data  
         $per_congress_pager = join('', $per_congress_pager);
@@ -266,27 +266,64 @@ class SenateCommonParseUtility extends GenericParseUtility {
 
     $target_congress = $urlmodel->get_query_element('congress');
 
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Target Congress '{$target_congress}'");
+
     // Extract Congress selector (15th, 14th, 13th [as of 2013 April 9])
     $extracted_links = array();
     $congress_change_link = $this->extract_pager_links(
       $extracted_links,
-      $this->cluster_urldefs,
+      $this->cluster_urldefs, // Structure as below
       $pager_regex_uid 
     );
+    if ( $debug_method ) $this->recursive_dump($congress_change_link,'(marker) Congress Change Link');
     $congress_change_link = join('', $congress_change_link);
+
+    // Pager regex UIDs are taken from the parameterized URLs in $this->cluster_urldefs, as below:
+    //  9f35fc4cce1f01b32697e7c34b397a99 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
+    //    query_template => type=journal&congress=({PARAMS})
+    //    query_components =>
+    //       361d558f79a9d15a277468b313f49528 => 15|14|13
+    //    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?type=journal&congress=({PARAMS})
+    //  1cb903bd644be9596931e7c368676982 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
+    //    query_template => congress=15&type=journal&p=({PARAMS})
+    //    query_components =>
+    //       0cd3e2b45d2ebc55ca85d461abb6880c => 2|3|4|5
+    //    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=journal&p=({PARAMS})
+    //  acafee00836e5fbce173f8f4b22d13e1 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/journal.aspx
+    //    query_template => congress=15&session=1R&q=({PARAMS})
+    //    query_components =>
+    //       40b2fa87aab9d7dfd8be00197298b532 => 94|93|92|91|90|89|88|87|86|85|84
+    //       c64b23d94c86d9370fb246769579776d => 83|82|81|80|79|78|77|76|75|74|73
+    //    whole_url => http://www.senate.gov.ph/lis/journal.aspx?congress=15&session=1R&q=({PARAMS})
 
     $pagecontent = <<<EOH
 <div class="senate-journal">
 EOH;
+
+    // For priming an empty database:  Fetch child page links, use session_select metalink data
+
+    if ( $debug_method ) $this->recursive_dump($child_collection,'(marker) Session and item src');
 
     foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
 
       if ( !($target_congress == $congress) ) continue;
 
       $pagecontent .= <<<EOH
-<span class="indent-1">Congress {$congress} {$congress_change_link}<br/>
+<span class="indent-1">Congress {$congress} {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
 
 EOH;
+
+      // Insert missing regular session links
+      $sessions_extracted = $session_select; 
+      $sessions_extracted = $this->filter_nested_array($sessions_extracted,'optval[linktext*=Regular Session|i]');
+      if ( TRUE || $debug_method ) $this->recursive_dump($sessions_extracted,"(marker) Regular Session options");
+      foreach ( $sessions_extracted as $session ) {
+        if ( !array_key_exists($session, $session_q) ) $session_q[$session] = array();
+      }
+
       krsort($session_q);
 
       foreach ( $session_q as $session => $q ) {/*{{{*/
@@ -335,6 +372,17 @@ EOH;
 
     $pagecontent .= <<<EOH
 </div>
+<script type="text/javascript">
+$(function(){
+  $('input[id=reset-cached-links]').click(function(e) {
+    $('div[class*=indent-2]').find('a').each(function(){
+      $(this).removeClass('cached').removeClass('uncached');
+    });
+  });
+  initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+  initialize_remote_links();
+});
+</script>
 
 EOH;
     return $pagecontent;
@@ -398,8 +446,9 @@ EOH;
       $test_url->fetch($s['url_model'], 'url');
       $in_db = $test_url->in_database() ? 'Cached' : 'Missing';
       $this->syslog(__FUNCTION__,__LINE__,"(marker) {$in_db} URL {$s['url_model']}");
-      // $this->recursive_dump($s,'(marker) House Session SELECT');
     }
+
+    if ( $debug_method ) $this->recursive_dump($select_elements,'(marker) House Session SELECT');
 
     return $select_elements;
   }/*}}}*/

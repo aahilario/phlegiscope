@@ -11,8 +11,8 @@ define('CACHE_PATH', './cache');
 
 // Settings for CurlUtility
 define('LEGISCOPE_USER_AGENT', $_SERVER['HTTP_USER_AGENT']);
-define('LEGISCOPE_CURLOPT_CONNECTTIMEOUT', 10);
-define('LEGISCOPE_CURLOPT_TIMEOUT', 120);
+define('LEGISCOPE_CURLOPT_CONNECTTIMEOUT', 30);
+define('LEGISCOPE_CURLOPT_TIMEOUT', 40);
 
 // Debug logging
 define('DEBUG_DatabaseUtility', FALSE);

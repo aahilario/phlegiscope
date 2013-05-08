@@ -20,9 +20,11 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
     $debug_method = FALSE;
     $sn = NULL;
+
+    // $this->activity_summary is populated by the parser
     $journal_data = array_filter($this->activity_summary);
 
-    if ($debug_method) $this->recursive_dump($journal_data,'(marker) A');
+    if ($debug_method) $this->recursive_dump($journal_data,'(marker) A - begin');
 
     $pagecontent = '';
 
@@ -30,7 +32,7 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
     foreach ( $journal_data as $n => $e ) {/*{{{*/
 
-      if ( array_key_exists('metadata',$e) ) {/*{{{*/
+      if ( array_key_exists('metadata',$e) ) {/*{{{*/// Extract journal header info markup 
         $e = $e['metadata'];
         $pagecontent .= <<<EOH
 <br/>
@@ -80,7 +82,8 @@ EOH;
         ),
         $e['section']
       );
-      if ( 1 == preg_match('@^(R1|R2|R3|CR|(HEAD)-([0-9]*))@i', $tag, $match) ) {
+
+      if ( 1 == preg_match('@^(R1|R2|R3|CR|(HEAD)-([0-9]*))@i', $tag, $match) ) {/*{{{*/// Match R1-3, or CR
         if ( 2 == count($match) )
           $journal_data[$n]['tag'] = $tag; 
         else {
@@ -91,10 +94,9 @@ EOH;
           $journal_data[$n]['tag'] = $tag; 
           $journal_data[$n]['sn'] = $sn; 
         }
-      }
+      }/*}}}*/
 
-
-      if ( intval($n) == 0 ) {/*{{{*/
+      if ( intval($n) == 0 ) {/*{{{*/// Journal page descriptor (Title, publication date)
         foreach ($e['content'] as $entry) {
           $properties = array('legiscope-remote');
           $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
@@ -110,6 +112,9 @@ EOH;
           }/*}}}*/
           if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
             $journal_data[$n]['published'] = $entry['text'];
+            $date = DateTime::createFromFormat('m/d/Y H:i:s', "{$entry['text']} 00:00:00");
+            $journal_data[$n]['published_utx'] = $date->getTimestamp(); 
+            $journal_data[$n]['published_dtm'] = $date->format(DateTime::ISO8601); 
             $pagecontent .= <<<EOH
 Published {$entry['text']}<br/><br/>
 EOH;
@@ -126,11 +131,11 @@ EOH;
 
       $lines = array();
       $sorttype = NULL;
-      if ( is_array($e) && array_key_exists('content',$e) && is_array($e['content']) ) {
+      if ( is_array($e) && array_key_exists('content',$e) && is_array($e['content']) ) {/*{{{*/// Sort by suffix
         // Pass 1: Obtain list of uncached URLs 
         $links = $test_url->get_caching_state($e['content']);
-        // Pass 2:  Generate markup
-        foreach ($e['content'] as $entry) {/*{{{*/
+        // Pass 2:  Generate markup and update Journal element entries (serial number and prefix [SBN, SRN, etc.])
+        foreach ($e['content'] as $content_idx => $entry) {/*{{{*/// Iterate through the list
           $properties = array('legiscope-remote');
           $matches = array();
           $title = $entry['text'];
@@ -145,6 +150,12 @@ EOH;
           $properties = join(' ', $properties);
           $urlhash = UrlModel::get_url_hash($entry['url']);
           $sortkey = preg_replace('@[^0-9]@','',$title);
+
+          $journal_data[$n]['content'][$content_idx]['sn'] = $title;
+          $journal_data[$n]['content'][$content_idx]['desc'] = $desc;
+          $journal_data[$n]['content'][$content_idx]['sortkey'] = $sortkey;
+          $journal_data[$n]['content'][$content_idx]['prefix'] = preg_replace("@(-{$sortkey})$@",'',$title);
+
           if ( is_null($sorttype) ) $sorttype = 0 < intval($sortkey) ? SORT_NUMERIC : SORT_REGULAR;
           $sortkey = 0 < intval($sortkey) ? intval($sortkey) : $title;
           $lines[$sortkey] = <<<EOH
@@ -153,13 +164,17 @@ EOH;
 EOH;
         }/*}}}*/
         ksort($lines,$sorttype);
-      }
+      }/*}}}*/
       $lines = join(' ',$lines);
+
       // Each cluster of links should be capable of triggering content pull
       $pagecontent .= <<<EOH
 <ul class="link-cluster">{$lines}</ul>
 EOH;
-    }/*}}}*/
+
+    }/*}}}*/// END iteration through sections
+
+    if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - end');
 
     return $pagecontent;
   }/*}}}*/

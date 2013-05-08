@@ -20,12 +20,10 @@ class GenericParseUtility extends RawparseUtility {
     $tagname = strtolower(preg_replace('/^ru_([^_]*)_open/','$1', __FUNCTION__));
     return FALSE;
   }/*}}}*/
-
   function ru_script_cdata(& $parser, & $cdata) {/*{{{*/
     // $this->syslog(__FUNCTION__,__LINE__,"{$cdata}");
     return FALSE;
   }/*}}}*/
-
   function ru_script_close(& $parser, $tag) {/*{{{*/
     return FALSE;
   }/*}}}*/
@@ -36,25 +34,21 @@ class GenericParseUtility extends RawparseUtility {
     $this->push_container_def($tag, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_head_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return FALSE;
   }/*}}}*/
 
-
   function ru_link_open(& $parser, & $attrs) {/*{{{*/
     $this->current_tag['attrs'] = $attrs;
     return TRUE;
   }/*}}}*/
-
   function ru_link_close(& $parser, $tag) {/*{{{*/
     if ( !is_null($this->current_tag) && array_key_exists('tag', $this->current_tag) && ($tag == $this->current_tag['tag']) ) {
       $this->add_to_container_stack($this->current_tag);
     }
     return TRUE;
   }/*}}}*/
-
   function ru_meta_open(& $parser, & $attrs) {/*{{{*/
     $this->current_tag['attrs'] = $attrs;
     return FALSE;
@@ -71,7 +65,6 @@ class GenericParseUtility extends RawparseUtility {
     $this->current_tag['attrs'] = $attrs;
     return FALSE;
   }/*}}}*/
-
   function ru_title_cdata(& $parser, & $cdata) {/*{{{*/
     if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
       $this->pop_tagstack();
@@ -80,7 +73,6 @@ class GenericParseUtility extends RawparseUtility {
     } 
     return FALSE;
   }/*}}}*/
-
   function ru_title_close(& $parser, $tag) {/*{{{*/
 		$this->pop_tagstack();
 		if ( is_array($this->current_tag) && array_key_exists('cdata', $this->current_tag) ) {
@@ -99,38 +91,22 @@ class GenericParseUtility extends RawparseUtility {
   // ---- Containers ----
 
   function ru_iframe_open(& $parser, & $attrs) {/*{{{*/
-    // Handle A anchor/link tags
-    $this->current_tag = array(
-      'tag' => 'IFRAME',
-      'attrs' => $attrs,
-      'cdata' => array(),
-    );
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
-
   function ru_iframe_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to IFRAME tag 
+    $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
-    $tag = !is_null($this->current_tag) 
-      ? $this->current_tag['tag']
-      : '?IFRAME'
-      ;
-    $link = !is_null($this->current_tag) && ($this->current_tag['tag'] == 'IFRAME') 
-      ? $this->current_tag['attrs']['HREF']
-      : '???'
-      ;
-
-    if (C('DEBUG_'.get_class($this))) $this->syslog( "+ {$tag}", NULL, "{$link} {$cdata}" );
+    $this->push_tagstack();
     return TRUE;
   }/*}}}*/
-
   function ru_iframe_close(& $parser, $tag) {/*{{{*/
     // An IFRAME is similar to an anchor A tag in that it's source URL is relevant 
-    $target = !is_null($this->current_tag) &&
-       array_key_exists('tag', $this->current_tag) && 
-      ('IFRAME' == $this->current_tag['tag'])
-      ? $this->current_tag['attrs']['SRC']
-      : NULL;
+    $this->current_tag();
+    $target = $this->current_tag['attrs']['SRC'];
     if ( !is_null($target) ) {
       $link_data = array(
         'url'      => $target,
@@ -146,18 +122,17 @@ class GenericParseUtility extends RawparseUtility {
   function ru_form_open(& $parser, & $attrs, $tagname) {/*{{{*/
     $this->pop_tagstack();
     $this->update_current_tag_url('ACTION');
+    $attrs['ACTION'] = $this->current_tag['attrs']['ACTION'];
     $this->push_tagstack();
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_form_cdata(& $parser, & $cdata) {/*{{{*/
+    return TRUE;
   }/*}}}*/
-
   function ru_form_close(& $parser, $tag) {/*{{{*/
+		$this->current_tag();
     $this->stack_to_containers();
-    // $this->syslog( __FUNCTION__, __LINE__, "--- {$tag}" );
-    // $this->recursive_dump($form_container,__LINE__);
     return TRUE;
   }/*}}}*/
 
@@ -170,12 +145,10 @@ class GenericParseUtility extends RawparseUtility {
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_select_close(& $parser, $tag) {/*{{{*/
     // Treat SELECT tags as containers on OPEN, but as tags on CLOSE 
     // $this->stack_to_containers();
     $select_contents = array_pop($this->container_stack);
-    // if (C('DEBUG_'.get_class($this))) $this->recursive_dump($select_contents, 'SELECT');
     $this->add_to_container_stack($select_contents, 'FORM');
     return TRUE;
   }/*}}}*/
@@ -186,7 +159,6 @@ class GenericParseUtility extends RawparseUtility {
     $this->push_tagstack();
     return TRUE;
   }/*}}}*/
-
   function ru_option_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to OPTION tag. This is normally the option label 
     $this->pop_tagstack();
@@ -194,7 +166,6 @@ class GenericParseUtility extends RawparseUtility {
     $this->push_tagstack();
     return TRUE;
   }/*}}}*/
-
   function ru_option_close(& $parser, $tag) {/*{{{*/
     $this->pop_tagstack();
     $target = !is_null($this->current_tag) &&
@@ -215,12 +186,10 @@ class GenericParseUtility extends RawparseUtility {
 
   // ---- Tables used as presentational, structure elements on a page  ----
 
-  function ru_table_open(& $parser, & $attrs) {/*{{{*/
-    $tagname = strtolower(preg_replace('/^ru_([^_]*)_open/','$1', __FUNCTION__));
+  function ru_table_open(& $parser, & $attrs, $tagname) {/*{{{*/
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_table_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;
@@ -230,11 +199,9 @@ class GenericParseUtility extends RawparseUtility {
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_body_cdata(& $parser, & $cdata) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_body_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;
@@ -244,12 +211,10 @@ class GenericParseUtility extends RawparseUtility {
     $this->current_tag['cdata'] = array();
     return TRUE;
   }/*}}}*/
-
   function ru_input_cdata(& $parser, & $cdata) {/*{{{*/
     $this->current_tag['cdata'][] = $cdata;
     return TRUE;
   }/*}}}*/
-
   function ru_input_close(& $parser, $tag) {/*{{{*/
     $target = !is_null($this->current_tag) &&
        array_key_exists('tag', $this->current_tag) && 
@@ -267,11 +232,9 @@ class GenericParseUtility extends RawparseUtility {
   function ru_br_open(& $parser, & $attrs, $tagname ) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_br_cdata(& $parser, & $cdata) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_br_close(& $parser, $tag) {/*{{{*/
     $me     = $this->pop_tagstack();
     $parent = $this->pop_tagstack();
@@ -285,25 +248,17 @@ class GenericParseUtility extends RawparseUtility {
   }/*}}}*/
 
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
-    // Handle A anchor/link tags
-    if ( 0 < count($this->tag_stack) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'] = array();
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
-
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
-    // Attach CDATA to A tag 
-    if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
+    $this->push_tagstack();
     return TRUE;
   }/*}}}*/
-
   function ru_p_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $paragraph = array(
@@ -313,33 +268,29 @@ class GenericParseUtility extends RawparseUtility {
       'seq'  => $this->current_tag['attrs']['seq'],
     );
     $this->add_to_container_stack($paragraph);
+		if ( $this->debug_tags) $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - -- - {$this->current_tag['tag']} {$paragraph['text']}");
     return TRUE;
   }/*}}}*/
 
   function ru_a_open(& $parser, & $attrs, $tag) {/*{{{*/
     // Handle A anchor/link tags
-    if ( 0 < count($this->tag_stack) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'] = array();
-      $this->current_tag['attrs']['class'] = 'legiscope-remote';
-      $this->push_tagstack();
-      array_push($this->links, $this->current_tag); 
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->current_tag['attrs']['class'] = 'legiscope-remote';
+    $this->push_tagstack();
+    array_push($this->links, $this->current_tag); 
     return TRUE;
   }  /*}}}*/
-
   function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
     $this->pop_tagstack();
     $link = array_pop($this->links);
-    $cdata = $cdata;
     $link['cdata'][] = $cdata; 
     $this->current_tag['cdata'][] = $cdata; 
     array_push($this->links, $link);
     $this->push_tagstack();
     return TRUE;
   }/*}}}*/
-
   function ru_a_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $target = 0 < count($this->links) ? array_pop($this->links) : NULL;
@@ -354,25 +305,17 @@ class GenericParseUtility extends RawparseUtility {
   function ru_div_open(& $parser, & $attrs, & $tag) {/*{{{*/
     // Handle presentational/structural container DIV
     $this->push_container_def($tag, $attrs);
-    if (C('DEBUG_'.get_class($this))) $this->syslog( "<{$tagname}", NULL, join(',', array_keys($attrs)) . ' - ' . join(',', $attrs) );
     return TRUE;
   }/*}}}*/
-
   function ru_div_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;
   }/*}}}*/
 
-  function ru_blockquote_open(& $parser, & $attrs) {/*{{{*/
-    // Handle presentational/structural container DIV
-    $tagname = strtolower(preg_replace('/^ru_([^_]*)_open/','$1', __FUNCTION__));
-    if (C('DEBUG_'.get_class($this))) $this->syslog( "<{$tagname}", NULL, join(',', $attrs) );
+  function ru_blockquote_open(& $parser, & $attrs, $tagname) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_blockquote_close(& $parser, $tag) {/*{{{*/
-    $tagname = preg_replace('/^ru_([^_]*)_close/i','$1', __FUNCTION__);
-    if (C('DEBUG_'.get_class($this))) $this->syslog( "{$tagname}>", NULL, "" );
     return TRUE;
   }/*}}}*/
 
@@ -420,12 +363,6 @@ EOH
     return $subject;
   }/*}}}*/
 
-  function & current_tag() {
-    $this->pop_tagstack();
-    $this->push_tagstack();
-    return $this;
-  }
-
   function standard_cdata_container_open() {/*{{{*/
     if ( 0 < count($this->tag_stack) ) {
       $this->pop_tagstack();
@@ -433,7 +370,6 @@ EOH
       $this->push_tagstack();
     }
   }/*}}}*/
-  
   function standard_cdata_container_cdata() {/*{{{*/
     if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
       $this->pop_tagstack();
@@ -442,7 +378,6 @@ EOH
     }
     return TRUE;
   }/*}}}*/
-
   function standard_cdata_container_close() {/*{{{*/
     $this->current_tag();
     $paragraph = array(
@@ -452,16 +387,6 @@ EOH
     if ( 0 < strlen($paragraph['text']) ) 
     $this->add_to_container_stack($paragraph);
     return TRUE;
-  }/*}}}*/
-
-  function embed_cdata_in_parent() {/*{{{*/
-    $i = $this->pop_tagstack();
-    $content = join('',$this->current_tag['cdata']);
-    $parent = $this->pop_tagstack();
-    $parent['cdata'][] = " {$content} ";
-    $this->push_tagstack($parent);
-    $this->push_tagstack($i);
-    return FALSE;
   }/*}}}*/
 
 	/** Miscellaneous utility methods used in one or more derived classes **/
@@ -480,7 +405,9 @@ EOH
       // The POST action may be a URL which permits a GET action,
       // in which case we need to use a fake URL to store the results of 
       // the POST.  We'll generate the fake URL here. 
+      $runtime_metalink_info = $this->filter_post('LEGISCOPE', array());
 			if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
+      if ( is_array($runtime_metalink_info) ) $metalink = array_merge($metalink, $runtime_metalink_info);
       // Prepare faux metalink URL by combining the metalink components
       // with POST target URL query components. After the POST, a new cookie
       // may be returned; if so, it will be used to traverse sibling links
@@ -490,7 +417,6 @@ EOH
       } else if ( 0 < count($metalink) ) {/*{{{*/
 
         $faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
-        $in_db    = $url->set_url($faux_url,TRUE) ? 'in DB': 'fresh';
 
       }/*}}}*/
       else $metalink = NULL;
@@ -500,12 +426,12 @@ EOH
 
   function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL, $insert_p1_link = FALSE) {/*{{{*/
     $debug_method    = TRUE;
-    $check_cache     = FALSE;
+    $check_cache     = TRUE;
     $links           = array();
     $pager_links     = array();
     $senate_bill_url = new UrlModel();
 
-    if ( $debug_method ) $this->recursive_dump($cluster_urldefs,'(warning)');
+    if ( $debug_method ) $this->recursive_dump($cluster_urldefs,'(warning) ' . __METHOD__);
     //  20130401 - Typical entries found 
     //  1cb903bd644be9596931e7c368676982 =>
     //    query_base_url => http://www.senate.gov.ph/lis/pdf_sys.aspx
@@ -895,12 +821,13 @@ EOH
 		// Reorder an array of (text,url) pairs in place,
 		// using a regex-matched fragment of the URL
 		array_walk($q,create_function(
-			'& $a, $k', '$matches = array(); if ( 1 == preg_match("@\&q=([0-9]*)@i", $a["url"], $matches) ) $a["seq"] = $matches[1]; else $a["seq"] = 0;'  
+			'& $a, $k', '$matches = array(); if ( 1 == preg_match("@'.$fragment.'@i", $a["url"], $matches) ) $a["seq"] = $matches[1]; else $a["seq"] = 0;'  
 		));
 		// Reorder array
 		$q = array_combine(
 			array_map(create_function('$a','return $a["seq"];'),$q),
-			array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => !array_key_exists("_", $a));'),$q)
+			array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => $a["cached"]);'),$q)
+			// array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => !array_key_exists("_", $a));'),$q)
 		);
 		krsort($q);
 	}/*}}}*/

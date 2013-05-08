@@ -111,12 +111,10 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_b_open(& $parser, & $attrs, $tag) {/*{{{*/
     return parent::ru_p_open($parser,$attrs,$tag);
   }  /*}}}*/
-
   function ru_b_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
     return parent::ru_p_cdata($parser,$cdata);
   }/*}}}*/
-
   function ru_b_close(& $parser, $tag) {/*{{{*/
     return $this->embed_cdata_in_parent();
   }/*}}}*/

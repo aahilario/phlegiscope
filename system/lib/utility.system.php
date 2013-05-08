@@ -112,4 +112,13 @@ class SystemUtility extends DatabaseUtility {
     return filter_post($v, $if_unset);
   }/*}}}*/
 
+	function extract_key_value_table(& $kv, $key, $value) {/*{{{*/
+		$key = array_map(create_function('$a', 'return $a["'.$key.'"];'), $kv);
+		$value = array_map(create_function('$a', 'return $a["'.$value.'"];'), $kv);
+		return is_array($key) && is_array($value) && (count($key) == count($value)) && (count($key) > 0)
+			?	array_combine($key,$value)
+			: array()
+			;
+	}/*}}}*/
+
 }

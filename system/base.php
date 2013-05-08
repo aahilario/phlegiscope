@@ -31,7 +31,8 @@ function camelcase_to_array($classname) {
 spl_autoload_register(function ($classname) {
   // Transform class names in the form AxxxByyyCzzz 
   // to class filename czzz.byyy.axxx.php
-  syslog( LOG_INFO, "----- ---- --- -- - --------------- Finding class {$classname}");
+  // syslog( LOG_INFO, "----- ---- --- -- - --------------- Finding class {$classname}");
+	$debug_method = FALSE;
   $name_components = camelcase_to_array($classname);
   $target_filename = join('.', array_reverse(array_filter($name_components))) . '.php';
   $target_filename = preg_replace('@/^' . getcwd() . '/@', '', $target_filename);
@@ -71,7 +72,7 @@ EOH;
       // Note: If the file containing this class declaration does not
       // exist yet, then neither has the backing store (linking table)
       // been created for the object defined by this class.
-      syslog( LOG_INFO, "---- Classname {$classname}" );
+      // syslog( LOG_INFO, "---- Classname {$classname}" );
 
       if ( 1 == preg_match('@\_Plus\_@i', $classname) ) {
         $components_real = explode('_Plus_',  preg_replace("@Join$@i","",$classname));
@@ -97,8 +98,10 @@ EOH;
       $components = join("\n", $components);
       $target_filename = "./system/lib/models/{$target_filename}";
 
-      syslog( LOG_INFO, "---- Target filename: {$target_filename}" );
-      syslog( LOG_INFO, "---- Final classname: {$classname}" );
+			if ( $debug_method ) {
+				syslog( LOG_INFO, "---- Target filename: {$target_filename}" );
+				syslog( LOG_INFO, "---- Final classname: {$classname}" );
+			}
 
       $base = 'extends DatabaseUtility';
       $classdef = <<<EOH

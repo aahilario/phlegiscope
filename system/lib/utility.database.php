@@ -147,13 +147,15 @@ EOS;
     return $returnval;
   }/*}}}*/
 
-  private final function fetch_typemap($attrinfo, $mode = NULL) {/*{{{*/
+  private final function fetch_typemap(& $attrinfo, $mode = NULL) {/*{{{*/
 
     // Get type map information for a SINGLE model attribute.
     $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
     $type_map = array(
       'pkey' => array('attrname' => 'pkey'              , 'quot' => FALSE),
       'utx'  => array('attrname' => 'INT(11)'           , 'quot' => FALSE),
+      'ts'   => array('attrname' => 'TIMESTAMP'         , 'quot' => TRUE),
+      'dtm'  => array('attrname' => 'DATETIME'          , 'quot' => TRUE),
       'int'  => array('attrname' => 'INT(s)'            , 'quot' => FALSE),
       'vc'   => array('attrname' => 'VARCHAR(s)'        , 'quot' => TRUE),
       'blob' => array('attrname' => 'MEDIUMBLOB'        , 'quot' => FALSE, 'mustbind' => TRUE, ),
@@ -163,13 +165,16 @@ EOS;
     );
     $sqlmodif = array(
       'uniq'  => 'UNIQUE',
+      'jointuniq' => NULL,
     );
     $fieldname     = $attrinfo['name'];
-    $modifiers     = '/([A-Za-z]+)([0-9]+)?(uniq)?$/';
+    $modifiers     = '/([A-Za-z]+)([0-9]+)?(uniq)?$/iU';
     $matches       = array();
     $match_result  = preg_match_all($modifiers, $attrinfo['type'], $matches);
     $size          = $matches[2][0];
     $modifier      = array_key_exists(3,$matches) && array_key_exists($matches[3][0],$sqlmodif) ? $sqlmodif[$matches[3][0]] : NULL;
+
+    $attrinfo['type'] = $matches[1][0];
 
     if ($debug_method) {
       $this->syslog(__FUNCTION__, __LINE__, "(marker) Called with array " . count($attrinfo)  );
@@ -177,7 +182,6 @@ EOS;
       // $this->log_stack();
     }
 
-    $attrinfo['type'] = $matches[1][0];
     if ($debug_method || C('DEBUG_' . strtoupper(get_class($this)))) {
       $this->syslog(__FUNCTION__, __LINE__, "(marker) Type spec '{$attrinfo['type']}'" );
       $this->recursive_dump($matches, "(marker) {$attrinfo['type']}");
@@ -189,18 +193,33 @@ EOS;
     $properties = preg_replace('/\((s)\)/',"({$size})",$type_map[$matches[1][0]]['attrname']);
     $properties = "{$properties} {$modifier}";
 
+    $typemap = array(
+      'fieldname'  => $fieldname,
+      'properties' => $properties,
+      'quoted'     => $quoting,
+      'unique'     => !is_null($modifier),
+      'size'       => empty($size) ? NULL : intval($size),
+      'mustbind'   => $bindparam,
+    );
+
     // TODO: Implement model references
-    if (array_key_exists('propername',$attrinfo)) {
-      $fieldname = $attrinfo['name'];
+		if (1 == preg_match('@(.*)Join$@i', get_class($this))) {
+      if ($debug_method) $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
+    }
+    else if (array_key_exists('propername',$attrinfo)) {
+      $typemap['fieldname'] = $attrinfo['name'];
       // Only return something meaningful when this is an edge object
       $ft_propername = join('_',camelcase_to_array($attrinfo['propername']));
-      $properties = <<<EOS
+      $typemap['properties'] = <<<EOS
 INT(11) REFERENCES `{$ft_propername}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT
 EOS;
+       $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
+
       if ($debug_method) {
-        $this->syslog(__FUNCTION__, __LINE__, "(marker)  Attribute: {$fieldname}" );
-        $this->syslog(__FUNCTION__, __LINE__, "(marker) Properties: {$properties}" );
+        $this->syslog(__FUNCTION__, __LINE__, "(marker)  Attribute: {$typemap['fieldname']}" );
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) Properties: {$typemap['properties']}" );
       }
+      $this->recursive_dump($matches,"(marker) Z");
       // Notes:
       // This method is called in __ contexts:
       // - ALTER TABLE ... ADD COLUMN:  initialize_derived_class_state()
@@ -216,24 +235,20 @@ EOS;
       if ( is_null($mode) ) return NULL;
       if (!(1 == preg_match('@(.*)Join$@i', get_class($this)))) return NULL;
     }
-    else if (1 == preg_match('@(.*)Join$@i', get_class($this))) {
-      $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
-    }
-    return array(
-      'fieldname'  => $fieldname,
-      'properties' => $properties,
-      'quoted'     => $quoting,
-      'unique'     => !is_null($modifier),
-      'size'       => empty($size) ? NULL : intval($size),
-      'mustbind'   => $bindparam,
-    );
+
+    return $typemap;
   }/*}}}*/
 
   private final function construct_backing_table($tablename, $members) {/*{{{*/
     $debug_method = FALSE;
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Constructing backing table '{$tablename}' for " . get_class($this) );
+    if ( $debug_method ) {
+       $this->syslog( __FUNCTION__, __LINE__, "(marker) Constructing backing table '{$tablename}' for " . get_class($this) );
+      $this->recursive_dump($members,"(marker) ----- ---- --- -- -  - -- --- ---- -----");
+    }
+
     $attrset = array('`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY'); 
     // Detect class names
+    $unique_attrs = array();
     foreach ( $members as $attrs ) {
       // GRAPHEDGE_DISCARD: Discard declaration here IF this object's name
       // does not end in Join; in that case, we replace the field name and
@@ -243,12 +258,22 @@ EOS;
       // Also add UNIQUE INDEX ($a,$b)  
       $attrdef = $this->fetch_typemap($attrs,'CREATE');
       if ( is_null($attrdef) ) continue;
+      if ( array_key_exists('joint_unique', $attrdef) ) {
+        $unique_attrs[] = $attrdef['fieldname'];
+      }
       extract($attrdef);
       $attrset[] = <<<EOH
 `{$fieldname}` {$properties}
 EOH;
     }
-    $this->recursive_dump($attrset,'-','>');
+    if ( 0 < count($unique_attrs) ) {
+      $unique_attrs = join(',', $unique_attrs);
+      $attrset[] = <<<EOH
+CONSTRAINT UNIQUE KEY ({$unique_attrs})
+EOH;
+    } else {
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) No unique attrs for " . get_class($this) );
+    }
     $attrset = join(',', $attrset);
     $create_table =<<<EOH
 CREATE TABLE `{$tablename}` ( {$attrset} ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
@@ -627,8 +652,10 @@ EOS;
     } else {
       $this->where(array($attrname => $attrval))->select();
     }
-    // $this->syslog( __FUNCTION__, __LINE__, "Fetch: ID obtained is ({$this->id})" );
-    // $this->recursive_dump($this->query_result, __LINE__);
+    if ( $this->debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - - Fetch: ({$attrname}, {$attrval}) -> ID obtained is ({$this->id})" );
+      $this->recursive_dump($this->query_result, "(marker)" );
+    }
     return $this->query_result;
   }/*}}}*/
 
@@ -652,8 +679,9 @@ EOS;
   }/*}}}*/
 
   private function insert_update_common($sql, $boundattrs, $attrlist) {/*{{{*/
+    $debug_method = FALSE;
     if ( 0 < count($boundattrs) ) {
-      $this->syslog(__FUNCTION__,__LINE__, "--- (marker) Currently: {$sql}");
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "--- (marker) Currently: {$sql}");
       $bindable_attrs = array();
       foreach ( $boundattrs as $b ) {
         // TODO: Allow string, integer, and double values
@@ -662,7 +690,7 @@ EOS;
           'data'     => $attrlist[$b]['value'], 
         );
         if ( is_null($bindable_attrs[$b]['data']) ) {
-          $this->syslog(__FUNCTION__,__LINE__, "--- WARNING: Data source not provided for bindable parameter '{$b}'. Coercing to empty string ''");
+          if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "--- WARNING: Data source not provided for bindable parameter '{$b}'. Coercing to empty string ''");
           // $this->recursive_dump($boundattrs,__LINE__);
           $bindable_attrs[$b]['data'] = '';
         }
@@ -810,7 +838,7 @@ EOS;
         ? basename(__FILE__) . "::" . __LINE__ . "::" . __FUNCTION__ . ": "
         : get_class($this) . " :{$prefix}: "
         ;
-      $logstring .= str_pad(' ', $depth * 3, " ", STR_PAD_LEFT) . " {$key} => " ;
+      $logstring .= str_pad(' ', $depth * 3, " ", STR_PAD_LEFT) . '('.gettype($val).')' . " {$key} => " ;
       if ( is_array($val) ) {
         syslog( LOG_INFO, $logstring );
         $this->recursive_dump_worker($val, $depth + 1, $prefix);
@@ -830,6 +858,7 @@ EOS;
   }/*}}}*/
 
   function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
+    $debug_method = TRUE;
     $property_list = $this->fetch_property_list();
     if ( !(0 < count($property_list)) ) return $this;
     $property_list = array_combine(
@@ -842,13 +871,14 @@ EOS;
         if ( $execute ) $this->$setter($value);
       } else {
         $type = array_key_exists($name, $property_list) ? $property_list[$name] : NULL;
+        $marker = $debug_method ? 'marker' : '-----';
         $this->syslog(__FUNCTION__, __LINE__, <<<EOP
-(marker)
+({$marker})
 function & {$setter}(\$v) { \$this->{$name}_{$type} = \$v; return \$this; }
 function get_{$name}(\$v = NULL) { if (!is_null(\$v)) \$this->{$setter}(\$v); return \$this->{$name}_{$type}; }
 
 EOP
-      );
+        );
       }
     }
     return $this;
@@ -860,10 +890,11 @@ EOP
   }/*}}}*/
 
   function dump_accessor_defs_to_syslog() {/*{{{*/
+		$debug_method = FALSE;
     $data_items = array_flip(array_map($this->slice('name'), $this->fetch_property_list()));
-    $this->recursive_dump($data_items,'(marker)');
+    if ( $debug_method ) $this->recursive_dump($data_items,'(marker) ' . __METHOD__);
     $this->set_contents_from_array($data_items,FALSE);
-  }  /*}}}*/
+  }/*}}}*/
 
   function get_id() {/*{{{*/
     return $this->in_database() ? $this->id : NULL;
@@ -984,15 +1015,6 @@ EOP
     return $map_functions;
   }/*}}}*/
 
-  function resequence_children(& $containers) {/*{{{*/
-    return array_walk(
-      $containers,
-      // create_function('& $a, $k, $s', 'if ( array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'),
-      create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
-      $this
-    );
-  }/*}}}*/
-
   function & filter_nested_array(& $a, $docpath, $reduce_to_element = FALSE) {/*{{{*/
     $filter_map = $this->get_map_functions($docpath);
     if ( $this->debug_operators ) {/*{{{*/
@@ -1036,6 +1058,5 @@ EOP
     return $a;
     
   }/*}}}*/
-
 
 }

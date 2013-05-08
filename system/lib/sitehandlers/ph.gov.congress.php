@@ -53,7 +53,7 @@ class CongressGovPh extends LegiscopeBase {
     $common->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = join('',$common->get_filtered_doc());
+    $pagecontent = (join('',$common->get_filtered_doc()));
 
   }/*}}}*/
 
@@ -62,9 +62,10 @@ class CongressGovPh extends LegiscopeBase {
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     // Representative bio parser
 
-    $p   = new CongressMemberBioParseUtility();
-    $m   = new RepresentativeDossierModel();
-    $url = new UrlModel();
+    $p    = new CongressMemberBioParseUtility();
+    $m    = new RepresentativeDossierModel();
+    $comm = new CongressionalCommitteeDocumentModel();
+    $url  = new UrlModel();
 
     // $m->dump_accessor_defs_to_syslog();
     $pagecontent = $urlmodel->get_pagecontent();
@@ -301,13 +302,16 @@ EOH;
     if ( !(0 < count($bills) ) ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) H ------------------------------ " );
     }
+    $legislation_links = array();
+    // Override contents of $parser->linkset
     foreach ( $bills as $bill ) {/*{{{*/
+      $bill_url_hash = UrlModel::get_url_hash($bill['bill-url']);
       $bill_title = is_null($bill['bill-url']) 
         ? <<<EOH
 {$bill['bill']}
 EOH
       : <<<EOH
-<a href="{$bill['bill-url']}" class="congress-doc-name legiscope-remote">{$bill['bill']}</a>
+<a id="{$bill_url_hash}" href="{$bill['bill-url']}" class="congress-doc-name legiscope-remote">{$bill['bill']}</a>
 EOH
       ;
       $bill_longtitle = ucwords($bill['bill-title']);
@@ -322,6 +326,10 @@ EOH;
 
       $bill['status'] = $p->replace_legislative_sn_hotlinks($bill['status']);
 
+      $legislation_links[$bill['bill']] = <<<EOH
+<li>{$bill_title}</li>
+EOH;
+
       $pagecontent .= <<<EOH
 <div class="congress-doc-item">
 <span class="congress-doc-name">{$bill_title}</span>
@@ -334,6 +342,14 @@ EOH;
     $pagecontent .= <<<EOH
 </div>
 EOH;
+
+    ksort($legislation_links);
+    $legislation_links = join('',$legislation_links);
+    $legislation_links = <<<EOH
+<ul id="house-bills-by-rep" class="link-cluster">{$legislation_links}</ul>
+EOH;
+
+    $parser->linkset = "{$legislation_links}{$parser->linkset}";
 
     $pagecontent .= <<<EOH
 </div>
@@ -361,7 +377,7 @@ EOH;
 
     $common->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,array('content-type' => 'charset=other'));
     $pagecontent      = array();
-    $surname_initchar = null;
+    $surname_initchar = NULL;
     $section_break    = NULL;
     $districts        = array();
 
@@ -379,7 +395,21 @@ EOH;
         if ( !array_key_exists('url',$tag) ) continue;
         $bio_url = $tag['url'];
         $member->fetch($bio_url,'bio_url');
+
         $cdata = $tag['text'];
+
+          if ( is_null($member->get_firstname()) ) {
+            $parsed_name = $member->parse_name($cdata);
+            $member->
+              set_fullname(utf8_decode($cdata))->
+              set_firstname(utf8_decode($parsed_name['given']))->
+              set_mi($parsed_name['mi'])->
+              set_surname(utf8_decode($parsed_name['surname']))->
+              set_namesuffix(utf8_decode($parsed_name['suffix']))->
+              stow();
+          }
+
+
         $name_regex = '@^([^,]*),(.*)(([A-Z]?)\.)*( (.*))@i';
         $name_match = array();
         preg_match($name_regex, $cdata, $name_match);
@@ -541,7 +571,7 @@ EOH;
 
     $target_form = $target_form[0]; 
 
-    $this->recursive_dump(($target_form = $this->extract_form_controls($target_form)),
+    $this->recursive_dump(($target_form = $common->extract_form_controls($target_form)),
       'Target form components');
 
     // $this->recursive_dump($target_form,__LINE__);
@@ -714,7 +744,7 @@ EOH;
     $pagecontent = $urlmodel->get_pagecontent();
     $this->syslog( __FUNCTION__, __LINE__, "(warning) EMPTY HANDLER.  Length: " . strlen($pagecontent) );
 
-    return;
+    // return;
     $cache_filename = md5(__FUNCTION__ . $parser->trigger_linktext);
     $cache_filename = "./cache/{$this->subject_host_hash}-{$cache_filename}.generated";
     if ( $parser->from_network ) unlink($cache_filename);
@@ -740,15 +770,17 @@ EOH;
     $pagecontent = NULL;
     $house_bills = array();
     $counter = 0;
+
     foreach ( $hb_listparser->get_containers() as $container_id => $container ) {/*{{{*/
       if ( !array_key_exists('children', $container) || !is_array($container['children']) ) continue;
       $entries                  = $container['children'];
       $container[$container_id] = NULL;
       $bill_head                = NULL;
 
-      foreach ( $entries as $container ) {/*{{{*/
+      foreach ( $entries as $entry_key => $container ) {/*{{{*/
         if ( array_key_exists('bill-head', $container) ) {/*{{{*/
 
+          
           // Dump existing bill record to stream
           if ( !is_null($bill_head) && array_key_exists($bill_head, $house_bills) ) {/*{{{*/
             $hb = $house_bills[$bill_head];
@@ -758,9 +790,9 @@ EOH;
             $hb['bill-head'] = $hb['sn']; // $house_bill->get_sn();
             $hb['meta']      = NULL; // $house_bill->get_status(FALSE);
 
-            $n = $house_bill->count(array('sn' => $bill_head));
+            $n = 0; //$house_bill->count(array('sn' => $bill_head));
+            $cache_state = array('legiscope-remote');
 
-            $cache_state     = array('legiscope-remote');
             if ( $n == 1 ) $cache_state[] = 'cached';
             else {/*{{{*/
               $this->syslog(__FUNCTION__,__LINE__, "Stowing {$bill_head} {$url}");
@@ -772,6 +804,7 @@ EOH;
                 'principal-author' => $hb['Principal Author'],
                 'main-committee'   => $hb['Main Referral'],
               );
+              $house_bill->fetch($hb['sn'],'sn');
               $house_bill->
                 set_url($url)->
                 set_sn($bill_head)->
@@ -783,8 +816,8 @@ EOH;
                 stow();
             }/*}}}*/
             $cache_state = join(' ', $cache_state);
-            if ( $counter++ < 10 )
-            $content = <<<EOH
+            $content = $house_bill->get_standard_listing_markup($hb['sn'], 'sn');
+            if ( is_null($content) ) $content = <<<EOH
 <div class="republic-act-entry">
 <span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$hb['bill-head']}</a></span>
 <span class="republic-act-desc"><a href="{$url}" class="legiscope-remote" id="title-{$urlhash}">{$hb['desc']}</a></span>
@@ -793,7 +826,10 @@ EOH;
 <span class="republic-act-meta">Status: {$hb['Status']}</span>
 </div>
 EOH;
-            $pagecontent .= $content;
+            // $pagecontent .= $content;
+            $pagecontent .= <<<EOH
+<span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$hb['bill-head']}</a><br/>
+EOH;
             unset($house_bills[$bill_head]);
           }/*}}}*/
 
@@ -803,9 +839,13 @@ EOH;
           );
           continue;
         } /*}}}*/
-        if ( is_null($bill_head) ) continue;
+        if ( is_null($bill_head) ) {
+          unset($entries[$entry_key]);
+          continue;
+        }
         if ( array_key_exists('desc', $container) ) {
           $house_bills[$bill_head]['title'] = join('',$container['desc']);
+          unset($entries[$entry_key]);
           continue;
         }
         if ( array_key_exists('meta', $container) ) {
@@ -821,6 +861,7 @@ EOH;
           $house_bills[$bill_head]['document-url'] = $container['attrs']['HREF'];
           $house_bills[$bill_head]['document-label'] = join('',$container['cdata']);
         }
+        unset($entries[$entry_key]);
       }/*}}}*/
 
     }/*}}}*/
@@ -833,7 +874,21 @@ EOH;
 
   }/*}}}*/
 
+
   /** Automatically matched parsers **/
+
+  
+  function seek_postparse_bypath_9f222d54cda33a330ffc7cd18e7ce27f(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/committees/search.php 
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->seek_postparse_9e8648ad99163238295d15cfa534be86($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_by_pathfragment_b536fc060d348f720ee206f9d3131a5c(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/committees/search.php 
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->seek_postparse_9e8648ad99163238295d15cfa534be86($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
 
   function seek_postparse_bypathonly_0808b3565dcaac3a9ba45c32863a4cb5(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph
@@ -877,11 +932,12 @@ EOH;
     // http://www.congress.gov.ph/committees/search.php?congress=15&id=A505
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $p          = new CongressCommitteeListParseUtility();
-    $committees = new CongressionalCommitteeDocumentModel();
-    $link       = new CongressionalCommitteeRepresentativeDossierJoin();
+    $m    = new RepresentativeDossierModel();
+    $p    = new CongressCommitteeListParseUtility();
+    $comm = new CongressionalCommitteeDocumentModel();
+    $link = new CongressionalCommitteeRepresentativeDossierJoin();
 
-    $committees->dump_accessor_defs_to_syslog();
+    $m->dump_accessor_defs_to_syslog();
 
     $p->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
@@ -892,30 +948,56 @@ EOH;
       'children[tagname=div][id=main-ol]'
     ),"(----) ++ All containers");
 
+    // We are able to extract names of committees and current chairperson.
     if ( 0 < count($containers) ) {
+      $committees = array();
       $pagecontent = '';
-      foreach ( $containers as $container ) {
+      foreach ( $containers as $container ) {/*{{{*/
         $pagecontent .= "<div>";
         foreach ( $container as $tag ) {
           if ( array_key_exists('url', $tag) ) {
+            $hash = UrlModel::get_url_hash($tag['url']);
             $pagecontent .= <<<EOH
 <a href="{$tag['url']}" class="legiscope-remote">{$tag['text']}</a>
 EOH;
+            $committees[$hash] = array(
+              'url' => $tag['url'],
+              'name' => $tag['text'],
+              'chairperson' => NULL,
+            );
             continue;
+          }
+          $name = $tag['text'];
+          $tag['text'] = $m->replace_legislator_names_hotlinks($name);
+          $committees[$hash]['chairperson'] = $name;
+          if ( is_null($name['firstname']) ) {
+            $parsed_name = $m->parse_name( $name['original'] );
+            $committees[$hash]['original'] = $parsed_name;
+            $m->fetch($name['id'],'id');
+            $m->
+              set_fullname($name['original'])-> 
+              set_firstname(utf8_decode($parsed_name['given']))->
+              set_mi($parsed_name['mi'])->
+              set_surname(utf8_decode($parsed_name['surname']))->
+              set_namesuffix(utf8_decode($parsed_name['suffix']))->
+              stow();
           }
           $pagecontent .= <<<EOH
 <span class="representative-name">{$tag['text']}</span><br/>
 EOH;
         }
         $pagecontent .= "</div>";
-      }
+      }/*}}}*/
+      $this->recursive_dump($committees,"(marker) -- -- --");
     }
+
+    $pagecontent = utf8_encode($pagecontent);
 
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
   function seek_postparse_bypath_356caa1dcd2d3a76fcc6debce13393ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // Republic Acts
+    // Republic Act
     $this->seek_postparse_ra_hb($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 

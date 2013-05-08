@@ -53,6 +53,8 @@ class SenateCommonParseUtility extends GenericParseUtility {
       if ( array_key_exists($this->current_tag['attrs']['ID'],array_flip(array(
         'nav_top',
         'nav_bottom',
+				'lis_changecongress',
+				'div_Help',
       )))) $skip = TRUE;
       if ( $skip && $this->debug_tags ) {
         usleep(20000);
@@ -260,7 +262,9 @@ class SenateCommonParseUtility extends GenericParseUtility {
     return $per_congress_pager;
   }/*}}}*/
 
-  function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99') {/*{{{*/
+  function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $query_fragment_filter = '\&q=([0-9]*)', $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99' ) {/*{{{*/
+
+		$debug_method = FALSE;
 
     if ( !isset($this->cluster_urldefs) ) throw new Exception("Missing cluster_urldefs");
 
@@ -277,7 +281,7 @@ class SenateCommonParseUtility extends GenericParseUtility {
     );
     if ( $debug_method ) $this->recursive_dump($congress_change_link,'(marker) Congress Change Link');
     $congress_change_link = join('', $congress_change_link);
-
+/*{{{*/
     // Pager regex UIDs are taken from the parameterized URLs in $this->cluster_urldefs, as below:
     //  9f35fc4cce1f01b32697e7c34b397a99 =>
     //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
@@ -298,7 +302,7 @@ class SenateCommonParseUtility extends GenericParseUtility {
     //       40b2fa87aab9d7dfd8be00197298b532 => 94|93|92|91|90|89|88|87|86|85|84
     //       c64b23d94c86d9370fb246769579776d => 83|82|81|80|79|78|77|76|75|74|73
     //    whole_url => http://www.senate.gov.ph/lis/journal.aspx?congress=15&session=1R&q=({PARAMS})
-
+/*}}}*/
     $pagecontent = <<<EOH
 <div class="senate-journal">
 EOH;
@@ -307,38 +311,89 @@ EOH;
 
     if ( $debug_method ) $this->recursive_dump($child_collection,'(marker) Session and item src');
 
+		$dump_all_congress_entries = FALSE;
+		$level_0_rendered = FALSE;
+		$depth_2_label = 'Session';
+
     foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
 
-      if ( !($target_congress == $congress) ) continue;
+			// Detect Senate Resolutions, 
+			if ( !$dump_all_congress_entries && is_array($session_q) && 1 == count($session_q) ) {
+				// Test whether the document entries have a Regular/Special session partition.
+				// Some documents (resolutions) are not clustered by session, and 
+				// instead contain the single key 'ALLSESSIONS'.
+				list( $session, $q ) = each($session_q);
+				reset($session_q);
+				if ( $session == 'ALLSESSIONS' ) {
+					$this->syslog(__FUNCTION__, __LINE__, "(marker) Two-level array");
+					$dump_all_congress_entries = TRUE;
+				}
+			}
 
-      $pagecontent .= <<<EOH
+			if ( $dump_all_congress_entries ) {
+				if ( !$level_0_rendered ) 
+					$pagecontent .= <<<EOH
+<span class="indent-1">Last 3 Congress Conventions {$congress_change_link}<input type="button" value="Reset" id="reset-cached-links" /><br/>
+
+EOH;
+				$level_0_rendered = TRUE;
+				$depth_2_label = 'Congress';
+				// Restructure the input child collection
+				// [Congress] => 'ALLSESSIONS' => { Resolutions list }
+				// [ DUMMY ] => [Congress] => 'ALL' => { Resolutions list }
+				reset($child_collection);
+				$session_q = array();
+				foreach ( $child_collection as $congress => $resolutionset ) {
+					foreach ( $resolutionset as $resolutions )
+						$session_q[$congress] = $resolutions;
+				}
+				$child_collection = array();
+			} else {
+				if ( !($target_congress == $congress) ) continue;
+
+				$pagecontent .= <<<EOH
 <span class="indent-1">Congress {$congress} {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
 
 EOH;
 
-      // Insert missing regular session links
-      $sessions_extracted = $session_select; 
-      $sessions_extracted = $this->filter_nested_array($sessions_extracted,'optval[linktext*=Regular Session|i]');
-      if ( TRUE || $debug_method ) $this->recursive_dump($sessions_extracted,"(marker) Regular Session options");
-      foreach ( $sessions_extracted as $session ) {
-        if ( !array_key_exists($session, $session_q) ) $session_q[$session] = array();
-      }
+				// Insert missing regular session links
+				$sessions_extracted = $session_select; 
+				$sessions_extracted = $this->filter_nested_array($sessions_extracted,'optval[linktext*=Regular Session|i]');
+				if ( $debug_method ) $this->recursive_dump($sessions_extracted,"(marker) Regular Session options");
+				foreach ( $sessions_extracted as $session ) {
+					if ( !array_key_exists($session, $session_q) ) $session_q[$session] = array();
+				}
+			}
 
       krsort($session_q);
 
       foreach ( $session_q as $session => $q ) {/*{{{*/
 
-        $per_congress_pager = $this->get_per_congress_pager($urlmodel, $session, $q, $session_select);
+				$per_congress_pager = ( $dump_all_congress_entries )
+					? "[PAGER{$session}]"
+					: $this->get_per_congress_pager($urlmodel, $session, $q, $session_select);
 
+				$session_fragment = empty($session)
+					? NULL
+					: <<<EOH
+<div class="indent-2">{$depth_2_label} {$session}<br/>
+EOH;
+				$per_congress_pager = empty($per_congress_pager)
+					? NULL
+					: <<<EOH
+<span class="link-faux-menuitem" id="pager-{$session}">{$per_congress_pager}</span><br/>
+EOH;
         $pagecontent .= <<<EOH
-<div class="indent-2">Session {$session}<br/>
-<span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
+{$session_fragment}
+{$per_congress_pager}
 <ul class="link-cluster no-bullets">
 EOH;
-        // Extract sequence position from query component "q"
-        $this->reorder_url_array_by_queryfragment($q, '\&q=([0-9]*)');
+        // Extract sequence position from query component in $query_fragment_filter 
+        $this->reorder_url_array_by_queryfragment($q, $query_fragment_filter );
 
         $query_regex = '@([^&=]*)=([^&]*)@';
+
+    // $this->recursive_dump($q, "(marker) ----- ---- --- -- - - For {$session} " );
 
         foreach ( $q as $child_link ) {/*{{{*/
           $urlparts = UrlModel::parse_url($child_link['url'],PHP_URL_QUERY);
@@ -351,7 +406,8 @@ EOH;
             $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
             $linktext = "No. {$url_query_parts['q']}";
           }
-          $cached = $child_link['cached'] ? "cached" : "";
+          $cached = $child_link['cached'] == TRUE ? "cached" : "";
+					// if ( !$child_link['cached'] ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - Uncached {$linktext}");
           $pagecontent .= <<<EOH
 <li class="no-bullets"><a class="legiscope-remote {$cached} indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
@@ -364,9 +420,9 @@ EOH;
 
 EOH;
       }/*}}}*/
-      $pagecontent .= <<<EOH
-</span>
 
+				$pagecontent .= <<<EOH
+</span>
 EOH;
     }/*}}}*/
 

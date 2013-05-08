@@ -14,10 +14,15 @@ function initialize_dossier_triggers() {
       var referrer = data.referrer;
       var url = data.url;
       var contenttype = data.contenttype ? data.contenttype : '';
+      var linkset = data.linkset ? data.linkset : null;
       $('#doctitle').html("Legiscope");
+
       if ( /^text\/html/.test(contenttype) ) {
+        if ( typeof linkset != 'null' ) {
+          replace_contentof('linkset', linkset);
+          initialize_linkset_clickevents($('ul[id=house-bills-by-rep]'),'li');
+        }
         replace_contentof('original', data.original);
-        // $('[class*=alternate-original]').css({ 'background-color': '#DDD' });
         initialize_remote_links(); 
       }
       replace_contentof('currenturl',

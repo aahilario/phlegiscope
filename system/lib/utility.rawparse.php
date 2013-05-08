@@ -15,6 +15,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
   protected $removable_containers = array();
   private $hash_generator_counter = 0;
   private $tag_counter            = 0;
+  protected $promise_stack        = array();
 
   /*
    * HTML document XML parser class
@@ -74,14 +75,18 @@ EOH;
       $filter_src   = create_function('$a', '$rv = is_array($a) && array_key_exists("seq",$a)  ? $a        : (is_array($a["attrs"]) && array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
       $containers   = array_filter(array_map($sequence_num, $c));
       if ( is_array($containers) && (0 < count($containers))) {
-        $containers = array_combine(
-          $containers,
-          array_filter(array_map($filter_src, $c))
-        );
-        if ( is_array($containers) ) {
-          ksort($containers);
-          $c = $containers;
-        }
+				$filtered = array_map($filter_src, $c);
+				if ( is_array($filtered) && count($containers) == count($filtered) ) {
+					$containers = array_combine(
+						$containers,
+						$filtered
+					);
+					if ( is_array($containers) ) {
+						$containers = array_filter($containers);
+						ksort($containers);
+						$c = $containers;
+					}
+				}
       } else {
         
       }
@@ -94,7 +99,7 @@ EOH;
     return $this;
   }/*}}}*/
 
-  function & get_containers($docpath = NULL) {/*{{{*/
+  function & get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
     $this->filtered_containers = array();
     foreach ( $this->removable_containers as $remove ) {
       unset($this->containers[$remove]);
@@ -103,7 +108,7 @@ EOH;
 
     if ( !is_null($docpath) ) {
       $this->filtered_containers = $this->containers;
-			return $this->filter_nested_array($this->filtered_containers, $docpath);
+			return $this->filter_nested_array($this->filtered_containers, $docpath, $reduce_to_element);
     }
     return $this->containers;
   }/*}}}*/
@@ -181,12 +186,14 @@ EOH;
 
   function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {/*{{{*/
 
+		$debug_method = FALSE;
+
     $this->reset();
 
-    if ( empty($raw_html) ) {
-      $this->syslog(__FUNCTION__,__LINE__, "(warning) Nothing to parse. Returning NULL");
-       return NULL;
-    }
+		if ( empty($raw_html) ) {
+			$this->syslog(__FUNCTION__,__LINE__, "(warning) Nothing to parse. Returning NULL");
+			return NULL;
+		}
 
     $raw_html = join('',array_filter(explode("\n",str_replace(
       array(
@@ -239,7 +246,7 @@ EOH;
       ? strtolower($doctype_match[1])
       : 'iso-8859-1' // Default assumption
       ;
-    $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}'" );
+		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}'" );
 
     $dom                      = new DOMDocument();
     $dom->recover             = TRUE;
@@ -288,13 +295,84 @@ EOH;
 
     }
 
+    // Postprocessing
+
+    // Add unprocessed container stack entries to $this->containers
+    while ( 0 < count($this->container_stack) ) $this->stack_to_containers();
+
     $only_non_empty = create_function('$a', 'return 0 < count($a["children"]) ? $a : NULL;');
     $this->containers = array_filter(array_map($only_non_empty,$this->containers));
     if ( $this->debug_tags ) $this->recursive_dump($this->containers,'(marker)');
 
+    // Process deferred tag operations ("promises")
+    $this->process_promise_stack();
+  
     return $this->containers;
 
   }/*}}}*/
+
+  function process_promise_stack() {
+    // Process deferred tag operations ("promises")
+    if ( 0 < count($this->promise_stack) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Handle stacked tag promises: " . count($this->promise_stack) . " for " . get_class($this));
+      $containerset = $this->get_containers();
+      // Ensure that hash table contains 'seq' in keys
+      $this->reorder_with_sequence_tags($containerset);
+      array_walk($containerset,create_function(
+        '& $a, $k, $s', '$s->reorder_with_sequence_tags($a["children"]);'
+      ),$this);
+      if (0) $this->filter_nested_array( $containerset,
+        'children[tagname*=tr]'
+      );
+      // FIXME: Remove duplicate containers
+      array_walk( $containerset, create_function(
+        '& $a, $k', 'if ( is_numeric($k) && array_key_exists($k,$a) ) unset($a[$k]); if ( is_numeric($k) && array_key_exists("children", $a) && array_key_exists($k,$a["children"]) ) unset($a["children"][$k]);'
+      ));
+      $seq = NULL;
+      $this->process_promise_stack_worker($seq,$containerset);
+      $this->containers = $containerset;
+    }
+    return $this->containers;
+  }
+
+  function process_promise_stack_worker(& $seqno, & $containerset, $promise_item = NULL, $depth = 0) {
+    // Handle forward promise
+    $debug_method = FALSE;
+    if ( !is_null($promise_item) ) {
+      foreach ( $promise_item as $ancestor => $promise ) {
+        if ( array_key_exists('__TYPE__',$promise) ) {
+          $promise_executor = "promise_{$promise['__TYPE__']}_executor";
+          if ( method_exists($this, $promise_executor) ) {
+            // This call modifies $containerset in place
+            if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Execute {$promise_executor}({$seqno},{$ancestor}) d = {$depth}" );
+            $this->$promise_executor($containerset, $promise, $seqno, $ancestor);
+          } else {
+            if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) -*-*- No executor {$promise_executor}({$seqno},{$ancestor}) d = {$depth}" );
+          }
+        }
+      }
+    }
+    if ( is_array($containerset) ) {
+      foreach ( $containerset as $seq => $children ) {
+        if ( is_integer($seq) ) {
+
+          $promise_item_n = array_key_exists($seq, $this->promise_stack)
+            ? $this->promise_stack[$seq]
+            : NULL
+            ;
+          if ( !is_null($promise_item_n) ) {
+            list($key, $data) = each($promise_item_n);
+            $data['__ANCESTOR__'] = $seqno;
+            $promise_item_n = array($key => $data);
+          }
+        }
+        $this->process_promise_stack_worker($seq, $children, $promise_item_n, $depth + 1);
+        $containerset[$seq] = $children;
+      }
+    } else {
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Leaf d = {$depth}, seq = [{$seqno}] (" . gettype($seqno) . ") containerset " . gettype($containerset)  );
+    }
+  }
 
   function parse($data) {/*{{{*/
     // Expects cURL response with headers prepended
@@ -355,14 +433,13 @@ EOH;
       'attrs' => is_array($attrs) ? array_merge( $attrs, array('seq' => $this->tag_counter) ) : array('seq' => $this->tag_counter),
       'position' => NULL,
     );
-    // usleep(20000);
-    // $this->syslog(__FUNCTION__,__LINE__, "(marker) {$tag} " . $this->get_stacktags() );
     $this->current_tag = $current_tag;
     array_push($this->tag_stack, $current_tag);
     $result = ( method_exists($this, $tag_handler) )
       ? $this->$tag_handler($parser, $attrs, strtolower($tag))
       : TRUE 
       ;
+    ////////////////////////
     $this->pop_tagstack();
     if ( $result) {
       if ( 0 < count($this->current_tag['attrs']) ) {
@@ -379,14 +456,14 @@ EOH;
     return TRUE;
   }/*}}}*/
 
-	function get_container_by_hashid($container_id_hash, $key = NULL) {
+	function get_container_by_hashid($container_id_hash, $key = NULL) {/*{{{*/
 		return array_key_exists($container_id_hash,$this->containers)
 			? is_null($key) 
 			  ? $this->containers[$container_id_hash]
 				: $this->containers[$container_id_hash][$key]
 			: NULL
 			;
-	}
+	}/*}}}*/
 
   function ru_tag_close($parser, $tag) {/*{{{*/
     $tag = strtoupper($tag);
@@ -396,6 +473,22 @@ EOH;
       : TRUE 
       ;
     $this->pop_tagstack();
+    if (is_array($this->current_tag) && array_key_exists('__LEGISCOPE__',$this->current_tag) ) {
+      $promise_item = $this->current_tag['__LEGISCOPE__'];
+      unset($this->current_tag['__LEGISCOPE__']);
+      switch ($promise_item['__TYPE__']) {
+        case 'title':
+          // This tag is a title for a container, identified by seq __NEXT__
+          $promise_properties = $promise_item;
+          unset($promise_properties['__NEXT__']);
+          $this->promise_stack[$promise_item['__NEXT__']] = array(
+            $this->current_tag['attrs']['seq'] => $promise_properties
+          );
+          break;
+        default:
+          break;
+      }
+    }
     if ($result) {
       $tag_cdata = ( is_array($this->current_tag) && array_key_exists('cdata',$this->current_tag) && is_array($this->current_tag['cdata']) )
         ? join(' ',$this->current_tag['cdata'])
@@ -470,23 +563,35 @@ EOH;
   }/*}}}*/
 
   function add_to_container_stack(& $link_data, $target_tag = NULL) {/*{{{*/
-    if ( 0 < count($this->container_stack) ) {
-      if ( is_null($target_tag) ) {
-        $container = array_pop($this->container_stack);
-        $container['children'][] = $link_data; 
-        array_push($this->container_stack, $container);
-        return;
-      }
-      $found_index = NULL;
-      foreach( $this->container_stack as $stack_index => $stacked_element ) {
-        if ( !( strtolower($stacked_element['tagname']) == strtolower($target_tag) ) ) continue;
-        $found_index = $stack_index; // Continue; find the uppermost tag
-      }
-      if ( !is_null($found_index) ) {
-        $this->container_stack[$found_index]['children'][] = $link_data;
-      } else {
-        if (C('DEBUG_'.get_class($this))) $this->syslog( __FUNCTION__, __LINE__, "Lost tag content" );
-      }
+    if ( !( 0 < count($this->container_stack) ) ) {
+      $container_def = array(
+        'tagname' => 'nil',
+        'sethash' => $this->hash_generator_counter++,
+        'class'   => NULL, 
+        'id'      => '__LEGISCOPE__',
+        'children' => array(),
+        'seq'     => 0 
+      );
+      $container_sethash = sha1(base64_encode(print_r($container_def,TRUE) . ' ' . mt_rand(10000,100000)));
+      $container_def['sethash'] = $container_sethash;
+      array_push($this->container_stack, $container_def);
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) -- - -- - !! Attempt to add tag to empty stack. Added faux container [{$container_sethash}]");
+    }
+    if ( is_null($target_tag) ) {
+      $container = array_pop($this->container_stack);
+      $container['children'][] = $link_data; 
+      array_push($this->container_stack, $container);
+      return;
+    }
+    $found_index = NULL;
+    foreach( $this->container_stack as $stack_index => $stacked_element ) {
+      if ( !( strtolower($stacked_element['tagname']) == strtolower($target_tag) ) ) continue;
+      $found_index = $stack_index; // Continue; find the uppermost tag
+    }
+    if ( !is_null($found_index) ) {
+      $this->container_stack[$found_index]['children'][] = $link_data;
+    } else {
+      if (C('DEBUG_'.get_class($this))) $this->syslog( __FUNCTION__, __LINE__, "Lost tag content" );
     }
   }/*}}}*/
 
@@ -521,7 +626,7 @@ EOH;
     return $this;
   }/*}}}*/
 
-  function collapse_current_tag_link_data() {
+  function collapse_current_tag_link_data() {/*{{{*/
     $target = $this->current_tag['attrs']['HREF'];
     $link_text = join('', $this->current_tag['cdata']);
     $link_data = array(
@@ -530,7 +635,7 @@ EOH;
       'seq'      => $this->current_tag['attrs']['seq'],
     );
     return $link_data;
-  }
+  }/*}}}*/
 
   function extract_form_controls($form_control_source) {/*{{{*/
 
@@ -573,7 +678,6 @@ EOH;
       'select_options' => $select_option,
     );
   }/*}}}*/
-
 
 	function fetch_body_generic_cleanup($pagecontent) {/*{{{*/
 		return preg_replace(
@@ -626,5 +730,32 @@ EOH;
     }
     return $this;
   }/*}}}*/
+
+  function & current_tag() {
+    $this->pop_tagstack();
+    $this->push_tagstack();
+    return $this;
+  }
+
+  function resequence_children(& $containers) {/*{{{*/
+    return array_walk(
+      $containers,
+      // create_function('& $a, $k, $s', 'if ( array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'),
+      create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
+      $this
+    );
+  }/*}}}*/
+
+  function embed_cdata_in_parent() {/*{{{*/
+    $i = $this->pop_tagstack();
+    $content = join('',$this->current_tag['cdata']);
+    $parent = $this->pop_tagstack();
+    $parent['cdata'][] = " {$content} ";
+    $this->push_tagstack($parent);
+    $this->push_tagstack($i);
+    return FALSE;
+  }/*}}}*/
+
+
 
 }/*}}}*/

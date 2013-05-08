@@ -34,6 +34,11 @@ class UrlModel extends DatabaseUtility {
     $this->set_url($url, $load);
   }
 
+	function & set_url_c($url, $load = FALSE) {
+		$this->set_url($url, $load);
+		return $this;
+	}
+
   function set_url($url, $load = TRUE) {/*{{{*/
 		$this->url_vc4096 = $url;
 		$this->urlhash_vc128uniq = is_null($url) ? NULL : self::get_url_hash($url);
@@ -44,10 +49,14 @@ class UrlModel extends DatabaseUtility {
     return $this->in_database();
   }/*}}}*/
 
-	function get_query_element($component) {/*{{{*/
-    $path_query = self::parse_url($this->get_url(),PHP_URL_QUERY);
+  static function query_element($component, $url) {
+    $path_query = self::parse_url($url,PHP_URL_QUERY);
     $query_parts = self::decompose_query_parts($path_query);
-		return $query_parts[$component];
+    return $query_parts[$component];
+  }
+
+	function get_query_element($component) {/*{{{*/
+    return self::query_element($component, $this->get_url());
 	}/*}}}*/
 
   static function get_url_hash($url, $url_component = NULL ) {/*{{{*/
@@ -187,7 +196,16 @@ class UrlModel extends DatabaseUtility {
 		// Reduce long metalink query parameters (truncate params exceeding 32 characters)
 		$metalink_fix     = create_function('$a', 'return (strlen($a) > 32) ? "" : $a;' );
 		$query_components = self::parse_url($url->get_url(),PHP_URL_QUERY);
-		$query_components = self::decompose_query_parts($query_components);
+		if ( 0 < strlen($query_components) ) {
+			$query_components = self::decompose_query_parts($query_components);
+		} else {
+			$query_components = array();
+		}
+		$framework_metalink_data = NULL;
+		if ( array_key_exists('_LEGISCOPE_', $metalink) ) {
+			$framework_metalink_data = $metalink['_LEGISCOPE_'];
+			unset($metalink['_LEGISCOPE_']);
+		}
 		$query_components = array_map($metalink_fix,array_merge($query_components, $metalink));
 		ksort($query_components); // Ensure that we are not sensitive to query part parameter order
 		ksort($metalink); // Just so the caller gets a clue we've reordered the POST data URL
@@ -197,6 +215,10 @@ class UrlModel extends DatabaseUtility {
 		$whole_url = self::parse_url($url->get_url());
 		$whole_url['query'] = $query_components;
 		$faux_url = self::recompose_url($whole_url);
+
+		if ( !is_null($framework_metalink_data) ) {
+			$metalink['_LEGISCOPE_'] = $framework_metalink_data;
+		}
 		return $faux_url;
 	}/*}}}*/
 
@@ -334,6 +356,11 @@ class UrlModel extends DatabaseUtility {
     return $result;
   }/*}}}*/
 
+	function & set_pagecontent_c($c) {
+		$this->set_pagecontent($c);
+		return $this;
+	}
+
   function cached_to_disk() {/*{{{*/
 		return !$this->in_database() &&
 		 	!@file_exists($this->get_cache_filename());
@@ -362,6 +389,11 @@ class UrlModel extends DatabaseUtility {
   function get_response_header($as_array = TRUE, $interline_break = "\n") {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "Header raw: {$this->response_header_vc32767}");
     $h = json_decode($this->response_header_vc32767,TRUE);
+    if ( !is_array($h) ) return array();
+		$h = array_combine(
+			array_map(create_function('$a', 'return strtolower($a);'), array_keys($h)),
+			array_values($h)
+		);
     if ( (FALSE == $h) || !is_array($h) ) {
       $this->syslog( __FUNCTION__, __LINE__, "Header JSON parse failure");
        return $as_array ? array() : NULL;
@@ -369,6 +401,7 @@ class UrlModel extends DatabaseUtility {
     if ($as_array != TRUE) {
       $header_lines = array();
       foreach ( $h as $key => $val ) {
+				if ( is_array($val) ) continue;
         $key = utf8_encode($key);
         $val = utf8_encode($val);
         $header_lines[] = "{$key}: {$val}";
@@ -419,13 +452,14 @@ class UrlModel extends DatabaseUtility {
 
   function set_create_time($utx) {
     $this->create_time_utx = $utx;
+		return $this;
   }
 
   function & set_last_modified($v) { $this->last_modified_utx = $v; return $this; }
   function get_last_modified($v = NULL) { if (!is_null($v)) $this->set_last_modified($v); return $this->last_modified_utx; }
 
-  function & set_content($v) { $this->content_blob = $v; return $this; }
-  function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
+  function & set_content($v) { $this->pagecontent_blob = $v; return $this; }
+  function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->pagecontent_blob; }
 
   function & set_urltext($v) { $this->urltext_vc4096 = $v; return $this; }
   function get_urltext($v = NULL) { if (!is_null($v)) $this->set_urltext($v); return $this->urltext_vc4096; }
@@ -511,8 +545,15 @@ class UrlModel extends DatabaseUtility {
   }
 
   function ensure_custom_parse() {
-    if ( !$this->is_custom_parse() ) $this->set_custom_parse(TRUE)->stow();
+    if ( !$this->is_custom_parse() ) {
+      $this->set_custom_parse(TRUE);
+      if ( $this->in_database() ) $this->stow();
+    }
   }
+
+	function get_id() {
+		return $this->id;
+	}
 
   function & set_is_fake($v) { $this->is_fake_bool = $v; return $this; }
   function get_is_fake($v = NULL) { if (!is_null($v)) $this->set_is_fake($v); return $this->is_fake_bool; }
@@ -526,7 +567,7 @@ class UrlModel extends DatabaseUtility {
   function & set_update_time($v) { $this->update_time_utx = $v; return $this; }
   function get_update_time($v = NULL) { if (!is_null($v)) $this->set_update_time($v); return $this->update_time_utx; }
 
-	static function create_metalink($linktext, $target_url, $control_set, $classname) {
+	static function create_metalink($linktext, $target_url, $control_set, $classname) {/*{{{*/
 		ksort($control_set);
 		$controlset_json_base64 = base64_encode(json_encode($control_set));
 		$controlset_hash        = md5($controlset_json_base64);
@@ -535,5 +576,6 @@ class UrlModel extends DatabaseUtility {
 <span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
 EOH;
 		return $generated_link;
-	}
+	}/*}}}*/
+
 }

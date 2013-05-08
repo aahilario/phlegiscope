@@ -63,8 +63,8 @@ function preload(components) {
             $('#doctitle').html(null);
           }),
           success  : (function(data, httpstatus, jqueryXHR) {
-            // $('a[class*=legiscope-remote][id='+hash+']').addClass('cached');
             $('a[id='+hash+']').addClass('cached').removeClass('uncached');
+						if ( data && data.original ) replace_contentof('original',data.original);
           })
         });
       } 
@@ -78,6 +78,8 @@ function initialize_linkset_clickevents(linkset,childtag) {
   $(linkset).on('contextmenu',function(){
     return false;
   }).click(function(e){
+
+		var self = $(this);
 
     e.stopPropagation();
     e.preventDefault();
@@ -105,7 +107,7 @@ function initialize_linkset_clickevents(linkset,childtag) {
 
           if ( linkset && linkset.length > 0 ) {
             replace_contentof('linkset', linkset);
-            initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+            initialize_linkset_clickevents(self,child_tags);
             setTimeout(function(){ initialize_remote_links(); },1);
           }
         })
@@ -137,6 +139,105 @@ function initialize_linkset_clickevents(linkset,childtag) {
   });
 }
 
+function std_seek_response_handler(data, httpstatus, jqueryXHR) {
+	var response = data.error ? data.message : data.linkset;
+	var markup = data.markup;
+	var responseheader = data.responseheader;
+	var referrer = data.referrer;
+	var url = data.url;
+	var contenttype = data.contenttype ? data.contenttype : '';
+	var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
+
+	$('div[class*=contentwindow]').each(function(){
+		if ($(this).attr('id') == 'issues') return;
+		if (retainoriginal)
+		if ($(this).attr('id') == 'original') return;
+		$(this).children().remove();
+	});
+
+	if ( /^application\/pdf/.test(contenttype) ) {
+		var target_container = $(retainoriginal ? ('#'+$('[class*=alternate-original]').first().attr('id')) : '#original');
+		PDFJS.getDocument('/fetchpdf/'+data.contenthash).then(function(pdf){
+			var np = pdf.numPages;
+			for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
+				if ( pagecounter == 1 ) $(target_container).children().remove();
+				pdf.getPage(pagecounter).then(function(page){
+					var pagecount = $(target_container).children().length;
+					var target_name = "pdfdoc-"+pagecount;
+					$('#doctitle').html("Target: "+target_name);
+					$(target_container).append($(document.createElement('CANVAS'))
+						.addClass('inline-pdf')
+						.attr('id', target_name)
+					);
+					var scale = 1.0;
+					var viewport = page.getViewport(scale);
+					var canvas = document.getElementById(target_name);
+					if ( typeof canvas != 'undefined' && canvas != null) {
+						var context = canvas.getContext('2d');
+						canvas.height = viewport.height;
+						canvas.width = $(canvas).parent().first().outerWidth();
+						var renderContext = {
+							canvasContext : context,
+							viewport : viewport
+						};
+						page.render(renderContext);
+					}
+				});
+			}
+		});
+	} else {
+		replace_contentof('original',data.original);
+		if ( /^text\/html/.test(contenttype) ) {
+			if ( response && response.length > 0 ) {
+				replace_contentof('linkset', response);
+				initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+			}
+		}
+		$('#siteURL').val(referrer);
+		replace_contentof('markup',markup);
+		replace_contentof('responseheader',responseheader);
+		replace_contentof('referrer',$(document.createElement('A'))
+			.addClass('legiscope-remote')
+			.attr('href', referrer)
+			.html('Back')
+		);
+		replace_contentof('currenturl',
+			$(document.createElement('A'))
+			.attr('href', data.url)
+			.attr('target','blank')
+			.append(data.url)
+		);
+		initialize_authentication_inputs();
+		$('#tab_'+data.defaulttab).click();
+	}
+	setTimeout(function(){ 
+		initialize_remote_links(); 
+		var seek_enabled    = $('#seek').prop('checked');
+		if ( !seek_enabled ) return;
+		var component_count = $("span[class*=search-match-searchlisting]").length || $("div[id=original]").find('a[class*=legiscope-remote]').length;
+		var component_index = 0;
+		if ( 0 == component_count ) {
+			$("div[id=original]").children('a').each(function(){
+				component_count++;
+			});
+		}
+		$('#doctitle').html("Seek: +"+component_count);
+		if ( 0 == component_count ) return;
+		if ( components > 300 ) components = 300;
+		var components = new Array(component_count);
+		$("div[id=original]").find('a[class*=legiscope-remote]').each(function(){
+			if ( component_index > 300 ) return;
+			var linkset_child = $(this).attr('id');
+			if ( $(this).hasClass('cached') ) return;
+			components[component_index] = linkset_child; 
+			component_index++;
+		});
+		preload(components);
+		$('a[class*=pull-in]').first().click(); 
+		return true; 
+	},1);
+}
+
 function load_content_window(a,ck,obj,data,handlers) {
   // if ( peek(a,ck) ) seek(a,ck);
   var object_text = typeof obj != 'undefined' ? $(obj).html() : null;
@@ -165,110 +266,25 @@ function load_content_window(a,ck,obj,data,handlers) {
     complete : (handlers && handlers.complete) ? handlers.complete : (function(jqueryXHR, textStatus) {
       remove_wait_notification();
     }),
-    success  : (handlers && handlers.success) ? handlers.success : (function(data, httpstatus, jqueryXHR) {
-      var response = data.error ? data.message : data.linkset;
-      var markup = data.markup;
-      var responseheader = data.responseheader;
-      var referrer = data.referrer;
-      var url = data.url;
-      var contenttype = data.contenttype ? data.contenttype : '';
-      var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
-
-      $('div[class*=contentwindow]').each(function(){
-        if ($(this).attr('id') == 'issues') return;
-        if (retainoriginal)
-        if ($(this).attr('id') == 'original') return;
-        $(this).children().remove();
-      });
-
-      if ( /^application\/pdf/.test(contenttype) ) {
-        var target_container = $(retainoriginal ? ('#'+$('[class*=alternate-original]').first().attr('id')) : '#original');
-        PDFJS.getDocument('/fetchpdf/'+data.contenthash).then(function(pdf){
-          var np = pdf.numPages;
-          for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
-            if ( pagecounter == 1 ) $(target_container).children().remove();
-            pdf.getPage(pagecounter).then(function(page){
-              var pagecount = $(target_container).children().length;
-              var target_name = "pdfdoc-"+pagecount;
-              $('#doctitle').html("Target: "+target_name);
-              $(target_container).append($(document.createElement('CANVAS'))
-                .addClass('inline-pdf')
-                .attr('id', target_name)
-              );
-              var scale = 1.0;
-              var viewport = page.getViewport(scale);
-              var canvas = document.getElementById(target_name);
-              if ( typeof canvas != 'undefined' && canvas != null) {
-                var context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = $(canvas).parent().first().outerWidth();
-                var renderContext = {
-                  canvasContext : context,
-                  viewport : viewport
-                };
-                page.render(renderContext);
-              }
-            });
-          }
-        });
-      } else {
-        replace_contentof('original',data.original);
-        if ( /^text\/html/.test(contenttype) ) {
-          if ( response && response.length > 0 ) {
-            replace_contentof('linkset', response);
-            initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
-          }
-        }
-        $('#siteURL').val(referrer);
-        replace_contentof('markup',markup);
-        replace_contentof('responseheader',responseheader);
-        replace_contentof('structure',data.structure);
-        replace_contentof('referrer',$(document.createElement('A'))
-          .addClass('legiscope-remote')
-          .attr('href', referrer)
-          .html('Back')
-        );
-        replace_contentof('currenturl',
-          $(document.createElement('A'))
-          .attr('href', data.url)
-          .attr('target','blank')
-          .append(data.url)
-        );
-        initialize_authentication_inputs();
-        $('#tab_'+data.defaulttab).click();
-
-      }
-      setTimeout(function(){ 
-        initialize_remote_links(); 
-        var seek_enabled    = $('#seek').prop('checked');
-        if ( !seek_enabled ) return;
-        var component_count = $("span[class*=search-match-searchlisting]").length || $("div[id=original]").find('a[class*=legiscope-remote]').length;
-        var component_index = 0;
-        if ( 0 == component_count ) {
-          $("div[id=original]").children('a').each(function(){
-            component_count++;
-          });
-        }
-        $('#doctitle').html("Seek: +"+component_count);
-        if ( 0 == component_count ) return;
-        if ( components > 300 ) components = 300;
-        var components = new Array(component_count);
-        $("div[id=original]").find('a[class*=legiscope-remote]').each(function(){
-          if ( component_index > 300 ) return;
-          var linkset_child = $(this).attr('id');
-          if ( $(this).hasClass('cached') ) return;
-          components[component_index] = linkset_child; 
-          component_index++;
-        });
-        preload(components);
-        $('a[class*=pull-in]').first().click(); 
-        return true; 
-      },1);
-    })
+    success  : (handlers && handlers.success) ? handlers.success : std_seek_response_handler
   });
 }
 
 function initialize_remote_links() {
+
+  $('a[class*=metapager]').unbind('click');
+
+  $('a[class*=metapager]').click(function(e){
+    var content_id = /^switch-/.test($(this).attr('id')) ? ('content-'+$(this).attr('id').replace(/^switch-/,'')) : null;
+    var content = $('span[id='+content_id+']').html();
+    var data = $('#jumpto') && $('#jumpto').val() ?  { LEGISCOPE : { coPage : $('#jumpto').val() } } : null;
+    $('#metalink').html(content);
+    e.stopPropagation();
+    load_content_window($(this).attr('href'), $(e).attr('metaKey') || $('#seek').prop('checked'), $(this), data);
+    $('#metalink').html('');
+    return false;
+  });
+
 
   $('a[class*=fauxpost]').unbind('click');
 
@@ -277,7 +293,7 @@ function initialize_remote_links() {
     var content = $('span[id='+content_id+']').html();
     $('#metalink').html(content);
     e.stopPropagation();
-    load_content_window($(this).attr('href'), $(e).attr('metaKey'),$(this));
+    load_content_window($(this).attr('href'), $(e).attr('metaKey') || $('#seek').prop('checked'), $(this));
     $('#metalink').html('');
     return false;
   });
@@ -488,13 +504,11 @@ function initialize_authentication_inputs() {
 }  
 
 function initialize_spider() {
-  /*
   $('#siteURL').keydown(function(e){
     if( $(e).attr('keyCode') == 13) {
       load_content_window($(this).val(), $(e).attr('metaKey'), null, null);
     }
   });
-  */
   initialize_remote_links();
   initialize_spider_tabs();
   $('#keywords').focus().select();

@@ -54,27 +54,75 @@ class SenateGovPh extends LegiscopeBase {
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method   = FALSE;
+
     $report         = new SenateCommitteeReportDocumentModel();
     $journal        = new SenateJournalDocumentModel();
     $journal_parser = new SenateJournalParseUtility();
-    $reportjournal  = new SenateCommitteeReportSenateJournalJoin();
-    $reportjournal->dump_accessor_defs_to_syslog();
+    $billjournal    = new SenateBillSenateJournalJoin();
 
-    $journal_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $journal_parser->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
+
+    $congress_number  = $urlmodel->get_query_element('congress');
+    $congress_session = $urlmodel->get_query_element('session');
 
     $journal_data = array();
     $pagecontent = $journal_parser->parse_activity_summary($journal_data);
 
     // Store this Journal
-    $journal->store($journal_data, $urlmodel, $pagecontent);
+    $journal_id = $journal->store($journal_data, $urlmodel, $pagecontent);
+
+    $journal_data_copy = $journal_data;
+    $journal_info = $journal_parser->filter_nested_array($journal_data_copy,
+      '#[tag*=HEAD]',0 // Return the zeroth element, there can only be one CR set 
+    );
+    $this->recursive_dump($journal_info,"(marker) -- Journal Info --");
 
     // Extract committee report list from journal entry data
     $journal_parser->debug_operators = FALSE;
-    $committee_reports = $journal_parser->filter_nested_array($journal_data,
+    $journal_data_copy = $journal_data;
+    $committee_reports = $journal_parser->filter_nested_array($journal_data_copy,
       '#content[tag*=CR]',0 // Return the zeroth element, there can only be one CR set 
     );
 
-    if ( !is_null($committee_reports) ) $report->store_uncached_reports($committee_reports);
+    if ( !is_null($committee_reports) ) $report->store_uncached_reports($committee_reports, $journal_id, $debug_method);
+
+    // Extract Bills, Resolutions and Committee Reports
+    if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - prefilter');
+    $reading_state = array('R1','R2','R3');
+    $journal_parser->debug_operators = FALSE;
+    foreach ( $reading_state as $state ) {
+      $journal_data_copy = $journal_data;
+      // Extract Senate Bills.  Create Joins between the 
+      $at_state = array_values($journal_parser->filter_nested_array($journal_data_copy,
+        "#content[tag*={$state}]{#[prefix*=SBN]}",0
+      ));
+      if ( (0 < count($at_state)) || $debug_method ) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - At reading state {$state}, C. {$congress_number} Session {$congress_session}");
+        $this->recursive_dump($at_state,"(marker) {$state}");
+      }
+      // Obtain list of joins between this Journal (journal_id) and each 
+      // Senate document (bill, resolution, adopted resolutions, joint committee reports, etc.).
+      while ( 0 < count($at_state) ) {
+        // Construct SQL REGEXP operand string
+        $n = 0;
+        $journal_items = array();
+        $sn_suffixes = array();
+        while ( $n++ < 10 && 0 < count($at_state) ) {
+          $journal_item = array_pop($at_state);
+          array_push($journal_items, $journal_item); 
+          $sn_suffixes[] = "{$journal_item['sortkey']}";
+        } 
+        if ( 0 < count($sn_suffixes) ) {
+          $sn_suffixes = join('|', $sn_suffixes);
+        }
+      }
+    }
 
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
@@ -858,6 +906,9 @@ EOH
       case 'republic_act' : 
         return $this->pdf_sys_republic_act($parser,$pagecontent,$urlmodel);
         break;
+      case 'adopted_res' :
+        return $this->pdf_sys_adopted_res($parser,$pagecontent,$urlmodel);
+        break;
       default:
         return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
         break;
@@ -874,6 +925,8 @@ EOH
     $republic_act = new RepublicActDocumentModel();
     $ra_parser    = new SenateRaListParseUtility();
     $test_url     = new UrlModel();
+
+    $republic_act->dump_accessor_defs_to_syslog();
 
     $ra_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
@@ -995,96 +1048,45 @@ EOH;
   }/*}}}*/
 
 
+
   /** House Bill route handler **/
 
   function leg_sys_bill(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $pagecontent     = '';
-    $senate_bill     = new SenateBillDocumentModel();
-    $senate_bill_url = new UrlModel();
-
-    $urlmodel->set_last_fetch(time())->increment_hits()->stow();
-
-    // Generate pager links
-
-    $extracted_links = array();
-    $pager_links = $parser->extract_pager_links($extracted_links, $parser->cluster_urldefs, '1cb903bd644be9596931e7c368676982');
-    $pagecontent .= join('', $pager_links);
-
-    // Parse Senate Bill summary page markup
-      
-    $form_attributes = $this->extract_formaction($parser, $urlmodel);
-    $parent_urlparts = UrlModel::parse_url($urlmodel->get_url());
-
-    $filter_for_sbn_querypart = create_function('$a', 'return 1 == preg_match("@SBN-([0-9]*)@", $a["attrs"]["HREF"]) ? array("url" => $a["attrs"]["HREF"], "cdata" => $a["cdata"]) : NULL;' );
-    $sbn_links = array_values(array_filter(array_map($filter_for_sbn_querypart, $parser->get_links())));
-
-    foreach ( $sbn_links as $dummyindex => $sbn_link ) {/*{{{*/
-
-      $link_attributes = array("legiscope-remote");
-
-      // Normalize URL
-      $url = array("url" => $sbn_link['url']);
-      $sbn_links[$dummyindex]['url'] = UrlModel::normalize_url($parent_urlparts, $url);
-      $url = $sbn_links[$dummyindex]['url'];
-
-      // Construct description
-      $cdata = is_array($sbn_link['cdata']) ? join('<br/>', $sbn_link['cdata']) : NULL;
-
-      $senate_bill_url->fetch($url,'url');
-      $senate_bill->fetch($url,'url');
-      $cached = $senate_bill_url->in_database() && $senate_bill->in_database() && (0 < strlen($senate_bill->get_significance()));
-
-      if ( !$cached && ($senate_bill->in_database() || $senate_bill_url->in_database()) ) {
-        $senate_bill->remove();
-        $senate_bill_url->remove();
-      }
-
-      if ( $senate_bill_url->in_database() ) {
-        $referrers = $senate_bill_url->referrers('url');
-        $links = '';
-        foreach ( $referrers as $referrer_url ) {
-          $links .= <<<EOH
-<li>{$referrer_url}</li>
-EOH;
-        }
-        $referrers = "<ul>{$links}</ul>"; 
-      } else {
-        $referrers = '';
-      }
-
-      $sbn_links[$dummyindex]['cached'] = $cached;
-
-      $linktext = $url; 
-
-      if ( $cached ) {
-        $link_attributes[] = "cached";
-        $senate_bill->fetch($senate_bill_url->get_url(),'url');
-        $linktext = preg_replace('@(.*)SBN-([0-9]*)(.*)@','SB$2',$senate_bill_url->get_url());
-      }
-
-      $urlhash = UrlModel::get_url_hash($url);
-      $link_attributes = join(' ', $link_attributes);
-      $pagecontent .= <<<EOH
-
-<span class="search-match-searchlisting"><hr/><a href="{$url}" class="{$link_attributes}" id="{$urlhash}">{$linktext}</a><br/>{$cdata}</span>
-{$referrers}
-<br/>
-
-EOH;
-
-    }/*}}}*/
-
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {/*{{{*/
-      if ( TRUE || !file_exists($cache_filename) || $parser->from_network ) {
-        file_put_contents($cache_filename, $pagecontent);
-      }
-    }/*}}}*/
-
+    return $this->non_session_linked_document(
+      __FUNCTION__,
+      $parser,$pagecontent,$urlmodel,
+      // Unique tail fragment for Resolution URLs
+      'SBN-([0-9]*)',
+      // Regex yielding 2 match fields
+      'congress=([0-9]*)\&q=SBN-([0-9]*)',
+      // Template URL
+      'http://www.senate.gov.ph/lis/bill_res.aspx?congress={congress_tag}&q={full_sn}',
+      // Pager URL fetch regex
+      'congress=([0-9]*)\&type=bill\&p=([0-9]*)',
+      // Pager template URL
+      'http://www.senate.gov.ph/lis/leg_sys.aspx?congress={congress_tag}&type=bill&p={page}'
+    );
+ 
   }/*}}}*/
 
   function leg_sys_resolution(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+
+    return $this->non_session_linked_document(
+      __FUNCTION__,
+      $parser,$pagecontent,$urlmodel,
+      // Unique tail fragment for Resolution URLs
+      'SRN-([0-9]*)',
+      // Regex yielding 2 match fields
+      'congress=([0-9]*)\&q=SRN-([0-9]*)',
+      // Template URL
+      'http://www.senate.gov.ph/lis/bill_res.aspx?congress={congress_tag}&q={full_sn}',
+      // Pager URL fetch regex
+      'congress=([0-9]*)\&type=resolution\&p=([0-9]*)',
+      // Pager template URL
+      'http://www.senate.gov.ph/lis/leg_sys.aspx?congress={congress_tag}&type=resolution&p={page}'
+    );
+ 
   }/*}}}*/
 
   function leg_sys_journal(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -1116,9 +1118,573 @@ EOH;
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
-  function leg_sys_committee_rpt(& $parser, & $pagecontent, & $urlmodel) {
+  function leg_sys_committee_rpt(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->seek_postparse_4c2e9f440b8f89e94f6de126ef0e38c4($parser,$pagecontent,$urlmodel);
-  }
+  }/*}}}*/
+
+  function non_session_linked_content_parser($caller, $prefix, & $parser, & $pagecontent, & $urlmodel ) {/*{{{*/
+
+    $method_infix = '@^senate_(.*)_content_parser$@i';
+    $senatedoc = ucfirst(strtolower(preg_replace($method_infix,'$1', $caller)));
+
+    $documents = "Senate{$senatedoc}DocumentModel";
+    $document_parser = "Senate{$senatedoc}ParseUtility";
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$document_parser}, {$documents}" );
+
+    $debug_method = FALSE;
+
+    ///////////////////////////////////////////
+    $senate_document = new $documents(); 
+    $senate_document_parser = new $document_parser();
+    $senate_document_parser->debug_tags = FALSE;
+    $document_contents = $senate_document_parser->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+
+    $urlmodel->ensure_custom_parse();
+
+    $form_attributes = $this->extract_formaction($senate_document_parser, $urlmodel);
+
+    // The form action URL is assumed to be the parent URL of all relative URLs on the page
+    $action_url             = new UrlModel($form_attributes['action']);
+    $target_action          = UrlModel::parse_url($action_url->get_url());
+    $target_congress        = $urlmodel->get_query_element('congress');
+    $sbn_regex_result       = preg_replace('@(.*)' . $prefix . '-([0-9]*)(.*)@', $prefix . '-$2',$target_action['query']);
+    $target_query           = explode('&',$target_action['query']);
+    // Decorate the action URL to create a fake caching target URL name.
+    $target_query[]         = "metaorigin=" . $urlmodel->get_urlhash();
+    $target_action['query'] = join('&', $target_query);
+    $faux_url               = UrlModel::recompose_url($target_action);
+    $faux_url               = new UrlModel($faux_url,TRUE);
+    $faux_url_in_db         = $faux_url->in_database() ? "in DB" : "fetchable";
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Real post action {$sbn_regex_result} URL {$action_url} Faux cacheable {$faux_url_in_db} url: {$faux_url}" );
+
+    $not_in_database = !$faux_url->in_database();
+
+    // If the full document hasn't yet been fetched, execute a fake POST
+    if ( $not_in_database || $parser->from_network ) {/*{{{*/
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Faux cacheable url: {$faux_url} -> {$form_attributes['action']}" );
+      $form_controls = $form_attributes['form_controls'];
+      $form_controls['__EVENTTARGET'] = 'lbAll';
+      $form_controls['__EVENTARGUMENT'] = NULL;
+      $save_faux_url = $faux_url->get_url();
+      if ( $debug_method ) $this->recursive_dump($form_controls,"(marker) --- - --");
+      $successful_fetch = $this->perform_network_fetch( $faux_url, $urlmodel->get_url(), $form_attributes['action'], $faux_url->get_url(), $form_controls );
+      if ( $successful_fetch ) {
+        // Switch back to the cached URL
+        if ( $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "Faux url after fetch: {$faux_url}" );
+          $this->syslog( __FUNCTION__, __LINE__, "          Cached URL: {$save_faux_url}" );
+        }
+        $faux_url->set_url($save_faux_url,TRUE);
+        $pagecontent = $faux_url->get_pagecontent();
+      } else {
+        $parser->json_reply = array('retainoriginal' => TRUE);
+        $pagecontent = "Failed to fetch response to form submission to {$action_url}";
+        return;
+      }
+    }/*}}}*/
+    else {/*{{{*/
+      $pagecontent = $faux_url->get_pagecontent();
+    }/*}}}*/
+
+    if ( !(0 < count($document_contents)) ) {/*{{{*/
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- EMPTY DOCUMENT CONTENT ARRAY" );
+      $doc_url = $senate_document_parser->get_containers(
+        'children[tagname*=div][id=lis_download]',0
+      );
+      $senate_document_parser->filter_nested_array($doc_url,
+        '#[url*=/lisdata/|i]',0
+      );
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- doc_url SOURCE" );
+        $this->recursive_dump($doc_url,"(marker) doc_url");
+        $this->recursive_dump($senate_document_parser->filtered_content,"(marker) othermeta");
+      }
+      $document_contents = array_merge(
+        $senate_document_parser->filtered_content,
+        array('doc_url' => $doc_url[0]['url'])
+      );
+      $document_contents['comm_report_info'] = $document_contents['comm_report_url']['text'];
+      $document_contents['comm_report_url'] = $document_contents['comm_report_url']['url'];
+      $parser->from_network = TRUE;
+    }/*}}}*/
+    else {/*{{{*/
+      $this->recursive_dump($document_contents,"(marker) ------- --- - ----- ---- -- NZD");
+      if ( array_key_exists('comm_report_url', $document_contents) ) { $u = array('url' => $document_contents['comm_report_url']); $l = UrlModel::parse_url($action_url->get_url()); $document_contents['comm_report_url'] = UrlModel::normalize_url($l, $u); }
+      if ( array_key_exists('doc_url', $document_contents) )         { $u = array('url' => $document_contents['doc_url'])        ; $l = UrlModel::parse_url($action_url->get_url()); $document_contents['doc_url'] = UrlModel::normalize_url($l, $u); }
+    }/*}}}*/
+
+    if ( $debug_method ) {
+      $document_structure = $senate_document_parser->get_containers();
+      $this->recursive_dump($document_structure,"(marker) -- -- -- SB {$sbn_regex_result}.{$target_congress}");
+    }
+    if ( $debug_method ) $this->recursive_dump($document_contents,"(marker) -- DC -- SB {$sbn_regex_result}.{$target_congress}");
+
+    $senate_document->fetch(array(
+      'sn' => $sbn_regex_result,
+      'congress_tag' => $target_congress, 
+    ),'AND');
+
+    if ( !$senate_document->in_database() || $parser->from_network ) {/*{{{*/
+      $document_contents['sn'] = $sbn_regex_result;
+      $document_contents['url'] = $action_url->get_url();
+      $document_contents['urlid'] = $action_url->get_id();
+      $document_contents['congress_tag'] = $target_congress;
+      krsort($document_contents);
+      if ( TRUE || $debug_method ) $this->recursive_dump($document_contents,'(warning)');
+      $senate_document->set_contents_from_array($document_contents);
+      $id = $senate_document->stow();
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed SB {$sbn_regex_result}.{$target_congress} #{$id}" );
+      $senate_document->fetch(array(
+        'sn' => $sbn_regex_result,
+        'congress_tag' => $target_congress, 
+      ),'AND');
+
+    }/*}}}*/
+
+    //////////////////////////////////////////////////
+
+    $skip_output_generation = FALSE;
+
+    if ( $skip_output_generation ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Skip generation of output for " . $urlmodel->get_url() );
+      $parser->json_reply = array('retainoriginal' => TRUE);
+      $pagecontent = 'Fetched ' . $urlmodel->get_url();
+      return;
+    }
+
+
+    if ( $senate_document->in_database() ) {/*{{{*/
+
+      $total_bills_in_system = $senate_document->count();
+
+      $doc_url_attrs = array('legiscope-remote');
+      $faux_url->fetch($senate_document->get_url(),'url');
+      if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
+      $doc_url_attrs = join(' ', $doc_url_attrs);
+
+      $pagecontent = $senate_document->substitute(<<<EOH
+Senate {$senatedoc}s in system: {$total_bills_in_system}
+<span class="sb-match-item">{sn}.{congress_tag}</span>
+<span class="sb-match-item sb-match-subjects">{subjects}</span>
+<span class="sb-match-item sb-match-description">{description}</span>
+<span class="sb-match-item sb-match-significance">Scope: {significance}</span>
+<span class="sb-match-item sb-match-status">Status: {status}</span>
+<span class="sb-match-item sb-match-doc-url">Document: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
+<span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
+<span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
+EOH
+      );
+      $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+    }/*}}}*/
+
+    ///////////////////////////////////////////
+
+    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {
+      if ( !file_exists($cache_filename) || $parser->from_network )
+        file_put_contents($cache_filename, $pagecontent);
+    }
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+
+
+
+  }/*}}}*/
+
+  function non_session_linked_document($caller, & $parser, & $pagecontent, & $urlmodel, $url_fetch_regex, $link_regex, $url_template, $pager_regex, $pager_template_url ) {/*{{{*/
+
+    $debug_method = FALSE;
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $method_suffix = '@(.*)_(.*)$@i';
+    $senatedoc = ucfirst(strtolower(preg_replace($method_suffix,'$2', $caller)));
+
+    $documents = "Senate{$senatedoc}DocumentModel";
+    $document_parser = "Senate{$senatedoc}ParseUtility";
+
+    if ( !class_exists($documents) || !class_exists($document_parser) ) {/*{{{*/
+      $message = "Missing class {$documents} or/and {$document_parser}";
+      $this->syslog(__FUNCTION__, __LINE__, $message);
+      $pagecontent = $message;
+      return FALSE;
+    }/*}}}*/
+
+    $documents       = new $documents();
+    $document_parser = new $document_parser();
+
+    $documents->dump_accessor_defs_to_syslog();
+
+    $this->method_cache_emit($parser);
+
+    $target_congress = $urlmodel->get_query_element('congress');
+
+    // Prevent parsing this particular URL in the parent
+    $urlmodel->ensure_custom_parse();
+
+    $document_parser->
+      reset()->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+
+    // Extract URLs from pager
+    $uncached_documents = $document_parser->get_containers(
+      'children[tagname*=div][attrs:CLASS*=alight]',0
+    );
+    
+    // Collect document description fields (serial number, description, title)
+    array_walk($uncached_documents, create_function(
+      '& $a, $k', '$desc = explode("[BR]",trim($a["text"])); $a["title"] = trim($desc[0]); $a["desc"] = trim($desc[1]) ; $a["text"] = UrlModel::query_element("q", $a["url"]); $a["sn_suffix"] = preg_replace("@[^0-9]@i","",$a["text"]); $a["sn"] = $a["text"]; if ( empty($a["title"]) ) $a["title"] = $a["text"]; $a["create_time"] = time();'
+    ));
+
+    // Reconstruct description data so that document SN suffix becomes the array key
+    if ( is_array($uncached_documents) && 0 < count($uncached_documents) ) {
+      $uncached_documents = array_filter(array_combine(
+        array_map(create_function('$a', 'return intval($a["sn_suffix"]);'), $uncached_documents),
+        array_map(create_function('$a', 'unset($a["sn_suffix"]); return array_key_exists("url",$a) ? $a : NULL;'), $uncached_documents)
+      ));
+      if ( $debug_method ) $this->recursive_dump($uncached_documents,"(marker) -- Uncached");
+    }
+
+    krsort($uncached_documents, SORT_NUMERIC);
+
+    // Determine which records are already present in the database
+    // of Senate Resolutions, based on the serial number and Congress tag (15, 14, etc.)
+
+    $markup_tabulation = array_combine(
+      array_keys($uncached_documents),
+      array_map(create_function('$a', 'return $a["text"];'), $uncached_documents)
+    );
+
+    $url_checker = new UrlModel();
+
+    $markup_tabulation_urls = array_combine(
+      array_keys($uncached_documents),
+      array_map(create_function('$a', 'return $a["url"];'), $uncached_documents)
+    );
+
+    $documents->where(array("AND" => array(
+      'congress_tag' => "{$target_congress}",
+      'sn' => $markup_tabulation,
+    )))->recordfetch_setup();
+
+    // Flip, so that array structure is { SN => sortkey, ... }
+    $markup_tabulation = array_flip($markup_tabulation);
+
+    $document = NULL;
+    // Remove extant elements from the tabulation obtained from markup
+    while ( $documents->recordfetch($document) ) {
+      $uncached_documents[$markup_tabulation[$document['sn']]] = NULL;
+    }
+    $uncached_documents = array_filter($uncached_documents);
+
+    // Flip, so that array structure is { URL => sortkey, ... }
+    $markup_tabulation_urls = array_flip($markup_tabulation_urls);
+
+    $url_checker->where(array("AND" => array(
+      'url' => $markup_tabulation_urls,
+    )))->recordfetch_setup();
+
+    $url = NULL;
+    // Remove URLs from $markup_tabulation_urls that are already cached in DB
+    while ( $url_checker->recordfetch($url) ) {
+      $markup_tabulation_urls[$url['url']] = NULL;
+    }
+    // Remaining entries are not yet cached in UrlModel backing store
+    $markup_tabulation_urls = array_filter($markup_tabulation_urls);
+
+    // Stow these nonexistent records
+
+    $uncached_documents = array_values($uncached_documents);
+
+    if ( $debug_method ) $this->recursive_dump($uncached_documents,"(marker) -- Documents to store");
+
+    // Cache documents
+    while ( 0 < count($uncached_documents) ) {/*{{{*/
+      $document = array_pop($uncached_documents);
+      if ( !array_key_exists('url', $document) ) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Missing URL from element " . count($uncached_documents));
+        $this->recursive_dump($document,"(marker) - - - - - - ");
+        continue;
+      }
+      $documents->fetch(array(
+        'sn' => $document['text'],
+        'congress_tag' => $target_congress,
+      ), 'AND');
+      $document['congress_tag'] = $target_congress;
+      $document_id = $documents->set_contents_from_array($document)->stow();
+      /*
+        set_title($document['title'])->
+        set_desc($document['desc'])->
+        set_sn($document['text'])->
+        set_url($document['url'])->
+        set_congress_tag($target_congress)->
+        set_create_time(time())->
+        stow();
+      */
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowed {$document['text']} (#{$document_id})");
+      $this->recursive_dump($document,"(marker) --- -- ---");
+    }/*}}}*/
+
+    //////////////////////////////////////////////////
+
+    $skip_output_generation = FALSE;
+
+    if ( $skip_output_generation ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Skip generation of output for " . $urlmodel->get_url() );
+      $parser->json_reply = array('retainoriginal' => TRUE);
+      $pagecontent = 'Fetched ' . $urlmodel->get_url();
+      return;
+    }
+
+    // Now let's update the child links collection, using the database 
+    $documents->where(array('AND' => array(
+      'url' => 'REGEXP \''. $url_fetch_regex .'\'' 
+    )))->recordfetch_setup();
+
+    $child_collection = array();
+    $document = NULL;
+    // Construct the nested array, compute span of serial numbers.
+    // Pager links ('[PAGERx]') must be replaced 
+    $bounds = array();
+    $total_records = 0;
+    while ( $documents->recordfetch($document) ) {/*{{{*/
+      $datum_parts = array();
+      $url = $document['url'];
+      $text = $document['sn'];
+      preg_match("@{$link_regex}@i", $url, $datum_parts);
+      $congress = $datum_parts[1];
+      $srn = intval($datum_parts[2]);
+      if ( !array_key_exists($congress, $bounds) ) $bounds[$congress] = array('min' => NULL, 'max' => 0, 'count' => 0);
+      $bounds[$congress]['min'] = min(is_null($bounds[$congress]['min']) ? $srn : $bounds[$congress]['min'], $srn);
+      $bounds[$congress]['max'] = max($bounds[$congress]['max'], $srn);
+      $bounds[$congress]['count']++;
+      if ( !array_key_exists($congress, $child_collection) ) $child_collection[$congress] = array();
+      if ( !array_key_exists('ALLSESSIONS', $child_collection[$congress]) ) $child_collection[$congress]['ALLSESSIONS'] = array();
+      $child_collection[$congress]['ALLSESSIONS'][$srn] = array(
+        'url' => $url,
+        'text' => $text,
+        'cached' => TRUE,
+      );
+      $total_records++;
+    }/*}}}*/
+    $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Senate {$senatedoc}: {$total_records}");
+
+    // Insert missing links, which may lead to invalid pages (i.e. unpublished Resolutions)
+    $missing_links = 0;
+    foreach ( $bounds as $congress_tag => $limits ) {/*{{{*/
+      for ( $p = $limits['min'] ; $p <= $limits['max'] ; $p++ ) {
+        if ( !is_array($child_collection[$congress_tag]['ALLSESSIONS']) ) continue;
+        if ( array_key_exists($p, $child_collection[$congress_tag]['ALLSESSIONS']) ) {
+          if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Extant: {$p}");
+          continue;
+        }
+        if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Missing: {$p}");
+        $text = preg_replace('@(\(.*\))@i', $p, $url_fetch_regex);
+        $url = str_replace(
+          array(
+            '{congress_tag}',
+            '{full_sn}',
+          ),
+          array(
+            $congress_tag,
+            $text,
+          ),
+          $url_template
+        );
+        $child_collection[intval($congress_tag)]['ALLSESSIONS'][$p] = array(
+          'url' => $url,
+          'text' => $text,
+          'cached' => FALSE,
+        );
+        $missing_links++;
+      }
+      if ( is_array( $child_collection[$congress_tag]['ALLSESSIONS'] ) )
+      krsort($child_collection[$congress_tag]['ALLSESSIONS'], SORT_NUMERIC);
+    }/*}}}*/
+    $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Span: {$missing_links}");
+
+    // Obtain pager URLs, filling in intermediate, missing URLs from the 
+    // lower and upper bounds of available pager numbers.
+    $pagers = array();
+    $datum_regex = $pager_regex; 
+    $url_checker->where(array('AND' => array(
+      'url' => "REGEXP '{$datum_regex}'"
+    )))->recordfetch_setup();
+
+    // We're interested only in the congress tag and page number
+    $url = NULL;
+    $datum_regex = "@{$datum_regex}@i";
+    while ( $url_checker->recordfetch($url) ) {/*{{{*/
+      // if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - {$url['url']}");
+      $datum_parts = array();
+      $url = $url['url'];
+      preg_match($datum_regex, $url, $datum_parts);
+      $congress = $datum_parts[1];
+      $page = intval($datum_parts[2]);
+      if ( !array_key_exists($congress, $pagers) ) $pagers[$congress] = array('min' => NULL, 'max' => 0, 'pages' => array());
+      // Obtain extrema, and a lookup table of pages that are present
+      $pagers[$congress]['min'] = min(is_null($pagers[$congress]['min']) ? $page : $pagers[$congress]['min'], $page);
+      $pagers[$congress]['max'] = max($pagers[$congress]['max'], $page);
+      $pagers[$congress]['pages'][$page] = NULL;
+    }/*}}}*/
+    foreach ( $pagers as $congress_tag => $pageinfo ) {/*{{{*/
+      $pagers[$congress_tag]['total_pages'] = count($pagers[$congress_tag]['pages']);
+      $pagers[$congress_tag]['total_entries'] = $bounds[$congress_tag]['count'];
+      for ( $p = $pageinfo['min'] ; $p <= $pageinfo['max'] ; $p++ ) {
+        $link_class = array('legiscope-remote');
+        $link_class[] = array_key_exists($p, $pageinfo['pages']) ? 'cached' : 'uncached';
+        $link_class = join(' ', $link_class);
+        $url = str_replace(
+          array(
+            '{congress_tag}',
+            '{page}',
+          ),
+          array(
+            $congress_tag,
+            $p,
+          ),
+          $pager_template_url
+        );
+        $urlhash = UrlModel::get_url_hash($url);
+        $pagers[$congress_tag]['pages'][$p] = <<<EOH
+<span><a id="{$urlhash}" href="{$url}" class="{$link_class}">{$p} </a></span>
+EOH;
+      }
+      krsort($pagers[$congress_tag]['pages']);
+      $pagers[$congress_tag]['pages'] = join('<span class="wrap-content"> </span>', $pagers[$congress_tag]['pages']);
+    }/*}}}*/
+
+    if ( $debug_method ) $this->recursive_dump($pagers,"(marker) -- - --");
+
+    $document_parser->cluster_urldefs = $document_parser->generate_linkset($urlmodel->get_url(),'cluster_urls');
+
+    if ( $debug_method ) $this->recursive_dump($session_select, "(marker) ----- ---- --- -- - - Cluster URLdefs" );
+
+    $session_select = $document_parser->extract_senate_session_select($urlmodel, FALSE);
+
+    if ( $debug_method ) $this->recursive_dump($session_select, "(marker) ----- ---- --- -- - - SELECTs" );
+
+    $pagecontent = $document_parser->generate_congress_session_item_markup(
+      $urlmodel,
+      $child_collection,
+      $session_select,
+      '\&q=' . $url_fetch_regex
+    );
+
+    // Insert pagers
+    foreach ( $pagers as $congress_tag => $pageinfo ) {
+      $pagecontent = str_replace("[PAGER{$congress_tag}]", $bounds[$congress_tag]['count'] /*$pageinfo['pages']*/, $pagecontent);
+    }
+    $paginator = <<<EOH
+<div id="senate-document-pager" class="wrap-content">{$pagers[$target_congress]['pages']}</div>
+EOH;
+
+    // Insert the stripped, unparsed document
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Inserting '{$urlmodel}'");
+    $links = $document_parser->get_containers(
+      'children[tagname*=div][attrs:CLASS*=alight]',0
+    );
+    $document_parser->filter_nested_array($links,
+      "#[url*=.*|i]",0
+    );
+    $this->recursive_dump($links,"(marker) --- - ---- --");
+
+    $alternate_content = array();
+    foreach ( $links as $link ) {
+      $url_checker->set_url($link['url'],FALSE);
+      $sbn = $url_checker->get_query_element('q');
+      $urlhash = UrlModel::get_url_hash($link['url']);
+      $linktext = array_filter(explode('[BR]',$link['text']));
+      $linktext = join(' ', $linktext);
+      $alternate_content[] = <<<EOH
+<p><a id="{$urlhash}" href="{$link['url']}" class="legiscope-remote">{$sbn}</a>: {$linktext}</p>
+EOH;
+    }
+    $alternate_content = join("\n", $alternate_content);
+
+    $inserted_content = TRUE ? $alternate_content : join('',$document_parser->get_filtered_doc());
+    $pagecontent .= <<<EOH
+<div class="alternate-original alternate-content" id="senate-journal-block">
+{$paginator}
+<div id="inserted-content">
+{$inserted_content}
+</div>
+</div>
+
+<script type="text/javascript">
+
+function document_pager_initialize() {
+  $('div[id=senate-document-pager]').find('a').each(function(){
+    $(this).unbind('click');
+    $(this).unbind('mouseup');
+    $(this).on('contextmenu', function(){
+      return false;
+    }).mouseup(function(e){
+      e.stopPropagation();
+      var url = $(this).attr('href');
+      if (2 == parseInt($(e).prop('button'))) {
+        $('div[id=senate-document-pager]')
+          .find('a[class*=uncached]')
+          .first()
+          .each(function(){
+            $('#doctitle').html("Seek: "+url);
+            $(this).removeClass('uncached').click();
+          });
+        return false;
+      }
+      return true;
+    }).click(function(e){
+      var url = $(this).attr('href');
+      var self = $(this);
+      load_content_window($(this).attr('href'),false,$(this),null,{
+        beforeSend : (function() {
+          $('#doctitle').html("Loading "+url);
+          display_wait_notification();
+        }),
+        complete : (function(jqueryXHR, textStatus) {
+          $('#doctitle').html("Legiscope");
+          remove_wait_notification();
+        }),
+        success : function(data, httpstatus, jqueryXHR) {
+
+          remove_wait_notification();
+
+          $('div[class*=contentwindow]').each(function(){
+            if ($(this).attr('id') == 'issues') return;
+            $(this).children().remove();
+          });
+
+          replace_contentof('original',data.original);
+          document_pager_initialize();
+          $(self).addClass('cached');
+          setTimeout((function() {
+            $('div[id=senate-document-pager]')
+              .find('a[class*=uncached]')
+              .first()
+              .each(function(){
+                $('#doctitle').html("Seek: "+$(this).attr('href'));
+                $(this).removeClass('uncached').click();
+              });
+          }),5000);
+        }
+      });
+    });
+  });
+}
+
+$(function(){
+  setTimeout((function(){document_pager_initialize(); $('#doctitle').html("Legiscope - Ready to traverse pages");}),2000);
+});
+</script>
+
+EOH;
+
+    $this->terminal_method_cache_stow($parser, $pagecontent);
+    // $parser->json_reply = array('retainoriginal' => TRUE);
+  }/*}}}*/
 
   function seek_postparse_bypath_62f91d11784860d07dea11c53509a732(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     /** Router **/ 
@@ -1155,105 +1721,84 @@ EOH;
 
   function seek_postparse_bypath_1fa0159bc56439f7a8a02d5b4f3628ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method = FALSE;
+
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Level 2 Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
 
-    $senate_bill = new SenateBillDocumentModel(); 
-      
-    $form_attributes = $this->extract_formaction($parser, $urlmodel);
-    // $this->recursive_dump($form_attributes,'(warning)');
+    $target_document = $urlmodel->get_query_element('q');
 
-    // The form action URL is assumed to be the parent URL of all relative URLs on the page
-    $action_url             = new UrlModel($form_attributes['action']);
-    $target_action          = UrlModel::parse_url($action_url->get_url());
-    $sbn_regex_result       = preg_replace('@(.*)SBN-([0-9]*)(.*)@','SB$2',$target_action['query']);
-    $target_query           = explode('&',$target_action['query']);
-    // Decorate the action URL to create a fake caching target URL name.
-    $target_query[]         = "metaorigin=" . $urlmodel->get_urlhash();
-    $target_action['query'] = join('&', $target_query);
-    $faux_url               = UrlModel::recompose_url($target_action);
-    $faux_url               = new UrlModel($faux_url,TRUE);
-    $faux_url_in_db         = $faux_url->in_database() ? "in DB" : "fetchable";
+    $match_components = array();
+    if ( 1 == preg_match('@(.*)-([0-9]*)@i', $target_document, $match_components) ) {
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Real post action {$sbn_regex_result} URL {$action_url} Faux cacheable {$faux_url_in_db} url: {$faux_url}" );
+      if ( $debug_method ) $this->recursive_dump($match_components,"(marker) ---- ---- --- -- - " . __METHOD__ );
 
-    $not_in_database = !$faux_url->in_database();
-
-    if ( $not_in_database || $parser->from_network ) {/*{{{*/
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Faux cacheable url: {$faux_url} -> {$form_attributes['action']}" );
-      $form_controls = $form_attributes['form_controls'];
-      $form_controls['__EVENTTARGET'] = 'lbAll';
-      $form_controls['__EVENTARGUMENT'] = NULL;
-      $save_faux_url = $faux_url->get_url();
-      $successful_fetch = $this->perform_network_fetch( $faux_url, $urlmodel->get_url(), $form_attributes['action'], $faux_url->get_url(), $form_controls );
-      if ( $successful_fetch ) {
-        // Switch back to the cached URL
-        // $this->syslog( __FUNCTION__, __LINE__, "Faux url after fetch: {$faux_url}" );
-        // $this->syslog( __FUNCTION__, __LINE__, "          Cached URL: {$save_faux_url}" );
-        $faux_url->set_url($save_faux_url,TRUE);
-        $pagecontent = $faux_url->get_pagecontent();
-      } else {
-        $pagecontent = "Failed to fetch response to form submission to {$action_url}";
-        return;
+      switch ( strtoupper($match_components[1]) ) {
+        case 'SBN' :
+          return $this->senate_bill_content_parser($parser,$pagecontent,$urlmodel);
+          break;
+        case 'SRN' :
+          return $this->senate_resolution_content_parser($parser,$pagecontent,$urlmodel);
+          break;
+        default:
+          $pagecontent = "No content parser for document type '{$match_components[1]}'";
       }
-    }/*}}}*/
-    else {
-      $pagecontent = $faux_url->get_pagecontent();
-    }
-
-    ///////////////////////////////////////////
-    $senate_bill_info = new SenateBillInfoParseUtility();
-    $senate_bill_info->debug_tags = FALSE;
-    $document_contents = $senate_bill_info->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-
-    if ( array_key_exists('comm_report_url', $document_contents) ) { $u = array('url' => $document_contents['comm_report_url']); $l = UrlModel::parse_url($action_url->get_url()); $document_contents['comm_report_url'] = UrlModel::normalize_url($l, $u); }
-    if ( array_key_exists('doc_url', $document_contents) )         { $u = array('url' => $document_contents['doc_url'])        ; $l = UrlModel::parse_url($action_url->get_url()); $document_contents['doc_url'] = UrlModel::normalize_url($l, $u); }
-
-    $senate_bill->fetch($sbn_regex_result,'sn');
-    if ( !$senate_bill->in_database() || $parser->from_network ) {/*{{{*/
-      $document_contents['sn'] = $sbn_regex_result;
-      $document_contents['url'] = $action_url->get_url();
-      $document_contents['urlid'] = $action_url->get_id();
-      krsort($document_contents);
-      $senate_bill->set_contents_from_array($document_contents);
-      $senate_bill->stow();
-      $senate_bill->fetch($sbn_regex_result,'sn');
-    }/*}}}*/
-    $this->recursive_dump($document_contents,'(warning)');
-
-    if ( $senate_bill->in_database() ) {
-
-      $total_bills_in_system = $senate_bill->count();
-
-      $doc_url_attrs = array('legiscope-remote');
-      $faux_url->fetch($senate_bill->get_url(),'url');
-      if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
-      $doc_url_attrs = join(' ', $doc_url_attrs);
-
-      $pagecontent = $senate_bill->substitute(<<<EOH
-Senate bills in system: {$total_bills_in_system}
-<span class="sb-match-item">{sn}</span>
-<span class="sb-match-item sb-match-subjects">{subjects}</span>
-<span class="sb-match-item sb-match-description">{description}</span>
-<span class="sb-match-item sb-match-significance">Scope: {significance}</span>
-<span class="sb-match-item sb-match-status">Status: {status}</span>
-<span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
-<span class="sb-match-item sb-match-doc-url">Document: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
-<span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
-EOH
-      );
-    }
-
-    ///////////////////////////////////////////
-
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {
-      if ( !file_exists($cache_filename) || $parser->from_network )
-        file_put_contents($cache_filename, $pagecontent);
     }
 
     $parser->json_reply = array('retainoriginal' => TRUE);
 
+    return FALSE;
+
   }/*}}}*/
 
+  function senate_resolution_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $this->non_session_linked_content_parser(__FUNCTION__, 'SRN', $parser, $pagecontent, $urlmodel );
+
+  }/*}}}*/
+
+  function senate_bill_content_parser(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
+
+    $this->non_session_linked_content_parser(__FUNCTION__, 'SBN', $parser, $pagecontent, $urlmodel );
+
+  }/*}}}*/
+
+
+
+  /** Adopted Resolutions **/
+
+  function pdf_sys_adopted_res(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+
+    $this->method_cache_emit($parser);
+
+    // Prevent parsing this particular URL in the parent
+    $urlmodel->ensure_custom_parse();
+
+    $resolution_parser = new SenateJournalParseUtility();
+
+    $resolution_parser->
+      reset()->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $inserted_content = join('',$resolution_parser->get_filtered_doc());
+
+    $pagecontent = <<<EOH
+<div class="senate-journal">No Parser</div>
+EOH;
+    // Insert the stripped, unparsed document
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Inserting '{$urlmodel}'");
+    $pagecontent .= <<<EOH
+<div class="alternate-original alternate-content" id="senate-journal-block">
+{$inserted_content}
+</div>
+EOH;
+
+    $this->terminal_method_cache_stow($parser, $pagecontent);
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+
+  }/*}}}*/
 
   /** Committee Reports **/
 
@@ -1590,20 +2135,24 @@ EOH;
   }/*}}}*/
 
   function extract_formaction(& $parser, & $urlmodel) {/*{{{*/
+
+    $debug_method = FALSE;
+
     $paginator_form  = $this->extract_form($parser->get_containers());
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Forms found: " . count($paginator_form) );
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Forms found: " . count($paginator_form) );
     $paginator_attrs    = $paginator_form[0]['attrs'];
     $paginator_controls = $paginator_form[0]['children'];
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Child controls: " . count($paginator_controls) );
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Child controls: " . count($paginator_controls) );
 
     $link        = array('url' => $paginator_attrs['ACTION']);
     $parent      = UrlModel::parse_url($urlmodel->get_url());
     $form_action = UrlModel::normalize_url($parent, $link);
 
-    // $this->syslog( __FUNCTION__, __LINE__, "Target action: {$form_action}" );
-
-    // $this->recursive_dump($paginator_form,'(warning)');
-    // $this->recursive_dump($paginator_controls,'(warning)');
+    if ( $debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Target action: {$form_action}" );
+      $this->recursive_dump($paginator_form,'(warning)');
+      $this->recursive_dump($paginator_controls,'(warning)');
+    }
     $returnset = $parser->extract_form_controls($paginator_controls);
     if ( is_null($returnset['select_options']) ) {
       $returnset['select_options'] = array();
@@ -1682,8 +2231,16 @@ EOH;
       $url_query_components = array();
       $url_query_parts = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
       preg_match_all($query_regex, $url_query_parts, $url_query_components);
+
+      if ( !is_array($url_query_components[1]) ) continue;
+      if ( !is_array($url_query_components[2]) ) continue;
+      if ( !(0 < count($url_query_components[1])) ) continue;
+      if ( count($url_query_components[1]) != count($url_query_components[1]) ) continue;
+
       $url_query_parts = array_combine($url_query_components[1],$url_query_components[2]);
       // Nested result set: CC[ Congress ][ Session ][ Entry ]
+      if ( empty($url_query_parts['session']) ) $url_query_parts['session'] = 'ALLSESSIONS';
+
       $child_collection[$url_query_parts['congress']][$url_query_parts['session']][$url_query_parts['q']] = array( 
         'hash' => $child_link['urlhash'],
         'url'  => $child_link['url'],
@@ -1691,6 +2248,7 @@ EOH;
       );
     }/*}}}*/
     krsort($child_collection);
+    // $this->recursive_dump($child_collection,"(marker) " . __METHOD__);
     return $child_collection;
   }/*}}}*/
 
@@ -1712,5 +2270,12 @@ EOH;
       file_put_contents($this->method_cache_filename, $pagecontent);
     }
   }/*}}}*/
+
+  function must_custom_parse(UrlModel & $url) {
+    return ( 
+      1 == preg_match('@q=SBN-([0-9]*)@i', $url->get_url()) ||
+      1 == preg_match('@http://www.senate.gov.ph/lis/leg_sys.aspx\?congress=([0-9]*)&type=bill&p=([0-9]*)@i', $url->get_url())
+    );
+  }
 
 }

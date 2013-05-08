@@ -28,13 +28,14 @@ $(function(){
   <span class="access-bar-container">Search <input id="keywords" type="text"/></span>
   <span class="access-bar-container">&nbsp;&nbsp;Cache <input id="cache" type="checkbox" value="1" /></span>
   <span class="access-bar-container">&nbsp;&nbsp;Seek <input id="seek" type="checkbox" value="1" /></span>
+  <span class="access-bar-container">&nbsp;&nbsp;Spider <input id="spider" type="checkbox" value="1" /></span>
   <span class="access-bar-container" id="search-wait"></span>
   <div class="contenttabs" id="contenttabs"></div>
 </div>
 <div class="poc">
 
   <div id="controlpanel" class="panels">
-    <input id="siteURL" type="text" style="display: none;"/>
+    <input id="siteURL" type="text" />
     <div id="permalinks" class="linkset">
       <ul class="link-cluster">
         <li><a class="legiscope-remote" href="http://www.gov.ph/section/legis/">Official Gazette</a></li>
@@ -42,6 +43,7 @@ $(function(){
         <li><a class="legiscope-remote" href="http://www.senate.gov.ph">Senate</a></li>
         <li><a class="legiscope-remote" href="http://www.congress.gov.ph">Congress</a></li> 
         <li><a class="legiscope-remote" href="http://www.sec.gov.ph">Securities and Exchange Commission</a></li> 
+
         <li><a class="legiscope-remote" href="http://www.dbm.gov.ph">Department of Budget and Management</a></li> 
         <li><a class="legiscope-remote" href="http://www.denr.gov.ph">Department of Environment and Natural Resources</a></li> 
         <li><a class="legiscope-remote" href="http://emb.gov.ph">Environment Management Bureau</a></li> 
@@ -55,7 +57,6 @@ $(function(){
 
   <div id="sitecontent" class="panels">
     <span id="metalink" style="display:none"></span>
-    <div class="contentwindow hidden" id="structure"></div>
     <div class="contentwindow hidden" id="markup"></div>
     <div class="contentwindow hidden" id="responseheader"></div>
 <?php if ( C('DISPLAY_ORIGINAL') ) { ?>

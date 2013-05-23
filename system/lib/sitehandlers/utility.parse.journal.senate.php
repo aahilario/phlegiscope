@@ -60,6 +60,19 @@ EOH;
           ),
           $e['session']
         );
+        $date = DateTime::createFromFormat('F d, Y H:i:s', "{$e['approved']} 00:00:00");
+        if ( !(FALSE === $date) ) {
+          $journal_data[$n]['metadata']['approved'] = $e['approved'];
+          $journal_data[$n]['metadata']['approved_utx'] = $date->getTimestamp();
+          $journal_data[$n]['metadata']['approved_dtm'] = $date->format(DateTime::ISO8601); 
+        }
+        $date = DateTime::createFromFormat('F d, Y H:i:s', "{$e['date']} 00:00:00");
+        if ( !(FALSE === $date) ) {
+          $journal_data[$n]['metadata']['reading'] = $e['date'];
+          $journal_data[$n]['metadata']['reading_utx'] = $date->getTimestamp();
+          $journal_data[$n]['metadata']['reading_dtm'] = $date->format(DateTime::ISO8601); 
+        }
+
         continue;
       }/*}}}*/
 
@@ -99,9 +112,9 @@ EOH;
       if ( intval($n) == 0 ) {/*{{{*/// Journal page descriptor (Title, publication date)
         foreach ($e['content'] as $entry) {
           $properties = array('legiscope-remote');
-          $properties[] = ( $test_url->is_cached($entry['url']) ) ? 'cached' : 'uncached';
+          $properties[] = ( $test_url->is_cached(array_element($entry,'url')) ) ? 'cached' : 'uncached';
           $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
+          $urlhash = UrlModel::get_url_hash(array_element($entry,'url'));
           if ( array_key_exists('url',$entry) ) {/*{{{*/
             $journal_data[$n]['pdf'] = $entry;
             $pagecontent .= <<<EOH
@@ -197,36 +210,36 @@ EOH;
     $text = join(' ', $this->current_tag['cdata']);
     $paragraph = array(
       'text' => preg_replace("@(\n|\r|\t)@",'',$text),
-      'seq' => $this->current_tag['attrs']['seq'],
+      'seq' => array_element(array_element($this->current_tag,"attrs",array()),"seq"),
     );
-    if ( $this->current_tag['attrs']['ID'] == 'content' ) {
+    if ( array_element(array_element($this->current_tag,"attrs",array()),"ID") == 'content' ) {
       $paragraph['metadata'] = TRUE;
       $matches = array();
       $pattern = '@^(.*) Congress - (.*)(Date:(.*))\[BR\](.*)Approved on(.*)\[BR\]@im'; 
-      preg_match( $pattern, $paragraph['text'], $matches );
-      if ( is_null($matches[2]) ) {
+      preg_match( $pattern, array_element($paragraph,'text'), $matches );
+      if ( is_null(array_element($matches,2)) ) {
         $matches = array();
         $pattern = '@^(.*) Congress(.*)\[BR\](.*)Committee Report No. ([0-9]*) Filed on (.*)(\[BR\])*@im'; 
-        preg_match( $pattern, $paragraph['text'], $matches );
+        preg_match( $pattern, array_element($paragraph,'text'), $matches );
         array_push($this->activity_summary,array(
           'tag' => 'META',
           'source' => $paragraph['text'],
           'metadata' => array(
-            'congress' => $matches[1],
-            'report'   => $matches[4],
-            'filed'    => trim($matches[5]),
-            'n_filed'  => strtotime(trim($matches[5])),
+            'congress' => array_element($matches,1),
+            'report'   => array_element($matches,4),
+            'filed'    => trim(array_element($matches,5)),
+            'n_filed'  => strtotime(trim(array_element($matches,5))),
           )));
       } else array_push($this->activity_summary,array(
         'tag' => 'META',
         'source' => $paragraph['text'],
         'metadata' => array(
-          'congress'   => $matches[1],
-          'session'    => $matches[2],
-          'date'       => trim($matches[4]),
-          'n_date'     => strtotime(trim($matches[4])),
-          'approved'   => trim($matches[6]),
-          'n_approved' => strtotime(trim($matches[6])),
+          'congress'   => array_element($matches,1),
+          'session'    => array_element($matches,2),
+          'date'       => trim(array_element($matches,4)),
+          'n_date'     => strtotime(trim(array_element($matches,4))),
+          'approved'   => trim(array_element($matches,6)),
+          'n_approved' => strtotime(trim(array_element($matches,6))),
       )));
     }
     $this->add_to_container_stack($paragraph);
@@ -370,11 +383,11 @@ EOH;
   function ru_ul_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $this->stack_to_containers();
-    if ( array_key_exists( strtolower( $this->current_tag['attrs']['CLASS'] ), 
+    if ( array_key_exists( strtolower( array_element(array_element($this->current_tag,'attrs',array()),'CLASS') ), 
     array_flip(array('lis_ul','lis_download')) ) || (1 == count($this->activity_summary)) ) {
       if ( 0 < count($this->activity_summary) ) {
         $section = array_pop($this->activity_summary);
-        $container_id_hash = $this->current_tag['CONTAINER'];
+        $container_id_hash = array_element($this->current_tag,'CONTAINER');
         $section['content'] = $this->get_container_by_hashid($container_id_hash,'children');
         $this->reorder_with_sequence_tags($section['content']);
         array_push($this->activity_summary,$section);

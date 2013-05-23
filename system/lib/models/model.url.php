@@ -29,9 +29,12 @@ class UrlModel extends DatabaseUtility {
   var $content_hash_vc128 = 'sha1';
   // END ModelFields
 
+  var $a_UrlModel = NULL;
+
   function __construct($url = NULL, $load = FALSE) {
     parent::__construct();
     $this->set_url($url, $load);
+    // $this->recursive_dump($this->get_attrdefs(),"(marker) ----- ---- --- -- -");
   }
 
 	function & set_url_c($url, $load = FALSE) {
@@ -52,7 +55,7 @@ class UrlModel extends DatabaseUtility {
   static function query_element($component, $url) {
     $path_query = self::parse_url($url,PHP_URL_QUERY);
     $query_parts = self::decompose_query_parts($path_query);
-    return $query_parts[$component];
+    return is_array($query_parts) ? array_element($query_parts,$component) : NULL;
   }
 
 	function get_query_element($component) {/*{{{*/
@@ -67,19 +70,21 @@ class UrlModel extends DatabaseUtility {
     return md5($url);
   }/*}}}*/
 
-  static function recompose_url(array $q, $link_item = array(), $strip_query_scripttail = FALSE ) {/*{{{*/
+  static function recompose_url(array $q, $link_item = array('url' => NULL), $strip_query_scripttail = FALSE ) {/*{{{*/
     if ( $strip_query_scripttail ) {
       $q['query'] = NULL;
       $q['path'] = self::path_sans_script($q);
     }
-    if ( !empty($q['scheme']) )   $q['scheme']   = "{$q['scheme']}://";
-    if ( !empty($q['port']) )     $q['port']     = ":{$q['port']}";
+    $q['scheme']   = ( !empty($q['scheme']) ) ? "{$q['scheme']}://" : NULL;
+    $q['port']     = ( !empty($q['port']) )   ? ":{$q['port']}"     : NULL;
+    if ( !array_key_exists('path', $q) ) $q['path'] = NULL;
     if ( !empty($q['path']) ) {
       $q['path'] = "/" . preg_replace('@([^/]*)/\.\./(.*)@','$2', $q['path']);
       $q['path'] = "/" . preg_replace('@([^/]*)/\.\./(.*)@','$2', $q['path']);
     }
-    if ( !empty($q['query']) )    $q['query']    = "?{$q['query']}";
-    if ( !empty($q['fragment']) || ($link_item['url'] == '#') ) $q['fragment'] = "#{$q['fragment']}";
+    $q['query']    = ( !empty($q['query']) ) ?  "?{$q['query']}" : NULL;
+    if ( !array_key_exists('fragment', $q) ) $q['fragment'] = NULL;
+    $q['fragment'] = ( !empty($q['fragment']) || (array_key_exists('url',$link_item) && ($link_item['url'] == '#')) ) ? "#{$q['fragment']}" : NULL;
     return "{$q['scheme']}{$q['host']}{$q['port']}/" . ltrim(preg_replace('@\/+@','/', "{$q['path']}{$q['query']}{$q['fragment']}"),'/');
   }/*}}}*/
 
@@ -104,6 +109,7 @@ class UrlModel extends DatabaseUtility {
   }/*}}}*/
 
   static function path_sans_script( array $parent_url ) {
+    if ( !array_key_exists('path', $parent_url) ) return NULL;
     $path_sans_script = $parent_url['path'];
     if ( 1 == preg_match('@(.*)/([^.]*)\.(.*)$@',$path_sans_script) ) {
       // If the tail of the path appears to be a script, remove it from the path
@@ -132,7 +138,7 @@ class UrlModel extends DatabaseUtility {
       // If there is no path component in the link URL (i.e. just a query or a fragment part),
       // copy the path part from the containing page's URL
       if ( empty($q['path']) ) {
-        $q['path'] = $parent_url['path'];
+        $q['path'] = array_key_exists('path', $parent_url) ? $parent_url['path'] : NULL;
       } else {
         // Otherwise use the parent URL and link URL to compose a full URL
         if ( !('/' == substr($q['path'],0,1) ) ) {
@@ -177,7 +183,8 @@ class UrlModel extends DatabaseUtility {
     $match_parts       = array();
     $result            = array();
     $preg_match_result = preg_match($url_regex, $url, $match_parts);
-    if ($match_parts[1] == $match_parts[10]) {
+    if (array_key_exists(1,$match_parts) && array_key_exists(10, $match_parts) && ($match_parts[1] == $match_parts[10])) {
+      if ( !array_key_exists(15,$match_parts) ) $match_parts[15] = NULL;
       $match_parts[15] = "{$match_parts[10]}/{$match_parts[15]}"; 
       $match_parts[1] = NULL;
       $match_parts[9] = NULL;
@@ -188,7 +195,13 @@ class UrlModel extends DatabaseUtility {
         $result[$url_parts[$part]] = $partname; 
     }
     $match_parts = array_filter($result);
-    if ( !is_null($url_component) ) $match_parts = $match_parts[$url_parts[$php_url_parts[$url_component]]];
+    if ( !is_null($url_component) ) $match_parts = 
+      (array_key_exists($url_component,$php_url_parts) && 
+      array_key_exists($php_url_parts[$url_component],$url_parts) &&
+      array_key_exists($url_parts[$php_url_parts[$url_component]],$match_parts))
+      ? $match_parts[$url_parts[$php_url_parts[$url_component]]]
+      : NULL
+      ;
     return $match_parts;
   }/*}}}*/
 
@@ -258,6 +271,7 @@ class UrlModel extends DatabaseUtility {
     if ( is_null($this->id) ) $this->set_create_time(time());
     else $this->content_changed();
     $stowresult = parent::stow(); 
+    if ( 0 < intval($stowresult) ) $this->id = intval($stowresult);
     return $stowresult;
   }/*}}}*/
 

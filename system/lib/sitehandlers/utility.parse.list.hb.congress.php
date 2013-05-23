@@ -31,7 +31,6 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 		if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
 		return TRUE;
   }/*}}}*/
-
   function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
 		$this->pop_tagstack();
 		$this->current_tag['cdata'][] = trim($cdata);
@@ -39,10 +38,9 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 		if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
-
   function ru_span_close(& $parser, $tag) {/*{{{*/
 		$this->pop_tagstack();
-		$span_class = $this->current_tag['attrs']['CLASS'];
+		$span_class = array_element($this->current_tag['attrs'],'CLASS');
 		$span_type  = array(
 			strtolower(0 < strlen($span_class) ? $span_class : 'desc')
 			=> is_array($this->current_tag['cdata']) ? array_filter($this->current_tag['cdata']) : array()
@@ -59,7 +57,6 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 			return FALSE;
     return TRUE;
   }/*}}}*/
-
 
 }
 

@@ -22,7 +22,9 @@ class RepresentativeDossierModel extends DatabaseUtility {
   var $member_uuid_vc64 = NULL; // Basically a hash of the URL and full name
   var $avatar_image_blob = NULL; // Avatar image base64-encoded
   var $avatar_url_vc1024 = NULL;
+
   var $committees_CongressionalCommitteeDocumentModel = NULL;
+	var $housebills_HouseBillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -71,7 +73,26 @@ class RepresentativeDossierModel extends DatabaseUtility {
   }
 
   function & set_avatar_image($v) { $this->avatar_image_blob = $v; return $this; }
-  function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_blob; }
+	function get_avatar_image($v = NULL) {
+		if (!is_null($v)) $this->set_avatar_image($v);
+
+    if ( empty($this->avatar_image_blob) ) {/*{{{*/
+			$url = new UrlModel();
+      $url->fetch(UrlModel::get_url_hash($this->get_avatar_url()),'urlhash');
+      if ( $url->in_database() ) {
+        $image_content_type = $url->get_content_type();
+        $this->avatar_image_blob = base64_encode($url->get_pagecontent());
+        $this->avatar_image_blob = "data:{$image_content_type};base64,{$this->avatar_image_blob}";
+        $this->stow();
+        $this->fetch($member_uuid, 'member_uuid');
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) Stowed {$member['fullname']} avatar {$this->avatar_image_blob}");
+      }
+    }/*}}}*/
+
+    if ( is_null($this->avatar_image_blob) || (strtoupper($this->avatar_image_blob) == 'NULL') ) $this->avatar_image_blob = '';
+
+		return $this->avatar_image_blob;
+ 	}
 
   function parse_name($n) {/*{{{*/
     $cleanup = '@\((.*)\)$@i';
@@ -81,14 +102,14 @@ class RepresentativeDossierModel extends DatabaseUtility {
     $match = array();
     preg_match($namepattern, $n,$match);
     $nameparts = array(
-      'surname' => $match[1],
-      'given' => trim($match[2]),
+      'surname' => array_element($match,1),
+      'given' => trim(array_element($match,2)),
     );
     $match = array();
     preg_match($misuffix, $nameparts['given'], $match);
-    $nameparts['mi']     = trim($match[3]);
-    $nameparts['suffix'] = trim($match[2]);
-    $nameparts['given']  = trim($match[1]);
+    $nameparts['mi']     = trim(array_element($match,3));
+    $nameparts['suffix'] = trim(array_element($match,2));
+    $nameparts['given']  = trim(array_element($match,1));
     $match[0] = NULL;
     $match[1] = NULL;
     $match = array_filter($match);
@@ -97,7 +118,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
       $match[0] = NULL;
       $match = array_values(array_filter($match));
       $nameparts['given']  = str_replace($match,'',$nameparts['given']);
-      $nameparts['suffix'] = $match[0];
+      $nameparts['suffix'] = array_element($match,0);
     }
     return $nameparts;
 

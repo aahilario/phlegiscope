@@ -22,6 +22,8 @@ class SenatorCommitteeEdgeModel extends UrlEdgeModel {
     parent::__construct($a->get_id(),$b->get_id());
     else
     parent::__construct(NULL,NULL);
+
+    throw new Exception("URL EDGE MODEL DEPRECATED");
   }
 
   function fetch_senators(SenateCommitteeModel & $b, $iterating = TRUE) {

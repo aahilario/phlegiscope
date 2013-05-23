@@ -46,9 +46,11 @@ class UrlClusterModel extends DatabaseUtility {
 	}/*}}}*/
 
 	function fetch_clusters(UrlModel & $parent_page,$regularize = FALSE) {/*{{{*/
+		$hosthash = UrlModel::get_url_hash($parent_page->get_url(),PHP_URL_HOST);
+		// $this->syslog(__FUNCTION__,__LINE__, "(marker) -- - -- Fetching clusters for [{$hosthash}] {$parent_page}");
 		$records = array();
 		if ( $this->where(array('AND' => array(
-			'host' => UrlModel::get_url_hash($parent_page->get_url(),PHP_URL_HOST),
+			'host' => $hosthash,
 			// 'parent_page' => $parent_page->get_urlhash(),
 		)))->
 		order(array('position' => 'ASC','id' => 'ASC'))->
@@ -63,10 +65,13 @@ class UrlClusterModel extends DatabaseUtility {
 				);
 			}
 		}/*}}}*/
-		if ( 0 < count($records) && $regularize ) {/*{{{*/
+		// $this->recursive_dump($records, "(marker) Cluster records - - -");
+		if ( ( 0 < count($records) ) && $regularize ) {/*{{{*/
 			foreach ( $records as $clusterid => $record ) {
 				if ( $record['position_new'] != intval($record['position']) ) {
-					parent::fetch($record['id'],'id');
+					$id = array_element($record,'id');
+					if ( is_null($id) || !(0 < intval($id)) ) continue;
+					$this->order(array())->where(array('id' => $id))->select();
 					if ( $this->in_database() ) $this->
 						set_position($record['position_new'])->
             stow();
@@ -108,8 +113,9 @@ class UrlClusterModel extends DatabaseUtility {
 			} else do {
 				$nudged_cluster = $all_clusters[$position_map[$p]];
 				$this->syslog(__FUNCTION__,__LINE__,
-					"(marker) Nudging @{$p} {$range_min}:{$range_max} ({$new_position} <- {$old_position}) {$position_map[$p]}: {$nudged_cluster['clusterid']} {$nudged_cluster['position']}"
+					"(marker) Nudging @{$p} {$range_min}:{$range_max} ({$new_position} <- {$old_position}) {$position_map[$p]}: {$nudged_cluster['position']}"
 				);
+				$this->recursive_dump($nudged_cluster,"(marker) Nudged cluster");
 			} while ( $p++ < $range_max );
 		}	else {
 			// Insert into zeroth position (top of list)

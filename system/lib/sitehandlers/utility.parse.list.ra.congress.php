@@ -52,11 +52,10 @@ class CongressRaListParseUtility extends RawparseUtility {
 		$this->pop_tagstack();
 		$this->current_tag['cdata'] = array();
     $this->update_current_tag_url('HREF');
-    $attrs['HREF'] = $this->current_tag['attrs']['HREF'];
+    $attrs['HREF'] = array_element($this->current_tag['attrs'],'HREF');
 		$this->push_tagstack();
-		if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', $this->get_stacktags() . " --- {$this->current_tag['tag']} {$this->current_tag['attrs']['HREF']}" );
     return TRUE;
-  }  /*}}}*/
+  }/*}}}*/
 
   function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
@@ -150,7 +149,7 @@ class CongressRaListParseUtility extends RawparseUtility {
   function ru_span_close(& $parser, $tag) {/*{{{*/
 
 		$this->pop_tagstack();
-		$span_class = $this->current_tag['attrs']['CLASS'];
+		$span_class = array_element($this->current_tag['attrs'],'CLASS');
 		$span_type  = array(
 			strtolower(0 < strlen($span_class) ? $span_class : 'desc')
 			=> is_array($this->current_tag['cdata']) ? array_filter($this->current_tag['cdata']) : array()

@@ -8,16 +8,25 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateCommitteeReportDocumentModel extends UrlModel {
+class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256 = NULL;
+  var $description_vc4096 = NULL;
   var $sn_vc64 = NULL;
   var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
   var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
+	var $urlid_int11 = NULL;
+	var $doc_url_vc4096 = NULL;
+	var $doc_urlid_int11 = NULL;
   var $content_blob = NULL;
+	var $date_filed_utx = 0;
   var $journal_SenateJournalDocumentModel = NULL;
+	var $committee_SenateCommitteeModel = NULL;
+	var $bill_SenateBillDocumentModel = NULL;
+  var $resolution_SenateResolutionDocumentModel = NULL;
+	var $housebill_SenateHousebillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -25,7 +34,48 @@ class SenateCommitteeReportDocumentModel extends UrlModel {
 		// $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
   }
 
-  function store_uncached_reports(array & $committee_report_url_text, $journal_id = NULL, $debug_method = FALSE) {
+	function & set_id($v) { if ( 0 < intval($v) ) $this->id = $v; return $this; }
+
+  function & set_text($v) { return $this; }
+  function get_text($v = NULL) { if (!is_null($v)) $this->set_text($v); return NULL; }
+
+  function & set_title($v) { $this->title_vc256 = $v; return $this; }
+  function get_title($v = NULL) { if (!is_null($v)) $this->set_title($v); return $this->title_vc256; }
+
+  function & set_sn($v) { $this->sn_vc64 = $v; return $this; }
+  function get_sn($v = NULL) { if (!is_null($v)) $this->set_sn($v); return $this->sn_vc64; }
+
+  function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
+  function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
+
+  function & set_last_fetch($v) { $this->last_fetch_utx = $v; return $this; }
+  function get_last_fetch($v = NULL) { if (!is_null($v)) $this->set_last_fetch($v); return $this->last_fetch_utx; }
+
+  function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
+  function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
+
+  function & set_url($v) { $this->url_vc4096 = $v; return $this; }
+  function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
+
+  function & set_content($v) { $this->content_blob = $v; return $this; }
+  function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
+
+  function & set_desc($v) { $this->description_vc4096 = $v; return $this; }
+  function get_desc($v = NULL) { if (!is_null($v)) $this->set_desc($v); return $this->description_vc4096; }
+
+	function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
+	function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
+
+	function & set_doc_url($v) { $this->doc_url_vc4096 = $v; return $this; }
+	function get_doc_url($v = NULL) { if (!is_null($v)) $this->set_doc_url($v); return $this->doc_url_vc4096; }
+
+	function & set_doc_urlid($v) { $this->doc_urlid_int11 = $v; return $this; }
+	function get_doc_urlid($v = NULL) { if (!is_null($v)) $this->set_doc_urlid($v); return $this->doc_urlid_int11; }
+
+	function & set_date_filed($v) { $this->date_filed_utx = $v; return $this; }
+	function get_date_filed($v = NULL) { if (!is_null($v)) $this->set_date_filed($v); return $this->date_filed_utx; }
+
+  function store_uncached_reports(array & $committee_report_url_text, $journal_id = NULL, $debug_method = FALSE) {/*{{{*/
     
     // Accept an array( url => url, text => desc ) and store 
     if ($debug_method) $this->recursive_dump($committee_report_url_text,'(marker) Parsed reports F');
@@ -95,8 +145,10 @@ class SenateCommitteeReportDocumentModel extends UrlModel {
 
       $queue = array_filter($queue);
       if ($debug_method) $this->recursive_dump($queue,'(marker) Store these');
+      if ( is_array($queue) && (0 < count($queue)) )
       foreach ( $queue as $item ) {
         // Stow each of these nonexistent records
+        if ( !is_array($item) || !array_key_exists('url', $item)) continue;
         $this->fetch($item['url'], 'url');
         $this->
           set_url($item['url'])->
@@ -107,30 +159,6 @@ class SenateCommitteeReportDocumentModel extends UrlModel {
           stow();
       }
     }
-  }
-
-
-  function & set_title($v) { $this->title_vc256 = $v; return $this; }
-  function get_title($v = NULL) { if (!is_null($v)) $this->set_title($v); return $this->title_vc256; }
-
-  function & set_sn($v) { $this->sn_vc64 = $v; return $this; }
-  function get_sn($v = NULL) { if (!is_null($v)) $this->set_sn($v); return $this->sn_vc64; }
-
-  function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
-  function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
-
-  function & set_last_fetch($v) { $this->last_fetch_utx = $v; return $this; }
-  function get_last_fetch($v = NULL) { if (!is_null($v)) $this->set_last_fetch($v); return $this->last_fetch_utx; }
-
-  function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
-  function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
-
-  function & set_url($v) { $this->url_vc4096 = $v; return $this; }
-  function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
-
-  function & set_content($v) { $this->content_blob = $v; return $this; }
-  function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
-
+  }/*}}}*/
 
 }
-

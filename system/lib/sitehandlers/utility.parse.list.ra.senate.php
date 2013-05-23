@@ -21,7 +21,6 @@ class SenateRaListParseUtility extends SenateCommonParseUtility {
     if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, $this->get_stacktags() . " --- {$this->current_tag['tag']} {$this->current_tag['attrs']['HREF']}" );
     return TRUE;
   }/*}}}*/
-
   function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
@@ -29,7 +28,6 @@ class SenateRaListParseUtility extends SenateCommonParseUtility {
     if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
-
   function ru_span_close(& $parser, $tag) {/*{{{*/
     return $this->embed_cdata_in_parent();
     $this->pop_tagstack();

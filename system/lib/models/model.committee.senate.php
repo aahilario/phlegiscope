@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateCommitteeModel extends DatabaseUtility {
+class SenateCommitteeModel extends SenateDocCommonDocumentModel {
   
   var $committee_name_vc256uniq = NULL;
   var $short_code_vc32 = NULL;
@@ -17,6 +17,8 @@ class SenateCommitteeModel extends DatabaseUtility {
   var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
   var $url_vc4096 = NULL;
+
+	var $senator_SenatorDossierModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -47,8 +49,9 @@ class SenateCommitteeModel extends DatabaseUtility {
     $committee_name = $this->cleanup_committee_name($committee_name);
     $this->fetch_by_committee_name($committee_name);
     $short_code = trim(preg_replace('@[^A-Z]@','',$committee_name));
-    $id = !$this->in_database()
-      ? $this->
+    $id = $this->in_database()
+			? $this->get_id()
+			:	$this->
         set_committee_name($committee_name)->
         set_short_code($short_code)->
         set_jurisdiction(NULL)->
@@ -56,7 +59,6 @@ class SenateCommitteeModel extends DatabaseUtility {
         set_create_time(time())->
         set_last_fetch(time())->
         stow()
-      : $this->get_id()
       ;
     return $id;
   }/*}}}*/

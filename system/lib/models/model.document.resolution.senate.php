@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateResolutionDocumentModel extends DatabaseUtility {
+class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256 = NULL;
 	var $description_vc4096 = NULL;

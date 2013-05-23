@@ -45,4 +45,9 @@ class UrlEdgeModel extends DatabaseUtility {
     return FALSE;
   }
 
+	function & set_id($e) {
+		$this->id = $e;
+		return $this;
+	}
+
 }

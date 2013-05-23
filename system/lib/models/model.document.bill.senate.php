@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateBillDocumentModel extends RepublicActDocumentModel {
+class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256uniq = NULL;
   var $sn_vc64uniq = NULL;

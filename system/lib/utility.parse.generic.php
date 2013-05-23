@@ -10,8 +10,11 @@
 
 class GenericParseUtility extends RawparseUtility {
   
+	var $debug_tags = NULL;
+
   function __construct() {
     parent::__construct();
+		$this->debug_tags = FALSE;
   }
 
   // ------------ Specific HTML tag handler methods -------------
@@ -122,7 +125,7 @@ class GenericParseUtility extends RawparseUtility {
   function ru_form_open(& $parser, & $attrs, $tagname) {/*{{{*/
     $this->pop_tagstack();
     $this->update_current_tag_url('ACTION');
-    $attrs['ACTION'] = $this->current_tag['attrs']['ACTION'];
+    $attrs['ACTION'] = isset($this->current_tag['attrs']['ACTION']) ? $this->current_tag['attrs']['ACTION'] : NULL;
     $this->push_tagstack();
     $this->push_container_def($tagname, $attrs);
     return TRUE;
@@ -268,7 +271,7 @@ class GenericParseUtility extends RawparseUtility {
       'seq'  => $this->current_tag['attrs']['seq'],
     );
     $this->add_to_container_stack($paragraph);
-		if ( $this->debug_tags) $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - -- - {$this->current_tag['tag']} {$paragraph['text']}");
+		if ( $this->debug_tags ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - -- - {$this->current_tag['tag']} {$paragraph['text']}");
     return TRUE;
   }/*}}}*/
 
@@ -342,7 +345,7 @@ class GenericParseUtility extends RawparseUtility {
             'sn' => "REGEXP '({$prefix})([0]*)({$suffix})'"
           )))->recordfetch_setup();
           $record = array();
-          if ( $M->recordfetch($record) ) {
+          if ( $M->recordfetch($record,TRUE) ) {
             // $this->recursive_dump($record,__LINE__);
             $status_list[] = array(
               'regex' => "@({$prefix})([0]*)({$suffix})@",
@@ -393,9 +396,8 @@ EOH
 
   function reduce_containers_to_string($s) {/*{{{*/
     $s = is_array($s) ? array_values($s) : NULL;
-    $s = is_array($s) && 1 == count($s) ? array_values($s[0]) : NULL;
-    // $s = is_array($s) ? join(' ',$s) : NULL;
-    $s = is_array($s) ? trim($s[0]) : NULL;
+    $s = is_array($s) && 1 == count($s) ? array_values(array_element($s,0,array())) : NULL;
+    $s = is_array($s) ? trim(array_element($s,0)) : NULL;
     return $s;
   }/*}}}*/
 
@@ -554,8 +556,8 @@ EOH
         // Use a PCRE regex to extract query key-value pairs
         $parsed_url = parse_url($linkitem['url']);
         $query_match = '@([^=]*)=([^&]*)&?@';
-        $match_parts = array();
-        $query_parts = preg_match_all($query_match, $parsed_url['query'], $query_match);
+        $match_parts = array(NULL,NULL,NULL);
+        if ( array_key_exists('query', $parsed_url) ) preg_match_all($query_match, $parsed_url['query'], $query_match);
         unset($parsed_url['query']);
         $query_match = array_filter(array(
           $query_match[1],
@@ -563,7 +565,7 @@ EOH
         ));
         $linkitem['base_url'] = NULL;
         // Iterate through the nonempty set of matched key-value pairs
-        if ( is_array($query_match) && ( 0 < count($query_match) ) ) {/*{{{*/
+        if ( is_array($query_match) && ( 0 < count($query_match) ) && is_array($query_match[0]) && is_array($query_match[1]) ) {/*{{{*/
           $query_match = array_combine($query_match[0], $query_match[1]);
           ksort($query_match);
           // Hash all the keys, and count occurrences of that entire set
@@ -615,7 +617,7 @@ EOH
             // then any other query part which also has a fixed value must 
             // occur the same number of times.
             list( $param_value, $param_occurrences ) = each( $occurrences );
-            if ( is_null($occurence_count) ) $occurrence_count = $param_occurrences;
+            if ( is_null($occurrence_count) ) $occurrence_count = $param_occurrences;
             else if ( $occurrence_count != $param_occurrences ) {
               // One of the [more than 1] query parameters does not occur with the same frequency
               // as the other fixed query parameters for this set of links.
@@ -747,11 +749,11 @@ EOH
 
 		if ( $debug_method ) {
 			$this->recursive_dump($partitioned_list,"(marker)");
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) Partitions: {$partition_index} " . count($urlhashes));
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) Partitions: " . count($urlhashes));
 		}
 
 		$n = 0;
-    foreach ( $partitioned_list as $partition ) {  /*{{{*/
+    foreach ( $partitioned_list as $partition_index => $partition ) {  /*{{{*/
       $url_cache_iterator->
         where(array('urlhash' => array_keys($partition)))->
         recordfetch_setup();
@@ -769,7 +771,7 @@ EOH
       $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
       // TODO: Implement link aging
       $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
-			if ( $debug_method )  $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
+			if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/
 
     // Stow edges.  This should probably be performed in a stored procedure.
@@ -821,12 +823,12 @@ EOH
 		// Reorder an array of (text,url) pairs in place,
 		// using a regex-matched fragment of the URL
 		array_walk($q,create_function(
-			'& $a, $k', '$matches = array(); if ( 1 == preg_match("@'.$fragment.'@i", $a["url"], $matches) ) $a["seq"] = $matches[1]; else $a["seq"] = 0;'  
+			'& $a, $k', '$matches = array(); if ( 1 == preg_match("@'.$fragment.'@i", array_element($a,"url"), $matches) ) $a["seq"] = array_element($matches,1); else $a["seq"] = 0;'  
 		));
 		// Reorder array
 		$q = array_combine(
-			array_map(create_function('$a','return $a["seq"];'),$q),
-			array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => $a["cached"]);'),$q)
+			array_map(create_function('$a','return array_element($a,"seq");'),$q),
+			array_map(create_function('$a','return array("url" => array_element($a,"url"), "text" => array_element($a,"text"), "cached" => array_element($a,"cached"));'),$q)
 			// array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => !array_key_exists("_", $a));'),$q)
 		);
 		krsort($q);

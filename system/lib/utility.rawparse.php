@@ -65,41 +65,12 @@ EOH;
     return $this;
   }/*}}}*/
 
-  function & reorder_with_sequence_tags(& $c) {/*{{{*/
-    // Reorder containers by stream context sequence number
-    // If child tags in a container possess a 'seq' ordinal value key (stream/HTML rendering context sequence number),
-    // then these children are reordered using that ordinal value.
-    if ( is_array($c) ) {
-      if ( array_key_exists('children', $c) ) return $this->reorder_with_sequence_tags($c['children']);
-      $sequence_num = create_function('$a', 'return is_array($a) && array_key_exists("seq",$a) ? $a["seq"] : (is_array($a["attrs"]) && array_key_exists("seq",$a["attrs"]) ? $a["attrs"]["seq"] : NULL);');
-      $filter_src   = create_function('$a', '$rv = is_array($a) && array_key_exists("seq",$a)  ? $a        : (is_array($a["attrs"]) && array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
-      $containers   = array_filter(array_map($sequence_num, $c));
-      if ( is_array($containers) && (0 < count($containers))) {
-				$filtered = array_map($filter_src, $c);
-				if ( is_array($filtered) && count($containers) == count($filtered) ) {
-					$containers = array_combine(
-						$containers,
-						$filtered
-					);
-					if ( is_array($containers) ) {
-						$containers = array_filter($containers);
-						ksort($containers);
-						$c = $containers;
-					}
-				}
-      } else {
-        
-      }
-    }
-    return $this;
-  }/*}}}*/
-
   function & mark_container_sequence() {/*{{{*/
     $this->reorder_with_sequence_tags($this->containers);
     return $this;
   }/*}}}*/
 
-  function & get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
+  function get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
     $this->filtered_containers = array();
     foreach ( $this->removable_containers as $remove ) {
       unset($this->containers[$remove]);
@@ -195,42 +166,6 @@ EOH;
 			return NULL;
 		}
 
-    $raw_html = join('',array_filter(explode("\n",str_replace(
-      array(
-        "\r",
-        '><',
-      ),
-      array(
-        "\n",
-        ">\n<",
-      ), 
-      preg_replace(
-        array(
-          '@(<\!doctype(.*)>)@im',
-          '/<html([^>]*)>/imU',
-          '/>([ ]*)</m',
-
-          '/<!--(.*)-->/imUx',
-          '@<noscript>(.*)</noscript>@imU',
-          '@<script([^>]*)>(.*)</script>@imU',
-
-          //'@([[:cntrl:]]*)@',
-        ),
-        array(
-          '',
-          '<html>',
-          '><',
-
-          '',
-          '',
-          '',
-
-          //'',
-        ),
-        $raw_html
-      )
-    ))));
-
     libxml_use_internal_errors(TRUE);
     libxml_clear_errors();
 
@@ -246,7 +181,11 @@ EOH;
       ? strtolower($doctype_match[1])
       : 'iso-8859-1' // Default assumption
       ;
-		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}'" );
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}' <- " . array_element($response_headers,'content-type') );
+      $this->recursive_dump($doctype_match,"(marker) - --- - Matches");
+      $this->recursive_dump($response_headers,"(marker) - - --- - - Headers");
+    }
 
     $dom                      = new DOMDocument();
     $dom->recover             = TRUE;
@@ -255,13 +194,41 @@ EOH;
     $dom->strictErrorChecking = FALSE;
     $dom->substituteEntities  = FALSE;
 
-    if ( $content_type == 'iso-8859-1' ) {
-      $loadresult   = $dom->loadHTML($raw_html);
-    } else if ( $content_type == 'utf-8' ) {
-      $loadresult   = $dom->loadHTML($raw_html);
-    } else {
-      $loadresult   = $dom->loadHTML($raw_html);
-    }
+    $raw_html = join('',array_filter(explode("\n",str_replace(
+      array(
+        "\r",
+        '><',
+      ),
+      array(
+        "\n",
+        ">\n<",
+      ), 
+      preg_replace(
+        array(
+          '@(<!doctype(.*)>)@im',
+          '/<html([^>]*)>/imU',
+          '/>([ ]*)</m',
+
+          '/<!--(.*)-->/imUx',
+          '@<noscript>(.*)</noscript>@imU',
+          '@<script([^>]*)>(.*)</script>@imU',
+        ),
+        array(
+          '',
+          '<html>',
+          '><',
+
+          '',
+          '',
+          '',
+        ),
+        $raw_html
+      )
+    )))); // $raw_html = htmlentities($raw_html, ENT_COMPAT, strtoupper($content_type));
+
+    $dom->encoding = strtoupper($content_type);
+
+    $loadresult   = $dom->loadHTML($raw_html);
 
     $dom->normalizeDocument();
 
@@ -274,7 +241,6 @@ EOH;
     if ( $xml_errno == 0 ) {
 
       $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-      // $dom->loadXML($raw_html);
       $dom->formatOutput = FALSE;
       $raw_html = $dom->saveHTML();
       $this->syslog(__FUNCTION__,__LINE__, " - Parse OK: \n" . substr($raw_html,0,500));
@@ -286,7 +252,7 @@ EOH;
       $xml_errstr = xml_error_string($xml_errno);
       $this->syslog( __FUNCTION__, __LINE__, 
         "PARSE ERROR #{$xml_errno}: {$xml_errstr} " . 
-        "offset {$error_offset} context " . substr($dom->saveXML(), $error_offset - 100, 200)
+        "offset {$error_offset} context \n" . substr($dom->saveXML(), $error_offset - 10, 200)
       );
       $errors = libxml_get_errors();
       foreach ($errors as $error) {
@@ -300,7 +266,7 @@ EOH;
     // Add unprocessed container stack entries to $this->containers
     while ( 0 < count($this->container_stack) ) $this->stack_to_containers();
 
-    $only_non_empty = create_function('$a', 'return 0 < count($a["children"]) ? $a : NULL;');
+    $only_non_empty = create_function('$a', 'return 0 < count(array_element($a,"children")) ? $a : NULL;');
     $this->containers = array_filter(array_map($only_non_empty,$this->containers));
     if ( $this->debug_tags ) $this->recursive_dump($this->containers,'(marker)');
 
@@ -321,9 +287,6 @@ EOH;
       array_walk($containerset,create_function(
         '& $a, $k, $s', '$s->reorder_with_sequence_tags($a["children"]);'
       ),$this);
-      if (0) $this->filter_nested_array( $containerset,
-        'children[tagname*=tr]'
-      );
       // FIXME: Remove duplicate containers
       array_walk( $containerset, create_function(
         '& $a, $k', 'if ( is_numeric($k) && array_key_exists($k,$a) ) unset($a[$k]); if ( is_numeric($k) && array_key_exists("children", $a) && array_key_exists($k,$a["children"]) ) unset($a["children"][$k]);'
@@ -354,12 +317,9 @@ EOH;
     }
     if ( is_array($containerset) ) {
       foreach ( $containerset as $seq => $children ) {
+        $promise_item_n = array();
         if ( is_integer($seq) ) {
-
-          $promise_item_n = array_key_exists($seq, $this->promise_stack)
-            ? $this->promise_stack[$seq]
-            : NULL
-            ;
+          $promise_item_n = array_element($this->promise_stack,$seq,NULL);
           if ( !is_null($promise_item_n) ) {
             list($key, $data) = each($promise_item_n);
             $data['__ANCESTOR__'] = $seqno;
@@ -491,7 +451,7 @@ EOH;
     }
     if ($result) {
       $tag_cdata = ( is_array($this->current_tag) && array_key_exists('cdata',$this->current_tag) && is_array($this->current_tag['cdata']) )
-        ? join(' ',$this->current_tag['cdata'])
+        ? join('',$this->current_tag['cdata'])
         : NULL
         ;
       $this->filtered_doc[] = <<<EOH
@@ -499,7 +459,7 @@ EOH;
 </{$tag}>
 EOH;
     }
-    else {
+    else if (is_array($this->current_tag)) {
       // Remove all content added to the filtered document array
       // since the opening tag was inserted into the tag stack
       $start = $this->current_tag['position'];
@@ -602,8 +562,8 @@ EOH;
     $container_def = array(
       'tagname' => $tagname,
       'sethash' => $this->hash_generator_counter++,
-      'class'   => "{$attrs['CLASS']}",
-      'id'      => "{$attrs['ID']}",
+      'class'   => array_key_exists('CLASS', $attrs) ? "{$attrs['CLASS']}" : NULL,
+      'id'      => array_key_exists('ID'   , $attrs) ? "{$attrs['ID']}"    : NULL,
       'attrs'   => $attrs,
       'children' => array(),
       'seq'     => $this->current_tag['attrs']['seq'],
@@ -621,13 +581,12 @@ EOH;
     if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) && is_array($this->current_tag) && array_key_exists('attrs', $this->current_tag) && array_key_exists($k, $this->current_tag['attrs'])) {
       $fixurl = array('url' => $this->current_tag['attrs'][$k]);
       $this->current_tag['attrs'][$k] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
-      //  $this->syslog(__FUNCTION__, __LINE__, "- Updated {$this->current_tag['tag']} URL to '{$this->current_tag['attrs'][$k]}'" ); 
     }
     return $this;
   }/*}}}*/
 
   function collapse_current_tag_link_data() {/*{{{*/
-    $target = $this->current_tag['attrs']['HREF'];
+    $target = isset($this->current_tag['attrs']['HREF']) ? $this->current_tag['attrs']['HREF'] : NULL;
     $link_text = join('', $this->current_tag['cdata']);
     $link_data = array(
       'url'      => $target,
@@ -647,9 +606,9 @@ EOH;
 
     if ((is_array($form_control_source) && (0 < count($form_control_source)))) {
 
-      $extract_hidden_input = create_function('$a','return strtoupper($a["tag"]) == "INPUT" &&  strtoupper($a["attrs"]["TYPE"]) == "HIDDEN" ? array("name" => $a["attrs"]["NAME"], "value" => $a["attrs"]["VALUE"]) : NULL;');
-      $extract_text_input   = create_function('$a','return strtoupper($a["tag"]) == "INPUT" &&  strtoupper($a["attrs"]["TYPE"]) == "TEXT"   ? array("name" => $a["attrs"]["NAME"], "value" => $a["attrs"]["VALUE"]) : NULL;');
-      $extract_select       = create_function('$a','return strtoupper($a["tagname"]) == "SELECT" ? array("name" => $a["attrs"]["NAME"], "keys" => $a["children"]) : NULL;');
+      $extract_hidden_input = create_function('$a','return strtoupper(array_element($a,"tag")) == "INPUT" && is_array(array_element($a,"attrs")) && strtoupper(array_element($a["attrs"],"TYPE")) == "HIDDEN" ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "value" => array_element(array_element($a,"attrs",array()),"VALUE")) : NULL;');
+      $extract_text_input   = create_function('$a','return strtoupper(array_element($a,"tag")) == "INPUT" && is_array(array_element($a,"attrs")) && strtoupper(array_element($a["attrs"],"TYPE")) == "TEXT"   ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "value" => array_element(array_element($a,"attrs",array()),"VALUE")) : NULL;');
+      $extract_select       = create_function('$a','return strtoupper(array_element($a,"tagname")) == "SELECT" ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "keys" => array_element($a,"children")) : NULL;');
       foreach ( array_merge(
         array_values(array_filter(array_map($extract_hidden_input,$form_control_source))),
         array_values(array_filter(array_map($extract_text_input, $form_control_source)))
@@ -737,15 +696,6 @@ EOH;
     return $this;
   }
 
-  function resequence_children(& $containers) {/*{{{*/
-    return array_walk(
-      $containers,
-      // create_function('& $a, $k, $s', 'if ( array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'),
-      create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
-      $this
-    );
-  }/*}}}*/
-
   function embed_cdata_in_parent() {/*{{{*/
     $i = $this->pop_tagstack();
     $content = join('',$this->current_tag['cdata']);
@@ -756,6 +706,10 @@ EOH;
     return FALSE;
   }/*}}}*/
 
-
+  function cdata_cleanup() {
+    if ( is_array($this->current_tag) && array_key_exists('cdata',$this->current_tag) && is_array($this->current_tag['cdata']) ) {
+      $this->current_tag['cdata'] = array_filter(explode('[BR]',preg_replace('@(&nbsp([;]*))+@i',' ',join('',$this->current_tag['cdata']))));
+    }
+  }
 
 }/*}}}*/

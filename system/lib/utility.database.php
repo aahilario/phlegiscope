@@ -2,16 +2,18 @@
 
 class DatabaseUtility extends ReflectionClass {
 
-  static $dbhandle = NULL;
+  static $dbhandle               = NULL;
   protected static $obj_attrdefs = array(); // Lookup table of class attributes and names
-  protected static $obj_ondisk = array();
+  protected static $obj_ondisk   = array();
 
-  protected $tablename = NULL;
-  protected $query_conditions = array();
-  protected $order_by_attrs = array();
-  protected $limit = array();
-  protected $query_result = NULL;
-  protected $attrlist = NULL;
+  protected $tablename           = NULL;
+  protected $query_conditions    = array();
+  protected $order_by_attrs      = array();
+  protected $limit               = array();
+  protected $query_result        = NULL;
+  protected $attrlist            = NULL;
+  protected $debug_operators     = FALSE;
+  protected $debug_method        = FALSE;
 
   protected $disable_logging = array(
     '-RawparseUtility'
@@ -25,6 +27,9 @@ class DatabaseUtility extends ReflectionClass {
   }
   function __construct() {/*{{{*/
     parent::__construct($this);
+		$this->debug_method = FALSE;
+		$this->debug_operators = FALSE;
+		$this->id = NULL;
     if (1 == preg_match('@(Model|Join)$@i',get_class($this))) 
       $this->initialize_derived_class_state();
   }/*}}}*/
@@ -78,10 +83,15 @@ EOS;
     $omitted_members = array();
     $myname = get_class($this);
     if ( array_key_exists($myname, self::$obj_attrdefs) ) {
-      return $include_omitted
+      $returnval = $include_omitted
         ? self::$obj_attrdefs[$myname]
         : array_filter(array_map(create_function('$a', 'return array_key_exists("joinobject",$a) ? NULL : $a;'), self::$obj_attrdefs[$myname]))
         ;
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Leaving, I ({$myname}) am already recorded." );
+        $this->recursive_dump($returnval,"(marker) - - - -");
+      }
+      return $returnval;
     }
     foreach ( $this->getProperties(ReflectionProperty::IS_PUBLIC) as $p ) {
       if ( $p->getDeclaringClass()->getName() != get_class($this) ) continue;
@@ -89,12 +99,17 @@ EOS;
       if ( strlen($defvalue) > 200 ) $defvalue = substr($defvalue,0,200) . '... (' . strlen($defvalue) . ')'; 
       // $this->syslog(__FUNCTION__, '-', "(marker) - Value '{$defvalue}' type " . gettype($defvalue) );
       $nameparts = array();
-      preg_match_all('/^(.*)_(.*)$/i',$p->getName(),$nameparts);
+      $attrname = $p->getName();
+      preg_match_all('/^(.*)_(.*)$/i',$attrname,$nameparts);
       $use_nametype = 0 < strlen($nameparts[1][0]);
       $member = array(
         'name' => $use_nametype ? $nameparts[1][0] : $p->getName(),
         'type' => $use_nametype ? $nameparts[2][0] : 'pkey',
       );
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Testing attribute {$attrname} having these properties:" );
+        $this->recursive_dump($member,"(marker) - - - -");
+      }
       $attr_is_model = class_exists("{$member['type']}",FALSE);
       if ( $attr_is_model || (1 == preg_match('@(.*)Model$@',$member['type'])) ) {
         // Model attribute check.  Treat object references as invisible;
@@ -106,16 +121,28 @@ EOS;
         }
         $member['propername'] = $member['type'];
         if (1 == preg_match('@(.*)Join$@i', $myname)) {
+          if ( $debug_method ) {
+            $this->syslog(__FUNCTION__, __LINE__, "(marker) - --- - Skipping {$member['propername']}, as i am a Join ({$myname})" );
+          }
           $members[$member['name']] = $member;
-           continue;
+          continue;
         }
         // Compute Join object name if this isn't already a Join model
-        $realnames   = array($member['type']);
-        $realnames[] = $myname;
-        $realnames   = array_flip($realnames);
-        ksort($realnames); // Avoid guessing whether the join class ClassAClassBJoin or ClassBClassAJoin
-        $realnames   = array_flip($realnames);
-        $fakename    = array_map(create_function('$a', 'return preg_replace("@(Document)*Model$@i","",$a);'), $realnames);
+        $realnames   = array();
+        $realnames[$member['type']] = $member['type'];
+        // Allow for self join
+        if ( array_key_exists($myname, $realnames) ) {
+          $realnames["_{$myname}"] = $myname;
+        } else {
+          $realnames[$myname] = $myname;
+          ksort($realnames); // Avoid guessing whether the join class name should be ClassAClassBJoin or ClassBClassAJoin
+        }
+
+        if ( $debug_method ) { 
+          $this->syslog(__FUNCTION__, __LINE__, "(marker) Object reference attribute name parts:" );
+          $this->recursive_dump($realnames, "(marker) -- - -- -");
+        }
+        $fakename = array_map(create_function('$a', 'return preg_replace("@(Document)*Model$@i","",$a);'), $realnames);
         // The '_PLUS_' conjunction causes the class loader to generate
         // a new class definition file with the two object names used
         // to declare the join. 
@@ -150,7 +177,8 @@ EOS;
   private final function fetch_typemap(& $attrinfo, $mode = NULL) {/*{{{*/
 
     // Get type map information for a SINGLE model attribute.
-    $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
+    $debug_method = FALSE; // 1 == preg_match('@(.*)Join$@i', get_class($this)); //  FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
+
     $type_map = array(
       'pkey' => array('attrname' => 'pkey'              , 'quot' => FALSE),
       'utx'  => array('attrname' => 'INT(11)'           , 'quot' => FALSE),
@@ -190,7 +218,7 @@ EOS;
     $quoting    = array_key_exists($attrinfo['type'],$type_map) ? $type_map[$attrinfo['type']]['quot'] : FALSE;
     $bindparam  = array_key_exists($attrinfo['type'],$type_map) && array_key_exists('mustbind', $type_map[$attrinfo['type']]) ? $type_map[$attrinfo['type']]['mustbind'] : FALSE;
     $properties = array_key_exists($attrinfo['type'],$type_map) ? $type_map[$attrinfo['type']]['attrname'] : 'VARCHAR(64)';
-    $properties = preg_replace('/\((s)\)/',"({$size})",$type_map[$matches[1][0]]['attrname']);
+    $properties = preg_replace('/\((s)\)/',"({$size})", array_element(array_element(is_array($type_map) ? $type_map : array(),array_element(array_element($matches,1,array()),0),array()),'attrname'));
     $properties = "{$properties} {$modifier}";
 
     $typemap = array(
@@ -202,36 +230,25 @@ EOS;
       'mustbind'   => $bindparam,
     );
 
-    // TODO: Implement model references
-		if (1 == preg_match('@(.*)Join$@i', get_class($this))) {
-      if ($debug_method) $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
-    }
-    else if (array_key_exists('propername',$attrinfo)) {
-      $typemap['fieldname'] = $attrinfo['name'];
-      // Only return something meaningful when this is an edge object
-      $ft_propername = join('_',camelcase_to_array($attrinfo['propername']));
-      $typemap['properties'] = <<<EOS
-INT(11) REFERENCES `{$ft_propername}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT
-EOS;
-       $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
+    // Implement model references
+		if ((1 == preg_match('@(.*)Join$@i', get_class($this))) && array_key_exists('propername',$attrinfo)) {
 
-      if ($debug_method) {
-        $this->syslog(__FUNCTION__, __LINE__, "(marker)  Attribute: {$typemap['fieldname']}" );
-        $this->syslog(__FUNCTION__, __LINE__, "(marker) Properties: {$typemap['properties']}" );
+      $typemap['fieldname'] = $attrinfo['name'];
+
+      $join_attrdefs = $this->get_attrdefs();
+      $join_attrdefs = $join_attrdefs[$fieldname];
+      if ( class_exists($join_attrdefs['type']) ) {
+        $ft_propername = join('_',camelcase_to_array($join_attrdefs['propername']));
+        $typemap['properties'] = <<<EOS
+INT(11) NOT NULL REFERENCES `{$ft_propername}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT
+EOS;
+        $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
       }
-      $this->recursive_dump($matches,"(marker) Z");
-      // Notes:
-      // This method is called in __ contexts:
-      // - ALTER TABLE ... ADD COLUMN:  initialize_derived_class_state()
-      //   To add or remove columns, requires properties attr
-      // - CREATE TABLE: construct_backing_table().
-      // - full_property_list() 
-      // TODO: Check whether the referenced model B has a matching attribute.
-      // If the peer has an attribute of $this type, use an edge node
-      // (effectively a link table), and omit declaration of a foreign key
-      // reference attr. 
-      // Otherwise, when referenced model B does NOT have a matching attribute
-      // then this attribute implements a 1-1 join.
+      if ($debug_method) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- - --  Final typemap");
+        $this->recursive_dump($typemap,'(marker) "- -- - -- -"');
+      }
+    } else if (array_key_exists('propername',$attrinfo)) { 
       if ( is_null($mode) ) return NULL;
       if (!(1 == preg_match('@(.*)Join$@i', get_class($this)))) return NULL;
     }
@@ -242,7 +259,7 @@ EOS;
   private final function construct_backing_table($tablename, $members) {/*{{{*/
     $debug_method = FALSE;
     if ( $debug_method ) {
-       $this->syslog( __FUNCTION__, __LINE__, "(marker) Constructing backing table '{$tablename}' for " . get_class($this) );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Constructing backing table '{$tablename}' for " . get_class($this) );
       $this->recursive_dump($members,"(marker) ----- ---- --- -- -  - -- --- ---- -----");
     }
 
@@ -257,9 +274,15 @@ EOS;
       // - $properties: INT(11) REFERENCES `{ftable}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT";  
       // Also add UNIQUE INDEX ($a,$b)  
       $attrdef = $this->fetch_typemap($attrs,'CREATE');
-      if ( is_null($attrdef) ) continue;
+      if ( is_null($attrdef) ) {
+        continue;
+      }
       if ( array_key_exists('joint_unique', $attrdef) ) {
         $unique_attrs[] = $attrdef['fieldname'];
+      }
+      if ( $debug_method ) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute defs '{$tablename}' for " . get_class($this) );
+        $this->recursive_dump($attrdef,"(marker) ----- ---- --- -- -  - -- --- ---- -----");
       }
       extract($attrdef);
       $attrset[] = <<<EOH
@@ -332,7 +355,9 @@ EOH;
         ;
     }
     foreach ( $added_columns as $t => $column ) {/*{{{*/
-      $removed_columns[$column[array_key_exists("propername", $column) ? "propername" : "name"]] = NULL;
+      $omit_extant = $column[array_key_exists("propername", $column) ? "propername" : "name"];
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) -- - -- Omitting column {$omit_extant}");
+      $removed_columns[$omit_extant] = NULL;
     }/*}}}*/
     $removed_columns = array_values(array_filter($removed_columns));
     return array(
@@ -342,7 +367,9 @@ EOH;
   }/*}}}*/
 
   protected final function initialize_derived_class_state() {/*{{{*/
+
     $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
+
     $this->tablename = join('_', camelcase_to_array(get_class($this)));
     $this->initialize_db_handle();
     if ( C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {
@@ -361,10 +388,14 @@ EOH;
             $result['values']
           )
         );
+        if ( $debug_method ) { 
+          $this->syslog( __FUNCTION__, __LINE__, "(warning) Matched tables" );
+          $this->recursive_dump($matched_tables,"(marker) --- -- -");
+        }
       }
 
       if ( $debug_method ) { 
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING: members table before construct_backing_table" );
+        $this->syslog( __FUNCTION__, __LINE__, "(warning) Members table before construct_backing_table" );
         $this->recursive_dump($members,"(marker) Class members as found");
       }
 
@@ -416,6 +447,79 @@ EOH;
     }
   }/*}}}*/
 
+  function get_joins() {/*{{{*/
+    $join_attrdefs = $this->get_attrdefs();
+		// $this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i][propername*='.$modelname.']');
+		$this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i]');
+    return $join_attrdefs;
+  }/*}}}*/
+
+	function create_joins( $modelname, & $foreign_keys, $allow_update = FALSE ) {/*{{{*/
+
+		$debug_method = FALSE;
+
+		$join_attrdefs = $this->get_attrdefs();
+		$this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i][propername*='.$modelname.']');
+
+    if ( !$this->in_database() ) {
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: Nothing to join. ID = (" . (gettype($this->get_id())) . ")" . (0 < intval($this->get_id()) ? $this->get_id() : "")); 
+			$this->recursive_dump($join_attrdefs, "(marker) - -- ---");
+    } else if (!is_array($join_attrdefs)) {
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: No match among keys"); 
+			$this->recursive_dump($join_attrdefs, "(marker) - -- ---");
+    } else if (1 == count($join_attrdefs)) {
+			$self_id = $this->get_id();
+			foreach( $join_attrdefs as $attrname => $attprops ) {
+
+				$joinobj = $attprops['joinobject'];
+				$joinobj = new $joinobj();
+				$joinobj_attrdefs = $joinobj->get_attrdefs();
+
+				$self_attrname = $joinobj_attrdefs;
+				$this->filter_nested_array($self_attrname,'name[type='.get_class($this).']',0);
+				$self_attrname = $self_attrname[0];
+
+				$foreign_attrname = $joinobj_attrdefs;
+				$this->filter_nested_array($foreign_attrname,'name[type='.$modelname.']',0);
+				$foreign_attrname = $foreign_attrname[0];
+
+				if ( $debug_method ) {/*{{{*/
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute '{$attrname}' for Join {$modelname}");
+					$this->recursive_dump($foreign_keys, "(marker) --- -- -");
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute definitions " . gettype($join_attrdefs));
+					$this->recursive_dump($attprops, "(marker) - -- ---");
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attributes");
+					$this->recursive_dump($joinobj_attrdefs, "(marker) - -- ---");
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for self: " . $self_attrname);
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for {$modelname}: " . $foreign_attrname);
+				}/*}}}*/
+
+				// TODO: Handle larger arrays of more than a handful of foreign Joins 
+				// TODO: Allow assignment of Join object properties in $foreignkey
+				foreach ( $foreign_keys as $fk_or_dummy => $foreignkey ) {
+					$data =  array(
+						$self_attrname => $self_id,
+						$foreign_attrname => $foreignkey
+					);
+					$joinobj->fetch($data,'AND');
+					$join_present = $joinobj->in_database();
+					if ( !$join_present || $allow_update ) {
+						$join_id      = $join_present ? $joinobj->get_id() : NULL;
+						$joinobj->set_contents_from_array($data);	
+						$new_joinid = $joinobj->stow();
+						$join_exists  = $join_present ? ("#{$join_id} in DB updated") : "created as #{$new_joinid}";
+						$this->syslog( __FUNCTION__, __LINE__, "(marker) - -- JOIN ". get_class($joinobj) ." {$join_exists} to {$modelname}" );
+					}
+				}
+
+				$joinobj = NULL;
+			}
+		} else {
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- ERROR: Multiple matches for {$modelname}. Available attributes are:");
+			$this->recursive_dump($join_attrdefs, "(marker) - -- ---");
+		}
+	}/*}}}*/
+
   function & execute() {/*{{{*/
     return $this;
   }/*}}}*/
@@ -450,12 +554,16 @@ EOH;
     // Parse a binary tree containing query conditions, returning the resulting
     // condition string (which must evaluate to a valid SQL query condition)
     $querystring = array();
-    $this->recursive_dump($this->query_conditions,'CSFC');
+    if ( $this->debug_method ) $this->recursive_dump($this->query_conditions,'CSFC');
     foreach ( is_null($condition_branch) ? $this->query_conditions : $condition_branch as $conj_or_attr => $operands ) {
 
       if ( array_key_exists(strtoupper($conj_or_attr), array_flip(array('AND', 'OR')))) {
-        $this->syslog(__FUNCTION__,__LINE__, "A conj '{$conj_or_attr}'");
+        if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "A conj '{$conj_or_attr}'");
         $fragment = $this->construct_sql_from_conditiontree($attrlist, $operands);
+				if ( FALSE === $fragment ) {
+					$this->syslog(__FUNCTION__,__LINE__, "(marker) Invalid condition parameters, SQL statement could not be constructed.");
+					return FALSE;
+				}
         $querystring[] = join(" {$conj_or_attr} ", $fragment);
         continue;
       }
@@ -464,23 +572,28 @@ EOH;
         $operand_match = array();
         $opmatch       = preg_match($operand_regex, $operands, $operand_match);
         $operator      = '=';
+				$value         = NULL;
         if ( 1 == $opmatch ) {
-          // FIXME:  This is absolutely NOT secure, inputs need to be filtered against SQL injection.
+          // FIXME: This is absolutely NOT secure, inputs need to be filtered against SQL injection.
           // $this->recursive_dump($operand_match, __LINE__);
           $operator = trim($operand_match[1]);
           $value    = trim($operand_match[2]);
-          $this->syslog(__FUNCTION__,__LINE__, 'B');
+          if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, 'B');
         } else {
-          $value    = $attrlist[$conj_or_attr]['attrs']['quoted'] ? "'{$operands}'" : "{$operands}";
-          $this->syslog(__FUNCTION__,__LINE__, "C {$conj_or_attr} {$operands}");
+					if ( array_key_exists($conj_or_attr, $attrlist) ) 
+          $value = $attrlist[$conj_or_attr]['attrs']['quoted'] ? "'{$operands}'" : "{$operands}";
+          if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) C {$conj_or_attr} {$operands} -> {$value}");
         }
-        $querystring[] = "`{$conj_or_attr}` {$operator} {$value}"; 
+				if ( !is_null($value) ) $querystring[] = "`{$conj_or_attr}` {$operator} {$value}"; 
       } else {
         // $this->recursive_dump($operands,__FUNCTION__);
         $value_wrap   = create_function('$a', $attrlist[$conj_or_attr]['attrs']['quoted'] ? 'return "'."'".'" . $a . "'."'".'";' : 'return $a;');
-        $value        = join(',',array_map($value_wrap, $operands));
-        $querystring[] = "`{$conj_or_attr}` IN ({$value})"; 
-        $this->syslog(__FUNCTION__,__LINE__, 'D');
+				$value        = array_map($value_wrap, $operands);
+				if ( 0 < count($value) ) {
+					$value        = join(',',$value);
+					$querystring[] = "`{$conj_or_attr}` IN ({$value})"; 
+					if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, 'D');
+				} else return FALSE;
       }
     }
     return $querystring;
@@ -517,7 +630,10 @@ SELECT COUNT(*) n FROM `{$this->tablename}`
 EOS;
     else {
       $sql = '';
-      $this->where($a)->prepare_select_sql($sql);
+			if ( FALSE == $this->where($a)->prepare_select_sql($sql) ) {
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to build an SQL statement given current parameters.");
+				return NULL;
+			}
       $sql = preg_replace('@^SELECT (.*) FROM @','SELECT COUNT(*) n FROM ', $sql);
       $this->syslog(__FUNCTION__, __LINE__, "(marker) SQL - {$sql}");
     }
@@ -548,6 +664,7 @@ EOS;
       $attrnames = join(',',$attrnames);
       $attrlist = array_combine($key_map, $attrlist);
       $conditionstring = $this->construct_sql_from_conditiontree($attrlist);
+			if ( FALSE == $conditionstring ) return FALSE;
       $order_by = array();
       if ( 0 < count($this->order_by_attrs) ) {
         foreach ( $this->order_by_attrs as $a => $b ) {
@@ -576,7 +693,7 @@ EOS;
       // $this->recursive_dump( $conditionstring, __LINE__);
       $conditionstring = join(' ',$conditionstring);
       $sql = <<<EOS
-SELECT {$attrnames} FROM `{$this->tablename}` WHERE {$conditionstring} {$order_by} {$limit_to}
+SELECT {$attrnames} FROM `{$this->tablename}` WHERE {$conditionstring} {$order_by} {$limit_by}
 EOS;
       // DEBUG
       // $this->syslog( __FUNCTION__, __LINE__, "Query: {$sql}");
@@ -604,6 +721,7 @@ EOS;
   }/*}}}*/
 
   function select() {/*{{{*/
+		$this->id = NULL;
     $sql = '';
     $this->attrlist = $this->prepare_select_sql($sql);
     $result = $this->query($sql)->resultset();
@@ -648,7 +766,7 @@ EOS;
   function fetch($attrval, $attrname = NULL) {/*{{{*/
     $this->id = NULL;
     if ( is_null($attrname) ) {
-      $this->where(array('id' => $this->id))->select();
+      $this->where(array('id' => $attrval))->select();
     } else {
       $this->where(array($attrname => $attrval))->select();
     }
@@ -663,15 +781,10 @@ EOS;
     // If an instance of this class has an ID, then it is assumed that
     // the record exists.
     // TODO: Handle record locking
-    return intval($this->id) > 0;
+    return property_exists($this,'id') ? intval($this->id) > 0 : FALSE;
   }/*}}}*/
 
   function stow() {/*{{{*/
-    if ( !is_null($this->id) ) {
-      // $this->syslog( __FUNCTION__ , __LINE__, "WARNING: Updating " . get_class($this) . " #{$this->id}");
-      // $this->recursive_dump(explode("\n",__LINE__);
-      // return;
-    }
     return is_null($this->id)
       ? $this->insert()
       : $this->update()
@@ -769,7 +882,7 @@ EOS;
     return $this;
   }/*}}}*/
 
-  function & resultset() {/*{{{*/
+  function resultset() {/*{{{*/
     $this->initialize_db_handle();
     return self::$dbhandle->resultset();
   }/*}}}*/
@@ -794,8 +907,10 @@ EOS;
   }/*}}}*/
 
   final protected function syslog($fxn, $line, $message) {/*{{{*/
-    if ( $this->logging_ok($message) ) 
+    if ( $this->logging_ok($message) ) { 
       syslog( LOG_INFO, $this->syslog_preamble($fxn, $line) . " {$message}" );
+      if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));
+    }
   }/*}}}*/
 
   final protected function syslog_preamble($fxn, $line) {/*{{{*/
@@ -858,7 +973,7 @@ EOS;
   }/*}}}*/
 
   function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
-    $debug_method = TRUE;
+    $debug_method = FALSE;
     $property_list = $this->fetch_property_list();
     if ( !(0 < count($property_list)) ) return $this;
     $property_list = array_combine(
@@ -1015,7 +1130,44 @@ EOP
     return $map_functions;
   }/*}}}*/
 
-  function & filter_nested_array(& $a, $docpath, $reduce_to_element = FALSE) {/*{{{*/
+  function & reorder_with_sequence_tags(& $c) {/*{{{*/
+    // Reorder containers by stream context sequence number
+    // If child tags in a container possess a 'seq' ordinal value key (stream/HTML rendering context sequence number),
+    // then these children are reordered using that ordinal value.
+    if ( is_array($c) ) {
+      if ( array_key_exists('children', $c) ) return $this->reorder_with_sequence_tags($c['children']);
+      $sequence_num = create_function('$a', 'return is_array($a) ? array_element($a,"seq",array_element(array_element($a,"attrs",array()),"seq")) : NULL;');
+      $filter_src   = create_function('$a', '$rv = is_array($a) && array_key_exists("seq",$a)  ? $a : (is_array($a) && is_array(array_element($a,"attrs")) && array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
+      $containers   = array_filter(array_map($sequence_num, $c));
+      if ( is_array($containers) && (0 < count($containers))) {
+				$filtered = array_map($filter_src, $c);
+				if ( is_array($filtered) && count($containers) == count($filtered) ) {
+					$containers = array_combine(
+						$containers,
+						$filtered
+					);
+					if ( is_array($containers) ) {
+						$containers = array_filter($containers);
+						ksort($containers);
+						$c = $containers;
+					}
+				}
+      } else {
+        
+      }
+    }
+    return $this;
+  }/*}}}*/
+
+  function resequence_children(& $containers) {/*{{{*/
+    return array_walk(
+      $containers,
+      create_function('& $a, $k, & $s', '$s->reorder_with_sequence_tags($a);'),
+      $this
+    );
+  }/*}}}*/
+
+  function filter_nested_array(& $a, $docpath, $reduce_to_element = FALSE) {/*{{{*/
     $filter_map = $this->get_map_functions($docpath);
     if ( $this->debug_operators ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"------ (marker) Containers to process: " . count($this->containers));
@@ -1048,7 +1200,7 @@ EOP
     }
     if ( is_numeric($reduce_to_element) ) {
       $a = is_array($a) ? array_values($a) : array(NULL);
-      return array_key_exists(intval($reduce_to_element), $a) ? $a[intval($reduce_to_element)] : NULL;
+			return array_element($a,intval($reduce_to_element));
     } else if ( FALSE === $reduce_to_element ) { 
       return $a;
     } else if ( is_null($reduce_to_element) ) {

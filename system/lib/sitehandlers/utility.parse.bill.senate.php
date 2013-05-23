@@ -51,7 +51,7 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
       foreach ( $container as $table_id => $children ) {
         if ( !is_array($children) ) continue;
         foreach ( $children as $tag ) {
-          if ( !is_array($tag['cdata']) ) continue;
+          if ( !is_array($tag) || !is_array(array_element($tag,'cdata')) ) continue;
           $text = trim(join(' ',$tag['cdata']));
           switch ( $tag['tag'] ) {
             case 'A': 
@@ -238,7 +238,7 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
     $this->pop_tagstack();
 		$content = array_filter(array(
 			'text' => trim(join('',$this->current_tag['cdata'])),
-			'class' => $this->current_tag['attrs']['CLASS'],
+			'class' => array_element($this->current_tag['attrs'],'CLASS'),
 			'seq'   => $this->current_tag['attrs']['seq'],
 		));
     $this->add_to_container_stack($content);

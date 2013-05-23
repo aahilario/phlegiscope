@@ -24,16 +24,52 @@ function remove_wait_notification() {
   $('#search-wait').children().remove();
 }
 
+var preload_a = null;
+var preload_n = 0;
+
+function preload_worker() {
+  if ( typeof preload_a != 'null' && preload_n < preload_a.length ) {
+    var hashpair = preload_a[preload_n++];
+    var hash = hashpair.hash;
+    var live = $('#seek').prop('checked') ? $('#seek').prop('checked') : hashpair.live;
+    var linkstring = $('a[id='+hash+']').attr('href');
+
+    $('a[id='+hash+']').addClass('uncached').removeClass('cached');
+
+    $.ajax({
+      type     : 'POST',
+      url      : '/seek/',
+      data     : { url : linkstring, proxy : $('#proxy').prop('checked'), modifier : live, fr: true, linktext: $('a[class*=legiscope-remote][id='+hash+']').html() },
+      cache    : false,
+      dataType : 'json',
+      async    : true,
+      beforeSend : (function() {
+        display_wait_notification();
+        $('#doctitle').html('Loading '+linkstring);
+      }),
+      complete : (function(jqueryXHR, textStatus) {
+        remove_wait_notification();
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+        $('a[id='+hash+']').addClass('cached').removeClass('uncached');
+        if ( data && data.original ) replace_contentof('original',data.original);
+        preload_worker();
+      })
+    });
+  } 
+}
 function preload(components) {
   $.ajax({
     type     : 'POST',
     url      : '/preload/',
-    data     : { links: components },
+    data     : { links: components, modifier : $('#seek').prop('checked') },
     cache    : false,
     dataType : 'json',
     async    : false,
     beforeSend : (function() {
       display_wait_notification();
+      preload_n = 0;
+      if ( typeof preload_a != 'null' ) preload_a = null;
     }),
     complete : (function(jqueryXHR, textStatus) {
       remove_wait_notification();
@@ -41,34 +77,15 @@ function preload(components) {
     success  : (function(data, httpstatus, jqueryXHR) {
       var uncached_entries = data.count ? data.count : 0;
       var uncached_list = data.uncached ? data.uncached : [];
+      preload_a = new Array(uncached_entries);
+      preload_n = 0;
       for (var n in uncached_list) {
-        var hashpair = uncached_list[n];
-        var hash = hashpair.hash;
-        var live = hashpair.live;
-        // var linkstring = $('a[class*=legiscope-remote][id='+hash+']').attr('href');
-        var linkstring = $('a[id='+hash+']').attr('href');
-        $.ajax({
-          type     : 'POST',
-          url      : '/seek/',
-          data     : { url : linkstring, modifier : live, fr: true, linktext: $('a[class*=legiscope-remote][id='+hash+']').html() },
-          cache    : false,
-          dataType : 'json',
-          async    : false,
-          beforeSend : (function() {
-            display_wait_notification();
-            $('#doctitle').html('Loading '+linkstring);
-          }),
-          complete : (function(jqueryXHR, textStatus) {
-            remove_wait_notification();
-            $('#doctitle').html(null);
-          }),
-          success  : (function(data, httpstatus, jqueryXHR) {
-            $('a[id='+hash+']').addClass('cached').removeClass('uncached');
-						if ( data && data.original ) replace_contentof('original',data.original);
-          })
-        });
-      } 
-      $('#doctitle').html("Legiscope: +"+uncached_entries);
+        var e = uncached_list[n];
+        preload_a[preload_n] = { hash : e.hash, live : e.live };
+        preload_n++;
+      }
+      preload_n = 0;
+      preload_worker();
     })
   });
 }
@@ -91,7 +108,7 @@ function initialize_linkset_clickevents(linkset,childtag) {
       $.ajax({
         type     : 'POST',
         url      : '/reorder/',
-        data     : { clusterid : $(this).attr('id'), move : $(this).hasClass('upper-section') ? -1 : 1 },
+        data     : { clusterid : $(this).attr('id'), proxy : $('#proxy').prop('checked'), move : $(this).hasClass('upper-section') ? -1 : 1 },
         cache    : false,
         dataType : 'json',
         async    : true,
@@ -156,35 +173,37 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 	});
 
 	if ( /^application\/pdf/.test(contenttype) ) {
-		var target_container = $(retainoriginal ? ('#'+$('[class*=alternate-original]').first().attr('id')) : '#original');
-		PDFJS.getDocument('/fetchpdf/'+data.contenthash).then(function(pdf){
-			var np = pdf.numPages;
-			for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
-				if ( pagecounter == 1 ) $(target_container).children().remove();
-				pdf.getPage(pagecounter).then(function(page){
-					var pagecount = $(target_container).children().length;
-					var target_name = "pdfdoc-"+pagecount;
-					$('#doctitle').html("Target: "+target_name);
-					$(target_container).append($(document.createElement('CANVAS'))
-						.addClass('inline-pdf')
-						.attr('id', target_name)
-					);
-					var scale = 1.0;
-					var viewport = page.getViewport(scale);
-					var canvas = document.getElementById(target_name);
-					if ( typeof canvas != 'undefined' && canvas != null) {
-						var context = canvas.getContext('2d');
-						canvas.height = viewport.height;
-						canvas.width = $(canvas).parent().first().outerWidth();
-						var renderContext = {
-							canvasContext : context,
-							viewport : viewport
-						};
-						page.render(renderContext);
-					}
-				});
-			}
-		});
+    if ( !($('#spider').prop('checked')) ) {
+      var target_container = $(retainoriginal ? ('#'+$('[class*=alternate-original]').first().attr('id')) : '#original');
+      PDFJS.getDocument('/fetchpdf/'+data.contenthash).then(function(pdf){
+        var np = pdf.numPages;
+        for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
+          if ( pagecounter == 1 ) $(target_container).children().remove();
+          pdf.getPage(pagecounter).then(function(page){
+            var pagecount = $(target_container).children().length;
+            var target_name = "pdfdoc-"+pagecount;
+            $('#doctitle').html("Target: "+target_name);
+            $(target_container).append($(document.createElement('CANVAS'))
+              .addClass('inline-pdf')
+              .attr('id', target_name)
+            );
+            var scale = 1.0;
+            var viewport = page.getViewport(scale);
+            var canvas = document.getElementById(target_name);
+            if ( typeof canvas != 'undefined' && canvas != null) {
+              var context = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = $(canvas).parent().first().outerWidth();
+              var renderContext = {
+                canvasContext : context,
+                viewport : viewport
+              };
+              page.render(renderContext);
+            }
+          });
+        }
+      });
+    }
 	} else {
 		replace_contentof('original',data.original);
 		if ( /^text\/html/.test(contenttype) ) {
@@ -242,9 +261,10 @@ function load_content_window(a,ck,obj,data,handlers) {
   // if ( peek(a,ck) ) seek(a,ck);
   var object_text = typeof obj != 'undefined' ? $(obj).html() : null;
   var std_data = ($('#metalink').html().length > 0)
-    ? { url : a, modifier : ck, cache : $('#cache').prop('checked'), linktext : object_text, metalink : $('#metalink').html() } 
-    : { url : a, modifier : ck, cache : $('#cache').prop('checked'), linktext : object_text }
+    ? { url : a, modifier : ck || $('#seek').prop('checked'), proxy : $('#proxy').prop('checked'), cache : $('#cache').prop('checked'), linktext : object_text, metalink : $('#metalink').html() } 
+    : { url : a, modifier : ck || $('#seek').prop('checked'), proxy : $('#proxy').prop('checked'), cache : $('#cache').prop('checked'), linktext : object_text }
     ;
+  var async = (data && data.async) ? data.async : false;
   if ( typeof data != "undefined" && typeof data != "null" ) {
     for ( var i in data ) {
       var element = data[i];
@@ -257,7 +277,7 @@ function load_content_window(a,ck,obj,data,handlers) {
     data     : std_data,
     cache    : false,
     dataType : 'json',
-    async    : false,
+    async    : async,
     beforeSend : (handlers && handlers.beforeSend) ? handlers.beforeSend : (function() {
       $('a[class*=legiscope-remote]').unbind('click');
       /* $('#siteURL').val(a); */
@@ -375,7 +395,7 @@ function enable_proxied_links(classname,handlers) {
 
   $('a[class*='+classname+']').click(function(e){
     e.stopPropagation();
-    load_content_window($(this).attr('href'), $(e).attr('metaKey'), $(this), null, handler);
+    load_content_window($(this).attr('href'), $(e).attr('metaKey'), $(this), { async : true }, handler);
     return false;
   });
 }
@@ -396,7 +416,7 @@ function initialize_hot_search() {
       $.ajax({
         type     : 'POST',
         url      : '/keyword/',
-        data     : { fragment : $('#keywords').val() },
+        data     : { fragment : $('#keywords').val(), proxy : $('#proxy').prop('checked') },
         cache    : false,
         dataType : 'json',
         beforeSend : (function() {
@@ -409,13 +429,16 @@ function initialize_hot_search() {
           var count = 0; 
           var records = data.records ? data.records : [];
           var returns = data.count ? data.count : 0;
+          var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
           $('#currenturl').html("Matches: "+returns);
           $('div[class*=contentwindow]').each(function(){
             if ($(this).attr('id') == 'issues') return;
+            if (retainoriginal)
+            if ($(this).attr('id') == 'original') return;
             $(this).children().remove();
           });
           if ( !(0 < returns) ) return;
-          $('div[id=original]').append( $(document.createElement('UL')).attr('id','searchresults'));
+          replace_contentof('original',$(document.createElement('UL')).attr('id','searchresults'));
           for ( var r in records ) {
             var record = records[r];
             var meta = record.meta ? record.meta : '';

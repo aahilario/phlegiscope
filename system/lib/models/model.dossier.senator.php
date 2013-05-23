@@ -19,6 +19,8 @@ class SenatorDossierModel extends RepresentativeDossierModel {
   var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
 
+	var $committee_SenateCommitteeModel = NULL;
+
   function __construct() {
     parent::__construct();
   }

@@ -20,14 +20,39 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     return $this;
   }
 
+  function ru_a_open(& $parser, & $attrs, $tag) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+		$this->current_tag['attrs']['CLASS'] = 'legiscope-remote';
+    $this->update_current_tag_url('HREF');
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+  function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = $cdata;
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+  function ru_a_close(& $parser, $tag) {/*{{{*/
+    $this->pop_tagstack();
+		array_walk($this->current_tag['cdata'],create_function(
+			'& $a, $k', '$a = trim(preg_replace(array("@\s+@i","@\s+ñ@i"),array(" ","ñ"),$a));'
+		));
+    $link_data = $this->collapse_current_tag_link_data();
+    $this->add_to_container_stack($link_data);
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+
+
   function ru_div_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->push_container_def($tag, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_div_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
-    $keep = !(array_key_exists($this->current_tag['attrs']['ID'],array_flip(array(
+    $keep = !(array_key_exists(array_element($this->current_tag['attrs'],'ID'),array_flip(array(
       'wrap-header',
       'wrap-footer',
       'tab-feedback',
@@ -43,7 +68,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
       'menu-judiciary-container',
       'printfriendly',
       'menu-social-media-container',
-    )) . ')@', $this->current_tag['attrs']['CLASS']));
+    )) . ')@', array_element($this->current_tag['attrs'],'CLASS')));
     $this->stack_to_containers();
     return $keep;
   }/*}}}*/
@@ -51,7 +76,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_meta_open(& $parser, & $attrs, $tag) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_meta_close(& $parser, $tag) {/*{{{*/
     return FALSE;
   }/*}}}*/
@@ -59,23 +83,33 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_link_open(& $parser, & $attrs, $tag) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_link_close(& $parser, $tag) {/*{{{*/
     return FALSE;
   }/*}}}*/
 
   function ru_script_open(& $parser, & $attrs, $tag) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
     return TRUE;
   }/*}}}*/
-
+  function ru_script_cdata(& $parser, & $cdata) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = $cdata;
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
   function ru_script_close(& $parser, $tag) {/*{{{*/
-    return FALSE;
+		$this->current_tag();
+		$this->recursive_dump($this->current_tag['cdata'], 
+			"(marker) Scr");
+    $this->add_to_container_stack($this->current_tag);
+    return TRUE;
   }/*}}}*/
 
   function ru_style_open(& $parser, & $attrs, $tag) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_style_close(& $parser, $tag) {/*{{{*/
     return FALSE;
   }/*}}}*/
@@ -84,7 +118,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     // Handle A anchor/link tags
     return $this->standard_cdata_container_open();
   }  /*}}}*/
-
   function ru_h2_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
     return $this->standard_cdata_container_cdata();
@@ -93,7 +126,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_h2_close(& $parser, $tag) {/*{{{*/
     return $this->standard_cdata_container_close();
   }/*}}}*/
-
   function ru_h1_open(& $parser, & $attrs, $tag) {/*{{{*/
     // Handle A anchor/link tags
     return $this->standard_cdata_container_open();
@@ -103,7 +135,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     // Attach CDATA to A tag 
     return $this->standard_cdata_container_cdata();
   }/*}}}*/
-
   function ru_h1_close(& $parser, $tag) {/*{{{*/
     return $this->standard_cdata_container_close();
   }/*}}}*/
@@ -122,12 +153,10 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_strong_open(& $parser, & $attrs, $tag) {/*{{{*/
     return parent::ru_p_open($parser,$attrs,$tag);
   }  /*}}}*/
-
   function ru_strong_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
     return parent::ru_p_cdata($parser,$cdata);
   }/*}}}*/
-
   function ru_strong_close(& $parser, $tag) {/*{{{*/
     return $this->embed_cdata_in_parent();
   }/*}}}*/
@@ -135,11 +164,9 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_i_open(& $parser, & $attrs, $tag) {/*{{{*/
     return parent::ru_p_open($parser,$attrs,$tag);
   }  /*}}}*/
-
   function ru_i_cdata(& $parser, & $cdata) {/*{{{*/
     return parent::ru_p_cdata($parser,$cdata);
   }/*}}}*/
-
   function ru_i_close(& $parser, $tag) {/*{{{*/
     return $this->embed_cdata_in_parent();
   }/*}}}*/
@@ -147,11 +174,9 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_em_open(& $parser, & $attrs, $tag) {/*{{{*/
     return parent::ru_p_open($parser,$attrs,$tag);
   }  /*}}}*/
-
   function ru_em_cdata(& $parser, & $cdata) {/*{{{*/
     return parent::ru_p_cdata($parser,$cdata);
   }/*}}}*/
-
   function ru_em_close(& $parser, $tag) {/*{{{*/
     return $this->embed_cdata_in_parent();
   }/*}}}*/
@@ -159,7 +184,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
     return parent::ru_p_open($parser,$attrs,$tag);
   }  /*}}}*/
-
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
     if ( 1 == preg_match('@(nginx)@i', $cdata) ) {
       $this->pop_tagstack();
@@ -168,7 +192,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     }
     return parent::ru_p_cdata($parser,$cdata);
   }/*}}}*/
-
   function ru_p_close(& $parser, $tag) {/*{{{*/
 		$this->current_tag();
 		if (is_array($this->current_tag) &&
@@ -185,12 +208,10 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     // Handle A anchor/link tags
     return $this->standard_cdata_container_open();
   }  /*}}}*/
-
   function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
     // Attach CDATA to A tag 
     return $this->standard_cdata_container_cdata();
   }/*}}}*/
-
   function ru_span_close(& $parser, $tag) {/*{{{*/
     return $this->standard_cdata_container_close();
   }/*}}}*/

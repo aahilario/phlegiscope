@@ -52,51 +52,61 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 		$this->ls_last_operation_errdesc = NULL;
     $this->ls_result = NULL;
 
+		if ( empty($sql) ) {
+			syslog(LOG_INFO, get_class($this) . '::' . __FUNCTION__ . ": -- - -- - ERROR: Empty SQL statement, unable to proceed.");
+			return FALSE;
+		}
+
     if ( is_null($bindparams) ) {
       $resultset = parent::query( $sql, MYSQLI_STORE_RESULT ); // We wish to iterate over the resultset some time after this call is made, without incurring memory overhead of prestoring all retrieved data.
     } else {
       $prepare_hdl = parent::prepare( $sql );
       $paramindex = 0;
-      foreach ( $bindparams as $b ) {
-        $bindflag   = $b['bindflag'];
-        $bindsource = $b['data'];
-        $sourcefile = NULL;
-        if ( 1 == preg_match('@^file://@',substr($bindsource,0,8)) ) {
-          $sourcefile = preg_replace('@^file://@','',$bindsource);
-          if ( !file_exists($sourcefile) || !is_readable($sourcefile) ) {
-            syslog(LOG_INFO, __METHOD__ . ": Warning: Unable to set up data source - file '{$sourcefile}' not found or not accessible.");
-            $sourcefile = NULL;
+      if ( $prepare_hdl == FALSE ) {
+        syslog(LOG_INFO, get_class($this) . '::' . __FUNCTION__ . ": -- - -- - ERROR: Invalid prepared statement handle, SQL = {$sql}");
+        $resultset = FALSE;
+      } else {
+        foreach ( $bindparams as $b ) {
+          $bindflag   = $b['bindflag'];
+          $bindsource = $b['data'];
+          $sourcefile = NULL;
+          if ( 1 == preg_match('@^file://@',substr($bindsource,0,8)) ) {
+            $sourcefile = preg_replace('@^file://@','',$bindsource);
+            if ( !file_exists($sourcefile) || !is_readable($sourcefile) ) {
+              syslog(LOG_INFO, __METHOD__ . ": Warning: Unable to set up data source - file '{$sourcefile}' not found or not accessible.");
+              $sourcefile = NULL;
+              continue;
+            }
+            $bindsource = NULL;
+          }
+          $prepare_hdl->bind_param($bindflag, $bindsource); 
+          // If a file source is used for content, stream that.
+          $streamchunk = 4096;
+          if ( !is_null($sourcefile) && !(FALSE == ($handle = fopen($sourcefile,'r'))) ) {
+            if ( $debug_method ) syslog(LOG_INFO, __METHOD__ . ": Streaming update field #{$paramindex}.");
+            while (!feof($handle)) {
+              $prepare_hdl->send_long_data($paramindex, fread($handle,$streamchunk));
+            }
+            fclose($handle);
             continue;
           }
-          $bindsource = NULL;
+          // Otherwise stream the string in 4K chunks
+          $i = 0;
+          $bindsource_length = strlen($bindsource);
+          $streamchunk = min($streamchunk, $bindsource_length);
+          if ( $debug_method ) syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
+          $n = 0;
+          do {
+            $chunk = substr($bindsource, $i, $streamchunk);
+            if ( $debug_method ) syslog( LOG_INFO, __METHOD__ . ": Chunk {$n} @ {$i}");
+            $prepare_hdl->send_long_data($paramindex, $chunk);
+            $i += $streamchunk;
+            $n++;
+          } while ( $i < strlen($bindsource) );
+          $paramindex++;
         }
-        $prepare_hdl->bind_param($bindflag, $bindsource); 
-        // If a file source is used for content, stream that.
-        $streamchunk = 4096;
-        if ( !is_null($sourcefile) && !(FALSE == ($handle = fopen($sourcefile,'r'))) ) {
-          if ( $debug_method ) syslog(LOG_INFO, __METHOD__ . ": Streaming update field #{$paramindex}.");
-          while (!feof($handle)) {
-            $prepare_hdl->send_long_data($paramindex, fread($handle,$streamchunk));
-          }
-          fclose($handle);
-          continue;
-        }
-        // Otherwise stream the string in 4K chunks
-        $i = 0;
-        $bindsource_length = strlen($bindsource);
-        $streamchunk = min($streamchunk, $bindsource_length);
-        if ( $debug_method ) syslog( LOG_INFO, __METHOD__ . ": Streaming string - Len {$bindsource_length}, chunksize = {$streamchunk}");
-				$n = 0;
-        do {
-          $chunk = substr($bindsource, $i, $streamchunk);
-					if ( $debug_method ) syslog( LOG_INFO, __METHOD__ . ": Chunk {$n} @ {$i}");
-          $prepare_hdl->send_long_data($paramindex, $chunk);
-          $i += $streamchunk;
-					$n++;
-        } while ( $i < strlen($bindsource) );
-        $paramindex++;
+        $resultset = $prepare_hdl->execute();
       }
-      $resultset = $prepare_hdl->execute();
     }
 		$this->ls_last_operation_sql = $sql;
     // If the resultset is a boolean, return it
@@ -109,8 +119,10 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 				try {
 					throw new Exception('DB');
 				} catch ( Exception $e ) {
-					foreach ( $e->getTrace() as $st ) 
-					syslog( LOG_INFO, " @ {$st['line']} {$st['class']}::{$st['function']}() in {$st['file']}");
+					foreach ( $e->getTrace() as $st ) { 
+						if ( !array_key_exists('class', $st) ) $st['class'] = NULL;
+						syslog( LOG_INFO, " @ {$st['line']} {$st['class']}::{$st['function']}() in {$st['file']}");
+					}
 				}
 			}
       $this->ls_last_operation_result = $resultset;

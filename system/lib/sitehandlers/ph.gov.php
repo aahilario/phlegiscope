@@ -258,6 +258,18 @@ EOH;
 
   }/*}}}*/
 
+	function seek_by_pathfragment_b0ccba18e303576f24c78cf054acfb4c(& $parser, & $pagecontent, & $urlmodel) {
+
+    $gazette = new GazetteCommonParseUtility();
+		$gazette->
+			set_parent_url($urlmodel->get_url())->
+			parse_html($pagecontent,$urlmodel->get_response_header());
+
+		$this->recursive_dump(($containers = $gazette->get_containers(
+		)),"(marker)");
+
+	}
+
   function parse_republic_act(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );

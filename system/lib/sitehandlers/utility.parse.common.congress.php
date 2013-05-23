@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
+class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
   
   function __construct() {
     parent::__construct();
@@ -18,10 +18,32 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_head_close(& $parser, $tag) {/*{{{*/
     array_pop($this->container_stack);
     return FALSE;
+  }/*}}}*/
+
+  function ru_body_open(& $parser, & $attrs, $tagname) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
+    $this->push_container_def($tagname, $attrs);
+    return TRUE;
+  }/*}}}*/
+  function ru_body_cdata(& $parser, & $cdata) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = trim($cdata);
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+  function ru_body_close(& $parser, $tag) {/*{{{*/
+    $this->pop_tagstack();
+    $this->cdata_cleanup();
+    $this->push_tagstack();
+    $cdata_lines = array('text' => $this->current_tag['cdata']);
+    $this->add_to_container_stack($cdata_lines);
+    $this->stack_to_containers();
+    return TRUE;
   }/*}}}*/
 
   function ru_div_open(& $parser, & $attrs, $tagname ) {/*{{{*/
@@ -31,7 +53,6 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_div_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
@@ -39,7 +60,6 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  $this->get_stacktags() . "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
-
   function ru_div_close(& $parser, $tag) {/*{{{*/
     $skip = FALSE;
     $this->pop_tagstack();
@@ -53,21 +73,22 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
         'main_right',
         'silver_hdr',
         'breadcrumb',
-      )) . ')@', $this->current_tag['attrs']['CLASS'])) $skip = TRUE;
-      if ( empty($this->current_tag['attrs']['ID']) && empty($this->current_tag['attrs']['CLASS']) ) {
+      )) . ')@', array_element($this->current_tag['attrs'],'CLASS'))) $skip = TRUE;
+			$id    = array_element($this->current_tag['attrs'],'ID');
+			$class = array_element($this->current_tag['attrs'],'CLASS');
+      if ( empty($id) && empty($class) ) {
         $skip = FALSE;
       }
-      if ( array_key_exists($this->current_tag['attrs']['ID'],array_flip(array(
+      if ( array_key_exists(array_element($this->current_tag['attrs'],'ID'),array_flip(array(
         'nav_bottom',
       )))) $skip = TRUE;
     }
-    if (is_array($this->current_tag) && !$skip ) {
-       $this->stack_to_containers();
-      // $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  $this->get_stacktags() . "--- {$this->current_tag['tag']} " . join(' ', $this->current_tag['attrs']) . '-' . join(' ', $this->current_tag['cdata']) );
-      if ( array_key_exists('cdata', $this->current_tag) ) {
-        $this->current_tag['cdata'] = join('', array_filter($this->current_tag['cdata']));
-      }
-    }
+		if (is_array($this->current_tag) && !$skip ) {
+			$this->stack_to_containers();
+			if ( array_key_exists('cdata', $this->current_tag) ) {
+				$this->current_tag['cdata'] = join('', array_filter($this->current_tag['cdata']));
+			}
+		}
     $this->push_tagstack();
     
     return !$skip;
@@ -76,11 +97,9 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
   function ru_br_open(& $parser, & $attrs, $tagname ) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_br_cdata(& $parser, & $cdata) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_br_close(& $parser, $tag) {/*{{{*/
     $me     = $this->pop_tagstack();
     $parent = $this->pop_tagstack();
@@ -109,11 +128,9 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
-
   function ru_img_cdata(& $parser, & $cdata) {/*{{{*/
     return TRUE;
   }/*}}}*/
-
   function ru_img_close(& $parser, $tag) {/*{{{*/
     $skip = FALSE;
     $this->pop_tagstack();
@@ -135,7 +152,7 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     if ( !array_key_exists('CLASS', $this->current_tag['attrs']) ) {
       // $this->syslog(__FUNCTION__,'FORCE',"Setting CSS selector for '{$this->current_tag['attrs']['HREF']}'");
       $this->current_tag['attrs']['CLASS'] = 'legiscope-remote';
-      $this->current_tag['attrs']['ID'] = UrlModel::get_url_hash($this->current_tag['attrs']['HREF']);
+      $this->current_tag['attrs']['ID'] = UrlModel::get_url_hash(array_element($this->current_tag['attrs'],'HREF'));
     } else {
       // $this->syslog(__FUNCTION__,'FORCE',"Adding CSS selector for '{$this->current_tag['attrs']['HREF']}'");
       if ( FALSE == preg_match('@(legiscope-remote)@', $this->current_tag['attrs']['CLASS']) ) {
@@ -143,10 +160,9 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
       }
     }
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  $this->get_stacktags() . " --- {$this->current_tag['tag']} {$this->current_tag['attrs']['HREF']}" );
+    if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  $this->get_stacktags() . " --- {$this->current_tag['tag']} " . array_element($this->current_tag['attrs'],'HREF') );
     return TRUE;
   }/*}}}*/
-
   function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
@@ -154,13 +170,20 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
-
   function ru_a_close(& $parser, $tag) {/*{{{*/
     $this->pop_tagstack();
     $link_data = $this->collapse_current_tag_link_data();
-    if ( array_key_exists('TITLE', $this->current_tag['attrs']) ) {
-      $link_data['title'] = $this->current_tag['attrs']['TITLE'];
-    }
+		$link_data['title'] = array_element($this->current_tag['attrs'],'TITLE');
+		// Links to legislation metadata are displayed using Javascript popup
+		// windows, whose source URL is embedded in a click event handler.
+		// We subvert this by accessing the links directly: We intercept the
+		// link event ourselves, replacing the link HREF attribute with the
+		// event handler source URL.
+		$onclick_event = array_element($this->current_tag['attrs'],'ONCLICK');
+		if ( !is_null($onclick_event) ) {
+			$link_data['onclick'] = $onclick_event;
+			unset($this->current_tag['attrs']['ONCLICK']);
+		}
     $this->add_to_container_stack($link_data);
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  "--- {$this->current_tag['tag']}" );
@@ -175,7 +198,6 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     }
     return TRUE;
   }/*}}}*/
-
   function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
     if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
       $this->pop_tagstack();
@@ -184,7 +206,6 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
     }
     return TRUE;
   }/*}}}*/
-
   function ru_span_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $paragraph = array(
@@ -206,6 +227,20 @@ class CongressCommonParseUtility extends GenericParseUtility {/*{{{*/
   function ru_link_close(& $parser, $tag) {/*{{{*/
     return FALSE;
   }/*}}}*/
+
+	// Journal parser, really
+  function session_select_to_session_data(& $session_select, $session) {
+    return array_filter(array_map(create_function(
+      '$a', 'return $a["metalink"];'
+    ), $session_select));
+  }
+
+  function session_select_to_linktext(& $session_select, $session) {
+    return array_filter(array_map(create_function(
+      '$a', 'return str_replace($a["linktext"],$a["optval"],$a["markup"]);'
+    ), $session_select));
+  }
+
 
 }/*}}}*/
 

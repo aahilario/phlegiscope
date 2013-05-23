@@ -12,6 +12,10 @@ openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_USER );
 
 ini_set('include_path', join(':', array_filter(array_merge(explode(':', ini_get('include_path') . ':' . SYSTEM_BASE . ':' . SYSTEM_BASE . '/lib' ))))); 
 
+function array_element($a, $v, $defaultval = NULL) {
+	return (is_array($a) && array_key_exists($v, $a)) ? $a[$v] : $defaultval;
+}
+
 function camelcase_to_array($classname) {
   $name_components = array(0 => NULL);
   $ucase_cname     = strtoupper($classname);
@@ -81,8 +85,12 @@ EOH;
         $classname       = join('', $components) . 'Join';
         $name_components = camelcase_to_array($classname);
         $target_filename = join('.', array_reverse(array_filter($name_components))) . '.php';
-        array_walk($components,create_function(
-          '& $a, $k', '$a = join("_", camelcase_to_array($a));'));
+        // Allow for possibility of self-referencing join (same names in components[0], components[1])
+        array_walk($components,create_function('& $a, $k', '$a = join("_", camelcase_to_array($a));'));
+        if ( $components[0] == $components[1] ) {
+          $components[0] = "left_{$components[0]}";
+          $components[1] = "right_{$components[1]}";
+        }
         $builtins = <<<EOH
   function & set_{$components[0]}(\$v) { \$this->{$components[0]}_{$varnames[0]} = \$v; return \$this; }
   function get_{$components[0]}(\$v = NULL) { if (!is_null(\$v)) \$this->set_{$components[0]}(\$v); return \$this->{$components[0]}_{$varnames[0]}; }

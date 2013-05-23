@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateJournalDocumentModel extends UrlModel {
+class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256uniq = NULL;
   var $create_time_utx = NULL;
@@ -30,7 +30,7 @@ class SenateJournalDocumentModel extends UrlModel {
 		// $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
   }
 
-	function fetch_by_congress_sn( $congress, $house_session, $sn ) {
+	function fetch_by_congress_sn( $congress, $house_session, $sn ) {/*{{{*/
 
 		$match = array(
 			'congress_tag' => $congress,
@@ -40,9 +40,9 @@ class SenateJournalDocumentModel extends UrlModel {
 		$this->fetch($match, 'AND');
 		return $this->in_database() ? $this->id : NULL;
 
-	}
+	}/*}}}*/
 
-	function store(array $journal_data, UrlModel & $source_url, $pagecontent, $only_if_missing = TRUE) {
+	function store(array $journal_data, UrlModel & $source_url, $pagecontent, $only_if_missing = TRUE) {/*{{{*/
 
 		$journal_parser = new SenateJournalParseUtility();
 		$metadata       = $journal_data;
@@ -66,7 +66,7 @@ class SenateJournalDocumentModel extends UrlModel {
 				stow();
 		}
     return $id;
-	}
+	}/*}}}*/
 
 	function & set_title($v) { $this->title_vc256uniq = $v; return $this; }
 	function get_title($v = NULL) { if (!is_null($v)) $this->set_title($v); return $this->title_vc256uniq; }

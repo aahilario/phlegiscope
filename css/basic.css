@@ -387,6 +387,11 @@ span.congress-roles-committees, div.congress-doc-item {
   width: 100%;
 }
 
+a.document-meta {
+	background-color: #AAA;
+	color: white !important;
+}
+
 div.congress-doc-item > span {
   display: block;
   float: left;
@@ -423,3 +428,5 @@ textarea.code-dump {
 	min-height: 200px;
 	background-color: yellow;
 }
+
+

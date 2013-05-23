@@ -31,6 +31,8 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 	var $pending_comm_date_utx = NULL;
 	var $significance_vc16 = NULL;
 
+  var $housebill_HouseBillDocumentModel = NULL;
+
   function __construct() {
     parent::__construct();
   }

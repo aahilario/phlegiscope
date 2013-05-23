@@ -91,7 +91,7 @@ class SecGovPh extends LegiscopeBase {
     //   - Proxy triggers POST request to https://ireport.sec.gov.ph/iview/onlineview.sx
     // - Proxy trigger response returns to this method, with a count of records expected
 
-    $debug_method          = TRUE;
+    $debug_method          = FALSE;
     $suppress_trigger_next = FALSE;
     $trigger_next          = TRUE;
 
@@ -863,6 +863,8 @@ EOH;
 
   function ireport_login_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method = FALSE;
+
     $this->syslog( __FUNCTION__, __LINE__, "(marker) -- Invoked for " . $urlmodel->get_url() );
     $common      = new iReportParseUtility();
     $common->
@@ -873,13 +875,13 @@ EOH;
 
     // Dump entire structure
     $this->recursive_dump(($containers = $common->get_containers(
-    )),'(marker) '. __LINE__ .'----- ---- --- -- - - iReport ALL --');
+    )),($debug_method ? '(marker) ' : '(------)'). __LINE__ .'----- ---- --- -- - - iReport ALL --');
 
     // Load frameset contents
     $this->recursive_dump(($containers = $common->get_containers(
       //'#[tagname=frameset]'
       'children[tagname=frameset]'
-    )),'(marker) '. __LINE__ .' iReport Frames --');
+    )),($debug_method ? '(marker) ' : '(------)'). __LINE__ .' iReport Frames --');
 
     $is_frameset_container = count($containers) > 0;
 
@@ -887,7 +889,7 @@ EOH;
 
     $test_url = new UrlModel();
     $frameset_links = array();
-    $this->recursive_dump($parser->linkset,'(marker) -- --- -- LS - -');
+    if ( $debug_method ) $this->recursive_dump($parser->linkset,'(marker) -- --- -- LS - -');
 
     foreach ( $containers as $frames ) foreach ( $frames as $frame ) {/*{{{*/
       $test_url->fetch($frame['frame-url'], 'url');
@@ -944,13 +946,16 @@ EOH;
 <form>
 
 EOH;
-
-        $this->syslog(__FUNCTION__,__LINE__, "(marker) -- {$form}");
-        $this->recursive_dump($controls,'(marker) -- CF');
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) -- {$form}");
+          $this->recursive_dump($controls,'(marker) -- CF');
+        }
 
       }/*}}}*/
-      $this->syslog(__FUNCTION__,__LINE__, "(marker) -- {$frame['frame-url']}");
-      $this->recursive_dump($frame,"(marker) --");
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) -- {$frame['frame-url']}");
+        $this->recursive_dump($frame,"(marker) --");
+      }
     }/*}}}*/
 
     if ( $is_frameset_container ) {/*{{{*/
@@ -1053,6 +1058,10 @@ EOH;
       $matches[1]
     );
     return $matches;
+  }/*}}}*/
+
+  function must_custom_parse(UrlModel & $url) {/*{{{*/
+    return TRUE;
   }/*}}}*/
 
 }

@@ -44,7 +44,6 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
     if ($this->debug_tags) $this->recursive_dump($attrs,__LINE__);
     return $accept;
   }/*}}}*/
-
   function ru_div_cdata(& $parser, & $cdata) {/*{{{*/
 		$cdata = preg_replace(
 			array('@[^&-:\', A-Z]@i',"@( |\t)+@"),
@@ -74,7 +73,6 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
 		if ($this->debug_tags) 	$this->syslog(__FUNCTION__,__LINE__,"(marker) ".($result ? "" : 'REJECT')." {$this->current_tag['tag']}[{$this->current_tag['attrs']['CLASS']}|{$this->current_tag['attrs']['ID']}] '{$cdata}'");
 		return $result;
 	}/*}}}*/
-
 	function ru_div_close(& $parser, $tag) {/*{{{*/
 		$this->current_tag();
 		$result = parent::ru_div_close($parser, $tag);
@@ -84,6 +82,7 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
   function ru_a_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'] = array();
+    $this->update_current_tag_url('HREF');
     $this->push_tagstack();
 
     if ( $this->have_toc && array_key_exists('NAME', $attrs) ) {
@@ -107,9 +106,12 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
     return TRUE;
   }/*}}}*/
   function ru_a_close(& $parser, $tag) {/*{{{*/
-
     $this->pop_tagstack();
-    $this->add_to_container_stack($this->current_tag);
+		array_walk($this->current_tag['cdata'],create_function(
+			'& $a, $k', '$a = trim(preg_replace(array("@\s+@i","@\s+ñ@i"),array(" ","ñ"),$a));'
+		));
+    $link_data = $this->collapse_current_tag_link_data();
+    $this->add_to_container_stack($link_data);
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
     return TRUE;
@@ -138,7 +140,6 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
-
   function ru_table_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;
@@ -151,7 +152,6 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
     if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', $this->get_stacktags() . " --- {$this->current_tag['tag']} {$this->current_tag['attrs']['HREF']}" );
     return TRUE;
   }/*}}}*/
-
   function ru_td_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = trim($cdata);
@@ -159,11 +159,21 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
     if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
-
   function ru_td_close(& $parser, $tag) {/*{{{*/
-
     $this->pop_tagstack();
-    $this->add_to_container_stack($this->current_tag);
+		array_walk($this->current_tag['cdata'],create_function(
+			'& $a, $k', '$a = trim(preg_replace("@\s+@i"," ",$a));'
+		));
+		$text = join(" ", $this->current_tag['cdata']);
+		$text = str_replace(array(' ñ','[BR]'),array('ñ',''), $text);
+		$text = trim($text);
+		$content = array(
+			'text' => empty($text) ? '{EOL}' : $text,
+			'seq' => $this->current_tag['attrs']['seq'],
+		);
+		if ( !empty($text) ) {
+			$this->add_to_container_stack($content);
+		}
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
     return TRUE;

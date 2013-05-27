@@ -43,6 +43,10 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     // Execute a query that may or may not return a resultset
     // Close any existing result set, and either return the result of an operation
 		$debug_method = FALSE;
+    if ( empty($sql) ) {
+      throw new Exception("Empty query in ".get_class($this));
+    }
+
     if ( !$this->ping() ) return FALSE;
     if ( !is_null($this->ls_result) ) {
       $this->ls_result->close(); // Disregard close() return value
@@ -54,6 +58,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 
 		if ( empty($sql) ) {
 			syslog(LOG_INFO, get_class($this) . '::' . __FUNCTION__ . ": -- - -- - ERROR: Empty SQL statement, unable to proceed.");
+      throw new Exception('DB');
 			return FALSE;
 		}
 

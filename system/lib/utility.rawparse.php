@@ -2,20 +2,21 @@
 
 class RawparseUtility extends SystemUtility {/*{{{*/
 
-  protected $headerset            = array();
-  protected $parser               = NULL;
-  protected $current_tag          = NULL;
-  protected $tag_stack            = array();
-  protected $links                = array();
-  protected $container_stack      = array();
-  private $containers             = array();
-  protected $filtered_doc         = array();
-  protected $custom_parser_needed = FALSE;
-  protected $page_url_parts       = array();
-  protected $removable_containers = array();
-  private $hash_generator_counter = 0;
-  private $tag_counter            = 0;
-  protected $promise_stack        = array();
+  protected $headerset                 = array();
+  protected $parser                    = NULL;
+  protected $current_tag               = NULL;
+  protected $tag_stack                 = array();
+  protected $links                     = array();
+  protected $container_stack           = array();
+  private $containers                  = array();
+  protected $filtered_doc              = array();
+  protected $custom_parser_needed      = FALSE;
+  protected $page_url_parts            = array();
+  protected $removable_containers      = array();
+  private $hash_generator_counter      = 0;
+  private $tag_counter                 = 0;
+  protected $promise_stack             = array();
+  protected $enable_filtered_doc_cache = TRUE;
 
   /*
    * HTML document XML parser class
@@ -42,6 +43,19 @@ class RawparseUtility extends SystemUtility {/*{{{*/
     xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1 );
     xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
   }/*}}}*/
+
+  function & assign_containers(& $c, $reduce_to_element = NULL) {
+    if ( is_null($reduce_to_element) )
+      $this->containers = $c;
+    else
+      $this->containers = $c[$reduce_to_element];
+    return $this->containers;
+  }
+
+  function & enable_filtered_doc($b) {
+    $this->enable_filtered_doc_cache = $b;
+    return $this;
+  }
 
   function attributes_as_string($attrs, $as_array = FALSE, $concat_with = " ") {/*{{{*/
     $attrstr = array();
@@ -70,6 +84,10 @@ EOH;
     return $this;
   }/*}}}*/
 
+  function & containers_r() {
+    return $this->containers;
+  }
+
   function get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
     $this->filtered_containers = array();
     foreach ( $this->removable_containers as $remove ) {
@@ -92,14 +110,14 @@ EOH;
     return $this->links;
   }/*}}}*/
 
-  function & get_filtered_doc() {
+  function & get_filtered_doc() {/*{{{*/
     return $this->filtered_doc;
-  }
+  }/*}}}*/
 
-  function slice($s) {
+  function slice($s) {/*{{{*/
     // Duplicated in DatabaseUtility
     return create_function('$a', 'return $a["'.$s.'"];');
-  }
+  }/*}}}*/
 
   function strip_headers($data) {/*{{{*/
 
@@ -192,7 +210,7 @@ EOH;
     $dom->resolveExternals    = TRUE;
     $dom->preserveWhiteSpace  = FALSE;
     $dom->strictErrorChecking = FALSE;
-    $dom->substituteEntities  = FALSE;
+    $dom->substituteEntities  = TRUE;
 
     $raw_html = join('',array_filter(explode("\n",str_replace(
       array(
@@ -222,13 +240,11 @@ EOH;
           '',
           '',
         ),
-        $raw_html
+        iconv( strtoupper($content_type), 'UTF-8//TRANSLIT', $raw_html )
       )
-    )))); // $raw_html = htmlentities($raw_html, ENT_COMPAT, strtoupper($content_type));
+    ))));
 
-    $dom->encoding = strtoupper($content_type);
-
-    $loadresult   = $dom->loadHTML($raw_html);
+    $loadresult = $dom->loadHTML($raw_html);
 
     $dom->normalizeDocument();
 
@@ -270,6 +286,10 @@ EOH;
     $this->containers = array_filter(array_map($only_non_empty,$this->containers));
     if ( $this->debug_tags ) $this->recursive_dump($this->containers,'(marker)');
 
+    if ( method_exists($this, 'promise_prepare_state') ) {
+      $this->promise_prepare_state();
+    }
+
     // Process deferred tag operations ("promises")
     $this->process_promise_stack();
   
@@ -277,7 +297,7 @@ EOH;
 
   }/*}}}*/
 
-  function process_promise_stack() {
+  function process_promise_stack() {/*{{{*/
     // Process deferred tag operations ("promises")
     if ( 0 < count($this->promise_stack) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Handle stacked tag promises: " . count($this->promise_stack) . " for " . get_class($this));
@@ -294,11 +314,13 @@ EOH;
       $seq = NULL;
       $this->process_promise_stack_worker($seq,$containerset);
       $this->containers = $containerset;
+    } else {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) No post-processing promises stacked for " . get_class($this));
     }
     return $this->containers;
-  }
+  }/*}}}*/
 
-  function process_promise_stack_worker(& $seqno, & $containerset, $promise_item = NULL, $depth = 0) {
+  function process_promise_stack_worker(& $seqno, & $containerset, $promise_item = NULL, $depth = 0) {/*{{{*/
     // Handle forward promise
     $debug_method = FALSE;
     if ( !is_null($promise_item) ) {
@@ -312,6 +334,8 @@ EOH;
           } else {
             if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) -*-*- No executor {$promise_executor}({$seqno},{$ancestor}) d = {$depth}" );
           }
+        } else if ( $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) -*-*- No executor for promise type '{$promise['__TYPE__']}' ({$seqno},{$ancestor}) d = {$depth}" );
         }
       }
     }
@@ -332,7 +356,7 @@ EOH;
     } else {
       if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Leaf d = {$depth}, seq = [{$seqno}] (" . gettype($seqno) . ") containerset " . gettype($containerset)  );
     }
-  }
+  }/*}}}*/
 
   function parse($data) {/*{{{*/
     // Expects cURL response with headers prepended
@@ -406,6 +430,7 @@ EOH;
         $attrs = $this->attributes_as_string($this->current_tag['attrs']);
         $tag .= " {$attrs}";
       }
+      if ( $this->enable_filtered_doc_cache )
       $this->filtered_doc[] = <<<EOH
 <{$tag}>
 EOH;
@@ -426,6 +451,7 @@ EOH;
 	}/*}}}*/
 
   function ru_tag_close($parser, $tag) {/*{{{*/
+    $debug_method = FALSE;
     $tag = strtoupper($tag);
     $tag_handler = strtolower("ru_{$tag}_close");
     $result = ( method_exists($this, $tag_handler) )
@@ -434,26 +460,50 @@ EOH;
       ;
     $this->pop_tagstack();
     if (is_array($this->current_tag) && array_key_exists('__LEGISCOPE__',$this->current_tag) ) {
-      $promise_item = $this->current_tag['__LEGISCOPE__'];
+      $promise_items = $this->current_tag['__LEGISCOPE__'];
       unset($this->current_tag['__LEGISCOPE__']);
-      switch ($promise_item['__TYPE__']) {
-        case 'title':
-          // This tag is a title for a container, identified by seq __NEXT__
-          $promise_properties = $promise_item;
-          unset($promise_properties['__NEXT__']);
-          $this->promise_stack[$promise_item['__NEXT__']] = array(
-            $this->current_tag['attrs']['seq'] => $promise_properties
-          );
-          break;
-        default:
-          break;
+      if (!is_null(array_element($promise_items,'__TYPE__'))) {
+        $promise_items = array($promise_items);
+      }
+
+      foreach ( $promise_items as $promise_item ) {
+        switch ($promise_item['__TYPE__']) {
+          case '__POSTPROC__':
+            $promise_item = NULL;
+            list($k, $promise_item) = each($promise_items);
+            $postproc_data = array_element($promise_item,'__POSTPROC__'); 
+            $sethash = array_element($postproc_data,'__SETHASH__','- - - -');
+            if ( array_key_exists($sethash, $this->containers) ) {
+              unset($postproc_data['__SETHASH__']);
+              $this->containers[$sethash]['__POSTPROC__'] = $postproc_data;
+            }
+            break;
+          case 'title':
+            // This tag's CDATA content is a title for a container, identified by seq __NEXT__
+            $promise_properties = $promise_item;
+            unset($promise_properties['__NEXT__']);
+            if ( $debug_method ) {
+              $this->syslog(__FUNCTION__,__LINE__,"(marker) Stack '{$promise_item['__TYPE__']}' promise for tag {$tag}");
+              $this->recursive_dump($this->current_tag,"(marker) - C - - -");
+              $this->recursive_dump($promise_properties,"(marker) - - P - -");
+            }
+            $this->promise_stack[$promise_item['__NEXT__']] = array(
+              $this->current_tag['attrs']['seq'] => $promise_properties
+            );
+            break;
+          default:
+            break;
+        }
       }
     }
+    // The parser tag close method returns TRUE to cause this method 
+    // to add the tag to the filtered markup result array.
     if ($result) {
       $tag_cdata = ( is_array($this->current_tag) && array_key_exists('cdata',$this->current_tag) && is_array($this->current_tag['cdata']) )
         ? join('',$this->current_tag['cdata'])
         : NULL
         ;
+      if ( $this->enable_filtered_doc_cache )
       $this->filtered_doc[] = <<<EOH
 {$tag_cdata}
 </{$tag}>
@@ -489,22 +539,12 @@ EOH;
     // If there is no handler specified for a given tag, the topmost 
     // tag on the tag stack receives link content.
     $parser_result = TRUE;
-    /*
-    if ( 1 == preg_match('@(shortlink)@', $cdata) ) {
-      $this->syslog( __FUNCTION__, __LINE__, "--- Matched extradata '{$cdata}'" );
-      $this->recursive_dump($this->container_stack,__LINE__);
-      $this->recursive_dump($this->containers,__LINE__);
-      $this->recursive_dump($this->tag_stack,__LINE__);
-    }
-    */
     if ( 0 < count($this->tag_stack) ) {
       $stack_top = array_pop($this->tag_stack);
       array_push($this->tag_stack,$stack_top);
       $cdata_content_handler = strtolower("ru_{$stack_top['tag']}_cdata");
       if ( method_exists($this, $cdata_content_handler) ) {
         $parser_result = $this->$cdata_content_handler($parser, $cdata);
-    //usleep(20000);
-    //$this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$cdata_content_handler}() {$cdata}" );
       } else {
         $stack_top = array_pop($this->tag_stack);
         if ( !array_key_exists('cdata', $stack_top) ) $stack_top['cdata'] = array();
@@ -512,7 +552,6 @@ EOH;
         array_push($this->tag_stack,$stack_top);
       }
     }
-    // if ( $parser_result === TRUE ) $this->filtered_doc[] = trim($cdata);
     return $parser_result;
   }/*}}}*/
 

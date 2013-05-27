@@ -50,7 +50,12 @@ class DatabaseUtility extends ReflectionClass {
         $propertyname = "{$nv['name']}_{$nv['type']}";
         if ( method_exists($this, $methodname) ) {
           $regex_match[] = "@{{$nv["name"]}}@imU";
+          $regex_replace[] = $this->$methodname();
+        } else if ( property_exists($this,$propertyname) ) {
+          $regex_match[] = "@{{$nv["name"]}}@imU";
           $regex_replace[] = $this->$propertyname;
+        } else {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to assign {$nv['name']}, no method {$methodname} or property {$propertyname}");
         }
       }
       $str = preg_replace($regex_match, $regex_replace, $str);
@@ -372,6 +377,7 @@ EOH;
 
     $this->tablename = join('_', camelcase_to_array(get_class($this)));
     $this->initialize_db_handle();
+
     if ( C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {
 
       // Determine if the backing table exists; construct it if it does not.
@@ -422,16 +428,18 @@ EOH;
         $this->syslog( __FUNCTION__, __LINE__, "WARNING: Join table columns must be excluded from the attribute lists to follow:" );
         $this->recursive_dump($removed_columns,"(marker) Apparently Removed");
         $this->recursive_dump($added_columns  ,"(marker)   Apparently Added");
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING: End. --------------------------------- " );
       }
 
+      if ( is_array($removed_columns) && (0 < count($removed_columns)) )
       foreach ( $removed_columns as $removed_column ) {
         $sql = <<<EOH
 ALTER TABLE `{$this->tablename}` DROP COLUMN `{$removed_column}`
 EOH;
-        $result = is_bool($result = $this->query($sql)->resultset()) ? ($result ? 'TRUE' : 'FALSE') : '---';
+        $result = $this->query($sql)->resultset();
+        $result = is_bool($result) ? ($result ? 'TRUE' : 'FALSE') : '---';
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Remove {$removed_column}: {$result}" );
       }
+      if ( is_array($added_columns) && (0 < count($added_columns)) )
       foreach ( $added_columns as $added_column ) {
         $column_name = $added_column['name'];
         // GRAPHEDGE_DISCARD: Allow an attribute to be discarded if it describes an edge node.
@@ -441,8 +449,12 @@ EOH;
         $sql = <<<EOH
 ALTER TABLE `{$this->tablename}` ADD COLUMN `{$column_name}` {$properties} AFTER `id`
 EOH;
-        $result = is_bool($result = $this->query($sql)->resultset()) ? ($result ? 'TRUE' : 'FALSE ' . $sql) : '---';
+        $result = $this->query($sql)->resultset();
+        $result = is_bool($result) ? ($result ? 'TRUE' : 'FALSE') : '---';
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Add {$column_name}: {$result}" );
+      }
+      if ( $debug_method ) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) End. --------------------------------- " );
       }
     }
   }/*}}}*/
@@ -644,14 +656,18 @@ EOS;
   }/*}}}*/
 
   protected function prepare_select_sql(& $sql, $exclude_blobfields = FALSE) {/*{{{*/
+    // Fill in the SQL string, and return attribute list
     // TODO: Exclude*BLOB attributes from the statement generated with this method. 
+    $debug_method = FALSE;
     $this->initialize_db_handle();
     $key_by_varname = create_function('$a', 'return $a["name"];');
     $attrlist = $this->full_property_list();
     $key_map  = array_map($key_by_varname, $attrlist);
-    // DEBUG
-    // $this->syslog(__FUNCTION__,__LINE__, "--- Property list");
-    // $this->recursive_dump( $key_map, __LINE__);
+    $conditionstring = NULL;
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__, "--- Property list");
+      $this->recursive_dump( $key_map, __LINE__);
+    }
     if ( 0 < count($attrlist) && count($attrlist) == count($key_map) ) {
       $bindable_attrs = ( $exclude_blobfields )
         ? create_function('$a', 'return $a["attrs"]["mustbind"] ? NULL : "`" . $a["name"] . "`";')
@@ -696,7 +712,10 @@ EOS;
 SELECT {$attrnames} FROM `{$this->tablename}` WHERE {$conditionstring} {$order_by} {$limit_by}
 EOS;
       // DEBUG
-      // $this->syslog( __FUNCTION__, __LINE__, "Query: {$sql}");
+    }
+    if ( $debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Query: {$sql}");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Condition: {$conditionstring}");
     }
     return $attrlist;
   }/*}}}*/
@@ -723,7 +742,7 @@ EOS;
   function select() {/*{{{*/
 		$this->id = NULL;
     $sql = '';
-    $this->attrlist = $this->prepare_select_sql($sql);
+    if ( FALSE == ($this->attrlist = $this->prepare_select_sql($sql)) ) return FALSE;
     $result = $this->query($sql)->resultset();
     /*
     $this->recursive_dump($result,'R');
@@ -741,7 +760,7 @@ EOS;
 
   function & recordfetch_setup() {/*{{{*/
     $sql = '';
-    $this->attrlist = $this->prepare_select_sql($sql);
+    if ( FALSE == ($this->attrlist = $this->prepare_select_sql($sql)) ) return FALSE;
     return $this->query($sql);
   }/*}}}*/
 
@@ -793,6 +812,7 @@ EOS;
 
   private function insert_update_common($sql, $boundattrs, $attrlist) {/*{{{*/
     $debug_method = FALSE;
+    if ( empty($sql) ) throw new Exception(get_class($this));
     if ( 0 < count($boundattrs) ) {
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "--- (marker) Currently: {$sql}");
       $bindable_attrs = array();
@@ -809,10 +829,9 @@ EOS;
         }
       }
       // $this->recursive_dump($bindable_attrs,__LINE__);
-      $this->query($sql, $bindable_attrs);
-    } else {
-      $this->query($sql);
+      return $this->query($sql, $bindable_attrs);
     }
+    return  $this->query($sql);
   }/*}}}*/
 
   function insert() {/*{{{*/
@@ -973,7 +992,7 @@ EOS;
   }/*}}}*/
 
   function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = TRUE;
     $property_list = $this->fetch_property_list();
     if ( !(0 < count($property_list)) ) return $this;
     $property_list = array_combine(

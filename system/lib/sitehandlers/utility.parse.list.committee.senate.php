@@ -37,7 +37,7 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
   function ru_div_open(& $parser, & $attrs, $tagname ) {/*{{{*/
 		$accept = parent::ru_div_open($parser,$attrs,$tagname);
 		$this->current_tag();
-		if ( $this->current_tag['attrs']['ID'] == "toc" ) {
+		if ( array_element($this->current_tag['attrs'],'ID') == "toc" ) {
 		 	$this->syslog(__FUNCTION__,__LINE__,"(marker) -------------- TOC FOUND ------------ ");
 		 	$this->have_toc = TRUE;
 		}

@@ -270,6 +270,7 @@ class GenericParseUtility extends RawparseUtility {
         : NULL,
       'seq'  => $this->current_tag['attrs']['seq'],
     );
+		if (0 < strlen(trim($paragraph['text'])))
     $this->add_to_container_stack($paragraph);
 		if ( $this->debug_tags ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - -- - {$this->current_tag['tag']} {$paragraph['text']}");
     return TRUE;
@@ -409,7 +410,7 @@ EOH
       // the POST.  We'll generate the fake URL here. 
       $runtime_metalink_info = $this->filter_post('LEGISCOPE', array());
 			if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
-      if ( is_array($runtime_metalink_info) ) $metalink = array_merge($metalink, $runtime_metalink_info);
+      if ( is_array($runtime_metalink_info) && is_array($metalink) ) $metalink = array_merge($metalink, $runtime_metalink_info);
       // Prepare faux metalink URL by combining the metalink components
       // with POST target URL query components. After the POST, a new cookie
       // may be returned; if so, it will be used to traverse sibling links
@@ -427,7 +428,7 @@ EOH
   }/*}}}*/
 
   function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL, $insert_p1_link = FALSE) {/*{{{*/
-    $debug_method    = TRUE;
+    $debug_method    = FALSE;
     $check_cache     = TRUE;
     $links           = array();
     $pager_links     = array();
@@ -447,13 +448,19 @@ EOH
     //    query_components =>
     //       361d558f79a9d15a277468b313f49528 => 15|14|13
     //    whole_url => http://www.senate.gov.ph/lis/pdf_sys.aspx?type=republic_act&congress=({PARAMS})
-    if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) )
-    foreach( $cluster_urldefs as $url_uid => $urldef ) {/*{{{*/
-      if ( !is_null($url_uuid) && !($url_uid == $url_uuid ) ) continue;
-      $counter = 0;
-      $have_pullin_link = FALSE;
-      foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
-        $parameters = array_flip(explode('|', $parameters));
+
+    if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) ) {
+      if ( !array_key_exists($url_uuid, $cluster_urldefs) ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - EXCEPTION THROW {$url_uuid}");
+        $this->recursive_dump($cluster_urldefs,"(marker) - - - - - - -");
+        throw new Exception(__METHOD__ . ": No pager matches UUID {$url_uuid}");
+      }
+      foreach( $cluster_urldefs as $url_uid => $urldef ) {/*{{{*/
+        if ( !is_null($url_uuid) && !($url_uid == $url_uuid ) ) continue;
+        $counter = 0;
+        $have_pullin_link = FALSE;
+        foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
+          $parameters = array_flip(explode('|', $parameters));
         if ($insert_p1_link && !array_key_exists(1, $parameters) ) $parameters[1] = 1;
         ksort($parameters);
         $parameters = array_keys($parameters);
@@ -493,8 +500,9 @@ EOH
 EOH;
           $pager_links[] = $link;
         }/*}}}*/
+        }/*}}}*/
       }/*}}}*/
-    }/*}}}*/
+    }
     return $pager_links;
   }/*}}}*/
 
@@ -508,6 +516,8 @@ EOH;
       'cluster_urls' => array(),
     );
 
+    if ( empty($url) ) throw new Exception(get_class($this));
+
     $parent_page = new UrlModel($url,TRUE);
 
 		if ( !$parent_page->in_database() ) return $return_value;
@@ -515,6 +525,7 @@ EOH;
     $cluster = new UrlClusterModel();
 
 		$containers = $this->get_containers();
+
     $link_generator = create_function('$a', <<<EOH
 return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a><span class="reload-texticon legiscope-refresh {refresh-' . \$a["urlhash"] . '}" id="refresh-' . \$a["urlhash"] . '">reload</span></li>';
 EOH

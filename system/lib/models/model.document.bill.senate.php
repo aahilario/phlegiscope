@@ -37,6 +37,7 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 	var $significance_vc16 = NULL;
 
   var $journal_SenateJournalDocumentModel = NULL;
+  var $committee_SenateCommitteeModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -92,4 +93,22 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 
   function & set_significance($v) { $this->significance_vc16 = $v; return $this; }
   function get_significance($v = NULL) { if (!is_null($v)) $this->set_significance($v); return $this->significance_vc16; }
+
+  function & set_title($v) { $this->title_vc256uniq = $v; return $this; }
+  function get_title($v = NULL) { if (!is_null($v)) $this->set_title($v); return $this->title_vc256uniq; }
+
+  function & set_sn($v) { $this->sn_vc64uniq = $v; return $this; }
+  function get_sn($v = NULL) { if (!is_null($v)) $this->set_sn($v); return $this->sn_vc64uniq; }
+
+  function & set_origin($v) { $this->origin_vc2048 = $v; return $this; }
+  function get_origin($v = NULL) { if (!is_null($v)) $this->set_origin($v); return $this->origin_vc2048; }
+
+  function & set_description($v) { $this->description_vc4096 = $v; return $this; }
+  function get_description($v = NULL) { if (!is_null($v)) $this->set_description($v); return $this->description_vc4096; }
+
+  function & set_searchable($v) { $this->searchable_bool = $v; return $this; }
+  function get_searchable($v = NULL) { if (!is_null($v)) $this->set_searchable($v); return $this->searchable_bool; }
+
+  function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
+  function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 }

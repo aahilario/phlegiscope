@@ -40,7 +40,11 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     $this->pop_tagstack();
     $this->cdata_cleanup();
     $this->push_tagstack();
-    $cdata_lines = array('text' => $this->current_tag['cdata']);
+		$cdata_lines = array(
+			'text' => $this->current_tag['cdata'],
+			'seq' => array_element($this->current_tag['attrs'],'seq')
+		);
+		if (0 < strlen(trim(join('',$cdata_lines['text']))))
     $this->add_to_container_stack($cdata_lines);
     $this->stack_to_containers();
     return TRUE;
@@ -212,6 +216,7 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
       'text' => join('', $this->current_tag['cdata']),
       'seq'  => $this->current_tag['attrs']['seq'],
     );
+		if (0 < strlen(trim($paragraph['text'])))
     $this->add_to_container_stack($paragraph);
     return TRUE;
   }/*}}}*/
@@ -228,17 +233,24 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     return FALSE;
   }/*}}}*/
 
-	// Journal parser, really
+	// Journal parser callbacks
   function session_select_to_session_data(& $session_select, $session) {
+		if (1) {
+			$session_item = $session_select;
+			$this->filter_nested_array($session_item,'metalink[optval*=' . $session . ']',0);
+			return array_filter($session_item);
+		}
     return array_filter(array_map(create_function(
       '$a', 'return $a["metalink"];'
     ), $session_select));
   }
 
   function session_select_to_linktext(& $session_select, $session) {
-    return array_filter(array_map(create_function(
+		$session_item = $session_select;
+		$this->filter_nested_array($session_item,'#[optval*=' . $session . ']',0);
+		return array_filter(array_map(create_function(
       '$a', 'return str_replace($a["linktext"],$a["optval"],$a["markup"]);'
-    ), $session_select));
+    ), $session_item));
   }
 
 

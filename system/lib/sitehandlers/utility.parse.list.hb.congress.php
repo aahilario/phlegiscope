@@ -43,7 +43,8 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 		$span_class = array_element($this->current_tag['attrs'],'CLASS');
 		$span_type  = array(
 			strtolower(0 < strlen($span_class) ? $span_class : 'desc')
-			=> is_array($this->current_tag['cdata']) ? array_filter($this->current_tag['cdata']) : array()
+			=> is_array($this->current_tag['cdata']) ? array_filter($this->current_tag['cdata']) : array(),
+				'seq' => array_element($this->current_tag['attrs'],'seq')
 		);
 		$this->add_to_container_stack($span_type);
 		$this->push_tagstack();

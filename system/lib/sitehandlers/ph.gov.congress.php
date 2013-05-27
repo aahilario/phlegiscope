@@ -7,7 +7,7 @@ class CongressGovPh extends LegiscopeBase {
     parent::__construct();
   }
 
-  function seek() {
+  function seek() {/*{{{*/
     $cache_force = $this->filter_post('cache');
     $json_reply  = parent::seek();
     $response    = json_encode($json_reply);
@@ -19,7 +19,7 @@ class CongressGovPh extends LegiscopeBase {
     }
     echo $response;
     exit(0);
-  }
+  }/*}}}*/
 
   /** Named handlers **/
 
@@ -36,7 +36,7 @@ class CongressGovPh extends LegiscopeBase {
     $common->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = (join('',$common->get_filtered_doc()));
+    $pagecontent = str_replace('[BR]','<br/>',join('',$common->get_filtered_doc()));
     $parser->json_reply = array('retainoriginal' => TRUE);
 
   }/*}}}*/
@@ -208,12 +208,13 @@ EOH;
     $common = new CongressCommonParseUtility();
     $member = new RepresentativeDossierModel();
 
+    $urlmodel->ensure_custom_parse();
     $common->debug_tags = FALSE;
     $common->
       set_parent_url($urlmodel->get_url())->
       parse_html(
-        $pagecontent, // FIXME: Generic parser does not break parsing
-        //$urlmodel->get_pagecontent(), // FIXME: but this does
+        //$pagecontent, // FIXME: Generic parser does not break parsing
+        $urlmodel->get_pagecontent(), // FIXME: but this does
         $urlmodel->get_response_header()
       );
 
@@ -239,11 +240,11 @@ EOH;
         if ( is_null($member->get_firstname()) ) {/*{{{*/
           $parsed_name = $member->parse_name($cdata);
           $member->
-            set_fullname(utf8_decode($cdata))->
-            set_firstname(utf8_decode($parsed_name['given']))->
+            set_fullname($cdata)->
+            set_firstname($parsed_name['given'])->
             set_mi($parsed_name['mi'])->
-            set_surname(utf8_decode($parsed_name['surname']))->
-            set_namesuffix(utf8_decode($parsed_name['suffix']))->
+            set_surname($parsed_name['surname'])->
+            set_namesuffix($parsed_name['suffix'])->
             stow();
         }/*}}}*/
 
@@ -269,14 +270,10 @@ EOH;
         if ( strlen($district) > 0 && !array_key_exists($district, $districts) ) $districts[$district] = array('00' => "<h1>" . preg_replace('@^Zz@','', $district) . "</h1>"); 
 
         $fullname = "{$name_match['first-name']} {$name_match['middle-initial']} {$name_match['surname']}";
-        $surname_first = trim(strtoupper(substr($name_match['surname'],0,1)));
+        $surname_first = strtoupper(substr(trim($name_match['surname']),0,1));
         if ( !(strlen($surname_first) > 0) ) continue;
-        ////////
-        //if ( is_null($member->get_avatar_image()) ) continue;
-        ////////
         if ( is_null($surname_initchar) ) $surname_initchar = $surname_first;
         if ( $surname_first != $surname_initchar ) {/*{{{*/
-          // Insert a 
           $surname_initchar = $surname_first;
           $lc_surname_initchar = strtolower($surname_first);
           $section_break = <<<EOH
@@ -385,12 +382,27 @@ EOH;
 
   function seek_postparse_jnl(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $urlmodel->ensure_custom_parse();
 
-    $document_parser      = new CongressJournalCatalogParseUtility();
-    $document_parser      = new CongressCommonParseUtility();
+    $target_congress = $urlmodel->get_query_element('congress');
+
+    if ( !empty($parser->metalink_url) ) {/*{{{*/
+      $given_url = $urlmodel->get_url();
+      $current_id = $urlmodel->get_id();
+      $urlmodel->fetch($parser->metalink_url,'url');
+      if ( is_null($target_congress) ) $target_congress = $urlmodel->get_query_element('congress');
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Loading content of fake URL " . ($urlmodel->in_database() ? "OK" : "FAILED") . " " . $urlmodel->get_url() );
+      $urlmodel->
+        set_id($current_id)-> // Need this for establishing JOINs by URL id.
+        set_url($given_url,FALSE);
+    }/*}}}*/
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for Congress '{$target_congress}' " . $urlmodel->get_url() . "; fake URL = {$parser->metalink_url}" );
+
+    $document_parser = new CongressJournalCatalogParseUtility();
+
     $ra_linktext = $parser->trigger_linktext;
     $document_parser->
       set_parent_url($urlmodel->get_url())->
@@ -400,7 +412,164 @@ EOH;
       );
 
     ///////////////////////////////////////////////////////////////////////////////////////////
+    // Use parsed lists of URLs and journal SNs to generate alternate markup 
+
+    $inserted_content = array();
+    $cacheable_entries = array();
+    $journal_entry_regex = '(Journal )?([^0-9]*)([0-9]*)([^,]*), (([0-9]*)-([0-9]*)-([0-9]*))';
+    foreach ( $document_parser->filtered_content as $title => $entries ) {/*{{{*/
+      $matches = array();
+      preg_match("@{$journal_entry_regex}@i", $title, $matches);
+      $sn = array_element($matches,3);
+      if ( empty($sn) ) $sn = array_element($matches,2);
+      $title = trim("{$matches[1]}{$matches[2]}{$matches[3]}{$matches[4]}");
+      $date = trim("{$matches[6]}/{$matches[7]}/{$matches[8]}");
+      $matches = array(
+        $title => array(
+          'entries' => array(),
+          'title' => $title,
+          'metadata' => array(
+            'sn'            => $sn,
+            'publish_date'  => array_element($matches,5),
+            'publish_year'  => array_element($matches,6),
+            'publish_month' => array_element($matches,7),
+            'publish_day'   => array_element($matches,8),
+          ),
+          'm' => $matches
+        )
+      );
+      foreach ( $entries as $typelabel => $entry ) {
+        $typelabel = preg_replace('@(.*)(PDF|HTML)(.*)@i','$2',$typelabel);
+        $matches[$title]['entries'][$typelabel] = $entry;
+      }
+      // If there is only one type of document link,
+      // a single link is generated with the document type indicated.
+      if ( 1 == count($matches[$title]['entries']) ) {
+        list( $type, $pager_url ) = each( $matches[$title]['entries'] );
+        $inserted_content[] = <<<EOH
+<li><a href="{$pager_url}" class="legiscope-remote">{$title}</a> {$date} ({$type})</li>
+EOH;
+      }
+      else {/*{{{*/
+        ksort($matches[$title]['entries']);
+        list( $type, $pager_url ) = each( $matches[$title]['entries'] );
+        $markup = <<<EOH
+<li><a href="{$pager_url}" class="legiscope-remote async">{$title}</a> {$date} ({$type}) {placeholder}</li>
+EOH;
+        list( $type, $pager_url ) = each( $matches[$title]['entries'] );
+        $secondary = <<<EOH
+(<a href="{$pager_url}" class="legiscope-remote">{$type}</a>)
+EOH;
+        $markup = str_replace('{placeholder}',$secondary, $markup); 
+        $inserted_content[] = $markup;
+      }/*}}}*/
+      // unset($matches[$title]['m']);
+      $cacheable_entries[$title] = $matches[$title];
+    }/*}}}*/
+    $inserted_content = join(' ',$inserted_content);
+    $inserted_content = <<<EOH
+<div class="linkset">
+<ul class="link-cluster">
+{$inserted_content}
+</ul>
+</div>
+EOH;
+    if ( $debug_method ) {
+      $this->recursive_dump($document_parser->filtered_content,"(marker) - - - -");
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Test cacheable entries and store those that aren't yet recorded in
+    // HouseJournalDocumentModel backing store. 
+
+    $house_journals = new HouseJournalDocumentModel(); 
+
+    $session_tag = $parser->trigger_linktext;
+
+    if ( (0 < intval($target_congress)) && (0 < intval($session_tag)) && ("{$session_tag}" == trim("".intval($session_tag)."")) && (0 < count($cacheable_entries)) ) {/*{{{*/
+      while ( 0 < count($cacheable_entries) ) {
+        $n = 0;
+        $batch = array();
+        while ( $n++ < 10 && ( 0 < count($cacheable_entries) ) ) {
+          $entry = array_pop($cacheable_entries);
+          $batch[array_element($entry,'title')] = $entry;
+        }
+        $query_parameters = array('AND' => array(
+          'title'           => array_keys($batch), // array_map(create_function('$a', 'return array_element($a["metadata"],"sn");'), $batch), // array_keys($batch),
+          'session_tag'     => $session_tag,
+          'target_congress' => $target_congress
+        ));
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Query parameters (target congress {$target_congress}):");
+          $this->recursive_dump($query_parameters,"(marker) - QP - - -");
+        }
+        $house_journals->where($query_parameters)->recordfetch_setup();
+        $journal_entry = array();
+        while ( $house_journals->recordfetch($journal_entry) ) {
+          $key = array_element($journal_entry,'title');
+          if ( array_key_exists($key, $batch) && ($session_tag == array_element($journal_entry,'session_tag','ZZ')) && (array_element($journal_entry,'sn') == array_element(array_element($batch,'metadata',array()),'sn','ZZ'))) {
+            if ( $debug_method ) {
+              $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Already in DB: {$journal_entry['title']}");
+              $this->recursive_dump($journal_entry,"(marker) - - - QR -");
+              $this->recursive_dump($batch[$key],"(marker) - - - - ER");
+            }
+            $batch[$key] = NULL;
+          }
+        }
+        $batch = array_filter($batch); // Clear omitted entries
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Remainder: " . count($cacheable_entries));
+          $this->recursive_dump($batch,"(marker) - - CE - -");
+        }
+        foreach ( $batch as $title => $components ) {
+          $journal_id = $house_journals->
+            set_id(NULL)->
+            set_create_time(time())->
+            set_congress_tag($target_congress)->
+            set_session_tag($session_tag)->
+            set_pdf_url(array_element($components['entries'],'PDF'))->
+            set_url(array_element($components['entries'],'HTML'))->
+            set_title($title)->
+            set_sn(array_element($components['metadata'],'sn'))->
+            stow();
+            ;
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Inserted HouseJournal entry {$journal_id}" );
+        }
+      }
+    }/*}}}*/
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Extract list of pagers 
+
+    $this->recursive_dump(($pager_candidates = $document_parser->get_containers(
+      'children[tagname*=div][attrs:CLASS*=padded]'
+    )),"(barker) Remaining structure");
+
+    $pagers = array();
+    foreach ( $pager_candidates as $seq => $pager_candidate ) {/*{{{*/
+      $document_parser->filter_nested_array($pager_candidate,
+        'url,text[url*=http://www.congress.gov.ph/download/index.php\?d=journals&page=(.*)&congress=(.*)|i]',0
+      );
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - Candidates {$seq}");
+        $this->recursive_dump($pager_candidate,"(marker)- - - -");
+      }
+      foreach ( $pager_candidate as $pager ) {
+        $pager_url = array_element($pager,'url');
+        $pagers[array_element($pager,'text')] = <<<EOH
+<a class="legiscope-remote" href="{$pager_url}">{$pager['text']} </a>
+EOH;
+      }
+    }/*}}}*/
+    ksort($pagers);
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - Pager links");
+      $this->recursive_dump($pagers,"(marker)- - - -");
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
     // Extract list of Journal PDF URLs
+
     $this->recursive_dump(($registry = $document_parser->get_containers(
       'children[tagname*=div][class*=padded]'
     )),"(barker)");
@@ -411,11 +580,15 @@ EOH;
 
     $registry = array_element(array_values(array_filter($registry)),0,array());
 
-    $this->recursive_dump($registry,"(marker) -- A --");
+    if ( $debug_method ) {
+      $this->recursive_dump($registry,"(marker) -- A --");
+    }
 
-    $u = new UrlModel();
+    $u  = new UrlModel();
     $ue = new UrlEdgeModel();
-    while ( 0 < count($registry) ) {
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    while ( 0 < count($registry) ) {/*{{{*/
       $n = 0;
       $subjects = array();
       while ( $n < 10 && (0 < count($registry)) ) {/*{{{*/// Get 10 URLs
@@ -468,53 +641,80 @@ EOH;
           $this->syslog(__FUNCTION__,__LINE__,"(marker) Edge stow result ID for {$urlid} {$urlinfo['url']} = (" . gettype($edgeid) . ") {$edgeid}");
         }
       }
-    }
+    }/*}}}*/
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    $inserted_content = join('',$document_parser->get_filtered_doc());
 
     $document_parser->cluster_urldefs = $document_parser->generate_linkset($urlmodel->get_url(),'cluster_urls');
 
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) Cluster URLdefs: " . count($document_parser->cluster_urldefs) );
-    $this->recursive_dump($document_parser->cluster_urldefs,"(marker)");
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Cluster URLdefs: " . count($document_parser->cluster_urldefs) );
+      $this->recursive_dump($document_parser->cluster_urldefs,"(marker)");
+    }
 
-    $url_components = UrlModel::parse_url($urlmodel->get_url());
-    $url_components['query'] = 'd=journals';
-    $url_components['fragment'] = NULL;
-    $url_components = array_filter($url_components);
-    $session_select_baseurl = new UrlModel(UrlModel::recompose_url($url_components));
+    $congress_select_baseurl = new UrlModel($urlmodel->get_url());
+    $congress_select_baseurl->add_query_element('d'       , 'journals', FALSE, TRUE);
+    $congress_select_baseurl->add_query_element('page'    , NULL      , FALSE, TRUE);
+    $congress_select_baseurl->add_query_element('congress', NULL      , TRUE , TRUE);
     
-    // Alter the $congress_select list to convert it
-    // into an array of Congress switching links
-    $congress_select = $document_parser->extract_house_session_select($session_select_baseurl, FALSE, '[id*=form1]');
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) ----- ---- --- -- - - - Congress SELECT base URL: " . $congress_select_baseurl->get_url() );
+    // This actually extracts the Congress selector, not the Session selector
+    $congress_select = $document_parser->extract_house_session_select($congress_select_baseurl, FALSE, '[id*=form1]');
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) ----- ---- --- -- - - - Raw Congress SELECT options");
+      $this->recursive_dump($congress_select,"(marker)");
+    }
     $document_parser->filter_nested_array($congress_select,
-      'markup[faux_url*=http://www.congress.gov.ph/download/index.php\?d=journals|i][optval*=.?|i]',0
+      'markup[faux_url*=http://www.congress.gov.ph/download/index.php\?(.*)(d=journals)?(.*)|i][optval*=.?|i]',0
     );
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) ----- ---- --- -- - - - Congress Session SELECT options");
-    $this->recursive_dump($congress_select,"(marker)");
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) ----- ---- --- -- - - - Congress SELECT options");
+      $this->recursive_dump($congress_select,"(marker)");
+    }
 
-
-    $house_journals = new HouseJournalDocumentModel();
+    $use_alternate_generator = FALSE;
 
     $batch_regex = 'http://www.congress.gov.ph/download/journals_([0-9]*)/(.*)';
-    $child_collection = $this->find_incident_pages($urlmodel, $batch_regex, NULL);
+
+    $session_select = array();
+    $fake_url_model = new UrlModel($urlmodel->get_url());
+    $fake_url_model->add_query_element('congress', $target_congress, FALSE, TRUE);
+    $fake_url_model->add_query_element('page', NULL, TRUE, TRUE);
     if ( $debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Result of incident page search: " . count($child_collection) . ", with regex {$batch_regex}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Fake URL for recomposition: " . $fake_url_model->get_url());
+    }
+
+    $child_collection = $use_alternate_generator
+      ? $this->find_incident_pages($urlmodel, $batch_regex, NULL)
+      // Generate $session_select from the session item source
+      : $house_journals->fetch_session_item_source($session_select, $fake_url_model, $target_congress)
+      ;
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Result of incident page search: " . count($child_collection) . ($use_alternate_generator ? "" : ", with regex {$batch_regex}"));
       $this->recursive_dump($child_collection,"(marker) - - - - - -");
     }
 
     krsort( $child_collection, SORT_NUMERIC );
 
+    $fake_url_model->set_id(NULL)->add_query_element('congress', $target_congress, FALSE, TRUE);
+
     $pagecontent = $document_parser->generate_congress_session_item_markup(
-      $urlmodel,
+      $fake_url_model,
       $child_collection,
-      array(),
+      $session_select,
       NULL, // query_fragment_filter = NULL => No reordering by query fragment, link text taken from markup 
-      $congress_select // Array : Links for switching Congress Session 
+      $congress_select // $session_select // Array : Links for switching Congress Session 
     );
 
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- - -- - -- Filtered content" );
+      $this->recursive_dump($document_parser->filtered_content,"(marker)- - -");
+    }
+
+    // $inserted_content .= join('',$document_parser->get_filtered_doc());
+    $pagers = join('',$pagers);
     $pagecontent .= <<<EOH
 <div class="alternate-original alternate-content" id="senate-journal-block">
+Session {$pagers}<br/>
 {$inserted_content}
 </div>
 EOH;
@@ -726,7 +926,7 @@ EOH;
 EOH;
 
     // Deplete the stack, generating markup for entries that exist
-    while ( 0 < count( $sn_stacks ) ) {
+    while ( 0 < count( $sn_stacks ) ) {/*{{{*/
       $sn_stack = array_pop($sn_stacks); 
       $ra = array();
       $republic_act->where(array('AND' => array(
@@ -750,7 +950,7 @@ EOH;
           $republic_act->substitute($ra_template)
         );
       }
-    }
+    }/*}}}*/
     $republic_acts = array_filter($republic_acts);
 
     $this->recursive_dump(array_keys($republic_acts),"(marker) -Remainder-");
@@ -773,29 +973,20 @@ EOH;
 
   function seek_postparse_d_billstext(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // House Bills
+    $debug_method = FALSE;
+
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
 
     // Custom content, generic parser does not handle the bills text content
     $this->syslog( __FUNCTION__, __LINE__, "(warning) EMPTY HANDLER.  Length: " . $urlmodel->get_content_length() );
-
-    // return;
-    $cache_filename = md5(__FUNCTION__ . $parser->trigger_linktext);
-    $cache_filename = "./cache/{$this->subject_host_hash}-{$cache_filename}.generated";
-    if ( $parser->from_network ) unlink($cache_filename);
-    else if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {
-      if ( $parser->from_network ) unlink($cache_filename);
-      else if ( file_exists($cache_filename) ) {
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Retrieving cached markup for " . $urlmodel->get_url() );
-        $pagecontent = file_get_contents($cache_filename);
-        return;
-      }
-    }
+    $urlmodel->ensure_custom_parse();
 
     $filter_url    = new UrlModel();
     $house_bill    = new HouseBillDocumentModel();
     $hb_listparser = new CongressHbListParseUtility();
     $hb_listparser->debug_tags = FALSE;
     $hb_listparser->
+      enable_filtered_doc(FALSE)-> // Conserve memory, do not store filtered doc.
       set_parent_url($urlmodel->get_url())->
       parse_html(
         $urlmodel->get_pagecontent(),
@@ -803,61 +994,141 @@ EOH;
       );
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Elements: " . count($hb_listparser->get_containers()) );
+
     $pagecontent = NULL;
     $house_bills = array();
     $counter = 0;
 
-    $containers = $hb_listparser->get_containers();
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Filtering in place");
+    $hb_listparser->filter_nested_array($hb_listparser->containers_r(),
+      'children[tagname*=div][class*=padded]{#[seq*=.*|i]}'
+    );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Reordering using sequence in stream");
+    array_walk($hb_listparser->containers_r(),create_function(
+      '& $a, $k, $s', 'if ( 0 < count($a) ) $s->reorder_with_sequence_tags($a); else $a = NULL;'
+    ),$hb_listparser);
 
-    $n = 20;
-    foreach ( $containers as $container_id => $container ) {/*{{{*/
-      $n--;
-      if ( $n == 0 ) break;
-      if ( !array_key_exists('children', $container) || !is_array($container['children']) ) continue;
-      $entries                  = $container['children'];
-      $container[$container_id] = NULL;
-      $bill_head                = NULL;
+    // Haskell me now, please
+    $hb_listparser->assign_containers(array_values(array_filter($hb_listparser->containers_r())),0);
+    $hb_listparser->assign_containers(array_values($hb_listparser->containers_r()));
 
-      foreach ( $entries as $entry_key => $container ) {/*{{{*/
-        if ( array_key_exists('bill-head', $container) ) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Reverse stream sequence, treat array as stack.");
+    krsort($hb_listparser->containers_r());
 
-          // Dump existing bill record to stream
-          if ( !is_null($bill_head) && array_key_exists($bill_head, $house_bills) ) {/*{{{*/
-            $hb = $house_bills[$bill_head];
-            $url             = array_element($hb,'document-url');
-            $urlhash         = UrlModel::get_url_hash($url);
-            $hb['desc']      = array_element($hb,'title'); // $house_bill->get_description();
-            $hb['bill-head'] = array_element($hb,'sn'); // $house_bill->get_sn();
-            $hb['meta']      = NULL; // $house_bill->get_status(FALSE);
+    // $this->recursive_dump( $hb_listparser->containers_r(), "(marker) -" );
 
-            $n = 0; //$house_bill->count(array('sn' => $bill_head));
-            $cache_state = array('legiscope-remote');
+    $current_bill = array();
+    $parent_url   = UrlModel::parse_url($urlmodel->get_url());
 
-            if ( $n == 1 ) $cache_state[] = 'cached';
-            else {/*{{{*/
-              $this->syslog(__FUNCTION__,__LINE__, "Stowing {$bill_head} {$url}");
-              $now_time = time();
-              $filter_url->fetch($urlhash,'urlhash');
-              $searchable = $filter_url->in_database() ? 1 : 0; 
-              $meta = array(
-                'status'           => $hb['Status'],
-                'principal-author' => $hb['Principal Author'],
-                'main-committee'   => $hb['Main Referral'],
-              );
-              $house_bill->fetch($hb['sn'],'sn');
-              $house_bill->
-                set_url($url)->
-                set_sn($bill_head)->
-                set_title($hb['title'])->
-                set_searchable($searchable)->
-                set_create_time($now_time)->
-                set_last_fetch($now_time)->
-                set_status($meta)->
-                stow();
-            }/*}}}*/
-            $cache_state = join(' ', $cache_state);
-            $content = $house_bill->get_standard_listing_markup($hb['sn'], 'sn');
-            if ( is_null($content) ) $content = <<<EOH
+    // Remove bill components from stack
+
+    $bills      = array();
+    $bill_count = 0;
+
+    while (0 < count($hb_listparser->containers_r())) {/*{{{*/
+
+      $container = array_pop($hb_listparser->containers_r());
+
+      if ( array_key_exists('bill-head', $container) ) {/*{{{*/
+        // New entry
+        $hb_number = join('', array_element($container,'bill-head'));
+
+        if ( !is_null(array_element($current_bill,'hbn')) && (0 == count($bills)) ) {
+          $bills[] = $current_bill;
+        }
+
+        if ( $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
+          $this->recursive_dump($current_bill, "(marker) - - - - - " . array_element($current_bill,'hbn'));
+        }
+
+        $current_bill = array(
+          'hbn'              => $hb_number,
+          'desc'             => NULL,
+          'document-history' => NULL,
+          'document-url'     => NULL,
+          'document-label'   => NULL,
+          'meta'             => array(),
+          'links'            => array(),
+        );
+
+        $bill_count++;
+
+        continue;
+      }/*}}}*/
+
+      if ( array_key_exists('meta', $container) ) {/*{{{*/
+        $matches = array();
+        if ( 1 == preg_match('@^(Principal Author|Main Referral|Status):(.*)$@i',join('',$container['meta']), $matches) ) {
+          $current_bill['meta'][trim($matches[1])] = trim($matches[2]);
+        }
+        continue;
+      }/*}}}*/
+
+      if ( array_key_exists('desc', $container) ) {/*{{{*/
+        $current_bill['desc'] = join('',$container['desc']);
+        continue;
+      }/*}}}*/
+
+      if ( array_key_exists('onclick', $container) ) {/*{{{*/
+        $matches = array();
+        $popup_regex = "display_Window\('(.*)','(.*)'\)";
+        if ( 1 == preg_match("@{$popup_regex}@i", $container['onclick'], $matches) ) {
+          $matches = array_element($matches,1);
+          if ( !is_null($matches) ) {
+            $matches = array('url' => $matches);
+            $matches = UrlModel::normalize_url($parent_url, $matches);
+            $current_bill['document-history'] = $matches;
+          }
+        }
+        continue;
+      }/*}}}*/
+
+      if ( array_key_exists('url', $container) ) {
+        $current_bill['links'][array_element($container,'text')] = array_element($container,'url');
+        continue;
+      }
+
+      if (0) {
+      if ( array_key_exists('bill-head', $container) ) {/*{{{*/
+
+        // Dump existing bill record to stream
+        if ( !is_null($bill_head) && array_key_exists($bill_head, $house_bills) ) {/*{{{*/
+          $hb = $house_bills[$bill_head];
+          $url             = array_element($hb,'document-url');
+          $urlhash         = UrlModel::get_url_hash($url);
+          $hb['desc']      = array_element($hb,'title'); // $house_bill->get_description();
+          $hb['bill-head'] = array_element($hb,'sn'); // $house_bill->get_sn();
+          $hb['meta']      = NULL; // $house_bill->get_status(FALSE);
+
+          $n = 0; //$house_bill->count(array('sn' => $bill_head));
+          $cache_state = array('legiscope-remote');
+
+          if ( $n == 1 ) $cache_state[] = 'cached';
+          else {/*{{{*/
+            $this->syslog(__FUNCTION__,__LINE__, "Stowing {$bill_head} {$url}");
+            $now_time = time();
+            $filter_url->fetch($urlhash,'urlhash');
+            $searchable = $filter_url->in_database() ? 1 : 0; 
+            $meta = array(
+              'status'           => $hb['Status'],
+              'principal-author' => $hb['Principal Author'],
+              'main-committee'   => $hb['Main Referral'],
+            );
+            $house_bill->fetch($hb['sn'],'sn');
+            $house_bill->
+              set_url($url)->
+              set_sn($bill_head)->
+              set_title($hb['title'])->
+              set_searchable($searchable)->
+              set_create_time($now_time)->
+              set_last_fetch($now_time)->
+              set_status($meta)->
+              stow();
+          }/*}}}*/
+          $cache_state = join(' ', $cache_state);
+          $content = $house_bill->get_standard_listing_markup($hb['sn'], 'sn');
+          if ( is_null($content) ) $content = <<<EOH
 <div class="republic-act-entry">
 <span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$hb['bill-head']}</a></span>
 <span class="republic-act-desc"><a href="{$url}" class="legiscope-remote" id="title-{$urlhash}">{$hb['desc']}</a></span>
@@ -866,51 +1137,26 @@ EOH;
 <span class="republic-act-meta">Status: {$hb['Status']}</span>
 </div>
 EOH;
-            // $pagecontent .= $content;
-            $pagecontent .= <<<EOH
+          // $pagecontent .= $content;
+          $pagecontent .= <<<EOH
 <span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$hb['bill-head']}</a><br/>
 EOH;
-            unset($house_bills[$bill_head]);
-          }/*}}}*/
+          unset($house_bills[$bill_head]);
+        }/*}}}*/
 
-          $bill_head = join('',$container['bill-head']);
-          $house_bills[$bill_head] = array(
-            'sn' => $bill_head,
-          );
-          continue;
-        } /*}}}*/
-        if ( is_null($bill_head) ) {
-          unset($entries[$entry_key]);
-          continue;
-        }
-        if ( array_key_exists('desc', $container) ) {
-          $house_bills[$bill_head]['title'] = join('',$container['desc']);
-          unset($entries[$entry_key]);
-          continue;
-        }
-        if ( array_key_exists('meta', $container) ) {
-          $matches = array();
-          if ( 1 == preg_match('@^(Principal Author|Main Referral|Status):(.*)$@i',join('',$container['meta']), $matches) ) {
-            $house_bills[$bill_head][$matches[1]] = $matches[2];
-          }
-        }
-        if ( array_key_exists('attrs', $container) &&
-          !array_key_exists('ONCLICK',$container['attrs']) &&
-          array_key_exists('HREF',$container['attrs'])
-        ) {
-          $house_bills[$bill_head]['document-url'] = $container['attrs']['HREF'];
-          $house_bills[$bill_head]['document-label'] = join('',$container['cdata']);
-        }
-        unset($entries[$entry_key]);
+        $bill_head = join('',$container['bill-head']);
+        $house_bills[$bill_head] = array(
+          'sn' => $bill_head,
+        );
+        continue;
       }/*}}}*/
+      }
 
     }/*}}}*/
-    // $pagecontent = join('',$hb_listparser->get_filtered_doc());
-    // $this->recursive_dump($house_bills,__LINE__);
 
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {
-      file_put_contents($cache_filename, $pagecontent);
-    }
+    $bills[] = $current_bill;
+
+    $this->recursive_dump($bills, "(marker) - - - - - Total bills processed: {$bill_count}");
 
   }/*}}}*/
 
@@ -1135,6 +1381,9 @@ EOH;
 
   function must_custom_parse(UrlModel & $url) {/*{{{*/
     return ( 
+      1 == preg_match('@http://www.congress.gov.ph/download/index.php\?d=billstext@i', $url->get_url()) ||
+      1 == preg_match('@http://www.congress.gov.ph/members(([/]*)(.*))*@i', $url->get_url()) ||
+      1 == preg_match('@http://www.congress.gov.ph/download/index.php\?d=journals(.*)@i', $url->get_url()) ||
       1 == preg_match('@http://www.congress.gov.ph/members/search.php\?(.*)@i', $url->get_url())  || 
       1 == preg_match('@http://www.congress.gov.ph/legis/search/hist_show.php\?@i', $url->get_url())
     );

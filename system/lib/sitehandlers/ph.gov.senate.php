@@ -348,7 +348,7 @@ EOH;
     $this->syslog( __FUNCTION__, __LINE__, "(marker) --------- SENATOR BIO PARSER Invoked for " . $urlmodel->get_url() );
 
     ////////////////////////////////////////////////////////////////////
-    $membership  = new SenatorCommitteeSenatorDossierJoin();
+    $membership  = new SenateCommitteeSenatorDossierJoin();
     $senator     = new SenatorBioParseUtility();
     $committee   = new SenateCommitteeModel();
     $dossier     = new SenatorDossierModel();
@@ -1359,6 +1359,8 @@ EOH;
       krsort($document_contents);
       if ( $debug_method ) $this->recursive_dump($document_contents,'(warning)');
       $senate_document->set_contents_from_array($document_contents);
+      // FIXME: Prevent overwriting content
+      $senate_document->fetch($document_contents['sn'],'sn');
       $id = $senate_document->stow();
       if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed SB {$sbn_regex_result}.{$target_congress} #{$id}" );
       $senate_document->fetch(array(
@@ -2132,6 +2134,8 @@ EOH
 
   function senate_bill_content_parser(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
 
+    $urlmodel->ensure_custom_parse();
+
     $this->non_session_linked_content_parser(__FUNCTION__, 'SBN', $parser, $pagecontent, $urlmodel );
 
   }/*}}}*/
@@ -2176,6 +2180,8 @@ EOH;
 
   function canonical_committee_report_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method = FALSE;
+
     $commreport_parser = new SenateCommitteeReportParseUtility();
     $commreport_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
 
@@ -2218,12 +2224,13 @@ EOH;
       }/*}}}*/
       if ( intval($n) == 0 ) {/*{{{*/
         foreach ($e['content'] as $entry) {/*{{{*/
-          $properties = array('legiscope-remote');
-          $document_is_cached = $test_url->is_cached($entry['url']);
-          $properties[] = $document_is_cached ? 'cached' : 'uncached';
-          $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
           if ( array_key_exists('url',$entry) ) {/*{{{*/
+            $properties = array('legiscope-remote');
+            $url = array_element($entry,'url');
+            $document_is_cached = $test_url->is_cached($url);
+            $properties[] = $document_is_cached ? 'cached' : 'uncached';
+            $properties = join(' ', $properties);
+            $urlhash = UrlModel::get_url_hash($url);
             $pagecontent .= <<<EOH
 <b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
 EOH;

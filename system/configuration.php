@@ -25,7 +25,7 @@ define('DEBUG_RawparseUtility', FALSE);
 define('DEBUG_MysqlDatabasePlugin', FALSE);
 define('DEBUG_UrlModel', FALSE);
 define('DEBUG_ALL', FALSE);
-define('SLOW_DOWN_RECURSIVE_DUMP',20000);
+define('SLOW_DOWN_RECURSIVE_DUMP',NULL);
 define('DISABLE_AUTOMATIC_URL_EDGES',TRUE);
 
 define('SELENIUM_WEBDRIVER', 'http://127.0.0.8:4444/wd/hub');

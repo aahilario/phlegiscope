@@ -46,8 +46,9 @@ class UrlClusterModel extends DatabaseUtility {
 	}/*}}}*/
 
 	function fetch_clusters(UrlModel & $parent_page,$regularize = FALSE) {/*{{{*/
+    $debug_method = TRUE;
 		$hosthash = UrlModel::get_url_hash($parent_page->get_url(),PHP_URL_HOST);
-		// $this->syslog(__FUNCTION__,__LINE__, "(marker) -- - -- Fetching clusters for [{$hosthash}] {$parent_page}");
+		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) -- - -- Fetching clusters for {$parent_page} [{$hosthash}]");
 		$records = array();
 		if ( $this->where(array('AND' => array(
 			'host' => $hosthash,

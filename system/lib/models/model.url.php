@@ -34,7 +34,6 @@ class UrlModel extends DatabaseUtility {
   function __construct($url = NULL, $load = FALSE) {
     parent::__construct();
     $this->set_url($url, $load);
-    // $this->recursive_dump($this->get_attrdefs(),"(marker) ----- ---- --- -- -");
   }
 
 	function & set_url_c($url, $load = FALSE) {
@@ -44,7 +43,7 @@ class UrlModel extends DatabaseUtility {
 
   function set_url($url, $load = TRUE) {/*{{{*/
 		$this->url_vc4096 = $url;
-		$this->urlhash_vc128uniq = is_null($url) ? NULL : self::get_url_hash($url);
+		$this->urlhash_vc128uniq = (is_null($url) || empty($url)) ? NULL : self::get_url_hash($url);
 		if ( $load && !is_null($this->urlhash_vc128uniq ) ) {
 			$this->id = NULL;
 			$this->fetch($this->urlhash_vc128uniq,'urlhash');
@@ -58,9 +57,26 @@ class UrlModel extends DatabaseUtility {
     return is_array($query_parts) ? array_element($query_parts,$component) : NULL;
   }
 
-	function get_query_element($component) {/*{{{*/
-    return self::query_element($component, $this->get_url());
+	function get_query_element($component, $if_empty = FALSE) {/*{{{*/
+    $component = self::query_element($component, $this->get_url());
+    if ( empty($component) && !(FALSE == $if_empty) ) {
+      $component = $if_empty;
+    }
+    return $component;
 	}/*}}}*/
+
+  function add_query_element($n, $v, $load = TRUE, $clear = FALSE) {
+    $debug_method = FALSE;
+    $components = self::parse_url($this->get_url());
+    $query_parts = array_element($components,'query',array());
+    $query_parts = self::decompose_query_parts($query_parts);
+    $query_parts[$n] = $v;
+    if ( $clear ) $query_parts = array_filter($query_parts);
+    $components['query'] = self::recompose_query_parts($query_parts);
+    if ( $debug_method ) $this->recursive_dump($components,"(marker) " . __METHOD__);
+    $this->set_url(self::recompose_url($components),$load);
+    return $this->get_url();
+  }
 
   static function get_url_hash($url, $url_component = NULL ) {/*{{{*/
     if ( !is_null($url_component) ) {
@@ -120,7 +136,7 @@ class UrlModel extends DatabaseUtility {
 
   static function normalize_url($parent_url, & $link_item, $strip_path_and_query = FALSE) {
 
-    if ( !array_key_exists('url', $link_item) || (FALSE === $link_item['url']) ) return FALSE;
+    if ( !array_key_exists('url', $link_item) || (FALSE == $link_item['url']) ) return FALSE;
 
     // Construct parent path sans trailing script component
     $path_sans_script = self::path_sans_script($parent_url);
@@ -563,6 +579,11 @@ class UrlModel extends DatabaseUtility {
       $this->set_custom_parse(TRUE);
       if ( $this->in_database() ) $this->stow();
     }
+  }
+
+  function & set_id($id) {
+    $this->id = $id;
+    return $this;
   }
 
 	function get_id() {

@@ -133,6 +133,12 @@ EOH
       'sn'           => $document['text'],
       'congress_tag' => $document['congress_tag'],
     ),'AND');
+    if ( !is_null(array_element($document,'text')) && is_null(array_element($document,'sn')) ) {
+      $document['sn'] = $document['text'];
+    }
+    if ( !is_null(array_element($document,'desc')) && is_null(array_element($document,'description')) ) {
+      $document['description'] = $document['desc'];
+    }
     $document_id = $this->
       set_contents_from_array($document)->
       stow();

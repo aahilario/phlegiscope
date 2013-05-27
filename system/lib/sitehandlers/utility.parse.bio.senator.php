@@ -10,6 +10,8 @@
 
 class SenatorBioParseUtility extends SenateCommonParseUtility {
   
+  var $have_toc = FALSE;
+
   function __construct() {
     parent::__construct();
   }
@@ -60,7 +62,7 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     $skip = FALSE;
     $this->pop_tagstack();
     if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
-    if ( $this->current_tag['attrs']['ID'] == "sidepane" ) $skip = TRUE;
+    if ( array_element($this->current_tag['attrs'],'ID') == "sidepane" ) $skip = TRUE;
     if ( !$skip ) {
       $this->add_to_container_stack($this->current_tag);
     }
@@ -93,7 +95,7 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     $this->pop_tagstack();
     $this->push_tagstack();
     $paragraph = array('text' => join('', $this->current_tag['cdata']));
-    if ( $this->current_tag['attrs']['CLASS'] == "backtotop" ) $skip = TRUE;
+    if ( array_element($this->current_tag['attrs'],'CLASS') == "backtotop" ) $skip = TRUE;
     if ( !$skip ) {
       $this->add_to_container_stack($paragraph);
     }
@@ -123,7 +125,7 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     $this->pop_tagstack();
     $this->push_tagstack();
     $paragraph = array('text' => join(' ', $this->current_tag['cdata']));
-    if ( $this->current_tag['attrs']['CLASS'] == "backtotop" ) $skip = TRUE;
+    if ( array_element($this->current_tag['attrs'],'CLASS') == "backtotop" ) $skip = TRUE;
     if ( !$skip ) {
       $this->add_to_container_stack($paragraph);
     }

@@ -65,7 +65,7 @@ function preload(components) {
     data     : { links: components, modifier : $('#seek').prop('checked') },
     cache    : false,
     dataType : 'json',
-    async    : false,
+    async    : true,
     beforeSend : (function() {
       display_wait_notification();
       preload_n = 0;
@@ -258,7 +258,6 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 }
 
 function load_content_window(a,ck,obj,data,handlers) {
-  // if ( peek(a,ck) ) seek(a,ck);
   var object_text = typeof obj != 'undefined' ? $(obj).html() : null;
   var std_data = ($('#metalink').html().length > 0)
     ? { url : a, modifier : ck || $('#seek').prop('checked'), proxy : $('#proxy').prop('checked'), cache : $('#cache').prop('checked'), linktext : object_text, metalink : $('#metalink').html() } 
@@ -297,7 +296,7 @@ function initialize_remote_links() {
   $('a[class*=metapager]').click(function(e){
     var content_id = /^switch-/.test($(this).attr('id')) ? ('content-'+$(this).attr('id').replace(/^switch-/,'')) : null;
     var content = $('span[id='+content_id+']').html();
-    var data = $('#jumpto') && $('#jumpto').val() ?  { LEGISCOPE : { coPage : $('#jumpto').val() } } : null;
+    var data = $('#jumpto') && $('#jumpto').val() ?  { 'LEGISCOPE' : { coPage : $('#jumpto').val() } } : null;
     $('#metalink').html(content);
     e.stopPropagation();
     load_content_window($(this).attr('href'), $(e).attr('metaKey') || $('#seek').prop('checked'), $(this), data);
@@ -395,7 +394,13 @@ function enable_proxied_links(classname,handlers) {
 
   $('a[class*='+classname+']').click(function(e){
     e.stopPropagation();
-    load_content_window($(this).attr('href'), $(e).attr('metaKey'), $(this), { async : true }, handler);
+    load_content_window(
+			$(this).attr('href'),
+		 	$(e).attr('metaKey'),
+		 	$(this),
+		 	{ async : true },
+		 	handler
+		);
     return false;
   });
 }

@@ -121,4 +121,14 @@ class SystemUtility extends DatabaseUtility {
 			;
 	}/*}}}*/
 
+	function pop_stack_entries(& $target, & $source, $m = NULL, $per_element_callback = NULL ) {/*{{{*/
+		if ( is_null($m) ) $m = 10;
+		$n = 0;
+		$target = array();
+		while ( (0 < count($source)) && ($n++ < $m) ) {
+			$target[] = array_pop($source);
+		}
+		return $n;
+	}/*}}}*/
+
 }

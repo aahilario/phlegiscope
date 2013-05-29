@@ -10,6 +10,9 @@
 
 class HouseBillRepresentativeDossierJoin extends DatabaseUtility {
   
+	var $relation_to_bill_vc32 = NULL;
+	var $create_date_utx = NULL;
+
   // Join table model
   var $house_bill_HouseBillDocumentModel;
   var $representative_dossier_RepresentativeDossierModel;
@@ -25,6 +28,12 @@ class HouseBillRepresentativeDossierJoin extends DatabaseUtility {
 
   function & set_representative_dossier($v) { $this->representative_dossier_RepresentativeDossierModel = $v; return $this; }
   function get_representative_dossier($v = NULL) { if (!is_null($v)) $this->set_representative_dossier($v); return $this->representative_dossier_RepresentativeDossierModel; }
+
+	function & set_relation_to_bill($v) { $this->relation_to_bill_vc32 = $v; return $this; }
+	function get_relation_to_bill($v = NULL) { if (!is_null($v)) $this->set_relation_to_bill($v); return $this->relation_to_bill_vc32; }
+
+	function & set_create_date($v) { $this->create_date_utx = $v; return $this; }
+	function get_create_date($v = NULL) { if (!is_null($v)) $this->set_create_date($v); return $this->create_date_utx; }
 
 }
 

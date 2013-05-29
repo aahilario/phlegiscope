@@ -60,20 +60,21 @@ class RepresentativeDossierModel extends DatabaseUtility {
   function & set_member_uuid($v) { $this->member_uuid_vc64 = $v; return $this; }
   function get_member_uuid($v = NULL) { if (!is_null($v)) $this->set_member_uuid($v); return $this->member_uuid_vc64; }
 
-  function & set_contact_json($v) { 
+  function & set_contact_json($v) { /*{{{*/
     $this->contact_json_vc2048 = is_array($v)
       ? json_encode($v)
       : $v
       ;
     return $this;
-  }
-  function get_contact_json($v = NULL) { 
+  }/*}}}*/
+  function get_contact_json($v = NULL) { /*{{{*/
     if (!is_null($v)) $this->set_contact_json($v);
     return json_decode($this->contact_json_vc2048,TRUE);
-  }
+  }/*}}}*/
 
   function & set_avatar_image($v) { $this->avatar_image_blob = $v; return $this; }
-	function get_avatar_image($v = NULL) {
+
+	function get_avatar_image($v = NULL) {/*{{{*/
 		if (!is_null($v)) $this->set_avatar_image($v);
 
     if ( empty($this->avatar_image_blob) ) {/*{{{*/
@@ -92,11 +93,11 @@ class RepresentativeDossierModel extends DatabaseUtility {
     if ( is_null($this->avatar_image_blob) || (strtoupper($this->avatar_image_blob) == 'NULL') ) $this->avatar_image_blob = '';
 
 		return $this->avatar_image_blob;
- 	}
+ 	}/*}}}*/
 
   function parse_name($n) {/*{{{*/
     $cleanup = '@\((.*)\)$@i';
-    $n = preg_replace($cleanup,'',$n);
+    $n = preg_replace($cleanup,'',$n); // Remove trailing parenthesized characters
     $namepattern = '@^(.*),(.*)@iu';
     $misuffix     = '@(.*) (Jr\.|Sr\.|III|II|IV|VII|VI|V)*([ ]?[A-Z]\.)*(.*)*$@i';
     $match = array();
@@ -124,7 +125,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
   }/*}}}*/
 
-	function replace_legislator_names_hotlinks(& $name) {
+	function replace_legislator_names_hotlinks(& $name) {/*{{{*/
     $nameparts = $this->parse_name($name);
     $original_name = $name;
     $matches = preg_replace('@[^A-Z]@i','(.*)',"{$nameparts['surname']},{$nameparts['given']}"); 
@@ -139,10 +140,12 @@ EOH;
       foreach ( $name as $k => $v ) {
         $s = str_replace("{{$k}}", "{$v}", $s);
       }
+      $urlhash = UrlModel::get_url_hash(array_element($name,'bio_url'));
+      $s = str_replace('{urlhash}',$urlhash, $s);
       $name['original'] = $original_name;
     }
     return $s;
-	}
+	}/*}}}*/
 
   function stow() {
     return parent::stow();

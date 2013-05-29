@@ -72,25 +72,11 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
   }/*}}}*/
 
   function fetch_by_committee_name($committee_name) {/*{{{*/
-    $search_name = explode(' ',preg_replace(
-      array(
-        "@[^'A-Z0-9 ]@i",
-        "@[']@i",
-      ),
-      array(
-        '',
-        "\'",
-      ),
-      $committee_name)
-    );
-    array_walk($search_name,
-      create_function(
-        '&$a, $k, $s',
-        '$a = strlen($a) > 3 ? "(" . trim($a) . ")" : NULL;'),
-      $search_name
-    );
-    $search_name = join('(.*)',array_filter($search_name));
-    if (!(0 < strlen($search_name) ) ) return FALSE;
+
+    $search_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
+
+    if ( FALSE == $search_name ) return FALSE;
+
     $this->fetch(array(
       'committee_name' => "REGEXP '({$search_name})'"
     ),'AND');

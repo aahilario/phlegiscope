@@ -982,7 +982,6 @@ EOH;
     $urlmodel->ensure_custom_parse();
 
     $filter_url    = new UrlModel();
-    $house_bill    = new HouseBillDocumentModel();
     $hb_listparser = new CongressHbListParseUtility();
     $hb_listparser->debug_tags = FALSE;
     $hb_listparser->
@@ -993,11 +992,13 @@ EOH;
         $urlmodel->get_response_header()
       );
 
+    // If we get this far, there is enough memory to iteratively pop
+    // elements off the stack; we'll assume that there is not enough 
+    // to keep the original parsed data and still generate markup.
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Elements: " . count($hb_listparser->get_containers()) );
 
     $pagecontent = NULL;
     $house_bills = array();
-    $counter = 0;
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Filtering in place");
     $hb_listparser->filter_nested_array($hb_listparser->containers_r(),
@@ -1008,11 +1009,31 @@ EOH;
       '& $a, $k, $s', 'if ( 0 < count($a) ) $s->reorder_with_sequence_tags($a); else $a = NULL;'
     ),$hb_listparser);
 
-    // Haskell me now, please
+    // Haskell me now, please. Crunch down array to just the list of bills
     $hb_listparser->assign_containers(array_values(array_filter($hb_listparser->containers_r())),0);
     $hb_listparser->assign_containers(array_values($hb_listparser->containers_r()));
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Reverse stream sequence, treat array as stack.");
+    // Hack to obtain Congress number from the first few entries of the array
+    $congress_tag = NULL;
+    $counter = 0;
+    foreach ( $hb_listparser->containers_r() as $entry ) {/*{{{*/
+      if ( $counter > 10 ) break;
+      if ( $debug_method ) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - - - - - - - - Testing entry {$counter}");
+        $this->recursive_dump($entry,"(marker) - - - -");
+      }
+      $congress_line_match = array();
+      $textentry = array_element($entry,'text');
+      if (is_null($textentry)) continue;
+      $counter++;
+      if (1 == preg_match('@([0-9]*)(.*) Congress(.*)@i', $textentry, $congress_line_match) ) {
+        $congress_tag = array_element($congress_line_match,1);
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Apparent Congress number: {$congress_tag}");
+        break;
+      }
+    } /*}}}*/
+    reset($hb_listparser->containers_r());
     krsort($hb_listparser->containers_r());
 
     // $this->recursive_dump( $hb_listparser->containers_r(), "(marker) -" );
@@ -1020,53 +1041,156 @@ EOH;
     $current_bill = array();
     $parent_url   = UrlModel::parse_url($urlmodel->get_url());
 
-    // Remove bill components from stack
+    // Parse markup stream, pop clusters of tags from stack
 
-    $bills      = array();
-    $bill_count = 0;
+    $bill_cache  = array();
+    $bills       = array();
+    $bill_count  = 0;
+    $cache_limit = 20;
+
+    $house_bill  = new HouseBillDocumentModel();
+    $committee   = new CongressionalCommitteeDocumentModel(); 
+    $dossier     = new RepresentativeDossierModel();
+
+    $hb_joins = $house_bill->get_joins();
+    $this->recursive_dump($hb_joins, "(marker) HB Joins - - -");
+
+    $meta = array(
+      'status'           => 'Status',
+      'principal-author' => 'Principal Author',
+      'main-committee'   => 'Main Referral',
+    );
+
+    $linkmap = array(
+      '@(\[(.*)as filed(.*)\])@i'  => 'filed',
+      '@(\[(.*)engrossed(.*)\])@i' => 'engrossed',
+    );
+
+    $counter = 0;
+    $committee_regex_lookup = array();
 
     while (0 < count($hb_listparser->containers_r())) {/*{{{*/
+
+      // Test collected bills against database
+
+      if ( $cache_limit <= count($bill_cache) ) {/*{{{*/
+
+        $committee->update_committee_name_regex_lookup($committee_regex_lookup);
+
+        array_walk($bill_cache,create_function(
+          '& $a, $k, $s', '$raw_committee_name = $a["meta"]["main-committee"]["raw"]; $a["meta"]["main-committee"]["mapped"] = $s[$raw_committee_name]["id"];'
+        ),$committee_regex_lookup);
+
+        $house_bill->cache_parsed_housebill_records($bill_cache);
+        $bills = $bill_cache;
+
+        $bill_cache = array();
+
+        while (0 < count($hb_listparser->containers_r())) {
+          $container = array_pop($hb_listparser->containers_r());
+        }
+        break;
+
+      }/*}}}*/
+
+      // Remove bill component from stack
 
       $container = array_pop($hb_listparser->containers_r());
 
       if ( array_key_exists('bill-head', $container) ) {/*{{{*/
-        // New entry
+        // New entry causes prior entries to be flushed to stack
         $hb_number = join('', array_element($container,'bill-head'));
 
-        if ( !is_null(array_element($current_bill,'hbn')) && (0 == count($bills)) ) {
-          $bills[] = $current_bill;
-        }
+        if (!is_null(array_element($current_bill,'sn'))) { /*{{{*/
+          if (5 > count($bills)) {
+            $bills[] = $current_bill;
+          }
+          $bill_cache[array_element($current_bill,'sn')] = $current_bill;
+        }/*}}}*/
 
-        if ( $debug_method ) {
+        if ( $debug_method ) {/*{{{*/
           $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
-          $this->recursive_dump($current_bill, "(marker) - - - - - " . array_element($current_bill,'hbn'));
-        }
+          $this->recursive_dump($current_bill, "(marker) - - - - - " . array_element($current_bill,'sn'));
+        }/*}}}*/
 
-        $current_bill = array(
-          'hbn'              => $hb_number,
-          'desc'             => NULL,
-          'document-history' => NULL,
-          'document-url'     => NULL,
-          'document-label'   => NULL,
-          'meta'             => array(),
-          'links'            => array(),
-        );
+        $current_bill = $house_bill->get_parsed_housebill_template($hb_number, $congress_tag); 
+        $current_bill['representative']['relation_to_bill'] = 'principal-author';
+        $current_bill['committee']['jointype'] = 'main-committee';
 
         $bill_count++;
 
         continue;
+
       }/*}}}*/
 
       if ( array_key_exists('meta', $container) ) {/*{{{*/
         $matches = array();
-        if ( 1 == preg_match('@^(Principal Author|Main Referral|Status):(.*)$@i',join('',$container['meta']), $matches) ) {
-          $current_bill['meta'][trim($matches[1])] = trim($matches[2]);
+        if ( 1 == preg_match('@^('.join('|',$meta).'):(.*)$@i',join('',$container['meta']), $matches) ) {
+          $matches[1] = trim(preg_replace(array_map(create_function('$a','return "@{$a}@i";'),$meta),array_keys($meta),$matches[1]));
+          $matches[2] = trim($matches[2]);
+          $mapped = NULL;
+          switch( $matches[1] ) {
+            case 'principal-author':
+              $name = $matches[2];
+              // FIXME: Decompose replace_legislator_names_hotlinks, factor out markup generator
+              $mapped = $dossier->replace_legislator_names_hotlinks($name);
+              $mapped = !is_null($mapped) ? array_element($name,'id') : NULL;
+              if ( !is_null($mapped) ) $matches[2] = "{$matches[2]} ({$name['fullname']})";
+              break;
+
+            case 'main-committee':
+              // Perform tree search (PHP assoc array), as it will be inefficient to 
+              // try to look up each name as it recurs in the input stream.
+              // We'll assume that there will be (at most) a couple hundred distinct committee names
+              // dealt with here, so we can reasonably generate a lookup table
+              // of committee names containing name match regexes and committee record IDs.
+              $name = $matches[2];
+              if ( !array_key_exists($name,$committee_regex_lookup) ) {/*{{{*/
+                // Test for a full regex match against the entire lookup table 
+                // before adding the committee name and regex pattern to the tree
+                $committee_name_regex = LegislationCommonParseUtility::committee_name_regex($name);
+                if ( 0 < count($committee_regex_lookup) ) {/*{{{*/
+                  $m = array_filter(array_combine(
+                    array_keys($committee_regex_lookup),
+                    array_map(create_function(
+                      '$a', 'return 1 == preg_match("@" . array_element($a,"regex") . "@i","' . $name . '") ? $a : NULL;'
+                    ),$committee_regex_lookup)
+                  )); 
+                  $n = count($m);
+                  if ( $n == 0 ) {
+                    // No match, probably a new name, hence no ID yet found
+                    $mapped = NULL;
+                  } else if ( $n == 1 ) {
+                    // Matched exactly one name, no need to create new entry
+                    $name = NULL;
+                    $mapped = array_element($m,'id');
+                  } else {
+                    // Matched multiple records
+                    $mapped = $m;
+                  }
+                }/*}}}*/
+                if ( !is_null($name) )
+                $committee_regex_lookup[$name] = array(
+                  'committee_name' => $name,
+                  'regex'          => $committee_name_regex,
+                  'id'             => 'UNMAPPED' // Fill this in just before invoking cache_parsed_housebill_records()
+                );
+              }/*}}}*/
+              else {
+                // Assign an existing ID
+                $mapped = array_element($committee_regex_lookup[$name],'id');
+              }
+              break;
+            default:
+              break;
+          }
+          $current_bill['meta'][$matches[1]] = array( 'raw' => $matches[2], 'mapped' => $mapped );
         }
         continue;
       }/*}}}*/
 
       if ( array_key_exists('desc', $container) ) {/*{{{*/
-        $current_bill['desc'] = join('',$container['desc']);
+        $current_bill['description'] = join('',$container['desc']);
         continue;
       }/*}}}*/
 
@@ -1078,85 +1202,45 @@ EOH;
           if ( !is_null($matches) ) {
             $matches = array('url' => $matches);
             $matches = UrlModel::normalize_url($parent_url, $matches);
-            $current_bill['document-history'] = $matches;
+            $current_bill['url_history'] = $matches;
           }
         }
         continue;
       }/*}}}*/
 
-      if ( array_key_exists('url', $container) ) {
-        $current_bill['links'][array_element($container,'text')] = array_element($container,'url');
-        continue;
-      }
-
-      if (0) {
-      if ( array_key_exists('bill-head', $container) ) {/*{{{*/
-
-        // Dump existing bill record to stream
-        if ( !is_null($bill_head) && array_key_exists($bill_head, $house_bills) ) {/*{{{*/
-          $hb = $house_bills[$bill_head];
-          $url             = array_element($hb,'document-url');
-          $urlhash         = UrlModel::get_url_hash($url);
-          $hb['desc']      = array_element($hb,'title'); // $house_bill->get_description();
-          $hb['bill-head'] = array_element($hb,'sn'); // $house_bill->get_sn();
-          $hb['meta']      = NULL; // $house_bill->get_status(FALSE);
-
-          $n = 0; //$house_bill->count(array('sn' => $bill_head));
-          $cache_state = array('legiscope-remote');
-
-          if ( $n == 1 ) $cache_state[] = 'cached';
-          else {/*{{{*/
-            $this->syslog(__FUNCTION__,__LINE__, "Stowing {$bill_head} {$url}");
-            $now_time = time();
-            $filter_url->fetch($urlhash,'urlhash');
-            $searchable = $filter_url->in_database() ? 1 : 0; 
-            $meta = array(
-              'status'           => $hb['Status'],
-              'principal-author' => $hb['Principal Author'],
-              'main-committee'   => $hb['Main Referral'],
-            );
-            $house_bill->fetch($hb['sn'],'sn');
-            $house_bill->
-              set_url($url)->
-              set_sn($bill_head)->
-              set_title($hb['title'])->
-              set_searchable($searchable)->
-              set_create_time($now_time)->
-              set_last_fetch($now_time)->
-              set_status($meta)->
-              stow();
-          }/*}}}*/
-          $cache_state = join(' ', $cache_state);
-          $content = $house_bill->get_standard_listing_markup($hb['sn'], 'sn');
-          if ( is_null($content) ) $content = <<<EOH
-<div class="republic-act-entry">
-<span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$hb['bill-head']}</a></span>
-<span class="republic-act-desc"><a href="{$url}" class="legiscope-remote" id="title-{$urlhash}">{$hb['desc']}</a></span>
-<span class="republic-act-meta">Principal Author: {$hb['Principal Author']}</span>
-<span class="republic-act-meta">Main Referral: {$hb['Main Referral']}</span>
-<span class="republic-act-meta">Status: {$hb['Status']}</span>
-</div>
-EOH;
-          // $pagecontent .= $content;
-          $pagecontent .= <<<EOH
-<span class="republic-act-heading"><a href="{$url}" class="{$cache_state}" id="{$urlhash}">{$hb['bill-head']}</a><br/>
-EOH;
-          unset($house_bills[$bill_head]);
-        }/*}}}*/
-
-        $bill_head = join('',$container['bill-head']);
-        $house_bills[$bill_head] = array(
-          'sn' => $bill_head,
-        );
+      if ( array_key_exists('url', $container) ) {/*{{{*/
+        $linktype = array_element($container,'text');
+        $linktype = preg_replace(array_keys($linkmap),array_values($linkmap), $linktype); 
+        $current_bill['links'][$linktype] = array_element($container,'url');
         continue;
       }/*}}}*/
-      }
+
+    }/*}}}*/
+
+    // Deplete remaining House Bill cache entries
+    if ( 0 < count($bill_cache) ) {/*{{{*/
+
+      $committee->update_committee_name_regex_lookup($committee_regex_lookup);
+
+      array_walk($bill_cache,create_function(
+        '& $a, $k, $s', '$raw_committee_name = $a["meta"]["main-committee"]["raw"]; $a["meta"]["main-committee"]["mapped"] = $s[$raw_committee_name]["id"];'
+      ),$committee_regex_lookup);
+
+      // $house_bill->cache_parsed_housebill_records($bill_cache);
+      $bills = $bill_cache;
+
+      $bill_cache = array();
 
     }/*}}}*/
 
     $bills[] = $current_bill;
 
-    $this->recursive_dump($bills, "(marker) - - - - - Total bills processed: {$bill_count}");
+    $this->recursive_dump($bills, "(marker) - - - - - Sample Bill Records");
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Total bills processed: {$bill_count}");
+    if ( $debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Committee Lookups" ); 
+      $this->recursive_dump($committee_regex_lookup, "(marker) - - - - - Committee Lookup Table");
+    }
 
   }/*}}}*/
 
@@ -1222,40 +1306,53 @@ EOH;
     $comm = new CongressionalCommitteeDocumentModel();
     $link = new CongressionalCommitteeRepresentativeDossierJoin();
 
-    $m->dump_accessor_defs_to_syslog();
-
-    $p->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-
-    $pagecontent = join('', $p->get_filtered_doc());
+    $p->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $pagecontent,
+        $urlmodel->get_response_header()
+      );
 
     $p->debug_operators = FALSE;
+
     $this->recursive_dump($containers = $p->get_containers(
       'children[tagname=div][id=main-ol]'
     ),"(----) ++ All containers");
 
+    $target_congress = NULL;
     // We are able to extract names of committees and current chairperson.
-    if ( 0 < count($containers) ) {
-      $committees = array();
+    if ( 0 < count($containers) ) {/*{{{*/
+      $committees  = array();
       $pagecontent = '';
-      foreach ( $containers as $container ) {/*{{{*/
+      $containers  = array_values($containers);
+      krsort($containers,SORT_NUMERIC);
+      $containers  = array_values($containers);
+      while ( 0 < count( $containers ) ) {/*{{{*/
         $pagecontent .= "<div>";
-        foreach ( $container as $tag ) {
+        $container = array_values(array_pop($containers));
+        krsort($container);
+        $container = array_values($container);
+        while ( 0 < count( $container ) ) {/*{{{*/
+          $tag = array_pop($container);
           if ( array_key_exists('url', $tag) ) {
             $hash = UrlModel::get_url_hash($tag['url']);
+            $congress_tag = 
             $pagecontent .= <<<EOH
 <a href="{$tag['url']}" class="legiscope-remote">{$tag['text']}</a>
 EOH;
             $committees[$hash] = array(
-              'url' => $tag['url'],
-              'name' => $tag['text'],
-              'chairperson' => NULL,
+              'url'            => $tag['url'],
+              'committee_name' => $tag['text'],
+              'congress_tag'   => UrlModel::query_element('congress', $tag['url']), 
+              'chairperson'    => NULL,
             );
             continue;
           }
+          // Replace $name with legislator dossier record
           $name = $tag['text'];
           $tag['text'] = $m->replace_legislator_names_hotlinks($name);
           $committees[$hash]['chairperson'] = $name;
-          if ( is_null($name['firstname']) ) {
+          if (is_null(array_element($name,'fullname'))) {
             $parsed_name = $m->parse_name( $name['original'] );
             $committees[$hash]['original'] = $parsed_name;
             $m->fetch($name['id'],'id');
@@ -1270,11 +1367,43 @@ EOH;
           $pagecontent .= <<<EOH
 <span class="representative-name">{$tag['text']}</span><br/>
 EOH;
-        }
+        }/*}}}*/
         $pagecontent .= "</div>";
       }/*}}}*/
-      $this->recursive_dump($committees,"(marker) -- -- --");
+      // At this point, the $containers stack has been depleted of entries,
+      // basically being transformed into the $committees stack
+      // $this->recursive_dump($committees,"(marker) -- -- --");
+    }/*}}}*/
+    else {/*{{{*/
+      $pagecontent = join('', $p->get_filtered_doc());
+    }/*}}}*/
+
+    $committee = array();
+    $updated = 0;
+    $committees_found = count($committees);
+    while ( 0 < count($committees) ) {
+      $committee = array();
+      $this->pop_stack_entries($committee, $committees, 10);
+      // Use 'url' and 'committee_name' keys; store missing CongressionalCommitteeDocumentModel entries. 
+      $comm->mark_committee_ids($committee);
+      // Extract all records marked 'UNMAPPED'
+      $p->filter_nested_array($committee, '#[id*=UNMAPPED]');
+      $this->recursive_dump($committee, "(marker) - -- - STOWABLE");
+      foreach ( $committee as $entry ) {
+        $updated++;
+        $comm->fetch($entry['committee_name'],'committee_name');
+        $entry = array(
+          'committee_name' => array_element($entry,'committee_name'),
+          'congress_tag'   => array_element($entry,'congress_tag'),
+          'create_time'    => array_element($entry,'create_time'),
+          'last_fetch'     => array_element($entry,'last_fetch'),
+          'url'            => array_element($entry,'url'),
+        );
+        $id = $comm->set_contents_from_array($entry)->stow();
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Stowed {$id} {$entry['committee_name']}");
+      }
     }
+    if ( $updated == 0 ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - All {$committees_found} committee names stowed");
 
     $pagecontent = utf8_encode($pagecontent);
 

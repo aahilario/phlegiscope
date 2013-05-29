@@ -9,6 +9,7 @@ class DatabaseUtility extends ReflectionClass {
   protected $tablename           = NULL;
   protected $query_conditions    = array();
   protected $order_by_attrs      = array();
+  protected $join_attrs          = array(); 
   protected $limit               = array();
   protected $query_result        = NULL;
   protected $attrlist            = NULL;
@@ -71,6 +72,14 @@ EOS;
     }
     return $this;
   }/*}}}*/
+
+  function & join(array $ja) {
+    $this->join_attrs = array_merge(
+      $this->join_attrs,
+      $ja
+    );
+    return $this;
+  }
 
   function log_stack() {
     try {
@@ -459,11 +468,11 @@ EOH;
     }
   }/*}}}*/
 
-  function get_joins() {/*{{{*/
+  function get_joins($specific_item = NULL) {/*{{{*/
     $join_attrdefs = $this->get_attrdefs();
 		// $this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i][propername*='.$modelname.']');
 		$this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i]');
-    return $join_attrdefs;
+    return is_null($specific_item) ? $join_attrdefs : array_element($join_attrdefs,$specific_item);
   }/*}}}*/
 
 	function create_joins( $modelname, & $foreign_keys, $allow_update = FALSE ) {/*{{{*/
@@ -593,13 +602,20 @@ EOH;
           if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, 'B');
         } else {
 					if ( array_key_exists($conj_or_attr, $attrlist) ) 
-          $value = $attrlist[$conj_or_attr]['attrs']['quoted'] ? "'{$operands}'" : "{$operands}";
+          $value = $attrlist[$conj_or_attr]['attrs']['quoted'] ? ("'" . self::$dbhandle->escape_string($operands) . "'") : "{$operands}";
           if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) C {$conj_or_attr} {$operands} -> {$value}");
         }
 				if ( !is_null($value) ) $querystring[] = "`{$conj_or_attr}` {$operator} {$value}"; 
       } else {
+        if ( $attrlist[$conj_or_attr]['attrs']['quoted'] ) {
+          array_walk($operands,create_function(
+            '& $a, $k, $s', '$a = $s->escape_string($a);'
+          ), self::$dbhandle);
+        }
         // $this->recursive_dump($operands,__FUNCTION__);
-        $value_wrap   = create_function('$a', $attrlist[$conj_or_attr]['attrs']['quoted'] ? 'return "'."'".'" . $a . "'."'".'";' : 'return $a;');
+        $value_wrap   = create_function('$a', $attrlist[$conj_or_attr]['attrs']['quoted'] 
+          ? 'return "'."'".'" . $a . "'."'".'";' 
+          : 'return $a;');
 				$value        = array_map($value_wrap, $operands);
 				if ( 0 < count($value) ) {
 					$value        = join(',',$value);
@@ -1024,7 +1040,7 @@ EOP
   }/*}}}*/
 
   function dump_accessor_defs_to_syslog() {/*{{{*/
-		$debug_method = FALSE;
+		$debug_method = TRUE;
     $data_items = array_flip(array_map($this->slice('name'), $this->fetch_property_list()));
     if ( $debug_method ) $this->recursive_dump($data_items,'(marker) ' . __METHOD__);
     $this->set_contents_from_array($data_items,FALSE);

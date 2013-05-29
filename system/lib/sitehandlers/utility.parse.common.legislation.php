@@ -421,5 +421,28 @@ EOH;
     return $select_elements;
   }/*}}}*/
 
+  static function committee_name_regex($committee_name) {/*{{{*/
+    $search_name = explode(' ',preg_replace(
+      array(
+        "@[^'A-Z0-9 ]@i",
+        "@[']@i",
+      ),
+      array(
+        '',
+        "\'",
+      ),
+      $committee_name)
+    );
+    array_walk($search_name,
+      create_function(
+        '&$a, $k, $s',
+        '$a = strlen($a) > 3 ? "(" . trim($a) . ")" : NULL;'),
+      $search_name
+    );
+    $search_name = join('(.*)',array_filter($search_name));
+    if (!(0 < strlen($search_name) ) ) return FALSE;
+    return $search_name;
+  }/*}}}*/
+
 }
 

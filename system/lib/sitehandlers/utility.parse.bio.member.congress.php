@@ -203,6 +203,7 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
         continue;
       }/*}}}*/
       if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
+        // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
         foreach ( $container as $tag ) {/*{{{*/
           if ( array_key_exists('text', $tag) && 1 == preg_match('@^([A-Z]{2,3})([0-9]*)$@i', $tag['text']) ) {/*{{{*/
             if ( 0 < count($bills) ) {

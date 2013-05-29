@@ -141,6 +141,10 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     return TRUE;
   }
 
+	public function escape_string($s) {
+		return parent::escape_string($s);
+	}
+
   public function begin($lock = TRUE) {
     throw new Exception(__METHOD__.":Unimplemented");
   }

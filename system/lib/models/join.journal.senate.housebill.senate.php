@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateHousebillSenateJournalJoin extends DatabaseUtility {
+class SenateHousebillSenateJournalJoin extends ModelJoin {
   
   // Join table model
   var $senate_housebill_SenateHousebillDocumentModel;

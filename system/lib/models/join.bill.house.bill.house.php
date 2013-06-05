@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class HouseBillHouseBillJoin extends DatabaseUtility {
+class HouseBillHouseBillJoin extends ModelJoin {
   
   // Join table model
   var $left_house_bill_HouseBillDocumentModel;

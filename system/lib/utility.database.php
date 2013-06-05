@@ -2,30 +2,56 @@
 
 class DatabaseUtility extends ReflectionClass {
 
+  // TODO:  Permit/require derived classes to maintain own copy of the database handle
   static $dbhandle               = NULL;
-  protected static $obj_attrdefs = array(); // Lookup table of class attributes and names
+  // TODO:  Implement reference counter?
+  protected static $obj_attrdefs = array(); // Lookup table of class attributes and names. 
   protected static $obj_ondisk   = array();
+  protected static $cached_joinmaps = array();
 
   protected $tablename           = NULL;
   protected $query_conditions    = array();
   protected $order_by_attrs      = array();
-  protected $join_attrs          = array(); 
+  protected $join_props          = array();
+  protected $join_attrs          = array();
+  protected $join_instance_cache = array();
+  protected $join_value_cache    = array(); // Keyed with an object's name for a Join attribute
+  protected $join_value_fetched  = array(); // As retrieved from DB
+  protected $alias_map           = array();
+  protected $subject_fields      = array(); // Restrict UPDATE, SELECT, etc. to just these attributes.
+  protected $null_instance       = NULL;
   protected $limit               = array();
   protected $query_result        = NULL;
   protected $attrlist            = NULL;
   protected $debug_operators     = FALSE;
   protected $debug_method        = FALSE;
+  var $debug_final_sql = FALSE;
 
   protected $disable_logging = array(
     '-RawparseUtility'
   );
 
-  protected function get_attrdefs() {
-    return array_key_exists(get_class($this), self::$obj_attrdefs)
-      ? self::$obj_attrdefs[get_class($this)]
-      : array(get_class($this) => 'No Definition')
-      ;
+  protected function init_query_prereqs() {
+    $this->join_value_cache = array();
+    $this->join_props       = array();
+    $this->join_attrs       = array();
+    $this->order_by_attrs   = array();
+    $this->limit            = array();
+    $this->query_conditions = array();
+    $this->subject_fields   = array();
   }
+
+  protected function clear_query_prereqs() {
+    $this->join_value_cache = NULL;
+    $this->join_props       = NULL;
+    $this->join_attrs       = NULL;
+    $this->order_by_attrs   = NULL;
+    $this->limit            = NULL;
+    $this->query_conditions = NULL;
+    $this->subject_fields   = NULL;
+    gc_collect_cycles();
+  }
+
   function __construct() {/*{{{*/
     parent::__construct($this);
 		$this->debug_method = FALSE;
@@ -35,33 +61,69 @@ class DatabaseUtility extends ReflectionClass {
       $this->initialize_derived_class_state();
   }/*}}}*/
 
+  function __destruct() {/*{{{*/
+
+    if ( $this->debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) Objects on disk array: ");
+      $this->recursive_dump(self::$obj_ondisk);
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) Object attrdefs: ");
+      $this->recursive_dump(self::$obj_attrdefs);
+    }
+
+    if ( is_array($this->join_instance_cache) ) {
+      while ( 0 < count($this->join_instance_cache) ) {
+        $e = array_pop($this->join_instance_cache);
+        if ( array_key_exists('join', $e) && array_key_exists('obj', $e['join']) ) {
+          unset($e['join']['obj']);
+        }
+        if ( array_key_exists('ref', $e) && array_key_exists('obj', $e['ref']) ) {
+          unset($e['ref']['obj']);
+        }
+        unset($this->join_instance_cache[$k]);
+      }
+    }
+    unset($this->tablename          );
+    unset($this->query_conditions   );
+    unset($this->order_by_attrs     );
+    unset($this->join_props         );
+    unset($this->join_attrs         );
+    unset($this->join_instance_cache);
+    unset($this->join_value_cache   );
+    unset($this->join_value_fetched );
+    unset($this->null_instance      );
+    unset($this->limit              );
+    unset($this->query_result       );
+    unset($this->attrlist           );
+  }/*}}}*/
+
   private final function initialize_db_handle() {/*{{{*/
     if ( is_null(self::$dbhandle) ) {
       $plugin_classname = C('DBTYPE') . 'DatabasePlugin'; 
       self::$dbhandle = new $plugin_classname(DBHOST, DBUSER, DBPASS, DBNAME); 
     }
+    $this->query_result = NULL;
   }/*}}}*/
 
-    function substitute($str) {/*{{{*/
-      // Replace contents of string with this object's fields
-      $regex_match = array();
-      $regex_replace = array();
-      foreach ( $this->fetch_property_list() as $nv ) {
-        $methodname = "get_{$nv['name']}";
-        $propertyname = "{$nv['name']}_{$nv['type']}";
-        if ( method_exists($this, $methodname) ) {
-          $regex_match[] = "@{{$nv["name"]}}@imU";
-          $regex_replace[] = $this->$methodname();
-        } else if ( property_exists($this,$propertyname) ) {
-          $regex_match[] = "@{{$nv["name"]}}@imU";
-          $regex_replace[] = $this->$propertyname;
-        } else {
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to assign {$nv['name']}, no method {$methodname} or property {$propertyname}");
-        }
+  function substitute($str) {/*{{{*/
+    // Replace contents of string with this object's fields
+    $regex_match = array();
+    $regex_replace = array();
+    foreach ( $this->fetch_property_list() as $nv ) {
+      $methodname = "get_{$nv['name']}";
+      $propertyname = "{$nv['name']}_{$nv['type']}";
+      if ( method_exists($this, $methodname) ) {
+        $regex_match[] = "@{{$nv["name"]}}@imU";
+        $regex_replace[] = $this->$methodname();
+      } else if ( property_exists($this,$propertyname) ) {
+        $regex_match[] = "@{{$nv["name"]}}@imU";
+        $regex_replace[] = $this->$propertyname;
+      } else {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to assign {$nv['name']}, no method {$methodname} or property {$propertyname}");
       }
-      $str = preg_replace($regex_match, $regex_replace, $str);
-      return $str == FALSE ? NULL : $str;
-    }/*}}}*/
+    }
+    $str = preg_replace($regex_match, $regex_replace, $str);
+    return $str == FALSE ? NULL : $str;
+  }/*}}}*/
 
   function & remove() {/*{{{*/
     if ( $this->in_database() ) {
@@ -73,29 +135,21 @@ EOS;
     return $this;
   }/*}}}*/
 
-  function & join(array $ja) {
-    $this->join_attrs = array_merge(
-      $this->join_attrs,
-      $ja
-    );
-    return $this;
-  }
-
-  function log_stack() {
+  function log_stack() {/*{{{*/
     try {
       throw new Exception('DB');
     } catch ( Exception $e ) {
       foreach ( $e->getTrace() as $st )
       syslog( LOG_INFO, " @ {$st['line']} {$st['class']}::{$st['function']}() in {$st['file']}");
     }
-  }
+  }/*}}}*/
 
   function fetch_property_list($include_omitted = FALSE) {/*{{{*/
     // Get list of public properties of the derived class 
-    $debug_method = FALSE;
-    $members = array();
+    $debug_method    = FALSE;
+    $members         = array();
     $omitted_members = array();
-    $myname = get_class($this);
+    $myname          = get_class($this);
     if ( array_key_exists($myname, self::$obj_attrdefs) ) {
       $returnval = $include_omitted
         ? self::$obj_attrdefs[$myname]
@@ -176,16 +230,23 @@ EOS;
     }
     // Keep track of all derived class attribute definitions
     // TODO:  If we run into a race condition that cannot be remedied by reordering instance declarations, roll back to SVN #418 (internal schedule)
-    if ( !array_key_exists($myname,self::$obj_attrdefs) ) {
+    if ( !array_key_exists($myname,self::$obj_attrdefs) ) {/*{{{*/
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Inserting attrdefs {$myname}");
       self::$obj_attrdefs[$myname] = array_merge(
         $members,
         $omitted_members
       );
-    }
+    }/*}}}*/
     $returnval = $include_omitted ? self::$obj_attrdefs[$myname] : $members;
     if ( $debug_method ) $this->recursive_dump($returnval,"(marker) Finally " . get_class($this));
     return $returnval;
+  }/*}}}*/
+
+  protected function get_attrdefs() {/*{{{*/
+    return array_key_exists(get_class($this), self::$obj_attrdefs)
+      ? self::$obj_attrdefs[get_class($this)]
+      : array(get_class($this) => 'No Definition')
+      ;
   }/*}}}*/
 
   private final function fetch_typemap(& $attrinfo, $mode = NULL) {/*{{{*/
@@ -386,12 +447,12 @@ EOH;
 
     $this->tablename = join('_', camelcase_to_array(get_class($this)));
     $this->initialize_db_handle();
+    $is_join_table   = 1 == preg_match('@(.*)Join$@i',get_class($this));
+    $members         = $this->fetch_property_list($is_join_table);
 
-    if ( C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {
+    if ( C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {/*{{{*/
 
       // Determine if the backing table exists; construct it if it does not.
-      $is_join_table  = 1 == preg_match('@(.*)Join$@i',get_class($this));
-      $members        = $this->fetch_property_list($is_join_table);
       if ( $debug_method ) $this->recursive_dump($members,"(marker) - From fetch_property_list");
       $matched_tables = array();
       $result         = $this->query('SHOW TABLES')->resultset();
@@ -448,6 +509,7 @@ EOH;
         $result = is_bool($result) ? ($result ? 'TRUE' : 'FALSE') : '---';
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Remove {$removed_column}: {$result}" );
       }
+      unset($removed_columns);
       if ( is_array($added_columns) && (0 < count($added_columns)) )
       foreach ( $added_columns as $added_column ) {
         $column_name = $added_column['name'];
@@ -462,22 +524,68 @@ EOH;
         $result = is_bool($result) ? ($result ? 'TRUE' : 'FALSE') : '---';
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Add {$column_name}: {$result}" );
       }
+      unset($added_columns);
       if ( $debug_method ) {
         $this->syslog( __FUNCTION__, __LINE__, "(marker) End. --------------------------------- " );
       }
+    }/*}}}*/
+
+    unset($members);
+    unset($is_join_table);
+  }/*}}}*/
+
+  function & join_all() {/*{{{*/
+    $join_names = $this->get_join_names();
+    if ( $this->debug_method ) $this->recursive_dump($join_names,"(marker) - -- - ALL ATTRS - -- -");
+    return $this->join($join_names);
+  }/*}}}*/
+
+  function get_join_names($specific_item = NULL,$try_cached = FALSE) {/*{{{*/
+    return array_keys($this->get_joins($specific_item,$try_cached));
+  }/*}}}*/
+
+  function get_joins($specific_item = NULL,$try_cached = FALSE) {/*{{{*/
+    if ( !$try_cached || !(0 < count($this->join_props)) || (!is_null($specific_item) && !array_key_exists($specific_item,$this->join_props)) ) {/*{{{*/
+      $this->join_props = $this->get_attrdefs();
+      $this->filter_nested_array($this->join_props,'propername,joinobject[joinobject*=.*|i]');
+    }/*}}}*/
+    return is_null($specific_item) ? $this->join_props : array_element($this->join_props,$specific_item);
+  }/*}}}*/
+
+  function get_joins_by_model($model_typename = NULL, $assume_unique_attrs = TRUE) {/*{{{*/
+    // Pivot the list of Join attributes around the Join object name, return joins keyed by model name
+    /*
+      Source:  (array) representative =>
+      Source:    (string) propername => RepresentativeDossierModel
+      Source:    (string) joinobject => CongressionalCommitteeRepresentativeDossierJoin
+      Result:  (array) RepresentativeDossierModel =>
+      Result:    (array) "attrname" =>
+      Result:      0 => representative 
+      Result:    (string) joinobject => CongressionalCommitteeRepresentativeDossierJoin
+    */
+    $joinattrs = $this->get_joins();
+    $by_modelname = array();
+    foreach ( $joinattrs as $model_attrname => $attrprops ) {
+      $propername = $attrprops['propername'];
+      $joinobject = $attrprops['joinobject'];
+      if ( !array_key_exists($propername, $by_modelname) ) $by_modelname[$propername] = array(
+        'attrname' => $assume_unique_attrs ? $model_attrname : array(),
+        'joinobject' => $joinobject,
+      ); 
+      else if (!$assume_unique_attrs) $by_modelname[$propername]['attrname'][] = $model_attrname;
     }
+    return is_null($model_typename) ? $by_modelname : array_element($by_modelname,$model_typename);
   }/*}}}*/
 
-  function get_joins($specific_item = NULL) {/*{{{*/
-    $join_attrdefs = $this->get_attrdefs();
-		// $this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i][propername*='.$modelname.']');
-		$this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i]');
-    return is_null($specific_item) ? $join_attrdefs : array_element($join_attrdefs,$specific_item);
-  }/*}}}*/
-
-	function create_joins( $modelname, & $foreign_keys, $allow_update = FALSE ) {/*{{{*/
+	function create_joins( $modelname_or_attrname, & $foreign_keys, $allow_update = FALSE ) {/*{{{*/
 
 		$debug_method = FALSE;
+
+    $join_table = $this->get_joins();
+
+    $modelname = array_key_exists($modelname_or_attrname, $join_table)
+      ? array_element($join_table[$modelname_or_attrname], 'propername')
+      : $modelname_or_attrname;
 
 		$join_attrdefs = $this->get_attrdefs();
 		$this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i][propername*='.$modelname.']');
@@ -518,10 +626,18 @@ EOH;
 				// TODO: Handle larger arrays of more than a handful of foreign Joins 
 				// TODO: Allow assignment of Join object properties in $foreignkey
 				foreach ( $foreign_keys as $fk_or_dummy => $foreignkey ) {
-					$data =  array(
-						$self_attrname => $self_id,
-						$foreign_attrname => $foreignkey
-					);
+          $data = is_array($foreignkey)
+            ? array_merge(
+                $foreignkey,
+                array(
+                  $self_attrname => $self_id,
+                  $foreign_attrname => $fk_or_dummy,
+                )
+              )
+            : array(
+              $self_attrname => $self_id,
+              $foreign_attrname => $foreignkey
+            );
 					$joinobj->fetch($data,'AND');
 					$join_present = $joinobj->in_database();
 					if ( !$join_present || $allow_update ) {
@@ -530,6 +646,7 @@ EOH;
 						$new_joinid = $joinobj->stow();
 						$join_exists  = $join_present ? ("#{$join_id} in DB updated") : "created as #{$new_joinid}";
 						$this->syslog( __FUNCTION__, __LINE__, "(marker) - -- JOIN ". get_class($joinobj) ." {$join_exists} to {$modelname}" );
+						$this->recursive_dump($data,"(marker) --- - ---");
 					}
 				}
 
@@ -542,16 +659,21 @@ EOH;
 	}/*}}}*/
 
   function & execute() {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(warning) --- --- --- - - - --- --- --- NO-OP NO-OP NO-OP");
     return $this;
   }/*}}}*/
 
   function & query($sql, $bindparams = NULL) {/*{{{*/
     $this->initialize_db_handle();
+    self::$dbhandle->set_alias_map($this->alias_map);
     self::$dbhandle->query($sql, $bindparams);
+    // Clear JOIN parameters, cached JOIN assignment values, etc.
+    $this->clear_query_prereqs();
+    $this->init_query_prereqs();
     return $this;
   }/*}}}*/
 
-  private function full_property_list() {/*{{{*/
+  private function full_property_list($pivot_by = NULL, $only_entry = NULL) {/*{{{*/
     $attrlist     = $this->fetch_property_list();
     foreach ( $attrlist as $member_index => $attrs ) {
       $attrname = "{$attrs['name']}_{$attrs['type']}";
@@ -567,87 +689,171 @@ EOH;
         ;
       $attrlist[$member_index]['value'] = $value;
     }
-    return $attrlist;
+    // Allow caller to specify a new array-value key
+    if ( !is_null($pivot_by) ) {
+      $attrlist = array_combine(
+        array_map(create_function('$a','return $a["'.$pivot_by.'"];'), $attrlist),
+        $attrlist
+      );
+    }
+    // Allow caller to specify return of just a specific element of the property list. 
+    return is_null($only_entry) ? $attrlist : array_element($attrlist,$only_entry);
   }/*}}}*/
 
-  function construct_sql_from_conditiontree(& $attrlist, $condition_branch = NULL) {/*{{{*/
+  function construct_sql_from_conditiontree(& $attrlist, $condition_branch = NULL, $depth = 0) {/*{{{*/
     // FIXME:  This probably doesn't handle conjuctions properly.
     // Parse a binary tree containing query conditions, returning the resulting
     // condition string (which must evaluate to a valid SQL query condition)
     $querystring = array();
-    if ( $this->debug_method ) $this->recursive_dump($this->query_conditions,'CSFC');
-    foreach ( is_null($condition_branch) ? $this->query_conditions : $condition_branch as $conj_or_attr => $operands ) {
+
+    if ( is_null($condition_branch) ) 
+      $iteration_source =& $this->query_conditions;
+    else
+      $iteration_source =& $condition_branch;
+
+    if ( $this->debug_method ) $this->recursive_dump($iteration_source,"(marker) - - - - - - - - - - - - CSFC @ {$depth}");
+
+    foreach ( $iteration_source as $conj_or_attr => $operands ) {
 
       if ( array_key_exists(strtoupper($conj_or_attr), array_flip(array('AND', 'OR')))) {
-        if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "A conj '{$conj_or_attr}'");
-        $fragment = $this->construct_sql_from_conditiontree($attrlist, $operands);
-				if ( FALSE === $fragment ) {
+        if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) A conj '{$conj_or_attr}'");
+        $fragment = $this->construct_sql_from_conditiontree($attrlist, $operands, $depth + 1);
+				if ( FALSE == $fragment ) {
 					$this->syslog(__FUNCTION__,__LINE__, "(marker) Invalid condition parameters, SQL statement could not be constructed.");
 					return FALSE;
 				}
-        $querystring[] = join(" {$conj_or_attr} ", $fragment);
+        $querystring[] = '(' . join(" {$conj_or_attr} ", $fragment) . ')';
         continue;
       }
-      if ( !is_array($operands) ) {
+      if ( !is_array($operands) ) {/*{{{*///  Non-array operand
         $operand_regex = '@^(LIKE|REGEXP)(.*)@';
         $operand_match = array();
         $opmatch       = preg_match($operand_regex, $operands, $operand_match);
         $operator      = '=';
 				$value         = NULL;
-        if ( 1 == $opmatch ) {
+        if ( 1 == $opmatch ) {/*{{{*/
+          // Match LIKE or REGEXP condition prefix
           // FIXME: This is absolutely NOT secure, inputs need to be filtered against SQL injection.
           // $this->recursive_dump($operand_match, __LINE__);
           $operator = trim($operand_match[1]);
           $value    = trim($operand_match[2]);
-          if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, 'B');
-        } else {
-					if ( array_key_exists($conj_or_attr, $attrlist) ) 
-          $value = $attrlist[$conj_or_attr]['attrs']['quoted'] ? ("'" . self::$dbhandle->escape_string($operands) . "'") : "{$operands}";
+          if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) B - Non-array [operand]: {$operator}({$value})");
+        }/*}}}*/
+        else {/*{{{*/
+          $attr_match_components = array();
+					if ( array_key_exists($conj_or_attr, $attrlist) ) { 
+            $value = $attrlist[$conj_or_attr]['attrs']['quoted'] ? ("'" . self::$dbhandle->escape_string($operands) . "'") : "{$operands}";
+          } else if ( $conj_or_attr == 'id' ) {
+            // This property isn't enumerated in the object attribute list, but probably should be included.
+              if ( 0 < intval($operands) ) $value = intval($operands);
+              else {
+                $this->syslog(__FUNCTION__,__LINE__, "(marker) --- - - - --- --- - - - Hit on 'ID' '{$conj_or_attr}', using operator {$operator}, value '{$operands}'");
+              }
+          } else if ( 1 == preg_match("@^([a-z`]*)\.`([a-z_]*)`@i",$conj_or_attr,$attr_match_components) ) {
+            // Join attributes should be treated normally, by including them in attrlist
+            // The only crucial attribute property to include is 'quoted', which tells the parser
+            // to wrap assigned values in quotes.
+            if ( $this->debug_method ) {
+              $this->syslog(__FUNCTION__,__LINE__, "(marker) --- - - - --- --- - - - Must add Join attribute '{$conj_or_attr}', using operator {$operator}, value '{$operands}'");
+            }
+            $test_alias = trim(array_element($attr_match_components,1),'`');
+            $test_attr  = trim(array_element($attr_match_components,2),'`');
+            $test_attr  = "`{$test_alias}`.`{$test_attr}`";
+            if ( array_key_exists($test_attr, $attrlist) ) {
+              $value = $attrlist[$test_attr]['attrs']['quoted'] ? ("'" . self::$dbhandle->escape_string($operands) . "'") : "{$operands}";
+              if ( !is_null($value) ) $querystring[] = "{$conj_or_attr} {$operator} {$value}"; 
+              $value = NULL;
+            } else {
+              $this->syslog(__FUNCTION__,__LINE__, "(marker) --- - - - --- --- - - - Unable to add Join attribute '{$conj_or_attr}', using operator {$operator}, value '{$operands}': No match in attrlist");
+              $this->recursive_dump($attrlist,"(marker) - - - --- ->");
+              $this->recursive_dump($attr_match_components,"(marker) - - - --- ->");
+            }
+
+          } else {
+            $this->syslog(__FUNCTION__,__LINE__, "(marker) --- - - - --- --- - - - Attribute '{$conj_or_attr}' not found in attribute list!");
+            $this->recursive_dump(array_keys($attrlist),"(marker) - - - --- ->");
+          }
           if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) C {$conj_or_attr} {$operands} -> {$value}");
-        }
-				if ( !is_null($value) ) $querystring[] = "`{$conj_or_attr}` {$operator} {$value}"; 
-      } else {
+        }/*}}}*/
+				if ( !is_null($value) ) $querystring[] = "{$conj_or_attr} {$operator} {$value}"; 
+      }/*}}}*/
+      else {/*{{{*/// Array operand, presently only generates SQL IN (...) condition fragment
         if ( $attrlist[$conj_or_attr]['attrs']['quoted'] ) {
           array_walk($operands,create_function(
             '& $a, $k, $s', '$a = $s->escape_string($a);'
           ), self::$dbhandle);
         }
-        // $this->recursive_dump($operands,__FUNCTION__);
         $value_wrap   = create_function('$a', $attrlist[$conj_or_attr]['attrs']['quoted'] 
           ? 'return "'."'".'" . $a . "'."'".'";' 
           : 'return $a;');
 				$value        = array_map($value_wrap, $operands);
 				if ( 0 < count($value) ) {
+					if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) D - Array operand `{$conj_or_attr}`, n(".count($value).") values found.");
 					$value        = join(',',$value);
 					$querystring[] = "`{$conj_or_attr}` IN ({$value})"; 
-					if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, 'D');
-				} else return FALSE;
-      }
+        } else {
+          return FALSE;
+        }
+      }/*}}}*/
+    }
+    if ( $this->debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - - - -  - Returning query string as array:");
+      $this->recursive_dump($querystring,"(marker) - - - - -");
     }
     return $querystring;
   }/*}}}*/
 
   function update() {/*{{{*/
-    //  $a["attrs"]["unique"] ? NULL : 
-    //  $a["attrs"]["unique"] ? NULL : 
+    $debug_method = FALSE;
     $f_attrval   = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "`{$a["name"]}` = ?": "`{$a["name"]}` = {$a["value"]}";');
     $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
     $attrlist    = $this->full_property_list();
-    $boundattrs  = array_filter(array_map($f_bindattrs,  $attrlist));
-    if (0) {
-      $this->syslog(__FUNCTION__, __LINE__, "(marker) Will update record #{$this->id}: {$sql}" );
-      $this->recursive_dump($attrlist,'(marker) Exclude UNIQUE attrs');
+    if ( 0 < count($this->subject_fields) ) {
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - Restrictions to apply");
+        $this->recursive_dump($this->subject_fields, "(marker) - - - - A -");
+      }
+      $attrlist = array_intersect_key($attrlist, array_flip(array_values($this->subject_fields)));
     }
-    $attrval   = join(',', array_map($f_attrval, $attrlist));
+    $boundattrs  = array_filter(array_map($f_bindattrs,  $attrlist));
+    $attrval     = join(',', array_map($f_attrval, $attrlist));
     $sql = <<<EOS
 UPDATE `{$this->tablename}` SET {$attrval} WHERE `id` = {$this->id}
 EOS;
+    if ($debug_method) {
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) Will update record #{$this->id}: {$sql}" );
+      $this->recursive_dump($attrlist,'(marker) Exclude UNIQUE attrs');
+    }
     $this->insert_update_common($sql, $boundattrs, $attrlist);
     if ( !empty(self::$dbhandle->error) ) {
       $this->syslog( __FUNCTION__, __LINE__, "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");
       $this->syslog(__FUNCTION__, __LINE__, "Record #{$this->id}: {$sql}" );
-    } else
-      $this->syslog(__FUNCTION__, __LINE__, "Updated record #{$this->id}: {$sql}" );
+    } else {
+      // Only perform Join updates if the operation succeeds
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Updated record #{$this->id}: {$sql}" );
+      if ( 0 < count($this->join_value_cache) ) {
+        foreach ( $this->join_value_cache as $attr => $data_src ) {
+          foreach ( $data_src as $fkey => $data ) {
+            $joinattrs = $this->get_join_object($attr,'join','set');
+            unset($data['fkey']);
+            $data[$joinattrs['self']] = $this->id;
+            $data[$joinattrs['fkey']] = $fkey;
+            if ( $fkey == 'UNCACHED' ) continue;
+            if ( $fkey == 'UNMAPPED' ) continue;
+            $this->get_join_instance($attr)->fetch($data,'AND');
+            if ( $debug_method ) $this->recursive_dump($data,"(marker) - - J - -");
+            if ( !$this->get_join_instance($attr)->in_database() ) {
+              $data['create_time'] = time();
+              $join_id = $this->get_join_instance($attr)->set_contents_from_array($data)->stow();
+              $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Added join {$attr}[{$join_id}]: " . join(',',$data) );
+            } else {
+              $join_id = $this->get_join_instance($attr)->get_id();
+              if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Found join {$attr}[{$join_id}]: " . join(',',$data) );
+            }
+          }
+        }
+      }
+    }
     return $this->id;
   }/*}}}*/
 
@@ -671,34 +877,402 @@ EOS;
     return array_key_exists('n',$result) ? intval($result['n']) : NULL;
   }/*}}}*/
 
+  protected function reorder_aliasmap(& $consolidated_aliasmap) {/*{{{*/
+    if ( is_array($consolidated_aliasmap) ) {/*{{{*/
+      if ( $this->debug_method ) $this->recursive_dump($consolidated_aliasmap,"(marker) Alias Map - - -");
+      $ft_aliasmap = array();
+      $aliases = array();
+      foreach ( $consolidated_aliasmap as $attribute => $mapinfo ) {
+        $alias = array_element($mapinfo,'alias');
+        $left  = array_element($mapinfo,'left');
+        $aliases[] = $alias;
+        // if ( !is_null($left) ) $left = "@^{$left}_@";
+        // $alias = "@^{$alias}_@";
+        $ft_aliasmap[$alias] = array_filter(array(
+          'attrname' => $attribute,
+          'left' => $left,
+        ));
+      }
+      $consolidated_aliasmap = array(
+        'map' => $ft_aliasmap,
+        'match' => '@^(' . join('|',$aliases) . ')_(.*)$@',
+        'attrmap' => $consolidated_aliasmap,
+      );
+    }/*}}}*/
+
+  }/*}}}*/
+
+  protected function get_join_clauses(& $consolidated_aliasmap) {/*{{{*/
+    $debug_method          = FALSE;
+    $debug_method         |= $this->debug_method;
+    $join_clauses          = array();
+    $consolidated_aliasmap = NULL;
+
+    if ( 0 < count($this->join_attrs) ) {/*{{{*/
+      $consolidated_aliasmap = array();
+      if ( $debug_method ) {/*{{{*/
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - Constructing JOIN .. ON clauses");
+        $this->recursive_dump($this->join_attrs,"(marker) - - -");
+      }/*}}}*/
+      // This method updates the SELECT tablespec list to include 
+      // foreign table attributes.  If any attributes of the Join subject
+      // are specified, these must be aliased.
+      $joins               = $this->get_joins();
+      $ft_aliases          = array('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k'); // Alias 'a' is always the join parent
+      $ft_aliasmap         = array();
+      $join_instance_table = array();
+      foreach ( $this->join_attrs as $k => $jv ) {/*{{{*/
+        $attribute_list_present = TRUE;
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - Clause '{$k}'");
+        }/*}}}*/
+        // Get SQL fragments for use in JOIN clauses
+        $fm       = JoinFilterUtility::get_map_functions($jv);
+        $attrname = $fm[0]['target'];
+        $rtable_property_list = $this->get_join_object($attrname,'ref','obj')->full_property_list();
+        // Include 'id' field 
+        if ( !array_key_exists('id', $rtable_property_list) ) {
+          $rtable_property_list['id'] = array(
+            'name' => 'id',
+            'type' => 'int11',
+            'value' => NULL,
+            'attrs' => array(
+              "fieldname" => 'id', 
+              "properties" => "INT(11)",
+              "quoted" => FALSE,
+              "mustbind" => FALSE,
+            )
+          );
+        }
+        // If the attribute name exists in the list of Join objects,
+        // then it hasn't been parsed for conditions at all, so that the
+        // object referenced on the right side of the JOIN is not known.
+        // We then have to fill in the join clause source with a list of 
+        // attributes from the right side.
+        if ( array_key_exists($jv,$joins) ) {/*{{{*/
+          if ( $debug_method ) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - Simple attribute name '{$jv}' given as join clause '{$k}'");
+            $this->recursive_dump($rtable_property_list,"(marker) - RSA  -");
+          }
+          $fm[1] = array(
+            'attrlist' => $rtable_property_list,
+            'fields' => array_map(create_function('$a','return "`{ftable}`.`{$a}` `{ftable}_{$a}`";'),array_keys($rtable_property_list)),
+            'conditions' => array(),
+          );
+          $attribute_list_present = FALSE;
+        }/*}}}*/
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - Join Map '{$k}'");
+          $this->recursive_dump($fm, "(marker) - - JM  - -");
+        }/*}}}*/
+        $fm_hash = md5(json_encode($fm));
+
+        // Skip regenerating JOIN clauses when the map exists; see CACHE, below
+        if ( array_key_exists($fm_hash,static::$cached_joinmaps) ) {/*{{{*/
+          if ( $debug_method ) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - Returning cached join data");
+          }
+          $cached_joinmap = json_decode(static::$cached_joinmaps[$fm_hash],TRUE);
+          $this->recursive_dump(($join_clauses[] = $cached_joinmap['join_map']),
+            $debug_method ? "(marker) - - - Cached JOIN map - - -" : "(------) - - - Cached"
+          );
+          $consolidated_aliasmap = array_merge(
+            $consolidated_aliasmap,
+            $cached_joinmap['alias_map']
+          );
+          $this->recursive_dump($cached_joinmap['alias_map'],
+            $debug_method ? "(marker) - - - Cached JOIN map - - -" : "(------) - - - Cached"
+          );
+          continue;
+        }/*}}}*/
+        $join_attr        = array_element($joins,$attrname);
+        $join_object_name = array_element($join_attr,'joinobject');
+        // Test whether a named attribute actually exists
+        if ( empty($join_object_name) ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - No such Join attribute '{$attrname}' in this class. Check your Join conditions.");
+          $this->recursive_dump($this->get_attrdefs(),"(marker) - * * get_attrdefs() * * -");
+          continue;
+        }/*}}}*/
+        $join_table_name    = join('_',camelcase_to_array($join_object_name));
+        // Get an alias for this attribute
+        if ( !array_key_exists($attrname, $ft_aliasmap) ) $ft_aliasmap[$attrname] = array(
+          'join'  => $join_table_name,
+          'type'  => get_class($this->get_join_object($attrname,'ref','obj')),
+          'alias' => $ft_aliases[count($ft_aliasmap)],
+        );
+
+        $attr_alias = $ft_aliasmap[$attrname]['alias'];
+
+        if ( !array_key_exists($join_object_name, $join_instance_table) ) {/*{{{*/
+          $join_instance_table[$join_object_name] = $this->get_join_object($attrname,'join','set');
+          // This attribute list is not used here, and is intended to be returned to the caller, to be merged into the 
+          // attribute list used to detect whether to wrap value assignments in quotes, etc.
+          // We need only remap the names to aliased equivalents, so that there is no collision with
+          // primary table attribute names.
+          $join_instance_table[$join_object_name]['attrlist'] = $this->get_join_object($attrname,'join','obj')->full_property_list();
+          // Include 'id' field 
+          if ( !array_key_exists('id', $join_instance_table[$join_object_name]['attrlist']) ) {/*{{{*/
+            $join_instance_table[$join_object_name]['attrlist']['id'] = array(
+              'name' => 'id',
+              'type' => 'int11',
+              'value' => NULL,
+              'attrs' => array(
+                "fieldname" => 'id', 
+                "properties" => "INT(11)",
+                "quoted" => FALSE,
+                "mustbind" => FALSE,
+              )
+            );
+          }/*}}}*/
+          $join_attrs_sans_refs = array_filter(array_map(create_function('$a','return 1 == preg_match("@Model\$@i",array_element($a,"propername")) ? NULL : $a;'),$join_instance_table[$join_object_name]['attrlist']));
+          if ( 0 < count($join_attrs_sans_refs) ) {
+            $join_instance_table[$join_object_name]['fields'] = array_combine(
+              array_map(create_function('$a','return "`'.$attr_alias.'`.`{$a["name"]}` `'.$attr_alias.'_{$a["name"]}`";'), $join_attrs_sans_refs),
+              $join_attrs_sans_refs
+            );
+          }
+          $join_instance_table[$join_object_name]['attrlist'] = array_combine(
+            array_map(create_function('$a','return "`'.$attr_alias.'`.`{$a["name"]}`";'), $join_instance_table[$join_object_name]['attrlist']),
+            $join_instance_table[$join_object_name]['attrlist']
+          );
+          if ( $debug_method ) {/*{{{*/
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Join instance {$join_object_name}");
+            $this->recursive_dump($join_instance_table[$join_object_name],"(marker) -+-");
+          }/*}}}*/
+        }/*}}}*/
+
+        $join_fkey_attname  = $join_instance_table[$join_object_name]['self'];
+        array_walk($fm[0]['conditions'],create_function('& $a, $k, $s', '$a = str_replace("{join}","`{$s}`", $a);'), $attr_alias);
+
+        // Primary join clause, and the only one if the user hasn't specified a foreign table condition
+        $fm[0] = array(
+          'joinclause' => "LEFT JOIN `{$join_table_name}` `{$attr_alias}` ON `a`.`id` = `{$attr_alias}`.`{$join_fkey_attname}`",
+          'conditions' => $fm[0]['conditions'],
+          'attrlist'   => array_element($join_instance_table[$join_object_name],'attrlist'),
+        ); 
+        if ( !$attribute_list_present ) {
+          $fm[1]['fields'] = array_merge(
+            array_keys(array_element($join_instance_table[$join_object_name],'fields',array())),
+            $fm[1]['fields']
+          );
+        }
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+        // Now construct the foreign table JOIN subclause and any conditions that relate to it. 
+        if ( array_key_exists(1,$fm) ) {/*{{{*/
+
+          if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Using join properties of foreign table {$join_attr['propername']}");
+
+          $matched_ft_element = $this->get_join_object($attrname,'ref','obj')->get_joins();
+
+          if ( $debug_method ) {
+            $this->recursive_dump($matched_ft_element,"(marker) - - - ---- - - -");
+          }
+
+          $this->filter_nested_array($matched_ft_element, '#[propername*=]', 0); // We expect there to be just one entry
+          $foreign_table_name = join('_',camelcase_to_array($join_attr['propername']));
+
+          // Construct a fake lookup table attribute name
+          $rtable_alias_attrname = join('_',array($attrname,$foreign_table_name)); 
+
+          if ( !array_key_exists($rtable_alias_attrname, $ft_aliasmap) ) $ft_aliasmap[$rtable_alias_attrname] = array(
+            'join'  => $join_table_name,
+            'type'  => get_class($this->get_join_object($attrname,'join','obj')),
+            'alias' => $ft_aliases[count($ft_aliasmap)],
+            'left'  => $attr_alias, 
+          );
+
+          $rtable_attr_alias = $ft_aliasmap[$rtable_alias_attrname]['alias'];
+          $join_rkey_attname = $join_instance_table[$join_object_name]['fkey'];
+
+          // FIXME: If no attributes are specified for the right foreign table (on the other end of the Join)
+          // FIXME: then we should include ALL attributes from that table.  Otherwise, every join() method invocation
+          // FIXME: must include the subject table fields.
+          if (!is_array($fm[1]['fields'])) {
+            $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - Invalid foreign key map table entry.");
+            $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - " . print_r($fm));
+          }
+          array_walk( $fm[1]['fields']    , create_function('& $a, $k, $s', '$a = str_replace("{ftable}",$s, $a);'), $rtable_attr_alias);
+          array_walk( $fm[1]['conditions'], create_function('& $a, $k, $s', '$a = str_replace("{ftable}",$s, $a);'), $rtable_attr_alias);
+
+          $fm[1]['joinclause'] = "LEFT JOIN `{$foreign_table_name}` `{$rtable_attr_alias}` ON `{$attr_alias}`.`{$join_rkey_attname}` = `{$rtable_attr_alias}`.`id`"; 
+          $fm[1]['attrlist'] = $rtable_property_list;
+          $fm[1]['attrlist'] = array_combine(
+            array_map(create_function('$a','return "`'.$rtable_attr_alias.'`.`{$a["name"]}`";'), $fm[1]['attrlist']),
+            $fm[1]['attrlist']
+          );
+        }/*}}}*/
+
+        // CACHE
+        static::$cached_joinmaps[$fm_hash] = json_encode(array(
+          'join_map' => $fm,
+          'alias_map' => $ft_aliasmap,
+        )); // Store compressed, instead of as an accessible, in-memory structure
+        $join_clauses[] = $fm;
+
+        if ( $debug_method ) {
+          $this->recursive_dump($fm,"(marker) - S -");
+          $this->recursive_dump($ft_aliasmap,"(marker) - Aliases -");
+        }
+        // This alias map is used AFTER the SQL statement has been executed.
+        // It is used in e.g. DatabaseUtility::result_to_model, whenever 
+        // aliased resultset names need to be mapped into the correct
+        // foreign table entity.
+        $consolidated_aliasmap = array_merge(
+          $consolidated_aliasmap,
+          $ft_aliasmap
+        );
+
+      }/*}}}*/
+      //// Cleanup
+      unset($this->join_attrs);
+      $this->join_attrs = array();
+    }/*}}}*/
+
+    $this->reorder_aliasmap($consolidated_aliasmap);
+
+    if ( $debug_method ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - " . get_class($this) . " JOIN clause information");
+      $this->recursive_dump($join_clauses, "(marker) - - -- JC -- -");
+      $this->recursive_dump($consolidated_aliasmap, "(marker) - - -- AM -- -");
+    }/*}}}*/
+
+    return $join_clauses;
+  }/*}}}*/
+
   protected function prepare_select_sql(& $sql, $exclude_blobfields = FALSE) {/*{{{*/
     // Fill in the SQL string, and return attribute list
-    // TODO: Exclude*BLOB attributes from the statement generated with this method. 
-    $debug_method = FALSE;
+    // TODO: Exclude *BLOB attributes from the statement generated with this method. 
+
     $this->initialize_db_handle();
-    $key_by_varname = create_function('$a', 'return $a["name"];');
-    $attrlist = $this->full_property_list();
-    $key_map  = array_map($key_by_varname, $attrlist);
+
+    $debug_method    = $this->debug_method;
+    $key_by_varname  = create_function('$a', 'return $a["name"];');
+    $attrlist        = $this->full_property_list();
+    $key_map         = array_map($key_by_varname, $attrlist);
     $conditionstring = NULL;
-    if ( $debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__, "--- Property list");
-      $this->recursive_dump( $key_map, __LINE__);
-    }
+    $join_attrlists  = array();
+    if ( $debug_method ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) --- Property list (source for attrlist)");
+      $this->recursive_dump( $key_map, "(marker) - - - -" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) --- Attribute list");
+      $this->recursive_dump( $attrlist, "(marker) - - - -" );
+    }/*}}}*/
     if ( 0 < count($attrlist) && count($attrlist) == count($key_map) ) {
+      $primary_table_alias = '';
+      $join_clauses        = '';
+      $attrnames           = array();
+      /////////////////////////////////////////////////////////////////////
+      // Use JOIN ... ON clauses when present; include JOIN attribute list as needed
+      // This call modifies subsequent processing of the SQL condition tree,
+      // by forcing use of an alias for this table, by attaching additional 
+      // WHERE conditions, and by modifying the tablesource clause to include
+      // JOINed table attributes, as needed
+      $join_clause_source = $this->get_join_clauses($this->alias_map);
+      if ( is_array($join_clause_source) && 0 < count($join_clause_source) ) {/*{{{*/
+        $primary_table_alias = '`a`.';
+        $join_clauses = array();
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - -- - - Retrieved clauses - - - - - - - -");
+          $this->recursive_dump($join_clause_source,"(marker) - - -");
+        }/*}}}*/
+
+        while ( 0 < count($join_clause_source) ) {/*{{{*/
+          $clause_set = array_pop($join_clause_source);
+          $remaining_elements = count($join_clause_source);
+          krsort($clause_set);
+          while ( 0 < count($clause_set) ) {
+            $j = array_pop($clause_set); 
+            if ( $debug_method ) {
+              $this->syslog(__FUNCTION__,__LINE__,"(marker) {$remaining_elements} - - - - - - Extracted clauses");
+              $this->recursive_dump($j,"(marker) - - -");
+            }
+            $join_clauses[] = array_element($j,'joinclause');
+            if ( array_key_exists('fields', $j) ) $attrnames = array_merge($attrnames, $j['fields']);
+            if ( array_key_exists('attrlist', $j) ) $join_attrlists = array_merge($join_attrlists, nonempty_array_element($j,'attrlist',array()));
+            // FIXME: JOIN conditions generated by the JoinFilterUtility do not allow
+            // FIXME: distinguishing conjunctions ('and') and disjunctions ('or').
+            // FIXME: We default to treating condition terms as being joined by AND connectives.
+            // FIXME: c.f. DatabaseUtility::where()
+            if ( $debug_method ) {
+              $this->syslog(__FUNCTION__,__LINE__,"(marker) {$remaining_elements} - - - - - - PREEXISTING QUERY CONSTRAINTS");
+              $this->recursive_dump($this->query_conditions,"(marker) {$remaining_elements} - - -");
+            }
+            // Note that JOINs only EVER exercise the sections of construct_sql_from_conditiontree
+            // that deal with scalar values; it isn't yet possible (ca. SVN #562) to directly
+            // specify array conditions, i.e. to assert IN (...) or NOT IN (...) constraints
+            // from the CSS-selector-like parser's output.
+            $condstack = array('AND' => array());
+            foreach ( array_element($j,'conditions',array()) as $condphrase ) {
+              $condstack['AND'][array_element($condphrase,'attr')] = array_element($condphrase,'val');
+            }
+            if ( 0 < count(array_element($condstack,'AND')) ) {
+              if ( $debug_method ) {
+                $this->syslog(__FUNCTION__,__LINE__,"(marker) {$remaining_elements} - - - - - - PREEXISTING QUERY CONSTRAINTS");
+                $this->recursive_dump($this->query_conditions,"(marker) {$remaining_elements} - - -");
+              }
+              if ( !array_key_exists('AND',$this->query_conditions) ) {
+                $this->query_conditions['AND'] = array();
+              }
+              $this->query_conditions['AND'] = $condstack['AND'];
+
+              if ( $debug_method ) {
+                $this->syslog(__FUNCTION__,__LINE__,"(marker) {$remaining_elements} - - - - - - FINAL SET OF QUERY CONSTRAINTS");
+                $this->recursive_dump($this->query_conditions,"(marker) {$remaining_elements} - - -");
+              }
+            }
+          }
+        }/*}}}*/
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - JOIN clause list");
+          $this->recursive_dump($join_clauses,"(marker) - - -");
+        }/*}}}*/
+
+        if (0) {/*{{{*/
+          $join_attrlist = $this->get_joins();
+          array_walk($join_attrlist, create_function(
+            '& $a, $k', '$a["name"] = $k;'
+          ));
+          $attrlist = array_merge(
+            $attrlist,
+            array_combine(
+              array_keys($join_attrlist),
+              array_map(create_function('$a','return array("name" => $a["name"], "type" => $a["joinobject"], "attrs" => array("fieldname" => $a["name"], "quoted" => FALSE, "mustbind" => FALSE));'),$join_attrlist)
+            )
+          );
+          $key_map = array_merge(
+            $key_map,
+            array_combine(
+              array_keys($join_attrlist),
+              array_keys($join_attrlist)
+            )
+          );
+
+          $this->syslog(__FUNCTION__,__LINE__,"(marker)  - - - - - - Attrs");
+          $this->recursive_dump($attrlist,"(marker)  - - -");
+          $this->syslog(__FUNCTION__,__LINE__,"(marker)  - - - - - - JOINS");
+          $this->recursive_dump($this->get_joins(),"(marker)  - - -");
+        }/*}}}*/
+
+        $join_clauses = join(' ', $join_clauses);
+        
+      }/*}}}*/
+      /////////////////////////////////////////////////////////////////////
       $bindable_attrs = ( $exclude_blobfields )
-        ? create_function('$a', 'return $a["attrs"]["mustbind"] ? NULL : "`" . $a["name"] . "`";')
-        : create_function('$a', 'return "`{$a["name"]}`";')
+        ? create_function('$a', 'return $a["attrs"]["mustbind"] ? NULL : "'.$primary_table_alias.'`" . $a["name"] . "`";')
+        : create_function('$a', 'return "'.$primary_table_alias.'`{$a["name"]}`";')
         ;
-      $attrnames = array_filter(array_map($bindable_attrs, $attrlist));
-      $attrnames[] = '`id`'; // Mandatory to include this
-      // DEBUG
-      // $this->recursive_dump( $attrnames, __LINE__);
-      $attrnames = join(',',$attrnames);
-      $attrlist = array_combine($key_map, $attrlist);
+      $attrnames = array_merge(
+        $attrnames,
+        array_filter(array_map($bindable_attrs, $attrlist))
+      );
+      $attrnames[] = $primary_table_alias.'`id`'; // Mandatory to include this
+      $attrnames       = join(',',$attrnames);
+      $attrlist        = array_combine($key_map, $attrlist); // Pivot keys, make [name] attribute be the array lookup key
+      $attrlist        = array_merge($attrlist, $join_attrlists);
       $conditionstring = $this->construct_sql_from_conditiontree($attrlist);
 			if ( FALSE == $conditionstring ) return FALSE;
       $order_by = array();
-      if ( 0 < count($this->order_by_attrs) ) {
+      if ( 0 < count($this->order_by_attrs) ) {/*{{{*/
         foreach ( $this->order_by_attrs as $a => $b ) {
           if ( is_integer($a) ) {
             $order_by[] = $b;
@@ -706,13 +1280,16 @@ EOS;
             $order_by[] = "{$a} {$b}";
           }
         }
-      }
+      }/*}}}*/
+      $this->order_by_attrs = array();
+      // Use ORDER BY clause
       $order_by = ( 0 < count($order_by) )
         ? "ORDER BY " . join(',', $order_by)
         : NULL
         ;
+      // Use LIMIT clause 
       $limit_by = NULL;
-      if ( 0 < count($this->limit) ) {
+      if ( 0 < count($this->limit) ) {/*{{{*/
         $this->limit['n'] = intval($this->limit['n']);
         $this->limit['o'] = intval($this->limit['o']);
         if ( 0 < $this->limit['n'] ) {
@@ -720,63 +1297,82 @@ EOS;
         } else {
           $this->limit = array();
         }
-      }
-      // DEBUG
-      // $this->recursive_dump( $conditionstring, __LINE__);
-      $conditionstring = join(' ',$conditionstring);
+      }/*}}}*/
+      $conditionstring = join(' AND ',$conditionstring);
+      $primary_table_alias = rtrim($primary_table_alias,'.');
       $sql = <<<EOS
-SELECT {$attrnames} FROM `{$this->tablename}` WHERE {$conditionstring} {$order_by} {$limit_by}
+SELECT {$attrnames} FROM `{$this->tablename}` {$primary_table_alias} {$join_clauses} WHERE {$conditionstring} {$order_by} {$limit_by}
 EOS;
-      // DEBUG
     }
-    if ( $debug_method ) {
+    if ( $this->debug_final_sql ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Query: {$sql}");
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Condition: {$conditionstring}");
+      if ( $this->debug_final_sql ) $this->recursive_dump($this->alias_map,"(marker) - - -- Aliases -- - -");
+    }
+    if ( $this->debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Returning attribute list:");
+      $this->recursive_dump($attrlist,"(marker) - - -- Attrlist -- - -");
     }
     return $attrlist;
   }/*}}}*/
 
   function result_to_model(array $result) {/*{{{*/
     if ( is_array($result) && (0 < count($result)) && array_key_exists('attrnames', $result)) {
+      unset($this->query_result);
       $this->query_result = array();
       foreach ( $result['attrnames'] as $resattridx => $rescol ) {
+        if ( !array_key_exists($rescol, $this->attrlist) ) {
+          if ( $this->debug_method ) $this->recursive_dump($this->alias_map,"(marker) -- - -- - -- - -- -");
+          $this->attrlist[$rescol] = (array_key_exists($rescol, array_element($this->alias_map,'attrmap',array())))
+            ? array('name' => $rescol, 'type' => $this->alias_map['attrmap'][$rescol]['type'])
+            : array('name' => '_', 'type' => '_')
+            ;
+        }
         $attrname = $rescol == 'id'
           ? 'id'
           : "{$this->attrlist[$rescol]['name']}_{$this->attrlist[$rescol]['type']}"
           ;
-        $value = $result['values'][0][$resattridx]; // A single-record fetch reduces nest depth by 1
-        $this->query_result[$attrname] = $value; 
-        $this->$attrname = $value; 
-        if ( strlen($this->$attrname) < 500 )
-        $this->syslog( __FUNCTION__, __LINE__, "> {$attrname} <- [{$this->$attrname}|{$value}]");
+        if ( ('___' == $attrname) ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - -- - Failed to assign value for [{$rescol}]");
+        } else {
+          $value = $result['values'][0][$resattridx]; // A single-record fetch reduces nest depth by 1
+          $this->query_result[$attrname] = $value; 
+          $this->$attrname = $value; 
+        }
+        if ( $this->debug_operators ) { 
+          if ( strlen($this->$attrname) < 500 ) $this->syslog( __FUNCTION__, __LINE__, "> {$attrname} <- [{$this->$attrname}|{$value}]");
+        }
       }
     } else {
-      $this->syslog(__FUNCTION__,__LINE__,'- model load failure ' . join('|', $result));
+      $this->syslog(__FUNCTION__,__LINE__,'(warning) - model load failure ' . join('|', $result));
     }
   }/*}}}*/
 
   function select() {/*{{{*/
+    // Assigns a valid resultset to $this->query_result (in the call to result_to_model) 
 		$this->id = NULL;
     $sql = '';
-    if ( FALSE == ($this->attrlist = $this->prepare_select_sql($sql)) ) return FALSE;
-    $result = $this->query($sql)->resultset();
-    /*
-    $this->recursive_dump($result,'R');
-    $this->recursive_dump($this->query_conditions,'C');
-    //$this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>>>>>>>>>" );
-    */
+    unset($this->query_result);
     $this->query_result = NULL;
-    if ( is_array($result) ) {
-      //$this->recursive_dump($result,__LINE__);
-       $this->result_to_model($result);
+    if (FALSE == ($this->attrlist = $this->prepare_select_sql($sql))) {
+      $this->syslog(__FUNCTION__,__LINE__,"(error) -- - - Failed to setup SELECT SQL {$sql}");
+      return FALSE;
     }
-    //$this->syslog(__FUNCTION__,__LINE__,"<<<<<<<<<<<<<<<<<<<<<<<" );
+    $result = $this->query($sql)->resultset();
+    if ( $this->debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - res " . gettype($result));
+      $this->recursive_dump($result,"(marker) -- - - res " . gettype($result));
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - res query {$sql}");
+    }
+
+    if ( is_array($result) ) $this->result_to_model($result);
     return $this->query_result;
   }/*}}}*/
 
   function & recordfetch_setup() {/*{{{*/
     $sql = '';
     if ( FALSE == ($this->attrlist = $this->prepare_select_sql($sql)) ) return FALSE;
+    if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  -- - - -- - --- - - Executing {$sql}"); 
     return $this->query($sql);
   }/*}}}*/
 
@@ -785,13 +1381,10 @@ EOS;
     $a = self::$dbhandle->recordfetch($single_record);
     if ( $a == TRUE ) {
       if ( $update_model && is_array($single_record) ) {
-        //$this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>>>>>>>>>" );
-        //$this->recursive_dump($single_record,__LINE__);
         $this->result_to_model(array(
           'attrnames' => $single_record['attrnames'],
           'values' => array($single_record['values']),
         ));
-        //$this->syslog(__FUNCTION__,__LINE__,"<<<<<<<<<<<<<<<<<<<<<<<" );
       }
       $single_record = array_combine($single_record['attrnames'], $single_record['values']); 
     }
@@ -811,6 +1404,12 @@ EOS;
     }
     return $this->query_result;
   }/*}}}*/
+
+  function & retrieve($attrval, $attrname = NULL) {
+    // Continuation syntax call of fetch() 
+    $this->fetch($attrval, $attrname);
+    return $this;
+  }
 
   function in_database() {/*{{{*/
     // If an instance of this class has an ID, then it is assumed that
@@ -845,33 +1444,33 @@ EOS;
         }
       }
       // $this->recursive_dump($bindable_attrs,__LINE__);
-      return $this->query($sql, $bindable_attrs);
+      $result = $this->query($sql, $bindable_attrs);
+      $bindable_attrs = NULL;
+      return $result;
     }
     return  $this->query($sql);
   }/*}}}*/
 
   function insert() {/*{{{*/
-    $f_attrnames = create_function('$a', 'return "`{$a["name"]}`";');
-    $f_valueset  = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "?" : "{$a["value"]}";');
-    $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
     $attrlist    = $this->full_property_list();
-    // DEBUG
-    // $this->syslog(__FUNCTION__,__LINE__, "--- Property list");
-    // $this->recursive_dump($attrlist,__LINE__);
-    // DEBUG
-    // $this->recursive_dump( $key_map, __LINE__);
-    $namelist   = join(',', array_map($f_attrnames, $attrlist));
-    $valueset   = join(',', array_map($f_valueset,  $attrlist));
-    $boundattrs = array_filter(array_map($f_bindattrs,  $attrlist));
+    $this->last_inserted_id = NULL;
+    $namelist   = join(',', array_map(create_function('$a', 'return "`{$a["name"]}`";'), $attrlist));
+    $valueset   = join(',', array_map(create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "?" : "{$a["value"]}";'),  $attrlist));
+    $boundattrs = array_filter(array_map(create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;'),  $attrlist));
     $sql = <<<EOS
 INSERT INTO `{$this->tablename}` ({$namelist}) VALUES ({$valueset})
 EOS;
     $this->insert_update_common($sql, $boundattrs, $attrlist);
-    $this->last_inserted_id = self::$dbhandle->insert_id;
-    if ( !empty(self::$dbhandle->error) )
+    $attrlist   = NULL;
+    $namelist   = NULL;
+    $valueset   = NULL;
+    $boundattrs = NULL;
+    if ( !empty(self::$dbhandle->error) ) {
       $this->syslog( __FUNCTION__, __LINE__, "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");
-    else
+    } else {
+      $this->last_inserted_id = self::$dbhandle->insert_id;
       $this->syslog(__FUNCTION__, __LINE__, "Inserted record #{$this->last_inserted_id}: {$sql}" );
+    }
     return $this->last_inserted_id;
   }/*}}}*/
 
@@ -911,9 +1510,27 @@ EOS;
     return $this;
   }/*}}}*/
 
+  function & join(array $ja) {/*{{{*/
+    // Accept an array of either
+    // - Simple Join attribute names, or
+    // - Attribute selectors (see JoinFilterUtility) 
+    $this->join_attrs = array_merge(
+      $this->join_attrs,
+      $ja
+    );
+    return $this;
+  }/*}}}*/
+
+  function & fields($f) {/*{{{*/
+    $this->subject_fields = is_array($f) ? array_values($f) : explode(',',$f);
+    return $this;
+  }/*}}}*/
+
   function & where($conditions) {/*{{{*/
-    if ( is_array($conditions) ) 
+    // TODO: Append conditions to an existing set.  This is useful mainly in prepare_select_sql() (ca. SVN #562) where this method is used to capture JOIN conditions 
+    if ( is_array($conditions) ) { 
       $this->query_conditions = $conditions;
+    }
     return $this;
   }/*}}}*/
 
@@ -1007,18 +1624,43 @@ EOS;
     }
   }/*}}}*/
 
-  function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
-    $debug_method = TRUE;
+  function fetch_combined_property_list() {/*{{{*/
     $property_list = $this->fetch_property_list();
-    if ( !(0 < count($property_list)) ) return $this;
+    if ( !(0 < count($property_list)) ) return array();
     $property_list = array_combine(
       array_map($this->slice('name'),$property_list),
       array_map($this->slice('type'),$property_list)
     );
+    return $property_list;
+  }/*}}}*/
+
+  function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
+    $debug_method = FALSE;
+    $property_list = $this->fetch_combined_property_list();
+    $joins = $this->get_joins();
+    if ( !(0 < count($property_list)) ) return $this;
     foreach ( $document_contents as $name => $value ) {
       $setter = "set_{$name}";
       if ( method_exists($this, $setter) ) {
         if ( $execute ) $this->$setter($value);
+      } else if ( array_key_exists($name, $joins) ) {
+        $marker = $debug_method ? 'marker' : '-----';
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__, __LINE__, <<<EOP
+({$marker}) Join component {$name}
+EOP
+          );
+        }
+        if ( !array_key_exists($name,$this->join_value_cache) ) {
+          $this->join_value_cache[$name] = array();
+        }
+        $fkey = array_element($value,'fkey');
+        if ( is_null($fkey) ) {
+          $this->join_value_cache[$name]['UNCACHED'] = $value;
+        } else {
+          $this->join_value_cache[$name][$fkey] = $value;
+        }
+        if ( $debug_method ) $this->recursive_dump($this->join_value_cache,"({$marker}) - -"); 
       } else {
         $type = array_key_exists($name, $property_list) ? $property_list[$name] : NULL;
         $marker = $debug_method ? 'marker' : '-----';
@@ -1051,118 +1693,9 @@ EOP
   }/*}}}*/
 
   function get_map_functions($docpath, $d = 0) {/*{{{*/
-    // A mutable alternative to XPath
-    // Extract content from parse containers
-    $map_functions = array();
-    // Disallow recursion beyond the depth we can possibly use. parse_html() returns a shallow nested array
-    if ( $d > 4 ) return $map_functions;
-    // A hash for the tag selector is interpreted to mean "return siblings of an element which match the selector"
-    $selector_regex = '@({([^}]*)}|\[([^]]*)\]|(([-_0-9a-z=#]*)*)[,]*)@';
-    // Pattern yields the selectors in match component #3,
-    // and the subject item description in component #2.
-    $matches = array();
-    preg_match_all($selector_regex, $docpath, $matches);
 
-    array_walk($matches,create_function('& $a, $k','$a = is_array($a) ? array_filter($a) : NULL; if (empty($a)) $a = "*";'));
+    return ArrayFilterUtility::get_map_functions($docpath, $d);
 
-    $subjects   = $matches[2]; // 
-    $selectors  = $matches[3]; // Key-value match pairs (A=B, match exactly; A*=B regex match)
-    $returnable = $matches[4]; // Return this key from all containers
-
-    $conditions = array(); // Concatenate elements of this array to form the array_map condition
-
-    foreach ( $selectors as $condition ) {
-
-      if ( $this->debug_operators ) $this->syslog(__FUNCTION__,__LINE__,">>> Decomposing '{$condition}'");
-
-      if ( !(1 == preg_match('@([^*=]*)(\*=|=)*(.*)@', $condition, $p)) ) {
-        // A condition must take the form of an equality test.
-        // The test itself is implemented as either a simple comparison or a regex match.
-        $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Unparseable condition. Terminating recursion.");
-        return array();
-      }
-      $attr = $p[1];
-      $conn = $p[2]; // *= for regex match; = for equality
-      $val  = $p[3];
-
-      if ($this->debug_operators) {/*{{{*/
-        $this->recursive_dump($p,"(marker) Selector components" );
-      }/*}}}*/
-
-      $attparts = '';
-      if ( !empty($attr) ) {
-        // Specify a match on nested arrays using [kd1:kd2] to match against
-        // $a[kd1][kd2] 
-        foreach ( explode(':', $attr) as $sa ) {
-          $conditions[] = 'array_key_exists("'.$sa.'", $a'.$attparts.')';
-          $attparts .= "['{$sa}']";
-        }
-      }
-
-      if ( empty($val) ) {
-        // There is only an attribute to check for.  Include source element if the attribute exists 
-        if (!is_array($returnable)) $returnable = '$a["'.$attr.'"]';
-      } else if ( $conn == '=' ) {
-        // Allow condition '*' to stand for any matchable value; 
-        // if an asterisk is specified, then the match for a specific
-        // value is omitted, so only existence of the key is required.
-        if ( $val != '*' ) $conditions[] = '$a["'.$attr.'"] == "'.$val.'"';
-      } else if ($conn == '*=') {
-        $split_val = explode('|', $val);
-        $regex_modifier = NULL;
-        if ( 1 < count($split_val) ) {
-          $regex_modifier = $split_val[count($split_val)-1];
-          array_pop($split_val);
-          $val = join('|',$split_val);
-        }
-        $conditions[] = '1 == preg_match("@('.$val.')@'.$regex_modifier.'",$a'.$attparts.')';
-        if ( $returnable == '*' ) $returnable = '$a["'.$attr.'"]';
-      } else {
-        $this->syslog(__FUNCTION__,__LINE__,"Unrecognized comparison operator '{$conn}'");
-      }
-    }
-
-    if ( is_array($returnable) ) {
-      if ( 1 == count($returnable) ) {
-        // If the returnable is specified as '#', then all siblings of the matching element(s) are returned.
-        $returnable_map   = create_function('$a', '$m = array(); return !(1 == preg_match("@^([#])(.*)@i", $a, $m)) ? "\$a[\"{$a}\"]" : ( 0 < strlen($m[2]) ? "\$a[\"$m[2]\"]" : "\$a" ) ;');
-        $returnable_match = join(',',array_map($returnable_map, $returnable));
-      } else {
-        $returnable_map   = create_function('$a', 'return "\"{$a}\" => \$a[\"{$a}\"]";');
-        $returnable_match = is_array($returnable) 
-          ? ('array(' . join(',',array_map($returnable_map, $returnable)) .')') 
-          : $returnable;
-      }
-    } else {
-      if ( $returnable == '*' ) {
-        // If the returnable attribute is given as '*', return the entire array value.
-        // $this->syslog(__FUNCTION__,__LINE__,"--- WARNING: Map function will be unusable, no return value (currently '{$returnable}') in map function.  Bailing out");
-        $returnable_match = '$a';
-      } else {
-        $returnable_match = $returnable;
-      }
-    }
-    $map_condition   = 'return ' . join(' && ', $conditions) . ' ? ' . $returnable_match . ' : NULL;';
-    $map_functions[] = $map_condition;
-
-    if ($this->debug_operators) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Extracting from '{$docpath}'");
-      $this->recursive_dump($matches,"(marker) matches");
-      $this->syslog(__FUNCTION__,__LINE__,"- (marker) Map function derived at depth {$d}: {$map_condition}");
-      $this->recursive_dump($conditions,"(marker) conditions");
-    }/*}}}*/
-
-    if ( is_array($subjects) && 0 < count($subjects) ) {
-      foreach ( $subjects as $subpath ) {
-        if ($this->debug_operators) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Passing sub-path at depth {$d}: {$subpath}");
-        }/*}}}*/
-        $submap = $this->get_map_functions($subpath, $d+1);
-        if ( is_array($submap) ) $map_functions = array_merge($map_functions, $submap);
-      }
-    }
-
-    return $map_functions;
   }/*}}}*/
 
   function & reorder_with_sequence_tags(& $c) {/*{{{*/
@@ -1244,6 +1777,56 @@ EOP
     }
     return $a;
     
+  }/*}}}*/
+
+  /** Join model object methods **/
+
+  function & get_join_object($property, $which, $meta = 'obj') {/*{{{*/
+    $debug_method = FALSE;
+    $join_desc = $this->get_joins($property);
+    $join_desc_key = array_element($join_desc,'joinobject');
+    if ( empty($join_desc_key) || !(0 < count($join_desc)) ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - Invalid Join participant class name '{$join_desc_key}' or invalid property '{$property}' given. Bailing out.");
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - This could indicate bad join() parameters");
+      return $this->null_instance;
+    }
+    try {
+      if ( !array_key_exists($join_desc_key, $this->join_instance_cache) ) {
+        if ( TRUE || $debug_method )
+        $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - Instantiating objects for {$which} property '{$property}'");
+        $this->join_instance_cache[$join_desc_key] = array(
+          'join' => array(
+            'obj' => new $join_desc['joinobject'](),
+            'set' => NULL,
+          ),
+          'ref'  => array(
+            'obj' => new $join_desc['propername'](),
+          )
+        );
+        // Get names of Join attributes, to enable us to find the names of
+        // a Join's 'left' and 'right' members
+        $joinattrs = $this->join_instance_cache[$join_desc_key]['join']['obj']->fetch_combined_property_list();
+        $attrnames = array_keys($joinattrs);
+        $attrtypes = array_flip(array_values($joinattrs));
+        $this->join_instance_cache[$join_desc_key]['join']['set'] = array(
+          'self' => array_element($attrnames,array_element($attrtypes,get_class($this))),
+          'fkey' => array_element($attrnames,array_element($attrtypes,$join_desc['propername'])),
+        ); 
+        if ( $debug_method ) $this->recursive_dump($this->join_instance_cache[$join_desc_key]['join']['set'],"(marker) - - - - JD({$property})");
+      }
+    } catch ( Exception $e ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - ERROR: Failed to create instance of '{$which}' property {$property} object {$join_desc[$join_desc_key]}");
+      return $this->null_instance;
+    }
+    return $this->join_instance_cache[$join_desc_key][$which][$meta];
+  }/*}}}*/
+
+  function & get_foreign_obj_instance($property) {/*{{{*/
+    return $this->get_join_object($property,'ref');
+  }/*}}}*/
+
+  function & get_join_instance($property) {/*{{{*/
+    return $this->get_join_object($property,'join');
   }/*}}}*/
 
 }

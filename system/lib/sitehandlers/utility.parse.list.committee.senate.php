@@ -56,7 +56,7 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
 		// description stack each time this entry is found
 		if (!$this->have_toc) {
 		}
-	 	else if ($this->current_tag['attrs']['CLASS'] == 'h3_uline') {
+	 	else if (array_element($this->current_tag['attrs'],'CLASS') == 'h3_uline') {
 			if ( 1 == preg_match('@Committee([ ]*)on@i', $cdata) ) {
 				$this->new_entry_to_desc_stack();
 			} else {

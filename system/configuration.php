@@ -25,6 +25,7 @@ define('DEBUG_RawparseUtility', FALSE);
 define('DEBUG_MysqlDatabasePlugin', FALSE);
 define('DEBUG_UrlModel', FALSE);
 define('DEBUG_ALL', FALSE);
+// define('SLOW_DOWN_RECURSIVE_DUMP',FALSE);
 define('SLOW_DOWN_RECURSIVE_DUMP',20000);
 define('DISABLE_AUTOMATIC_URL_EDGES',TRUE);
 
@@ -55,4 +56,4 @@ define('DBPASS', 'suvorov');
 define('DBNAME', 'legiscope');
 
 // Model handling
-define('LS_SYNCHRONIZE_MODEL_STRUCTURE', TRUE);
+define('LS_SYNCHRONIZE_MODEL_STRUCTURE', TRUE); // Set to FALSE to prevent synchronizing on-disk structure with Model object structure

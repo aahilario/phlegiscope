@@ -45,7 +45,7 @@ function initialize_dossier_triggers() {
 function update_representatives_avatars() {
   $('img[class*=representative-avatar][src=""]').first().each(function(){
     var avatar_id = $(this).attr('id').replace(/^image-/,'imagesrc-');
-    if ( $(this).attr('src').length > 0 ) {
+    if ( $(this).attr('src').length > 0 && !/^data:/.test($(this).attr('src')) ) {
       setTimeout((function(){update_representatives_avatars();}),100);
       return;
     }
@@ -57,7 +57,7 @@ function update_representatives_avatars() {
     $.ajax({
       type     : 'POST',
       url      : '/seek/',
-      data     : { url : avatar_url, cache : $('#cache').prop('checked'), member_uuid : member_uuid, no_replace : no_replace, fr : true },
+      data     : { url : avatar_url, modifier : $('#spider').prop('checked'), cache : $('#cache').prop('checked'), member_uuid : member_uuid, no_replace : no_replace, fr : true },
       cache    : false,
       dataType : 'json',
       async    : true,

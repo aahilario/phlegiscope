@@ -402,13 +402,17 @@ EOH
     return $s;
   }/*}}}*/
 
-  function get_faux_url(UrlModel & $url, & $metalink) {/*{{{*/
+	function get_faux_url(UrlModel & $url, & $metalink) {
+		return self::get_faux_url_s($url, $metalink);
+	}
+
+  static function get_faux_url_s(UrlModel & $url, & $metalink) {/*{{{*/
     $faux_url = NULL;
     if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
       // The POST action may be a URL which permits a GET action,
       // in which case we need to use a fake URL to store the results of 
       // the POST.  We'll generate the fake URL here. 
-      $runtime_metalink_info = $this->filter_post('LEGISCOPE', array());
+      $runtime_metalink_info = filter_post('LEGISCOPE', array());
 			if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
       if ( is_array($runtime_metalink_info) && is_array($metalink) ) $metalink = array_merge($metalink, $runtime_metalink_info);
       // Prepare faux metalink URL by combining the metalink components

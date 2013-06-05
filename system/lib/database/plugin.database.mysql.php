@@ -15,6 +15,8 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 	private $ls_last_operation_sql = NULL;
 	private $ls_last_operation_errdesc = NULL;
   private $ls_result = NULL;
+	protected $alias_map = NULL;
+	var $debug_model = FALSE;
 
   function __construct($dbhost = NULL, $dbuser = NULL, $dbpass = NULL, $dbname = NULL) {/*{{{*/
     parent::init();
@@ -39,10 +41,15 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     return TRUE;
   }
 
+	public function set_alias_map($a) {
+		$this->alias_map = is_array($a) && (0 < count($a)) ? $a : NULL;
+	}
+
   public function query($sql = NULL, array $bindparams = NULL) {
     // Execute a query that may or may not return a resultset
     // Close any existing result set, and either return the result of an operation
 		$debug_method = FALSE;
+
     if ( empty($sql) ) {
       throw new Exception("Empty query in ".get_class($this));
     }
@@ -167,6 +174,60 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     return $result;
   }
 
+	protected function recordset_combine(& $resultset, $row) {/*{{{*/
+		// Return values in $record,
+		// modify $resultset
+		$record = array();
+		$attrmatch = array();
+		foreach( $row as $attr => $val ) {
+			if ( !is_null($this->alias_map) && 1 == preg_match($this->alias_map['match'], $attr, $attrmatch) ) {
+				// See DatabaseUtility::reorder_aliasmap()
+				$alias    = $attrmatch[1];
+				$attrname = $attrmatch[2];
+				$map      = array_element($this->alias_map['map'],$alias);
+				$left     = array_element($map,'left'); // Indicates a foreign table attribute, if present; else a Join attribute
+				if ( is_null($left) ) {
+					$left = array_element($map, 'attrname');
+					if ( !array_key_exists($left, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $left;
+					$index = array_flip($resultset['attrnames']);
+					if ( !array_key_exists($index[$left],$record) ) $record[$index[$left]] = array(
+						'join' => array(),
+						'data' => array(),
+					);
+					$record[$index[$left]]['join'] = array_merge(
+						$record[$index[$left]]['join'],
+						array($attrname => $val)
+					);
+				} else {
+					$left = $this->alias_map['map'][$left]['attrname'];
+					if ( !array_key_exists($left, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $left;
+					$index = array_flip($resultset['attrnames']);
+					if ( !array_key_exists($index[$left],$record) ) $record[$index[$left]] = array(
+						'join' => array(),
+						'data' => array(),
+					);
+					$record[$index[$left]]['data'] = array_merge(
+						$record[$index[$left]]['data'],
+						array($attrname => $val)
+					);
+				}
+				continue;
+			}
+
+			if ( !array_key_exists($attr, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $attr;
+			$index = array_flip($resultset['attrnames']);
+			$record[$index[$attr]] = $val;
+
+		}
+
+		if ($this->debug_model) if ( !is_null($this->alias_map) ) {
+			syslog( LOG_INFO, __METHOD__ . " Resultset: " . print_r($resultset,TRUE));
+			syslog( LOG_INFO, __METHOD__ . "    Record: " . print_r($record,TRUE));
+		}
+
+		return $record;
+	}/*}}}*/
+
   public function resultset() {
     $last_query_rows = $this->last_query_rows();
     if ( is_bool($last_query_rows) ) return $last_query_rows;
@@ -174,17 +235,11 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     if (!('mysqli_result' == get_class($this->ls_result) )) return FALSE;  
     $resultset = array(
       'attrnames' => array(),
-      'values' => array()
+      'values' => array(),
     );
-    while ( ($row = $this->ls_result->fetch_assoc()) ) {
-      $record = array();
-      foreach( $row as $attr => $val ) {
-        if ( !array_key_exists($attr, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $attr;
-        $index = array_flip($resultset['attrnames']);
-        $record[$index[$attr]] = $val;
-      }
-      $resultset['values'][] = $record;
-    }
+    while ( ($row = $this->ls_result->fetch_assoc()) ) {/*{{{*/
+      $resultset['values'][] = $this->recordset_combine($resultset, $row);
+    }/*}}}*/
     return $resultset;
   }
 
@@ -197,13 +252,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 				'attrnames' => array(),
 				'values' => array()
 			);
-      $record = array();
-      foreach( $row as $attr => $val ) {
-        if ( !array_key_exists($attr, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $attr;
-        $index = array_flip($resultset['attrnames']);
-        $record[$index[$attr]] = $val;
-      }
-      $resultset['values'] = $record;
+      $resultset['values'] = $this->recordset_combine($resultset, $row);
 			return TRUE;
 		}
 		$this->ls_result->close();

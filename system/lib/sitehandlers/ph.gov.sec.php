@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SecGovPh extends LegiscopeBase {
+class SecGovPh extends SeekAction {
   
   function __construct() {
     $this->syslog( __FUNCTION__, 'FORCE', 'Using site-specific container class' );

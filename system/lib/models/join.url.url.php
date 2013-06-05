@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class UrlUrlJoin extends DatabaseUtility {
+class UrlUrlJoin extends ModelJoin {
   
   // Join table model
   var $left_url_UrlModel = NULL;
@@ -28,8 +28,8 @@ class UrlUrlJoin extends DatabaseUtility {
   function fetch($a, $b) {
     // Translates to where(array('AND' => array('a' => $a, 'b' => $b) ))
     return parent::fetch(array(
-      'a' => $a,
-      'b' => $b,
+      'left_url' => $a,
+      'right_url' => $b,
     ), 'AND');
   }
 

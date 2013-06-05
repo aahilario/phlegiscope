@@ -18,7 +18,7 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
   var $last_fetch_utx = NULL;
   var $url_vc4096 = NULL;
 
-	var $senator_SenatorDossierModel = NULL;
+	var $senator_SenatorDossierModel = NULL; // Relationships of Senator to this committee
 
   function __construct() {
     parent::__construct();
@@ -44,6 +44,8 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
 
   function & set_url($v) { $this->url_vc4096 = $v; return $this; }
   function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }  
+
+  function & set_id($v) { $this->id = $v; return $this; }
 
   function stow_committee( $committee_name ) {/*{{{*/
     $committee_name = $this->cleanup_committee_name($committee_name);
@@ -75,7 +77,10 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
 
     $search_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
 
-    if ( FALSE == $search_name ) return FALSE;
+    if ( FALSE == $search_name ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(error) - - - - Unparseable committee name '{$committee_name}'");
+      return FALSE;
+    }
 
     $this->fetch(array(
       'committee_name' => "REGEXP '({$search_name})'"

@@ -201,8 +201,8 @@ class iReportParseUtility extends RawparseUtility {
     $this->current_tag['cdata'] = array();
     //$this->current_tag['attrs']['ONCLICK'] = NULL;
     //$this->current_tag['attrs']['ONFOCUS'] = NULL;
-    $this->current_tag['attrs']['ONCLICK'] = "window.status = '{$this->current_tag['attrs']['ONCLICK']}';";
-    $this->current_tag['attrs']['ONFOCUS'] = "window.status = '{$this->current_tag['attrs']['ONFOCUS']}';";
+    //$this->current_tag['attrs']['ONCLICK'] = "window.status = '{$this->current_tag['attrs']['ONCLICK']}';";
+    //$this->current_tag['attrs']['ONFOCUS'] = "window.status = '{$this->current_tag['attrs']['ONFOCUS']}';";
     $attrs = array_filter($this->current_tag['attrs']);
     $this->current_tag['attrs'] = $attrs;
     $this->update_current_tag_url('SRC');
@@ -218,8 +218,8 @@ class iReportParseUtility extends RawparseUtility {
     $this->current_tag['cdata'] = array();
     //$this->current_tag['attrs']['ONCLICK'] = NULL;
     //$this->current_tag['attrs']['ONFOCUS'] = NULL;
-    $this->current_tag['attrs']['ONCLICK'] = "window.status = '{$this->current_tag['attrs']['ONCLICK']}';";
-    $this->current_tag['attrs']['ONFOCUS'] = "window.status = '{$this->current_tag['attrs']['ONFOCUS']}';";
+    //$this->current_tag['attrs']['ONCLICK'] = "window.status = '{$this->current_tag['attrs']['ONCLICK']}';";
+    //$this->current_tag['attrs']['ONFOCUS'] = "window.status = '{$this->current_tag['attrs']['ONFOCUS']}';";
     $attrs = array_filter($this->current_tag['attrs']);
     $this->current_tag['attrs'] = $attrs;
 
@@ -236,10 +236,10 @@ class iReportParseUtility extends RawparseUtility {
   function ru_input_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $input_data = array(
-      'input-type' => $this->current_tag['attrs']['TYPE'],
-      'name' => $this->current_tag['attrs']['NAME'],
-      'value-default' => $this->current_tag['attrs']['VALUE'],
-      'seq'  => $this->current_tag['attrs']['seq'],
+      'input-type'    => array_element($this->current_tag['attrs'],'TYPE'),
+      'name'          => array_element($this->current_tag['attrs'],'NAME'),
+      'value-default' => array_element($this->current_tag['attrs'],'VALUE'),
+      'seq'           => array_element($this->current_tag['attrs'],'seq'),
     );
     if ( $input_data['input-type'] == 'radio' ) {
       $input_data['checked'] = array_key_exists('CHECKED', $this->current_tag['attrs'])

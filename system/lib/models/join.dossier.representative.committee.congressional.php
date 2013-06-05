@@ -8,11 +8,14 @@
  * Release license terms: GNU Public License V2
  */
 
-class CongressionalCommitteeRepresentativeDossierJoin extends DatabaseUtility {
+class CongressionalCommitteeRepresentativeDossierJoin extends ModelJoin {
   
   // Join table model
   var $congressional_committee_CongressionalCommitteeDocumentModel;
   var $representative_dossier_RepresentativeDossierModel;
+	var $congress_tag_vc8 = NULL;
+
+	var $role_vc32 = NULL;
 
   function __construct() {
     parent::__construct();
@@ -25,6 +28,13 @@ class CongressionalCommitteeRepresentativeDossierJoin extends DatabaseUtility {
 
   function & set_representative_dossier($v) { $this->representative_dossier_RepresentativeDossierModel = $v; return $this; }
   function get_representative_dossier($v = NULL) { if (!is_null($v)) $this->set_representative_dossier($v); return $this->representative_dossier_RepresentativeDossierModel; }
+
+  function & set_role($v) { $this->role_vc32 = $v; return $this; }
+  function get_role($v = NULL) { if (!is_null($v)) $this->set_role($v); return $this->role_vc32; }
+
+	function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
+	function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
+
 
 }
 

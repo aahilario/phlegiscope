@@ -30,6 +30,29 @@ class RepresentativeDossierModel extends DatabaseUtility {
     parent::__construct();
   }
 
+  function __destruct() {/*{{{*/
+    unset($this->fullname_vc128uniq);
+    unset($this->firstname_vc64);
+    unset($this->mi_vc8);
+    unset($this->surname_vc48);
+    unset($this->namesuffix_vc8);
+    unset($this->bio_url_vc1024);
+    unset($this->create_time_utx);
+    unset($this->last_fetch_utx);
+    unset($this->contact_json_vc2048);
+    unset($this->member_uuid_vc64);
+    unset($this->avatar_image_blob);
+    unset($this->avatar_url_vc1024);
+    unset($this->committees_CongressionalCommitteeDocumentModel);
+    unset($this->housebills_HouseBillDocumentModel);
+  }/*}}}*/
+
+  function & set_committees($v) { $this->committees_CongressionalCommitteeDocumentModel = $v; return $this; }
+  function get_committees($v = NULL) { return is_null($v) ? $this->committees_CongressionalCommitteeDocumentModel : array_element($this->committees_CongressionalCommitteeDocumentModel,$v); }
+
+  function & set_housebills($v) { $this->housebills_HouseBillDocumentModel = $v; return $this; }
+  function get_housebills($v = NULL) { return is_null($v) ? $this->housebills_HouseBillDocumentModel : array_element($this->housebills_HouseBillDocumentModel,$v); }
+
   function & set_fullname($v) { $this->fullname_vc128uniq = $v; return $this; }
   function get_fullname($v = NULL) { if (!is_null($v)) $this->set_fullname($v); return $this->fullname_vc128uniq; }
 

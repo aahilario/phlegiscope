@@ -424,12 +424,14 @@ EOH;
   static function committee_name_regex($committee_name) {/*{{{*/
     $search_name = explode(' ',preg_replace(
       array(
-        "@[^'A-Z0-9 ]@i",
+        "@[^'A-Z0-9ñ ]@i",
         "@[']@i",
+        "@[“”]@",
       ),
       array(
         '',
         "\'",
+        '"',
       ),
       $committee_name)
     );

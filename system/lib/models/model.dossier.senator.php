@@ -25,6 +25,8 @@ class SenatorDossierModel extends RepresentativeDossierModel {
     parent::__construct();
   }
 
+  function & set_id($v) { $this->id = $v; return $this; }
+
   function & set_fullname($v) { $this->fullname_vc128uniq = $v; return $this; }
   function get_fullname($v = NULL) { if (!is_null($v)) $this->set_fullname($v); return $this->fullname_vc128uniq; }
 
@@ -61,7 +63,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
   function cleanup_senator_name($senator_fullname) {/*{{{*/
     $senator_fullname = trim(preg_replace('@^Sen\.@i', '', utf8_decode($senator_fullname)));
     // Deal with quotes mistakenly parsed as '?'
-    $senator_fullname = str_replace(array("\x09","[BR]","[EMPTY]"), array(""," ",""), $senator_fullname);
+    $senator_fullname = str_replace(array('“',"\x09","[BR]","[EMPTY]"), array(' “',""," ",""), $senator_fullname);
     $senator_fullname = preg_replace(array('@(\?|\')([^?\']*)(\?|\')@','@([ ]+)@'),array("$2",' '), $senator_fullname);
     return $senator_fullname;
   }/*}}}*/
@@ -94,6 +96,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
         set_bio_url($bio_url)->
         set_create_time(time())->
         set_last_fetch(time())->
+        fields('member_uuid,fullname,bio_url,create_time,last_fetch')->
         stow();
     }
     if ( !is_null($senator_info['id']) ) {

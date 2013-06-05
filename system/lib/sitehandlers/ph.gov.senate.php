@@ -1,26 +1,12 @@
 <?php
 
-class SenateGovPh extends LegiscopeBase {
+class SenateGovPh extends SeekAction {
   
   var $method_cache_filename = NULL;
 
   function __construct() {
     $this->syslog( __FUNCTION__, __LINE__, 'Using site-specific container class' );
     parent::__construct();
-  }
-
-  function seek() {
-    $cache_force = $this->filter_post('cache');
-    $json_reply  = parent::seek();
-    $response    = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-      file_put_contents($this->seek_cache_filename, $response);
-    }
-    echo $response;
-    exit(0);
   }
 
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -40,6 +26,7 @@ class SenateGovPh extends LegiscopeBase {
     );
     // $this->recursive_dump($common->get_containers(),'(warning)');
   }/*}}}*/
+
 
   /** Committee Information **/
 
@@ -375,22 +362,21 @@ EOH;
       $committee_list = array();
       $committee_item = array();
       while ( $membership->recordfetch($committee_item) ) {
-        $committee_list[$committee_item['senator_dossier']] = array(
+        $committee_list[$committee_item['senate_committee']] = array(
           'data' => $committee_item,
           'name' => NULL
         );
       }
       // TODO: Allow individual Model classes to maintain separate DB handles 
+      $committee->debug_method = FALSE;
       foreach ( $committee_list as $committee_id => $c ) {
-        $committee->fetch($committee_id,'id');
-        $committee_list[$committee_id] = $committee->in_database()
-          ? $committee->get_committee_name()
-          : '- Disappeared -'
-          ;
+        $result = $committee->fetch($committee_id,'id');
+        $committee_list[$committee_id] = $committee->get_committee_name();
         $committee_membership_markup .= <<<EOH
 <li><a class="legiscope-remote" href="http://www.senate.gov.ph/committee/list.asp">{$committee_list[$committee_id]}</a></li>
 EOH;
       }
+      $committee->debug_method = FALSE;
       $this->recursive_dump($committee_list,'(marker) - C List');
     }/*}}}*/
 
@@ -503,124 +489,240 @@ EOH;
   function seek_postparse_7150c562d8623591da65174bd4b85eea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/committee/list.asp ('List of Committees')
 
-    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
-    $committee_parser = new SenateCommitteeListParseUtility();
-    $committee        = new SenateCommitteeModel();
-    $committeesenator = new SenateCommitteeSenatorDossierJoin();
-    $senator          = new SenatorDossierModel();
-    $url              = new UrlModel();
+    $debug_method      = TRUE;
+    $committee_parser  = new SenateCommitteeListParseUtility();
+    $committee_senator = new SenateCommitteeSenatorDossierJoin();
+    $committee         = new SenateCommitteeModel();
+    $senator           = new SenatorDossierModel();
+    $url               = new UrlModel();
+    $target_congress   = 15; // FIXME: Detect current Congress Session
 
-    $pagecontent = '';
-    // $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
     // $this->recursive_dump($urlmodel->get_response_header(TRUE),'(warning)');
 
     $committee_parser->debug_tags = FALSE;
     $committee_parser->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    // $pagecontent = join('',$committee_parser->get_filtered_doc());
-
-    // $senator->dump_accessor_defs_to_syslog();
-    // $committee->dump_accessor_defs_to_syslog();
 
     $containers     = $committee_parser->get_containers(
       'children[attrs:CLASS*=SenTable]'
     );
-    $this->recursive_dump($containers,"(marker) -- - -- Committees Page");
+    if ( $debug_method ) $this->recursive_dump($containers,"(marker) -- - -- Committees Page");
 
     $senator_committees = array();
 
+    $pagecontent = '';
     foreach ( $containers as $container ) {
-      $committee_list  = array();
+      $committee_list  = array(array());
       $committee_entry = NULL;
-      foreach ( $container as $comm_chair ) {/*{{{*/
-        if ( !array_key_exists('url', $comm_chair) /* Committee Name */ ) {/*{{{*/
-          array_push($committee_list, array('committee_name' => NULL, 'senators' => array()));  
-          $committee_entry = array_pop($committee_list);
-          $committee_id = $committee->stow_committee($comm_chair['text']);
-          if ( !is_null($committee_id) ) {
-            $committee_entry['committee_name'] = $committee->get_committee_name();
-            $committee_entry['id'] = $committee_id;
-            $senator_committees[$committee_id] = array();
-          }
-        }/*}}}*/
-        else {/*{{{*/
-          $committee_entry = array_pop($committee_list);
-          $senator_info = array();
-          $senator_id = $senator->stow_senator(
-            $comm_chair['url'], // Senator's resume URL
-            $comm_chair['text'], // Senator's full name as obtained on the page
-            $senator_info, // Empty array, into which instance data are stored
-            $urlmodel // The parent page URL (this page)
+      $unique_committee_names = array();
+      $unique_senator_names = array();
+      krsort($container);
+      while ( 0 < count($container) ) {/*{{{*/
+        $entry = array_pop($container);
+        $committee_entry = array_pop($committee_list);
+        if ( array_key_exists('url', $entry) ) {/*{{{*/// Senator bio URL
+          // Senator + bio URL
+          $senator_nametitle = $senator->cleanup_senator_name($entry['text']);
+          $senator_nameregex = LegislationCommonParseUtility::committee_name_regex($senator_nametitle);
+          if ( !array_key_exists('senators', $committee_entry) ) $committee_entry['senators'] = array();
+          $committee_entry['senators'][$senator_nameregex] = array(
+            'id'   => 0,
+            'fullname_db' => NULL,
+            'fullname' => $senator_nametitle, 
+            'name_regex' => $senator_nameregex,
+            'url' => $entry['url'],
+            'url_db' => NULL,
           );
-          if ( !is_null($senator_id) ) {
-            $url->fetch($comm_chair['url'], 'url');
-            $senator_info['cached'] = $url->in_database();
-            $committee_entry['senators'][$senator_id] = $senator_info;
-            $senator_committees[$committee_entry['id']][$senator_id] = $senator_id; 
-          }
+          $unique_senator_names[$senator_nametitle] = array(
+            'nameregex' => $senator_nameregex,
+            'bio_url' => $entry['url'],
+          ); 
+        }/*}}}*/
+        else {/*{{{*/// Committee name
+          $committee_name = utf8_decode($entry['text']); 
+          $name_regex =  LegislationCommonParseUtility::committee_name_regex($committee_name);
+          array_push($committee_list, $committee_entry);
+          if ( FALSE == $name_regex ) continue;
+          unset($committee_entry);
+          $committee_entry = array(
+            'id'                   => 0,
+            'committee_name_db'    => NULL,
+            'committee_name'       => $committee_name,
+            'committee_name_regex' => $name_regex,
+            'jurisdiction'         => NULL,
+            'senators'             => array(),
+          );
+          $unique_committee_names[$committee_name] = $name_regex;
         }/*}}}*/
         array_push($committee_list, $committee_entry);
       }/*}}}*/
-      // Make the committee ID be the committee list array key
+      // Make the committee name regex be the committee list array key
+      $committee_list = array_filter($committee_list);
       $committee_list = array_combine(
-        array_map(create_function('$a', 'return $a["id"];'), $committee_list),
+        array_map(create_function('$a', 'return $a["committee_name_regex"];'), $committee_list),
         $committee_list
       );
       
-      foreach ( $senator_committees as $committee_id => $senator_ids ) {/*{{{*/// Remove edges that are already stored 
-        if (!(0 < count($senator_ids))) continue;
-        $committeesenator->where(array('AND' => array(
-          'senate_committee' => $committee_id,
-          'senator_dossier'  => $senator_ids,
+      krsort($unique_committee_names);
+      while ( 0 < count($unique_committee_names) ) {/*{{{*/// Match committee names to extant records
+        $distinct_names = array();
+        while ( count($distinct_names) < 15 && 0 < count($unique_committee_names) ) {
+          $distinct_names[] = array_pop($unique_committee_names);
+        }
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Batch of " . count($distinct_names)); 
+          $this->recursive_dump($distinct_names,"(marker) -- - --");
+        }/*}}}*/
+        $distinct_names = join('|', $distinct_names);
+        $committee->where(array('AND' => array(
+          'committee_name' => "REGEXP '^({$distinct_names})$'"
         )))->recordfetch_setup();
-        $join = array();
-        while ( $committeesenator->recordfetch($join) ) $senator_ids[$join['senator_dossier']] = NULL;
-        $senator_ids = array_filter($senator_ids);
-        $senator_committees[$committee_id] = $senator_ids;
-      }/*}}}*/
-      foreach ( $senator_committees as $committee_id => $senator_ids ) {/*{{{*/
-        foreach ( $senator_ids as $senator_id ) {
-          $committeesenator->fetch(array(
-            'senator_dossier' => $senator_id,
-            'senate_committee' => $committee_id,
-          ),'AND');
-          $already_in_db = $committeesenator->in_database();
-          $associate_result = $already_in_db
-            ? $committeesenator->get_id()
-            : $committeesenator->
-              set_senate_committee($committee_id)->
-              set_senator_dossier($senator_id)->
-              set_create_time(time())->
-              set_last_fetch(time())->
-              set_role('chairperson')->
-              stow()
-            ;
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - Association #{$associate_result} " . ($already_in_db ? "found" : "created") );
+        $r = NULL;
+        while ( $committee->recordfetch($r) ) {
+          array_walk($committee_list, create_function(
+            '& $a, $k, $s', 'if ( 1 == preg_match( "@{$k}@i", $s["committee_name"] ) )  { $a["committee_name_db"] = $s["committee_name"]; $a["id"] = $s["id"]; $a["jurisdiction"] = $s["jurisdiction"]; }'
+          ),$r);
         }
       }/*}}}*/
-      foreach ( $committee_list as $c ) {/*{{{*/// Generate markup
+      
+      krsort($unique_senator_names);
+      while ( 0 < count($unique_senator_names) ) {/*{{{*/// Match senators to extant records
+        $distinct_names = array();
+        while ( count($distinct_names) < 15 && 0 < count($unique_senator_names) ) {
+          $distinct_names[] = array_pop($unique_senator_names);
+        }
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Batch of " . count($distinct_names)); 
+          $this->recursive_dump($distinct_names,"(marker) -- - --");
+        }/*}}}*/
+        // Cleanup the distinct_names array: Structure becomes [ regex ] => [ url ]
+        $distinct_names = array_combine(
+          array_map(create_function('$a','return $a["nameregex"];'),$distinct_names), // Regex as key
+          array_map(create_function('$a','return $a["bio_url"];'),$distinct_names)
+        );
+
+        // Match either the list of name regexes or list of CV / "bio" URLs
+        $senator->debug_method = FALSE;
+        $senator->debug_final_sql = TRUE;
+        $senator->where(array('OR' => array(
+          'fullname' => ("REGEXP '^(".join('|', array_keys($distinct_names)).")'"),
+          'bio_url' => $distinct_names
+        )))->
+        join(array(
+          //'committee[role*=.*|i]{[is_permanent=TRUE]}',
+          'committee[role*=chairperson|i][congress='.$target_congress.']{committee_name,short_code,jurisdiction[is_permanent=TRUE]}',
+          //'representative[relation_to_bill*=principal-author]',
+        ))->
+        // fields(array('bio_url','fullname'))->
+        recordfetch_setup();
+        $senator->debug_method = FALSE;
+
+        // Mark the transient list [ regex ] => { [ id ] => id, [ fullname ] => db_fullname } }
+        $r = NULL;
+        while ( $senator->recordfetch($r) ) {/*{{{*/
+          if ( $debug_method ) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker)  -- - - -- - --- - - Found ".get_class($senator)." record #{$r['id']}"); 
+            $this->recursive_dump($r,"(marker) -- - ->"); 
+            $this->syslog(__FUNCTION__,__LINE__,"(marker)  -- - - -- Distinct names"); 
+            $this->recursive_dump($distinct_names,"(marker) -- - ->"); 
+          }
+          array_walk($distinct_names, create_function(
+            '& $a, $k, $s', 'if ( (1 == preg_match( "@{$k}@i", array_element($s,"fullname") )) || (array_element($s,"bio_url") == $a) ) { $a = array("id" => $s["id"], "fullname" => array_element($s,"fullname"), "url_db" => array_element($s,"bio_url") ); }'
+          ),$r);
+        }/*}}}*/
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- - -- Distinct Names AFTER update"); 
+          $this->recursive_dump($distinct_names,"(marker) - - - - - -");
+        }/*}}}*/
+        // Use the transient list to update all entries
+        foreach ( $committee_list as $r => $commlist ) {
+          array_walk( $committee_list[$r]["senators"], create_function(
+            '& $a, $k, $s', 'if ( array_key_exists($k,$s) && is_array($s[$k]) && array_key_exists("id", $s[$k]) ) { $a["id"] = $s[$k]["id"]; $a["fullname_db"] = $s[$k]["fullname"]; $a["url_db"] = $s[$k]["url_db"]; }'
+          ),$distinct_names);
+        }
+
+        if ( $debug_method ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Patterns"); 
+          $this->recursive_dump($distinct_names,"(marker) - -- -");
+        }/*}}}*/
+      }/*}}}*/
+     
+      if ( $debug_method ) {/*{{{*/
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Parsed Content"); 
+        $this->recursive_dump($committee_list,"(marker) - -- -");
+      }/*}}}*/
+
+      if ( $debug_method ) $this->recursive_dump($committee_list,"(marker) - - - - - - -");
+
+      foreach ( $committee_list as $committee_name_regex => $c ) {/*{{{*/// Generate markup
         $senator_entries = '';
-        foreach ( $c['senators'] as $senator_entry ) {/*{{{*/
+        if (!(0 < intval(array_element($c,'id')))) {
+          $id = $committee->
+            set_id(NULL)->
+            stow_committee($c['committee_name']);
+          $this->syslog(__FUNCTION__,__LINE__,"(marker)  Stowed {$c['committee_name']} #{$id}");
+          $committee_list[$committee_name_regex]['id'] = $id;
+          $c['id'] = $id;
+        }
+        foreach ( $c['senators'] as $senator_index => $senator_entry ) {/*{{{*/
           $link_attribs = array('legiscope-remote');
-          if ( $senator_entry['cached'] ) $link_attribs[] = 'cached';
+          if ( 0 < intval($senator_entry['id']) ) $link_attribs[] = 'cached';
           $link_attribs = join(' ', $link_attribs);
-          $linktext = array_key_exists('linktext', $senator_entry)
-            ? utf8_encode($senator_entry['linktext'])
-            : $senator_entry['url'];
+          $linktext = utf8_decode( nonempty_array_element($senator_entry,'fullname_db',array_element($senator_entry,'fullname','...')) );
+          if ( (0 == strlen(array_element($senator_entry,'url_db'))) || 
+            (0 == strlen(array_element($senator_entry,'fullname_db'))) ||
+            (!(1 == preg_match("@_old@i",$senator_entry['url'])) && !($senator_entry['url_db'] == $senator_entry['url'])) ||
+            (strlen($senator_entry['fullname_db']) < strlen($senator_entry['fullname'])) ) {/*{{{*/
+              if (!is_null(array_element($senator_entry,'id'))) $senator->fetch(array_element($senator_entry,'id'),'id');
+              $senator_id = $senator->
+                set_id(array_element($senator_entry,'id'))->
+                set_last_fetch(time())->
+                set_fullname($senator_entry['fullname'])->
+                set_bio_url($senator_entry['url'])->
+                fields(array('last_fetch','fullname','bio_url'))->
+                stow();
+              $committee_list[$committee_name_regex]['senators'][$senator_index]['id'] = $senator_id;
+              $senator_entry['id'] = $senator_id;
+              if ( $debug_method ) {/*{{{*/
+                $this->syslog(__FUNCTION__,__LINE__,"(marker) Updated/stored #{$senator_id} Senator {$senator_entry['fullname']}");
+                $this->syslog(__FUNCTION__,__LINE__,"(marker)    URL, parsed: " . $senator_entry['url']);
+                $this->syslog(__FUNCTION__,__LINE__,"(marker)      URL in DB: " . $senator_entry['url_db']);
+                $this->syslog(__FUNCTION__,__LINE__,"(marker)       Fullname: " . $senator_entry['fullname']);
+                $this->syslog(__FUNCTION__,__LINE__,"(marker) Fullname in DB: " . $senator_entry['fullname_db']);
+              }/*}}}*/
+          }/*}}}*/
+          $committee_senator->
+            set_id(NULL)->
+            fetch(array(
+              'senate_committee' => $c['id'],
+              'senator_dossier' => $senator_entry['id'],
+            ),'AND');
+          $committee_senator->
+            set_role('chairperson')->
+            set_senate_committee($c['id'])->
+            set_senator_dossier($senator_entry['id'])->
+            set_target_congress($target_congress)->
+            set_last_fetch(time())->
+            set_create_time(time())->
+            stow();
+
           $senator_entries .= <<<EOH
-<span class="committee-senators">
-  <a href="{$senator_entry['url']}" class="{$link_attribs}">{$linktext}</a>
-</span>
+<a href="{$senator_entry['url_db']}" class="{$link_attribs}">{$linktext}</a><br/>
 
 EOH;
         }/*}}}*/
-        $committee->fetch_by_committee_name($c['committee_name']);
-        $committee_desc = ($committee->in_database())
-          ? $committee->get_jurisdiction() 
+        $senator_entries = <<<EOH
+<span class="committee-senators">
+{$senator_entries}
+</span>
+EOH;
+        $committee_desc = 0 < intval($c['id'])
+          ? htmlspecialchars(utf8_decode($c['jurisdiction']))
           : '...'
           ;
-        $pagecontent .= <<<EOH
+        $c['committee_name'] = utf8_decode($c['committee_name']);
+        $replacement_content = <<<EOH
 <div class="committee-functions-leadership">
   <div class="committee-name">{$c['committee_name']}</div>
   <div class="committee-leaders">
@@ -630,8 +732,10 @@ EOH;
 </div>
 
 EOH;
+        $pagecontent .= $replacement_content;
       }/*}}}*/
     }
+    $pagecontent = utf8_encode($pagecontent);
 
   }/*}}}*/
 
@@ -640,7 +744,6 @@ EOH;
 
     $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
     $committee_parser = new SenateCommitteeListParseUtility();
-    // $committee_parser = new SenateCommonParseUtility();
     $committee        = new SenateCommitteeModel();
     $senator          = new SenatorDossierModel();
 
@@ -666,7 +769,7 @@ EOH;
 
     // Container accessors are not used
     $this->recursive_dump(($committee_info = $committee_parser->get_desc_stack(
-    )),'(marker) Names');
+    )),'(------) Names');
 
     $template = <<<EOH
 <div class="republic-act-entry">
@@ -680,9 +783,6 @@ EOH;
     $this->syslog(__FUNCTION__,__LINE__, "Committee count: " . count($committee_info));
 
     foreach ( $committee_info as $entry ) {
-      
-      //$this->syslog(__FUNCTION__,__LINE__,"++ {$entry['link']}");
-      // $this->recursive_dump($entry,"(marker)");
       $committee_name = $committee->cleanup_committee_name(trim($entry['link'],'#'));
       $short_code = preg_replace('@[^A-Z]@','',$committee_name);
       $committee->fetch_by_committee_name($committee_name);
@@ -693,6 +793,7 @@ EOH;
         set_is_permanent('TRUE')->
         set_create_time(time())->
         set_last_fetch(time())->
+        fields('committee_name,short_code,jurisdiction,is_permanent,create_time,last_fetch')->
         stow();
       $replacement_content .= $committee->substitute($template);
     }
@@ -715,9 +816,12 @@ EOH;
 
     // $dossier->dump_accessor_defs_to_syslog();
 
-    $senator->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-    // $this->recursive_dump($senator->get_filtered_doc(),'(warning)');
-    $pagecontent = join('',$senator->get_filtered_doc());
+    $senator->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
 
     ////////////////////////////////////////////////////////////////////
     //
@@ -779,15 +883,18 @@ EOH;
     if ( 0 < count($image_url) ) { /*{{{*/
       foreach ( $image_url as $brick ) {/*{{{*/
         $bio_url = $brick['link']['url'];
-        $dossier->fetch($bio_url,'bio_url'); 
+        $dossier->set_id(NULL)->fetch(array(
+          'bio_url' => $bio_url,
+          'fullname' => $dossier->cleanup_senator_name($brick['link']['text'])
+        ),'OR');
         $member_fullname      = NULL; 
         $member_uuid          = NULL; 
         $member_avatar_base64 = NULL; 
         $avatar_url           = NULL; 
         if ( !$dossier->in_database() ) {/*{{{*/
-          $member_fullname = $dossier->cleanup_senator_name(utf8_decode($brick['link']['text']));
+          $member_fullname = $dossier->cleanup_senator_name($brick['link']['text']);
           if (empty($member_fullname)) continue;
-          $this->syslog(__FUNCTION__,__LINE__, "(marker) - Treating {$bio_url}");
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - -- Treating {$member_fullname} {$bio_url}");
           $this->recursive_dump($brick,'(warning)');
           $member_uuid = sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member_fullname);
           $avatar_url  = $brick['realsrc'];
@@ -803,7 +910,6 @@ EOH;
             set_bio_url($bio_url)->
             set_create_time(time())->
             set_last_fetch(time())->
-            // set_contact_json($contact_items)->
             set_avatar_url($avatar_url)->
             set_avatar_image($member_avatar_base64)->
             stow();
@@ -824,7 +930,7 @@ EOH;
 EOH;
       }/*}}}*/
 
-      $pagecontent = utf8_encode(<<<EOH
+      $pagecontent = <<<EOH
 <div class="senator-dossier-pan-bar"><div class="dossier-strip">{$senator_dossier}</div></div>
 <div id="human-element-dossier-container" class="alternate-original half-container"></div>
 <script type="text/javascript">
@@ -838,11 +944,11 @@ $(function(){
   });
   if ( total_image_width < (total_image_count * 76) ) total_image_width = total_image_count * 76;
   $("div[class=dossier-strip]").width(total_image_width).css({'width' : total_image_width+'px !important'});
-  setTimeout((function(){ update_representatives_avatars(); }),500);
+  update_representatives_avatars();
 });
 </script>
 EOH
-      );
+      ;
 
     }/*}}}*/
 
@@ -2388,7 +2494,7 @@ EOH;
       $report_id = $report->stow();
       if ( 0 < intval($report_id) ) {
         // Create Committee Report - Committee Joins
-        $committees = array_keys($committees); // Reduce the committee list array
+        $committees = array_keys($committees); // Reduce the committee list array to just the IDs (`id`) 
         if ( intval($report->get_id()) != $report_id ) $report->set_id($report_id);
         $this->syslog(__FUNCTION__,__LINE__, "(marker) --- -- - Stowing links to me {$report_id} #" . $report->get_id());
         $report->create_joins('SenateCommitteeModel',$committees);

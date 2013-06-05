@@ -25,8 +25,17 @@ class RawparseUtility extends SystemUtility {/*{{{*/
   function __construct() {/*{{{*/
     $this->initialize();
   }/*}}}*/
+
+	function __destruct() {
+		if ( !is_null($this->parser) ) {
+      xml_parser_free($this->parser);
+		}
+		$this->parser = NULL;
+		$this->structure_reinit();
+	}
   
   protected function initialize() {/*{{{*/
+
     $this->parser = xml_parser_create('UTF-8');
     xml_set_object($this->parser, $this);
     xml_set_element_handler($this->parser, 'ru_tag_open', 'ru_tag_close');
@@ -42,19 +51,46 @@ class RawparseUtility extends SystemUtility {/*{{{*/
     xml_parser_set_option($this->parser, XML_OPTION_CASE_FOLDING, 1 );
     xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1 );
     xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
+
   }/*}}}*/
 
-  function & assign_containers(& $c, $reduce_to_element = NULL) {
-    if ( is_null($reduce_to_element) )
-      $this->containers = $c;
-    else
-      $this->containers = $c[$reduce_to_element];
-    return $this->containers;
-  }
+	function structure_reinit() {
+		$this->headerset              = array();
+		$this->parser                 = NULL;
+		$this->current_tag            = NULL;
+		$this->tag_stack              = array();
+		$this->links                  = array();
+		$this->container_stack        = array();
+		$this->containers             = array();
+		$this->filtered_doc           = array();
+		$this->page_url_parts         = array();
+		$this->removable_containers   = array();
+		$this->hash_generator_counter = 0;
+		$this->tag_counter            = 0;
+		$this->promise_stack          = array();
+	}
+
+	function & clear_containers() {
+		$this->containers = NULL;
+		$this->filtered_containers = NULL;
+		gc_collect_cycles();
+		$this->structure_reinit();
+		return $this;
+	}
 
   function & enable_filtered_doc($b) {
     $this->enable_filtered_doc_cache = $b;
     return $this;
+  }
+
+  function & assign_containers(& $c, $reduce_to_element = NULL) {
+    if ( is_null($reduce_to_element) )
+      $this->containers = $c;
+    else {
+      $this->containers = $c[$reduce_to_element];
+		}
+		gc_collect_cycles();
+    return $this->containers;
   }
 
   function attributes_as_string($attrs, $as_array = FALSE, $concat_with = " ") {/*{{{*/
@@ -84,12 +120,25 @@ EOH;
     return $this;
   }/*}}}*/
 
+	function & pop_from_containers(& $container) {
+		$container = NULL;
+		$container = array_pop($this->containers);
+    reset($this->containers);
+		return $this;
+	}
+
   function & containers_r() {
     return $this->containers;
   }
 
+	function clear_temporaries() {
+		$this->filtered_containers = NULL;
+		$this->removable_containers = NULL;
+	}
+
   function get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
     $this->filtered_containers = array();
+		if ( is_array($this->removable_containers) )
     foreach ( $this->removable_containers as $remove ) {
       unset($this->containers[$remove]);
     }
@@ -158,16 +207,17 @@ EOH;
     return $rawhtml;
   }/*}}}*/
 
-  function reset() {/*{{{*/
+  function reset($skip_alloc = FALSE, $clear_containers = TRUE) {/*{{{*/
     if ( !is_null($this->parser) ) {
       xml_parser_free($this->parser);
       $this->parser = NULL;
     }
-    $this->initialize();
+		if ( !$skip_alloc ) $this->initialize();
     $this->current_tag     = NULL;
     $this->tag_stack       = array();
     $this->links           = array();
     $this->container_stack = array();
+		if ( $clear_containers )
     $this->containers      = array();
     $this->filtered_doc    = array();
     return $this;
@@ -284,7 +334,7 @@ EOH;
 
     $only_non_empty = create_function('$a', 'return 0 < count(array_element($a,"children")) ? $a : NULL;');
     $this->containers = array_filter(array_map($only_non_empty,$this->containers));
-    if ( $this->debug_tags ) $this->recursive_dump($this->containers,'(marker)');
+    if ( $debug_method ) $this->recursive_dump($this->containers,'(marker)');
 
     if ( method_exists($this, 'promise_prepare_state') ) {
       $this->promise_prepare_state();
@@ -293,15 +343,22 @@ EOH;
     // Process deferred tag operations ("promises")
     $this->process_promise_stack();
   
+		$dom = NULL;
+		unset($dom);
+		$this->promise_stack = NULL;
+		gc_collect_cycles();
+		$this->promise_stack = array();
+
     return $this->containers;
 
   }/*}}}*/
 
   function process_promise_stack() {/*{{{*/
     // Process deferred tag operations ("promises")
+		$debug_method = FALSE;
     if ( 0 < count($this->promise_stack) ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Handle stacked tag promises: " . count($this->promise_stack) . " for " . get_class($this));
-      $containerset = $this->get_containers();
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Handle stacked tag promises: " . count($this->promise_stack) . " for " . get_class($this));
+      $containerset =& $this->get_containers();
       // Ensure that hash table contains 'seq' in keys
       $this->reorder_with_sequence_tags($containerset);
       array_walk($containerset,create_function(
@@ -313,11 +370,9 @@ EOH;
       ));
       $seq = NULL;
       $this->process_promise_stack_worker($seq,$containerset);
-      $this->containers = $containerset;
     } else {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) No post-processing promises stacked for " . get_class($this));
+			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) No post-processing promises stacked for " . get_class($this));
     }
-    return $this->containers;
   }/*}}}*/
 
   function process_promise_stack_worker(& $seqno, & $containerset, $promise_item = NULL, $depth = 0) {/*{{{*/
@@ -407,6 +462,16 @@ EOH;
     $this->syslog(__FUNCTION__,__LINE__,"(marker) ENs {$open_entity_names} Base {$base} SID {$system_id} PID {$public_id}" );
   }
 
+	function tag_stack_parent(& $e) {
+		$e = NULL;
+		if ( empty($this->tag_stack) || 2 > count($this->tag_stack) ) return FALSE;
+		$top = array_pop($this->tag_stack);
+		$e = array_pop($this->tag_stack);
+		array_push($this->tag_stack, $e);
+		array_push($this->tag_stack, $top);
+		return TRUE;
+	}
+
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
     $tag = strtoupper($tag);
     // $this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>> {$tag}" );
@@ -426,7 +491,7 @@ EOH;
     ////////////////////////
     $this->pop_tagstack();
     if ( $result) {
-      if ( 0 < count($this->current_tag['attrs']) ) {
+      if ( 0 < count(array_element($this->current_tag,'attrs',array())) ) {
         $attrs = $this->attributes_as_string($this->current_tag['attrs']);
         $tag .= " {$attrs}";
       }

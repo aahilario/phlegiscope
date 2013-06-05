@@ -13,12 +13,11 @@ class LegiscopeBase extends SystemUtility {
 
   function __construct() {/*{{{*/
     parent::__construct();
+		gc_enable();
     $this->session_start_wrapper();
-
     $target_url = $this->filter_post('url');
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
     $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
-
     $this->enable_proxy = $this->filter_post('proxy','false') == 'true';
   }/*}}}*/
 
@@ -101,15 +100,35 @@ class LegiscopeBase extends SystemUtility {
 
   final function handle_model_action() {/*{{{*/
 
+		$debug_method = FALSE;
+
     $controller = $this->filter_request('p');
     $action     = $this->filter_request('q');
     $subject    = $this->filter_request('r');
 
-    if ( is_null( $controller ) ) {
-      if ( method_exists( $this, $action ) ) {
-        $this->$action($subject);  
-      }
-    }
+		$action_hdl = ucfirst(strtolower($action)) . "Action";
+
+		if ( $debug_method ) {
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$_SERVER['REMOTE_ADDR']}");
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -  controller: " . $controller);
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -      action: " . $action    );
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     subject: " . $subject   );
+		}
+
+		if ( is_null( $controller ) ) {
+			$suppress_call = FALSE;
+			if ( !is_null($action) && class_exists($action_hdl) ) {
+				$a = new $action_hdl();
+        if ( method_exists( $this, $action ) ) {
+          $this->$action($subject);  
+        } else if ( method_exists($a, $action) ) {
+          $a->$action($subject);
+				}
+				$a = NULL;
+				unset($a);
+			}
+		}
+		return $this;
   }/*}}}*/
 
   function flush_output_buffer() {/*{{{*/
@@ -122,269 +141,9 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  function keyword() {/*{{{*/
-
-    $this->syslog( '----', __LINE__, "----------------------------------");
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked from {$_SERVER['REMOTE_ADDR']}" );
-
-    ob_start();
-
-    $referrer     = $this->filter_session('referrer','http://www.congress.gov.ph');
-
-    $hostModel = new HostModel($referrer);
-    $referrers = new UrlModel();
-    $hostModel->increment_hits()->stow();
-    $this->subject_host_hash = UrlModel::get_url_hash($hostModel->get_url(),PHP_URL_HOST);
-
-    $fragment     = $this->filter_post('fragment');
-    $decomposer   = '@([^ ]*) ?@i';
-    $components   = array();
-    $match_result = preg_match_all($decomposer, $fragment, $components);
-    $records      = array();
-
-    if ( !(array_element($_SESSION,'last_fragment') == $fragment) && count($components) > 0 ) {
-
-      $this->recursive_dump($components,__LINE__);
-      $components = array_filter($components[1]);
-      $components = join('(.*)', $components);
-
-      $iterator = new RepublicActDocumentModel();
-      $iterator->
-        where(array('OR' => array(
-          'description' => "REGEXP '({$components})'",
-          'sn'     => "REGEXP '({$components})'",
-        )))->
-        recordfetch_setup();
-      $record = array();
-      $count = 0;
-      while ( $iterator->recordfetch($record) ) {
-        $records[] = array(
-          'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
-          'sn'          => $record['sn'],
-          'hash'        => UrlModel::get_url_hash($record['url']),
-          'category'    => 'Republic Acts',
-          'url'         => $record['url'],
-        );
-        if ($count++ > 100) break;;
-      }
-      $this->syslog( '----', __LINE__, "Republic Acts found: {$count}");
-      /////////////////////////////////////////////////
-      $iterator = new HouseBillDocumentModel();
-      $iterator->
-        where(array('OR' => array(
-          'description' => "REGEXP '({$components})'",
-          'sn'     => "REGEXP '({$components})'",
-        )))->
-        recordfetch_setup();
-      $record = array();
-      $count = 0;
-      while ( $iterator->recordfetch($record) ) {
-        $records[] = array(
-          'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
-          'sn'          => $record['sn'],
-          'hash'        => UrlModel::get_url_hash($record['url']),
-          'category'    => 'House Bills',
-          'url'         => $record['url'],
-        );
-        if ($count++ > 20) break;;
-      }
-      $this->syslog( '----', __LINE__, "House Bills found: {$count}");
-      /////////////////////////////////////////////////
-      $iterator = new SenateBillDocumentModel();
-      $iterator->
-        where(array('OR' => array(
-          'description' => "REGEXP '({$components})'",
-          'comm_report_info' => "REGEXP '({$components})'",
-          'main_referral_comm' => "REGEXP '({$components})'",
-          'subjects' => "REGEXP '({$components})'",
-          'sn'     => "REGEXP '({$components})'",
-        )))->
-        recordfetch_setup();
-      $record = array();
-      $count = 0;
-      while ( $iterator->recordfetch($record) ) {
-        $records[] = array(
-          'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
-          'sn'          => $record['sn'],
-          'hash'        => UrlModel::get_url_hash($record['url']),
-          'category'    => 'Senate Bills',
-          'url'         => $record['url'],
-        );
-        if ($count++ > 20) break;;
-      }
-      $this->syslog( '----', __LINE__, "Senate Bills found: {$count}");
-      /////////////////////////////////////////////////
-
-      foreach ( $records as $dummyindex => $record ) {
-        $referrers->fetch($record['url'],'url');
-        $records[$dummyindex]['referrers'] = $referrers->referrers('url');
-      }
-    }
-
-    $_SESSION['last_fragment'] = $fragment;
-
-    $json_reply = array(
-      'count' => count($records),
-      'records' => $records,
-      'regex' => $components,
-      'retainoriginal' => TRUE,
-    );
-
-    $response = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    echo $response;
-    exit(0);
-  }/*}}}*/
-
-  function reorder() {/*{{{*/
-
-    $debug_method = FALSE; 
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) ---------------------------------- Invoked from {$_SERVER['REMOTE_ADDR']}" );
-    $this->recursive_dump($_POST,'(marker)');
-
-    ob_start();
-
-    $clusterid = $this->filter_post('clusterid');
-    $move      = $this->filter_post('move');
-    $referrer  = $this->filter_session('referrer');
-    $this->subject_host_hash = UrlModel::get_url_hash($referrer,PHP_URL_HOST);
-
-    // Extract link cluster ID parts
-    $cluster_id_parts = array();
-    preg_match('@([[:xdigit:]]{32})-([[:xdigit:]]{32})-([[:xdigit:]]{40})@', $clusterid, $cluster_id_parts);
-
-    $json_reply = array('referrer' => $referrer);
-
-    // Retrieve and parse links on page
-    $cluster   = new UrlClusterModel();
-    $parser    = new GenericParseUtility();
-    $page      = new UrlModel($referrer,TRUE);
-    $clusterid = array_element($cluster_id_parts,3);
-    $parser->
-      set_parent_url($page->get_url())->
-      parse_html($page->get_pagecontent(),$page->get_response_header());
-
-    $cluster->dump_accessor_defs_to_syslog();
-
-    $cluster->reposition($page, $clusterid, $move);
-
-    // Regenerate the link set
-    if ( FALSE == $page->is_custom_parse() ) {
-      $linkset = $parser->generate_linkset($page->get_url());
-      $json_reply['linkset'] = $linkset['linkset'];
-    }
-
-    // Transmit response (just the regenerated set of links for that page)
-    if ( $debug_method ) {
-    $this->recursive_dump($json_reply,'(marker)');
-    }
-
-    $response = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    echo $response;
-    exit(0);
-
-  }/*}}}*/
-
-  function preload() {/*{{{*/
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']}" );
-
-    ob_start();
-
-    $link_hashes = $this->filter_post('links', array());
-    $modifier    = $this->filter_post('modifier');
-
-    $this->recursive_dump($link_hashes,"(marker)");
-
-    $url = new UrlModel();
-
-    $uncached = array();
-
-    // URLs which are presumed to always expire
-    $lie_table = array(
-      'http://www.gov.ph/(.*)/republic-act-no(.*)([/]*)',
-      'http://www.congress.gov.ph/download/(.*)',
-      'http://www.congress.gov.ph/committees/(.*)',
-      'http://www.senate.gov.ph/(.*)',
-      'http://www.gmanetwork.com/news/eleksyon2013/(.*)',
-    );
-
-    $lie_table = '@' . join('|', $lie_table) . '@i';
-
-    $hash_count = 0;
-
-    foreach( $link_hashes as $hash ) {
-      $url->fetch($hash, 'urlhash');
-      $urlstring = $url->get_url();
-      $in_lie_table = (1 == preg_match($lie_table,$url->get_url())) || ($modifier == 'true');
-      if ( $url->in_database() && !($modifier == 'true') && !$in_lie_table ) {
-        $this->syslog(__FUNCTION__,__LINE__,"- Matched hash {$hash} to {$urlstring}" );
-      } else {
-        $this->syslog(__FUNCTION__,__LINE__,"+ Must fetch URL corresponding to {$hash}" );
-        $uncached[] = array(
-          'hash' => $hash,
-          'live' => !$in_lie_table,
-        );
-      }
-      if ( $hash_count++ > 300 ) break;
-    }
-
-    $json_reply = array(
-      'count' => count($uncached),
-      'uncached' => $uncached,
-    );
-
-    $response = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    echo $response;
-    exit(0);
-
-  }/*}}}*/
-
-  function fetchpdf($a) {/*{{{*/
-
-    $this->syslog( '----', __LINE__, "----------------------------------");
-
-    ob_start();
-
-    $url = new UrlModel();
-    $url->fetch($a,'content_hash');
-    $target_url = $url->get_url();
-    $content_type = $url->get_content_type();
-
-    $this->syslog( __FUNCTION__, __LINE__, "Doctype '{$content_type}' passed: '{$a}', from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
-
-    $output_buffer = ob_get_clean();
-    if ( 0 < strlen($output_buffer) ) {
-      // Dump content inadvertently generated during this operation.
-      $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,__LINE__);
-    }
-
-    if ( 1 == preg_match('@^application/pdf@i', $content_type) ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Emitting PDF '{$a}' to {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
-      header("Content-Type: " . $content_type);
-      header("Content-Length: " . $url->get_content_length());
-      echo $url->get_pagecontent();
-      exit(0);
-    }
-
-    header("HTTP/1.1 404 Not Found");
-    exit(0);
-
-  }/*}}}*/
-
   function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
+			$cache_force = $this->filter_post('cache');
       $pagecontent = json_encode($json_reply);
       header('Content-Type: application/json');
       header('Content-Length: ' . strlen($pagecontent));
@@ -416,464 +175,10 @@ class LegiscopeBase extends SystemUtility {
     }/*}}}*/
   }/*}}}*/
 
-  function proxyform() {/*{{{*/
-
-    ob_start();
-
-    $modifier                = $this->filter_post('modifier');
-    $target_url              = $this->filter_post('url');
-    $freeze_referrer         = $this->filter_post('fr');
-    $cache_force             = $this->filter_post('cache');
-    $referrer                = $this->filter_session('referrer');
-    // Use the referrer host (which should be the URL containing the
-    // form whose data is being submitted) to retrieve session state.
-    $this->subject_host_hash = UrlModel::get_url_hash($referrer,PHP_URL_HOST);
-    $network_fetch           = $modifier == 'true';
-    $session_has_cookie      = $this->filter_session("CF{$this->subject_host_hash}");
-    $form_data               = $this->filter_post('data',array(array('name' => NULL,'value' => NULL)));
-
-    // The form's ACTION target URL.
-    $url     = new UrlModel($target_url, TRUE);
-    $generic = new GenericParseUtility();
-    $in_db   = $url->in_database() ? 'in DB' : 'uncached';
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - Form submission from: {$_SERVER['REMOTE_ADDR']} [{$session_has_cookie}]" );
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - -        Action target: {$target_url} ({$in_db})" );
-    $this->recursive_dump($_POST,'(marker) ----- ---- --- -- - P');
-
-    $json_reply = array();
-
-    //////////////////////////////////////////////////////////
-
-    $form_data = array_combine(
-      array_map(create_function('$a', 'return $a["name"];'), $form_data),
-      array_map(create_function('$a', 'return $a["value"];'), $form_data)
-    );
-
-    $this->recursive_dump($form_data,'(marker) ----- ---- --- -- -');
-
-    $faux_url     = $target_url;
-
-    $fetch_result = $network_fetch
-      ? $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $form_data, ($debug_dump = TRUE) )
-      : $url->in_database()
-      ;
-
-    if ( $fetch_result ) {
-
-      foreach ( $this->get_handler_names($url, array()) as $handler_type => $method_name ) {/*{{{*/
-        // Break on first match
-        if ( method_exists($this, $method_name) ) {/*{{{*/
-          $matched |= TRUE;
-          $parser->from_network     = $network_fetch;
-          $parser->json_reply       = $json_reply;
-          $parser->target_url       = $target_url;
-
-          $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name}");
-          $this->$method_name($parser, $body_content, $url);
-
-          $linkset        = $parser->linkset;
-          $json_reply     = $parser->json_reply; // Merged with response JSON
-          $target_url     = $parser->target_url;
-
-          break;
-        }/*}}}*/
-      }/*}}}*/
-
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - -  Generating JSON response" );
-      $body_content = $url->get_pagecontent();
-      $final_body_content = preg_replace(
-        array(
-          '/<html([^>]*)>/imU',
-          '/>([ ]*)</m',
-          '/<!--(.*)-->/imUx',
-          '@<noscript>(.*)</noscript>@imU',
-          //'@<script([^>]*)>(.*)</script>@imU',
-          "@\&\#10;@",
-          "@\&\#9;@",
-          "@\n@",
-        ),
-        array(
-          '<html>',
-          '><',
-          '',
-          '',
-          '',
-          //'',
-          "",
-          " ",
-          "",
-        ),
-        $body_content
-      );
-      $final_content = str_replace(
-        array('<br/>'  , '><'  , '<'  , '>'   , " "     , '{BREAK}'),
-        array('{BREAK}', ">{BREAK}<", '&lt;', '&gt;', "&nbsp;", '<br/>')  ,
-        $body_content
-      ); 
-      $responseheader = $url->get_response_header(FALSE,'<br/>');
-      $headers        = $url->get_response_header(TRUE);
-      $headers['legiscope-regular-markup'] = (1 == preg_match('@^text/html@i', $headers['content-type'])) ? 1 : 0;
-      $json_reply = array_merge(
-        array(
-          'url'            => $url->get_url(),
-          'contenthash'    => $url->get_content_hash(),
-          'referrer'       => $referrer,
-          'contenttype'    => $url->get_content_type(),
-          'linkset'        => NULL,
-          'markup'         => $headers['legiscope-regular-markup'] == 1 ? utf8_encode($final_content) : '[OBSCURED CONTENT]',
-          'responseheader' => $responseheader,
-          'httpcode'       => $headers['http-response-code'], 
-          'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
-          'defaulttab'     => array_key_exists($headers['http-response-code'],array_flip(array(100,200,302,301))) ? 'original' : 'responseheader',
-        ),
-        $json_reply
-      );
-      $this->recursive_dump($json_reply,'(marker) ----- ---- --- -- -');
-    }
-
-    //////////////////////////////////////////////////////////
-
-    $output_buffer = ob_get_clean();
-
-    if ( 0 < strlen($output_buffer) ) {/*{{{*/
-      // Dump content inadvertently generated during this operation.
-      $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,__LINE__);
-    }/*}}}*/
-
-    $this->exit_cache_json_reply($json_reply,'LegiscopeBase');
-
-    return $json_reply;
-
-  }/*}}}*/
-
-  function seek() {/*{{{*/
-
-    // Perform an HTTP GET
-    ob_start();
-
-    $debug_method = TRUE;
-
-    $json_reply      = array();
-    $modifier        = $this->filter_post('modifier');
-    $metalink        = $this->filter_post('metalink');
-    $linktext        = $this->filter_post('linktext');
-    $target_url      = $this->filter_post('url','');
-    $freeze_referrer = $this->filter_post('fr');
-    $cache_force     = $this->filter_post('cache');
-    $referrer        = $this->filter_session('referrer');
-    $url             = new UrlModel($target_url, empty($target_url) ? FALSE : TRUE);
-    $parser          = new GenericParseUtility();
-
-
-    $this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
-
-    if ( TRUE || $debug_method ) {
-      $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
-    }
-
-    $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
-    $displayed_target_url = $target_url;
-
-    $this->exit_emit_cached_content($url, $cache_force, $network_fetch);
-  
-    $session_has_cookie = $this->filter_session("CF{$this->subject_host_hash}");
-
-    $json_reply = array(
-      'url'            => $target_url,
-      'error'          => '',
-      'message'        => '', 
-      'markup'         => '',
-      'responseheader' => '',
-      'httpcode'       => '400',
-      'retainoriginal' => TRUE,
-      'original'       => "<pre>NO CONTENT RETRIEVED\nURL {$target_url}</pre>",
-      'defaulttab'     => 'original',
-      'referrer'       => $referrer,
-      'contenttype'    => 'unknown',
-    );
-
-    $faux_url       = $parser->get_faux_url($url, $metalink);
-    $urlhash        = $url->get_urlhash();
-    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || !$url->in_database();
-    $content_length = $url->get_content_length();
-    $retrieved      = $url->in_database();
-    $action         = $retrieved && !$network_fetch
-      ? "DB Retrieved {$content_length} octets"
-      : "Reloading"
-      ;
-
-    if ( $debug_method ) {/*{{{*/
-      $cached_before_retrieval = $retrieved ? "existing" : "uncached";
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) " . ($network_fetch ? "Network Fetch" : "Parse") . " {$cached_before_retrieval} link, invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
-    }/*}}}*/
-
-    if ( ( $debug_method ) || !is_null($faux_url) ) {/*{{{*/
-      $in_db = $retrieved ? 'in DB' : 'uncached';
-      if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
-      $this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) {$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
-      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) Metalink URL src');
-    }/*}}}*/
-
-    if ( $retrieved ) $url->increment_hits()->stow();
-
-    if ( $network_fetch ) {/*{{{*/
-
-      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method );
-      $action = $retrieved
-        ? "(marker) Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
-        : "(marker) WARNING Failed to retrieve"
-        ;
-      if (!$retrieved) {/*{{{*/
-
-        $json_reply['error']          = CurlUtility::$last_error_number;
-        $json_reply['message']        = CurlUtility::$last_error_message;
-        $json_reply['responseheader'] = CurlUtility::$last_transfer_info;
-        $json_reply['defaulttab']     = 'original';
-        $json_reply['retainoriginal'] = TRUE;
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING: Failed to retrieve {$target_url}" );
-        if (TRUE || $debug_method) $this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
-
-      }/*}}}*/
-
-    }/*}}}*/
-
-    $pagecontent    = $url->get_pagecontent();
-    $responseheader = '...';
-    $headers        = $url->get_response_header(TRUE);
-    $curl_error_no  = CurlUtility::$last_error_number;
-    $curl_error_msg = CurlUtility::$last_error_message;
-
-    $body_content   = NULL;
-
-    $headers['legiscope-regular-markup'] = 0;
-
-    if ( ( array_key_exists('http_code', $headers) && (504 == intval($headers['http_code']) ) ) || 
-      (array_key_exists('http-response-code', $headers) && ($headers['http-response-code'] == 504) ) ) {/*{{{*/
-      $response_kind = empty($headers['http_code']) ? "Empty response code (#{$curl_error_no}, '{$curl_error_msg}')" : "Bad response code [{$headers['http_code']}]";
-      $this->recursive_dump($headers,"(marker) H --");
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) -- -- -- - - - -- -- -- {$response_kind}, NF " . ($network_fetch ? 'OK' : 'NO') . ", successful " . ($retrieved ? 'YES' : 'NO'));
-      $retrieved = FALSE;
-    }/*}}}*/
-
-    if ( !$retrieved ) {/*{{{*/
-
-      // Unsuccessful fetch attempt
-      $cache_filename = $url->get_cache_filename();
-      if ( $url->in_database() ) {
-        $url_id = $url->get_id();
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing {$url} #{$url_id}. Must remove cache file {$cache_filename}" );
-        $url->remove();
-      }
-      if ( file_exists($cache_filename) ) {
-        $unlink_ok = unlink($cache_filename) ? 'OK' : 'FAILED';
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing cache file {$cache_filename} {$unlink_ok}" );
-      }
-
-    }/*}}}*/
-    else {/*{{{*/
-
-      $json_reply  = array(); // May be overridden by per-site handler, see below
-
-      $subject_url = is_null($faux_url) ? $target_url : $faux_url;
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
-
-      if ( !is_null($faux_url) ) {/*{{{*/
-        // If we've loaded content from an ephemeral URL, 
-        // use the POST target page action for generating links,
-        // rather than the fake URL.
-        $url->set_url($target_url,FALSE);
-      }/*}}}*/
-
-      $responseheader = $url->get_response_header(FALSE,'<br/>');
-
-      $linkset = array();
-
-      if ( array_key_exists('content-type', $headers) ) {/*{{{*/
-
-				$this->syslog(__FUNCTION__, __LINE__, "(marker)  - - - - Content-Type: {$headers['content-type']}");
-
-        // Parsers only handle HTML content
-        if ( 1 == preg_match('@^text/html@i', $headers['content-type']) ) {/*{{{*/
-
-          $headers['legiscope-regular-markup'] = 1;
-
-          // Speed up parsing by skipping generic parser
-          if ( method_exists($this, 'must_custom_parse') ) {
-            if ( !$url->is_custom_parse() && $this->must_custom_parse($url) ) {
-              $url->ensure_custom_parse();
-            }
-          }
-
-          $is_custom_parse = $url->is_custom_parse();
-
-          if ( $is_custom_parse ) $this->syslog( __FUNCTION__, __LINE__, "(warning) Custom parse" );
-
-          // Defer parsing by setting the URL custom_parse flag in DB
-          $structure = $is_custom_parse
-            ? array()
-            : $parser->set_parent_url($url->get_url())->parse_html($pagecontent,$url->get_response_header())
-            ;
-
-          // Only process <body> tag content
-          $body_content = $parser->fetch_body_generic_cleanup($pagecontent);
-
-          // Custom-parsed page handlers must generate navigation links
-          $linkset = $is_custom_parse
-            ? array('linkset' => array(),'urlhashes' => array(),'cluster_urls' => array())
-            : $parser->generate_linkset($url->get_url())
-            ;
-
-          extract($linkset); // 'linkset', 'urlhashes', 'cluster_urls'
-
-          $body_content = htmlspecialchars_decode($body_content, ENT_NOQUOTES );
-
-          $handler_list = $this->get_handler_names($url, $cluster_urls);
-
-          $matched = FALSE;
-
-          foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
-            // Break on first match
-            if ( method_exists($this, $method_name) ) {/*{{{*/
-              $matched |= TRUE;
-              $parser->trigger_linktext = $linktext;
-              $parser->from_network     = $network_fetch;
-              $parser->json_reply       = $json_reply;
-              $parser->target_url       = $target_url;
-              $parser->metalink_url     = $faux_url; 
-              $parser->metalink_data    = array_element($metalink,'_LEGISCOPE_');
-
-              $parser->linkset          = $linkset;
-              $parser->cluster_urldefs  = $cluster_urls;
-              $parser->urlhashes        = $urlhashes;
-
-              $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name}");
-              $this->$method_name($parser, $body_content, $url);
-
-              $linkset        = $parser->linkset;
-              $json_reply     = $parser->json_reply; // Merged with response JSON
-              $target_url     = $parser->target_url;
-
-              break;
-            }/*}}}*/
-          }/*}}}*/
-
-          if ( !$matched ) {
-            $this->syslog( __FUNCTION__, __LINE__, "No custom handler for path " . $url->get_url());
-            $this->recursive_dump($handler_list,__LINE__);
-          }
-
-        }/*}}}*/
-        else if ( 1 == preg_match('@^application/pdf@i', $headers['content-type']) ) {/*{{{*/
-          $body_content = 'PDF';
-          $body_content_length = $url->get_content_length();
-          $this->syslog( __FUNCTION__, __LINE__, "PDF fetch {$body_content_length} from " . $url->get_url());
-          $headers['legiscope-regular-markup'] = 0;
-          // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
-          $json_reply = array('retainoriginal' => 'true');
-          $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
-        }/*}}}*/
-      }/*}}}*/
-
-      if ( is_null($freeze_referrer) ) {/*{{{*/
-        $_SESSION['referrer'] = $target_url;
-      }/*}}}*/
-      else {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Freeze referrer {$referrer} for " . $url->get_url());
-      }/*}}}*/
-
-      // Finally, reload the model so that it reflects any parser updates
-      $url->fetch($url->get_url(),'url');
-
-      $current_linktext = $url->get_linktext();
-
-      if ( !is_null($linktext) && (!(0 < strlen($current_linktext)) || (1 == preg_match('@^\[@',$linktext))) && ($linktext != $current_linktext)  ) {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing link text '{$linktext}' (currently '{$current_linktext}') for " . $url->get_url());
-        $url->set_linktext($linktext)->stow();
-      }/*}}}*/
-
-      $final_body_content = preg_replace(
-        array(
-          '/<html([^>]*)>/imU',
-          '/>([ ]*)</m',
-          '/<!--(.*)-->/imUx',
-          '@<noscript>(.*)</noscript>@imU',
-          //'@<script([^>]*)>(.*)</script>@imU',
-          "@\&\#10;@",
-          "@\&\#9;@",
-          "@\n@",
-        ),
-        array(
-          '<html>',
-          '><',
-          '',
-          '',
-          '',
-          //'',
-          "",
-          "",
-          "",
-        ),
-        $body_content
-      );
-
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible content length: " . strlen($body_content) );
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Transmissible final length: " . strlen($final_body_content) );
-
-      $final_content = str_replace(
-        array('<br/>'  , '><'  , '<'  , '>'   , " "     , '{BREAK}'),
-        array('{BREAK}', ">{BREAK}<", '&lt;', '&gt;', "&nbsp;", '<br/>')  ,
-        $body_content
-      ); 
-
-      $defaulttab = strtolower(array_element($headers,'content-type','')) == 'text/html' && strtolower(array_element($headers,'transfer-encoding','')) == 'chunked';
-      $defaulttab = $defaulttab || array_key_exists(array_element($headers,'http-response-code',0),array_flip(array(100,200,302,301)))
-        ? 'original'
-        : 'responseheader'
-        ;
-      $json_reply = array_merge(
-        array(
-          'url'            => $displayed_target_url,
-          'contenthash'    => $url->get_content_hash(),
-          'referrer'       => $referrer,
-          'contenttype'    => $url->get_content_type(),
-          'linkset'        => $linkset,
-          'markup'         => $headers['legiscope-regular-markup'] == 1 ? utf8_encode($final_content) : '[OBSCURED CONTENT]',
-          'responseheader' => $responseheader,
-          'httpcode'       => $headers['http-response-code'], 
-          'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
-          'defaulttab'     => $defaulttab, 
-        ),
-        $json_reply
-      );
-
-      $member_uuid = $this->filter_post('member_uuid');
-      if ( !is_null($member_uuid) && $json_reply['httpcode'] == 200 && method_exists($this, 'member_uuid_handler')) {/*{{{*/
-        $this->member_uuid_handler($json_reply, $url, $member_uuid);
-      }/*}}}*/
-
-    }/*}}}*/
-
-    $output_buffer = ob_get_clean();
-
-    if ( 0 < strlen($output_buffer) ) {/*{{{*/
-      // Dump content inadvertently generated during this operation.
-      $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,__LINE__);
-    }/*}}}*/
-
-    $this->exit_cache_json_reply($json_reply,'LegiscopeBase');
-
-    return $json_reply;
-  }/*}}}*/
-
   protected function get_handler_names(UrlModel & $url, array $cluster_urls) {/*{{{*/
 
     // Construct post-processing method name from path parts
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
@@ -935,7 +240,7 @@ class LegiscopeBase extends SystemUtility {
     $url_map = array();
     $method_name = NULL;
 
-		if ( array_key_exists('path', $url_components) ) {
+		if ( array_key_exists('path', $url_components) ) {/*{{{*/
 			$test_url_components = $url_components;
 			unset($test_url_components['query']);
 			unset($test_url_components['fragment']);
@@ -950,14 +255,14 @@ class LegiscopeBase extends SystemUtility {
 				$test_path = str_replace('/','-',$test_path);
 				$method_map['by-path-' . count($url_map) . "{$test_path}"] = 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url);
 			}
-		}
+		}/*}}}*/
 
     $method_map['generic'] = 'common_unhandled_page_parser';
 
     $method_list = array();
 
     // Do not include unimplemented methods
-    foreach ( $method_map as $method_type => $method_name ) {
+    foreach ( $method_map as $method_type => $method_name ) {/*{{{*/
       if ( array_key_exists($method_name, array_flip($method_list)) ) continue;
       if ( method_exists($this, $method_name) ) {
         $method_list[$method_type] = $method_name;
@@ -965,7 +270,7 @@ class LegiscopeBase extends SystemUtility {
       } else {
         if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) {$method_type} handler '{$method_name}' missing." );
       }
-    }
+    }/*}}}*/
 
     return $method_list;
 
@@ -1295,5 +600,17 @@ class LegiscopeBase extends SystemUtility {
     return $child_collection;
   }/*}}}*/
 
+	/** Object Reflection Methods **/
+
+	/*
+	 * These methods support use of Legiscope framework metadata: Runtime
+	 * information about available classes and methods is used for access
+	 * control and to provide developers with a way to store and access
+	 * information about the framework itself.
+	 */
+
+	protected function register_derived_class() {
+		$this->syslog(__FUNCTION__,__LINE__,"(marker)");
+	}
 
 }

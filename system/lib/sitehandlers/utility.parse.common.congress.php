@@ -65,6 +65,7 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     return TRUE;
   }/*}}}*/
   function ru_div_close(& $parser, $tag) {/*{{{*/
+		// FIXME:  Figure out a better way to filter Congress site DIV tags
     $skip = FALSE;
     $this->pop_tagstack();
     if ( is_array($this->current_tag) && array_key_exists('attrs', $this->current_tag) ) {
@@ -140,7 +141,10 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     $this->pop_tagstack();
     if ( 1 == preg_match('@(nav_logo|faded)@',$this->current_tag['attrs']['CLASS']) ) $skip = TRUE;
     if ( !$skip ) {
-      $image = array('image' => $this->current_tag['attrs']['SRC']);
+			$image = array(
+				'image' => $this->current_tag['attrs']['SRC'],
+				'seq'  => $this->current_tag['attrs']['seq'],
+			);
       $this->add_to_container_stack($image);
     } else {
       // $this->recursive_dump($this->current_tag,'(warning)');
@@ -185,10 +189,27 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
 		// event handler source URL.
 		$onclick_event = array_element($this->current_tag['attrs'],'ONCLICK');
 		if ( !is_null($onclick_event) ) {
+			$event_url_match = array();
 			$link_data['onclick'] = $onclick_event;
+			$link_regex = '@([a-z_]*)\(([\'"]?([^\'"]*)[\'"]?)([,]*.*)\)@i';
+			/* The regex above yields, given input
+			 * "pop_Window('../contact/popform.php?re=sendemail&to=committee&id=C501&congress=15','param2','param3')";
+			 *Array (
+				 [0] => pop_Window('../contact/popform.php?re=sendemail&to=committee&id=C501&congress=15','param2','param3')
+				 [1] => pop_Window
+				 [2] => '../contact/popform.php?re=sendemail&to=committee&id=C501&congress=15'
+				 [3] => ../contact/popform.php?re=sendemail&to=committee&id=C501&congress=15
+				 [4] => ,'param2','param3'
+			 )
+			 */
+			if ( 1 == preg_match($link_regex,$onclick_event,$event_url_match) ) {
+				$fixurl = array('url' => array_element($event_url_match,3));
+				$link_data['onclick-param'] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
+				$this->current_tag['attrs']['onclick-param-url'] = $link_data['onclick-param'];
+			}
 			unset($this->current_tag['attrs']['ONCLICK']);
 		}
-    $this->add_to_container_stack($link_data);
+		if ( !empty($link_data['url']) ) $this->add_to_container_stack($link_data);
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  "--- {$this->current_tag['tag']}" );
     return TRUE;

@@ -1,24 +1,10 @@
 <?php
 
-class GovPh extends LegiscopeBase {
+class GovPh extends SeekAction {
   
   function __construct() {
     $this->syslog( __FUNCTION__, '-', 'Using site-specific container class' );
     parent::__construct();
-  }
-
-  function seek() {
-    $cache_force = $this->filter_post('cache');
-    $json_reply  = parent::seek();
-    $response    = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-      file_put_contents($this->seek_cache_filename, $response);
-    }
-    echo $response;
-    exit(0);
   }
 
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -258,7 +244,7 @@ EOH;
 
   }/*}}}*/
 
-	function seek_by_pathfragment_b0ccba18e303576f24c78cf054acfb4c(& $parser, & $pagecontent, & $urlmodel) {
+	function seek_by_pathfragment_b0ccba18e303576f24c78cf054acfb4c(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $gazette = new GazetteCommonParseUtility();
 		$gazette->
@@ -268,7 +254,7 @@ EOH;
 		$this->recursive_dump(($containers = $gazette->get_containers(
 		)),"(marker)");
 
-	}
+	}/*}}}*/
 
   function parse_republic_act(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 

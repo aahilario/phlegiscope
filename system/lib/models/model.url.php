@@ -293,12 +293,12 @@ class UrlModel extends DatabaseUtility {
 
   function set_cache_filename($c) {/*{{{*/
     $this->cache_filename_vc255 = $c;
-    $this->syslog(__FUNCTION__, __LINE__, "Cache filename: {$c}" );
+    if ( $this->debug_method ) $this->syslog(__FUNCTION__, __LINE__, "Cache filename: {$c}" );
   }/*}}}*/
 
   function set_content_type($c) {/*{{{*/
     $this->content_type_vc64 = $c;
-    $this->syslog(__FUNCTION__, __LINE__, "Content-Type: {$c}" );
+    if ( $this->debug_method ) $this->syslog(__FUNCTION__, __LINE__, "Content-Type: {$c}" );
   }/*}}}*/
 
   function set_content_length($n) {/*{{{*/
@@ -417,17 +417,17 @@ class UrlModel extends DatabaseUtility {
   }/*}}}*/
 
   function get_response_header($as_array = TRUE, $interline_break = "\n") {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "Header raw: {$this->response_header_vc32767}");
+    if ( $this->debug_method ) $this->syslog( __FUNCTION__, __LINE__, "Header raw: {$this->response_header_vc32767}");
     $h = json_decode($this->response_header_vc32767,TRUE);
     if ( !is_array($h) ) return array();
 		$h = array_combine(
 			array_map(create_function('$a', 'return strtolower($a);'), array_keys($h)),
 			array_values($h)
 		);
-    if ( (FALSE == $h) || !is_array($h) ) {
-      $this->syslog( __FUNCTION__, __LINE__, "Header JSON parse failure");
-       return $as_array ? array() : NULL;
-    }
+		if ( (FALSE == $h) || !is_array($h) ) {
+			$this->syslog( __FUNCTION__, __LINE__, "Header JSON parse failure");
+			return $as_array ? array() : NULL;
+		}
     if ($as_array != TRUE) {
       $header_lines = array();
       foreach ( $h as $key => $val ) {

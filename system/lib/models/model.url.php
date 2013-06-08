@@ -51,11 +51,11 @@ class UrlModel extends DatabaseUtility {
     return $this->in_database();
   }/*}}}*/
 
-  static function query_element($component, $url) {
+  static function query_element($component, $url) {/*{{{*/
     $path_query = self::parse_url($url,PHP_URL_QUERY);
     $query_parts = self::decompose_query_parts($path_query);
     return is_array($query_parts) ? array_element($query_parts,$component) : NULL;
-  }
+  }/*}}}*/
 
 	function get_query_element($component, $if_empty = FALSE) {/*{{{*/
     $component = self::query_element($component, $this->get_url());
@@ -65,7 +65,7 @@ class UrlModel extends DatabaseUtility {
     return $component;
 	}/*}}}*/
 
-  function add_query_element($n, $v, $load = TRUE, $clear = FALSE) {
+  function add_query_element($n, $v, $load = TRUE, $clear = FALSE) {/*{{{*/
     $debug_method = FALSE;
     $components = self::parse_url($this->get_url());
     $query_parts = array_element($components,'query',array());
@@ -76,7 +76,7 @@ class UrlModel extends DatabaseUtility {
     if ( $debug_method ) $this->recursive_dump($components,"(marker) " . __METHOD__);
     $this->set_url(self::recompose_url($components),$load);
     return $this->get_url();
-  }
+  }/*}}}*/
 
   static function get_url_hash($url, $url_component = NULL ) {/*{{{*/
     if ( !is_null($url_component) ) {
@@ -124,7 +124,7 @@ class UrlModel extends DatabaseUtility {
     return $url_query_parts;
   }/*}}}*/
 
-  static function path_sans_script( array $parent_url ) {
+  static function path_sans_script( array $parent_url ) {/*{{{*/
     if ( !array_key_exists('path', $parent_url) ) return NULL;
     $path_sans_script = $parent_url['path'];
     if ( 1 == preg_match('@(.*)/([^.]*)\.(.*)$@',$path_sans_script) ) {
@@ -132,9 +132,9 @@ class UrlModel extends DatabaseUtility {
       $path_sans_script = preg_replace('@(.*)/([^./]*)\.(.*)$@','$1', $path_sans_script);
     }
     return $path_sans_script;
-  }
+  }/*}}}*/
 
-  static function normalize_url($parent_url, & $link_item, $strip_path_and_query = FALSE) {
+  static function normalize_url($parent_url, & $link_item, $strip_path_and_query = FALSE) {/*{{{*/
 
     if ( !array_key_exists('url', $link_item) || (FALSE == $link_item['url']) ) return FALSE;
 
@@ -171,8 +171,7 @@ class UrlModel extends DatabaseUtility {
     $link_item['urlparts'] = self::parse_url($normalized_link);
 
     return $normalized_link;
-
-  }
+  }/*}}}*/
 
   static function parse_url($url, $url_component = NULL) {/*{{{*/
     $url_regex = '@^(((http(s)?):\/\/)*(([^:]*)(:(.*))?\@)*(([^/?#:]+)*)((:([0-9]+))*)){0,1}((\/([^?#]*)))*((\?([^#]*))*)((\#(.*))*)$@i';
@@ -386,10 +385,10 @@ class UrlModel extends DatabaseUtility {
     return $result;
   }/*}}}*/
 
-	function & set_pagecontent_c($c) {
+	function & set_pagecontent_c($c) {/*{{{*/
 		$this->set_pagecontent($c);
 		return $this;
-	}
+	}/*}}}*/
 
   function cached_to_disk() {/*{{{*/
 		return !$this->in_database() &&
@@ -463,27 +462,27 @@ class UrlModel extends DatabaseUtility {
     return $result;
   }/*}}}*/
 
-  function set_content_hash($s = NULL) {
+  function set_content_hash($s = NULL) {/*{{{*/
     if ( is_null($s) ) {
       $s = sha1($this->get_pagecontent());
     }
     $this->content_hash_vc128 = $s;
     return $this;
-  }
+  }/*}}}*/
 
-  function get_content_hash() {
+  function get_content_hash() {/*{{{*/
     return $this->content_hash_vc128;
-  }
+  }/*}}}*/
 
-  function set_last_fetch($utx) {
+  function set_last_fetch($utx) {/*{{{*/
     $this->last_fetch_utx = $utx;
     return $this;
-  }
+  }/*}}}*/
 
-  function set_create_time($utx) {
+  function set_create_time($utx) {/*{{{*/
     $this->create_time_utx = $utx;
 		return $this;
-  }
+  }/*}}}*/
 
   function & set_last_modified($v) { $this->last_modified_utx = $v; return $this; }
   function get_last_modified($v = NULL) { if (!is_null($v)) $this->set_last_modified($v); return $this->last_modified_utx; }

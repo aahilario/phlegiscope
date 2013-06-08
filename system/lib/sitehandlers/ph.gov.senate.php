@@ -472,7 +472,7 @@ EOH;
 
 <input type="hidden" class="no-replace" id="imagesrc-{$member_uuid}" value="{$avatar_url}" />
 <script type="text/javascript">
-$(function(){
+jQuery(document).ready(function(){
 setTimeout((function(){
   update_representatives_avatars();
 }),50);
@@ -936,14 +936,14 @@ EOH;
 <script type="text/javascript">
 var total_image_width = 0;
 var total_image_count = 0;
-$(function(){
+jQuery(document).ready(function(){
   initialize_dossier_triggers();
-  $("div[class=dossier-strip]").find("img[class*=representative-avatar]").each(function(){
-    total_image_width += $(this).outerWidth();
+  jQuery("div[class=dossier-strip]").find("img[class*=representative-avatar]").each(function(){
+    total_image_width += jQuery(this).outerWidth();
     total_image_count++;
   });
   if ( total_image_width < (total_image_count * 76) ) total_image_width = total_image_count * 76;
-  $("div[class=dossier-strip]").width(total_image_width).css({'width' : total_image_width+'px !important'});
+  jQuery("div[class=dossier-strip]").width(total_image_width).css({'width' : total_image_width+'px !important'});
   update_representatives_avatars();
 });
 </script>
@@ -1291,7 +1291,7 @@ EOH;
 {$linkset}
 
 <script type="text/javascript">
-$(function(){ $('#doctitle').html('{$pagetitle}');});
+jQuery(document).ready(function(){ jQuery('#doctitle').html('{$pagetitle}');});
 </script>
 EOH;
 
@@ -1935,56 +1935,56 @@ EOH;
 <script type="text/javascript">
 
 function document_pager_initialize() {
-  $('div[id=senate-document-pager]').find('a').each(function(){
-    $(this).unbind('click');
-    $(this).unbind('mouseup');
-    $(this).on('contextmenu', function(){
+  jQuery('div[id=senate-document-pager]').find('a').each(function(){
+    jQuery(this).unbind('click');
+    jQuery(this).unbind('mouseup');
+    jQuery(this).on('contextmenu', function(){
       return false;
     }).mouseup(function(e){
       e.stopPropagation();
-      var url = $(this).attr('href');
-      if (2 == parseInt($(e).prop('button'))) {
-        $('div[id=senate-document-pager]')
+      var url = jQuery(this).attr('href');
+      if (2 == parseInt(jQuery(e).prop('button'))) {
+        jQuery('div[id=senate-document-pager]')
           .find('a[class*=uncached]')
           .first()
           .each(function(){
-            $('#doctitle').html("Seek: "+url);
-            $(this).removeClass('uncached').click();
+            jQuery('#doctitle').html("Seek: "+url);
+            jQuery(this).removeClass('uncached').click();
           });
         return false;
       }
       return true;
     }).click(function(e){
-      var url = $(this).attr('href');
-      var self = $(this);
-      load_content_window($(this).attr('href'),false,$(this),null,{
+      var url = jQuery(this).attr('href');
+      var self = jQuery(this);
+      load_content_window(jQuery(this).attr('href'),false,jQuery(this),null,{
         beforeSend : (function() {
-          $('#doctitle').html("Loading "+url);
+          jQuery('#doctitle').html("Loading "+url);
           display_wait_notification();
         }),
         complete : (function(jqueryXHR, textStatus) {
-          $('#doctitle').html("Legiscope");
+          jQuery('#doctitle').html("Legiscope");
           remove_wait_notification();
         }),
         success : function(data, httpstatus, jqueryXHR) {
 
           remove_wait_notification();
 
-          $('div[class*=contentwindow]').each(function(){
-            if ($(this).attr('id') == 'issues') return;
-            $(this).children().remove();
+          jQuery('div[class*=contentwindow]').each(function(){
+            if (jQuery(this).attr('id') == 'issues') return;
+            jQuery(this).children().remove();
           });
 
           replace_contentof('original',data.original);
-          $(self).addClass('cached');
+          jQuery(self).addClass('cached');
           setTimeout((function() {
 						document_pager_initialize();
-            $('div[id=senate-document-pager]')
+            jQuery('div[id=senate-document-pager]')
               .find('a[class*=uncached]')
               .first()
               .each(function(){
-                $('#doctitle').html("Seek: "+$(this).attr('href'));
-                $(this).removeClass('uncached').click();
+                jQuery('#doctitle').html("Seek: "+jQuery(this).attr('href'));
+                jQuery(this).removeClass('uncached').click();
               });
           }),2000);
         }
@@ -1993,8 +1993,8 @@ function document_pager_initialize() {
   });
 }
 
-$(function(){
-  setTimeout((function(){document_pager_initialize(); $('#doctitle').html("Legiscope - Ready to traverse pages");}),2000);
+jQuery(document).ready(function(){
+  setTimeout((function(){document_pager_initialize(); jQuery('#doctitle').html("Legiscope - Ready to traverse pages");}),2000);
 });
 </script>
 

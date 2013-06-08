@@ -1,26 +1,15 @@
-<?php
+<?php 
+$menu_title = get_option('phlegiscope_menutitle');
+echo <<<EOH
+<div class="wrap">
+  <div id="icon-options-general" class="icon32"><br/></div>
+  <h2>{$menu_title} Curator's Page</h2>
+</div>
 
-include_once('system/core.php');
-
-?><!DOCTYPE html>
-<html lang="en">
-<head>
-  <title id='doctitle'>LegiScope</title>
-  <meta charset="utf8"/>
-  <script type="text/javascript" src="js/jquery.js"></script>
-  <script type="text/javascript" src="js/spider.js"></script>
-  <script type="text/javascript" src="js/pdf.js"></script>
-  <script type="text/javascript" src="js/interactivity.js"></script>
-  <link href="css/basic.css" rel="stylesheet" type="text/css" />
-  <script type="text/javascript">
-    PDFJS.workerSrc = 'js/pdf.js';
-  </script>
-  </style>
-</head>
-<body>
+<div class="wrap">
 <script type="text/javascript">
-jQuery(document).ready(function($){
-  $('#keywords').val('');
+jQuery(document).ready(function(){
+  jQuery('#keywords').val('');
   initialize_spider();
 });
 </script>
@@ -89,6 +78,6 @@ jQuery(document).ready(function($){
     </div>
 </div> <!-- poc -->
 
-</body>
-</html>
-<?php
+
+</wrap>
+EOH;

@@ -6,8 +6,8 @@
  */
 
 define('SITE_URL'   , 'http://ra1017x.avahilario.net');
-define('SYSTEM_BASE', './system');
 define('CACHE_PATH', './cache');
+if (!defined('SYSTEM_BASE')) define('SYSTEM_BASE', './system');
 
 // Settings for CurlUtility
 define('LEGISCOPE_USER_AGENT', $_SERVER['HTTP_USER_AGENT']);

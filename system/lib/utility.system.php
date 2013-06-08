@@ -17,7 +17,7 @@ function filter_post($v, $if_unset = NULL) {
     : $if_unset; 
 }
 
-require_once("./PHPWebDriver/WebDriver.php");
+require_once( SYSTEM_BASE . "/../PHPWebDriver/WebDriver.php");
 
 class SystemUtility extends DatabaseUtility {
 
@@ -100,6 +100,10 @@ class SystemUtility extends DatabaseUtility {
 		}
     $this->session_id = session_id();
     return $this->session_id;
+  }/*}}}*/
+
+  final protected function filter_server($v, $if_unset = NULL) { /*{{{*/
+    return is_array($_SERVER) && array_key_exists($v,$_SERVER) ? $_SERVER[$v] : $if_unset; 
   }/*}}}*/
 
   final protected function filter_session($v, $if_unset = NULL) { /*{{{*/

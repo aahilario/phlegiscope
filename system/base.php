@@ -46,13 +46,13 @@ spl_autoload_register(function ($classname) {
   $name_components = camelcase_to_array($classname);
   $target_filename = join('.', array_reverse(array_filter($name_components))) . '.php';
   $target_filename = preg_replace('@/^' . getcwd() . '/@', '', $target_filename);
-  if ( file_exists( "./system/lib/{$target_filename}" ) ) {/*{{{*/
-    $target_filename = "./system/lib/{$target_filename}";
+  if ( file_exists( SYSTEM_BASE . "/lib/{$target_filename}" ) ) {/*{{{*/
+    $target_filename = SYSTEM_BASE . "/lib/{$target_filename}";
 	}/*}}}*/
  	else {/*{{{*/
 		$matches = array();
     if ( 1 == preg_match('/((.*)Action(.*))/', $classname, $matches) ) {/*{{{*/
-      $target_filename = "./system/lib/action/{$target_filename}";
+      $target_filename = SYSTEM_BASE . "/lib/action/{$target_filename}";
       $base = 'extends LegiscopeBase';
 			$prefix = strtolower(array_element($matches,2,'action'));
       $classdef = <<<EOH
@@ -82,7 +82,7 @@ class {$classname} {$base} {
 EOH;
 		}/*}}}*/
 		else if ( 1 == preg_match('/(.*)Database(.*)/', $classname) ) {/*{{{*/
-      $target_filename = "./system/lib/database/{$target_filename}";
+      $target_filename = SYSTEM_BASE . "/lib/database/{$target_filename}";
       $base = 'implements DatabasePlugin';
       $classdef = <<<EOH
 class {$classname} {$base} {
@@ -95,8 +95,8 @@ class {$classname} {$base} {
 
 EOH;
 		}/*}}}*/
-	 	else if ( 1 == preg_match('/(.*)Utility$/i', $classname) && !file_exists("./system/lib/sitehandlers/{$target_filename}") ) {/*{{{*/
-      $target_filename = "./system/lib/{$target_filename}";
+	 	else if ( 1 == preg_match('/(.*)Utility$/i', $classname) && !file_exists(SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}") ) {/*{{{*/
+      $target_filename = SYSTEM_BASE . "/lib/{$target_filename}";
       $base = 'extends RawparseUtility';
       $classdef = <<<EOH
 class {$classname} {$base} {
@@ -144,7 +144,7 @@ EOH;
         );
       }/*}}}*/
       $components = join("\n", $components);
-      $target_filename = "./system/lib/models/{$target_filename}";
+      $target_filename = SYSTEM_BASE . "/lib/models/{$target_filename}";
 
 			if ( $debug_method ) {
 				syslog( LOG_INFO, "---- Target filename: {$target_filename}" );
@@ -171,7 +171,7 @@ class {$classname} {$base} {
 EOH;
 		}/*}}}*/
 	 	else if ( 1 == preg_match('/(.*)Model$/i', $classname) ) {/*{{{*/
-      $target_filename = "./system/lib/models/{$target_filename}";
+      $target_filename = SYSTEM_BASE . "/lib/models/{$target_filename}";
       $base = 'extends DatabaseUtility';
       $classdef = <<<EOH
 class {$classname} {$base} {
@@ -185,7 +185,7 @@ class {$classname} {$base} {
 EOH;
 		}/*}}}*/
 	 	else {/*{{{*/
-      $target_filename = "./system/lib/sitehandlers/{$target_filename}";
+      $target_filename = SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}";
       $base = 'extends LegiscopeBase';
       $classdef = <<<EOH
 class {$classname} {$base} {
@@ -214,9 +214,9 @@ class {$classname} {$base} {
 
 EOH;
     }/*}}}*/
-    if (!('LegiscopeBase' == $classname))
-    if ( !file_exists($target_filename) ) {/*{{{*/
-      $class_skeleton = <<<EOH
+    if (!('LegiscopeBase' == $classname) && !C('DISABLE_CLASS_AUTOGENERATE') ) {
+      if ( !file_exists($target_filename) ) {/*{{{*/
+        $class_skeleton = <<<EOH
 <?php
 
 /*
@@ -230,18 +230,15 @@ EOH;
 {$classdef}
 
 EOH;
-      file_put_contents($target_filename, $class_skeleton);
-    }/*}}}*/
+        file_put_contents($target_filename, $class_skeleton);
+      }/*}}}*/
+    }
   }/*}}}*/
-  // syslog( LOG_INFO, "- Try to load {$target_filename} for class {$classname} " . ini_get('include_path') . " cwd " . getcwd() );
-  require_once($target_filename);
+  if ( file_exists($target_filename) ) {
+    // syslog( LOG_INFO, "- Try to load {$target_filename} for class {$classname} " . ini_get('include_path') . " cwd " . getcwd() );
+    require_once($target_filename);
+  }
   // if ( class_exists($classname) ) syslog( LOG_INFO, "- Class {$classname} exists at tail of spl_autoload()" );
 },TRUE);
 
-// Instantiate Legiscope controller
-$n = LegiscopeBase::instantiate_by_host();
 
-$n->handle_image_request();
-$n->handle_javascript_request();
-$n->handle_stylesheet_request();
-$n->handle_model_action();

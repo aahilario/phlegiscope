@@ -2,7 +2,7 @@
 
 class LegiscopeBase extends SystemUtility {
 
-  public static $singleton;
+  public static $singleton = NULL;
   public static $user_id = NULL;
 
   var $remote_host = NULL;
@@ -21,17 +21,14 @@ class LegiscopeBase extends SystemUtility {
     $this->enable_proxy = $this->filter_post('proxy','false') == 'true';
   }/*}}}*/
 
-  static function instantiate_by_host() {/*{{{*/
+  static function & instantiate_by_host() {/*{{{*/
+    // TODO: Implement RBAC here.
     // Instantiate a singleton, depending on the host URL. 
     // If a class definition filename of the form sub.domain.tld.class.php exists,
     // defining class SubDomainPh (derived from (www.)*sub.domain.tld),
     // then that class (which extends LegiscopeBase) is generated, 
     // instead of LegiscopeBase.
     $request_url = filter_post('url');
-    if ( is_null($request_url) ) {
-      self::$singleton = new LegiscopeBase();
-      return self::$singleton;
-    }
     $hostname    = @UrlModel::parse_url($request_url, PHP_URL_HOST);
     $matches     = array();
     $base_regex  = '/^(www\.)?(([^.]+[.]?)*)/i';
@@ -50,13 +47,38 @@ class LegiscopeBase extends SystemUtility {
     // syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
     $classname   = join('', $nameparts);
     $hostregex   = '/^((www|ireport)\.)+((gmanetwork|sec|denr|dbm|senate|congress)\.)*(gov\.ph|com)/i';
-    return (1 == preg_match($hostregex, $hostname)) && @class_exists($classname)
+    static::$singleton = (1 == preg_match($hostregex, $hostname)) && @class_exists($classname)
       ? new $classname
       : new LegiscopeBase()
       ;
+    return static::$singleton;
   }/*}}}*/
 
-  function handle_stylesheet_request() {/*{{{*/
+  static public function __callStatic($methodname, array $arguments) {
+
+    $arglist = join(',', array_keys($arguments));
+
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) - ------- Inaccessible method {$methodname}({$arglist})");
+
+  }
+
+  static function image_request() {
+    static::$singleton->handle_image_request();
+  }
+
+  static function javascript_request() {
+    static::$singleton->handle_javascript_request();
+  }
+
+  static function stylesheet_request() {
+    static::$singleton->handle_stylesheet_request();
+  }
+
+  static function model_action() {
+    static::$singleton->handle_model_action();
+  }
+
+  protected function handle_stylesheet_request() {/*{{{*/
     if ( !is_null($stylesheetname = $this->filter_request('css') ) ) {
       $fn = "css/{$stylesheetname}";
       if ( file_exists( $fn ) ) {
@@ -70,7 +92,7 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  function handle_image_request() {/*{{{*/
+  protected function handle_image_request() {/*{{{*/
     if ( !is_null($filename = $this->filter_request('images') ) ) {
       $fn = "images/{$filename}";
       if ( file_exists( $fn ) ) {
@@ -84,7 +106,7 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  function handle_javascript_request() {/*{{{*/
+  protected function handle_javascript_request() {/*{{{*/
     if ( !is_null($scriptname = $this->filter_request('js') ) ) {
       $fn = "js/{$scriptname}";
       if ( file_exists( $fn ) ) {
@@ -98,29 +120,79 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  final function handle_model_action() {/*{{{*/
+  final private function handle_plugin_context() {/*{{{*/
+    // Modify $_REQUEST to 
+    if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) return NULL;
+    if (!('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) return NULL;
+    // TODO: Permit XMLHTTPRequest GET
+    if (!('POST' == $this->filter_server('REQUEST_METHOD'))) return NULL;
+
+    $this->recursive_dump(UrlModel::parse_url($request_uri)   , "(marker) Q - - - ->");
+    $this->recursive_dump($_POST   , "(marker) - P - - ->");
+    $this->recursive_dump($_REQUEST, "(marker) - - R - ->");
+    $this->recursive_dump($_SERVER , "(marker) - - - S ->");
+
+    $request_uri    = $this->filter_server('REQUEST_URI');
+    $remote_addr    = $this->filter_server('REMOTE_ADDR');
+    $actions_match  = array();
+    $actions_lookup = array(
+      'seek',
+      'reorder',
+      'keywords',
+      'fetchpdf',
+      'preload',
+      'proxyform',
+    );
+
+    $request_regex  = '@/(' . join('|',array_values($actions_lookup)) . ')/(([^/]*)/)*@i';
+
+    if ( 1 == preg_match($request_regex, $request_uri, $actions_match) ) {
+      $this->recursive_dump($actions_match,"(marker) -- -- -- -- --");
+      $_REQUEST['q'] = array_element($actions_match,1);
+    }
+
+  }/*}}}*/
+
+  final protected function handle_model_action() {/*{{{*/
 
 		$debug_method = FALSE;
 
-    $controller = $this->filter_request('p');
-    $action     = $this->filter_request('q');
-    $subject    = $this->filter_request('r');
+    $host = $this->filter_request('url');
+
+    // Extract controller, action, and subject values from server context
+    $this->handle_plugin_context();
+
+    // These request variables are normally unavailable in a WordPress plugin context
+    // They are assigned by URL rewrite rules, usually set in an .htaccess file
+    $controller     = $this->filter_request('p');
+    $action         = $this->filter_request('q');
+    $subject        = $this->filter_request('r');
+
+    // Update host hits
+    $hostModel  = new HostModel($host);
+    if ( !is_null($host) ) {
+      if ( !$hostModel->in_database() ) {
+        $hostModel->stow();
+      }
+      $hostModel->increment_hits()->stow();
+    }
 
 		$action_hdl = ucfirst(strtolower($action)) . "Action";
 
 		if ( $debug_method ) {
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$_SERVER['REMOTE_ADDR']}");
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$remote_addr}");
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -  controller: " . $controller);
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -      action: " . $action    );
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     subject: " . $subject   );
+      if ( !is_null($host) )
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -        host: " . $hostModel->get_hostname() . ', ' . $hostModel->get_hits() );
 		}
 
 		if ( is_null( $controller ) ) {
-			$suppress_call = FALSE;
 			if ( !is_null($action) && class_exists($action_hdl) ) {
 				$a = new $action_hdl();
         if ( method_exists( $this, $action ) ) {
-          $this->$action($subject);  
+          $this->$action($subject);
         } else if ( method_exists($a, $action) ) {
           $a->$action($subject);
 				}
@@ -612,5 +684,209 @@ class LegiscopeBase extends SystemUtility {
 	protected function register_derived_class() {
 		$this->syslog(__FUNCTION__,__LINE__,"(marker)");
 	}
+
+  //////////////////////////////////////////////////////////////////////////
+  /** WordPress Plugin adapter methods **/
+
+  static $plugin_options = array(
+    'phlegiscope_client_visibility' => 'TRUE',
+    'phlegiscope_client_categories' => 'FALSE',
+    'phlegiscope_custom_datafields' => 'FALSE',
+    'phlegiscope_client_responders' => 'FALSE',
+    'phlegiscope_roundrobin_resp' => 'TRUE',
+    'phlegiscope_menutitle' => 'PHLegiscope',
+    'phlegiscope_allow_anonymous_submissions' => 'TRUE',
+    'phlegiscope_option_2' => 'TRUE',
+    'phlegiscope_option_3' => 'TRUE',
+    'phlegiscope_option_4' => 'TRUE',
+    'phlegiscope_option_5' => 'TRUE',
+    'phlegiscope_option_6' => 'TRUE',
+  );
+
+  // Scaffolding hook handlers
+
+  static function activate() {/*{{{*/
+    add_option('phlegiscope_menutitle', self::$plugin_options['phlegiscope_menutitle'], NULL, 'yes');
+    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+      'Activated' );
+  }/*}}}*/
+
+  static function deactivate() {/*{{{*/
+  }/*}}}*/
+
+  function wordpress_register_admin_menus() {/*{{{*/
+    $menu_title = get_option('phlegiscope_menutitle');
+    // The main PHLegiScope admin curator's page
+    add_menu_page(
+      'Options',
+      $menu_title,
+      'administrator',
+      'phlegiscope-main',
+      array(__CLASS__, 'phlegiscope_main'),
+      NULL, // plugin_dir_url(__FILE__) . '/images/phlegiscope.png'
+      NULL // $position
+    );
+    // PHLegiScope settings page
+    add_submenu_page(
+      'options-general.php',
+      'Catalog',
+      $menu_title,
+      'administrator',
+      'phlegiscope',
+      array(__CLASS__, 'phlegiscope')
+    );
+  }/*}}}*/
+
+  static function update_options_from_post() {/*{{{*/
+    $options = self::$plugin_options;
+    foreach ( $options as $name => $defvalue ) {
+      $value = self::filter_post($name);
+      if ( is_array($value) ) {
+        if ( !is_array($defvalue) ) {
+          syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+            "Got unexpected array submission for option '{$name}'" );
+        } else {
+          syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+            "Got array '{$name}'" );
+        }
+        self::recursive_dump($value);
+      } else if (array_key_exists(strtoupper($defvalue), array_flip(array('TRUE','FALSE')))) {
+        $is_true = array_key_exists(strtoupper($value), array_flip(array('ON','TRUE','1')));
+        $value   = $is_true ? 'TRUE' : 'FALSE';
+        if (DEBUG_PHLEGISCOPE) {
+          syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+            "Got boolean option '{$name}' = {$value}" );
+        }
+        update_option($name, $is_true ? 'TRUE' : 'FALSE');
+      } else if (is_string($value)) {
+        if (DEBUG_PHLEGISCOPE) {
+          syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+            "Got option '{$name}' = {$value}" );
+        }
+        update_option($name, $value);
+      }
+    }
+  }/*}}}*/
+
+  function handle_wordpress_admin_action(& $a) {/*{{{*/
+    $scoped_vars = array(); 
+    $action = $this->filter_post('action');
+
+    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+      "{$a} - action '{$action}'" );
+
+    switch ( $action ) {
+      case 'update':
+        static::update_options_from_post();
+        break;
+      default:
+        break;
+    }
+
+    // Load settings option variables, and move them into this scope 
+    $options = self::$plugin_options;
+    $boolean_map = array(
+      'TRUE'  => 'value="1" checked="checked"', 
+      'FALSE' => 'value="1"',
+    );
+    foreach ( $options as $name => $defvalue ) {
+      $value = get_option($name);
+      if ( is_array($value) ) {
+        if (DEBUG_PHLEGISCOPE) {
+          syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+            "Got array '{$name}'" );
+          $this->recursive_dump($value);
+        }
+      } else if (array_key_exists(strtoupper($defvalue), array_flip(array_keys($boolean_map)))) {
+        $is_true = !(FALSE === $value) && array_key_exists(strtoupper($value), array_flip(array('ON','TRUE','1')));
+        $value   = $boolean_map[$is_true ? 'TRUE' : 'FALSE'];
+        $scoped_vars[$name] = $value; 
+      } else if (is_string($value)) {
+        $scoped_vars[$name] = $value; 
+      }
+    }
+
+    if (C('DEBUG_PHLEGISCOPE')) {
+      $this->recursive_dump($scoped_vars,0,__FUNCTION__);
+    }
+    extract($scoped_vars);
+
+    $menu_title = get_option('phlegiscope_menutitle');
+
+    include_once(SYSTEM_BASE . '/../admin-pages/phlegiscope-settings.php');
+
+  }/*}}}*/
+
+  static function phlegiscope($a) {/*{{{*/
+
+    static::$singleton->handle_wordpress_admin_action($a);
+
+  }/*}}}*/
+
+  protected static function shared_framework_initialization() {/*{{{*/
+    $plugins_url = plugins_url();
+    $themes_uri  = get_template_directory_uri(); 
+
+    $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
+    $interactivity_js_url = plugins_url('interactivity.js', LEGISCOPE_JS_PATH . '/' . 'interactivity.js');
+
+    wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_register_script('legiscope-interactivity', $interactivity_js_url, array('jquery','legiscope-spider'), NULL);
+
+    syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
+    syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
+    syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
+    syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
+    syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
+    syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
+  }/*}}}*/
+
+  static function phlegiscope_main() {/*{{{*/
+    // Display client and subscriber contact database
+    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+      "" );
+
+    include_once( SYSTEM_BASE . '/../admin-pages/phlegiscope.php');
+  }/*}}}*/
+
+  // Filters that affect publication
+  // Administrative menus
+  // Administrative menus - Subscriber database 
+
+  static function wordpress_admin_initialize() {/*{{{*/
+    if ( !current_user_can( 'manage_options' ) ) {
+      wp_redirect(site_url());
+      exit(0);
+    }
+  }/*}}}*/
+
+  static function admin_post() {
+    // No need to invoke image_, javascript_, or stylesheet_request,
+    // as we'll let WordPress handle dispatch of those resources.
+    syslog( LOG_INFO, __METHOD__ . ": " );
+    static::model_action();
+    $o = @ob_get_clean();
+    exit(0);
+  }
+
+  static function wordpress_enqueue_admin_scripts() {/*{{{*/
+    static::shared_framework_initialization();
+    $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
+    $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+    $interactivity_js_url = plugins_url('interactivity.js', LEGISCOPE_JS_PATH . '/' . 'interactivity.js');
+    wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-interactivity', $interactivity_js_url, array('jquery' , 'legiscope-spider'), NULL);
+  }/*}}}*/
+
+  static function buffer_begin() {
+    syslog( LOG_INFO, __METHOD__ . ": " );
+    ob_start();
+  }
+
+  static function buffer_end() {
+    $o = @ob_get_clean();
+    syslog( LOG_INFO, __METHOD__ . ": {$o}" );
+  }
 
 }

@@ -1635,7 +1635,7 @@ EOS;
   }/*}}}*/
 
   function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = TRUE;
     $property_list = $this->fetch_combined_property_list();
     $joins = $this->get_joins();
     if ( !(0 < count($property_list)) ) return $this;

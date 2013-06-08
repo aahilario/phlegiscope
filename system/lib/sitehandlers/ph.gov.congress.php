@@ -1093,6 +1093,9 @@ EOH;
     $stdparser->json_reply = array('retainoriginal' => TRUE);
 
     $parser->parse_committee_information_page($urlmodel, $committee);
+
+    // Dump XMLParser raw output
+    if (0) $parser->recursive_dump($parser->get_containers(), "(marker) - -- - -- -");
     
     $committee_id   = $committee->get_id();
     $committee_name = $committee->get_committee_name();

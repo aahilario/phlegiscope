@@ -35,4 +35,12 @@ class HostModel extends UrlModel {
     return $this;
   }
 
+  function & set_hits($v) { $this->hits_int11 = $v; return $this; }
+  function get_hits($v = NULL) { if (!is_null($v)) $this->set_hits($v); return $this->hits_int11; }
+
+  function & set_hostname($v) { $this->hostname_vc512 = $v; return $this; }
+  function get_hostname($v = NULL) { if (!is_null($v)) $this->set_hostname($v); return $this->hostname_vc512; }
+
+  function & set_hostname_hash($v) { $this->hostname_hash_vc128uniq = $v; return $this; }
+  function get_hostname_hash($v = NULL) { if (!is_null($v)) $this->set_hostname_hash($v); return $this->hostname_hash_vc128uniq; }
 }

@@ -41,7 +41,7 @@ class SenateGovPh extends SeekAction {
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method   = FALSE;
+    $debug_method   = TRUE;
 
     $report         = new SenateCommitteeReportDocumentModel();
     $journal        = new SenateJournalDocumentModel();

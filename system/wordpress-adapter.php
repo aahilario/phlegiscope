@@ -17,8 +17,15 @@ function legiscope_extend_include_path() {
   define('DISABLE_CLASS_AUTOGENERATE', TRUE);
   define('MODE_WORDPRESS_PLUGIN'     , TRUE);
 
-  array_push($system_path, 'js');
-  define('LEGISCOPE_JS_PATH'         , join('/', $system_path));
+  $sub_path = $system_path;
+  array_push($sub_path, 'js');
+
+  define('LEGISCOPE_JS_PATH'         , join('/', $sub_path));
+
+  $sub_path = $system_path;
+  array_push($sub_path, 'css');
+
+  define('LEGISCOPE_CSS_PATH'        , join('/', $sub_path));
 
 }
 

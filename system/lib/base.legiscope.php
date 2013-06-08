@@ -823,24 +823,6 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
-  protected static function shared_framework_initialization() {/*{{{*/
-    $plugins_url = plugins_url();
-    $themes_uri  = get_template_directory_uri(); 
-
-    $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
-    $interactivity_js_url = plugins_url('interactivity.js', LEGISCOPE_JS_PATH . '/' . 'interactivity.js');
-
-    wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
-    wp_register_script('legiscope-interactivity', $interactivity_js_url, array('jquery','legiscope-spider'), NULL);
-
-    syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
-    syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
-    syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
-    syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
-    syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
-    syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
-  }/*}}}*/
-
   static function phlegiscope_main() {/*{{{*/
     // Display client and subscriber contact database
     syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
@@ -870,23 +852,35 @@ class LegiscopeBase extends SystemUtility {
   }
 
   static function wordpress_enqueue_admin_scripts() {/*{{{*/
-    static::shared_framework_initialization();
+
+    $plugins_url = plugins_url();
+    $themes_uri  = get_template_directory_uri(); 
+
     $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
     $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
     $interactivity_js_url = plugins_url('interactivity.js', LEGISCOPE_JS_PATH . '/' . 'interactivity.js');
+
+    $admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+
+    wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
+    wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
+
+    wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+    wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_register_script('legiscope-interactivity', $interactivity_js_url, array('jquery','legiscope-spider'), NULL);
+
     wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
     wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
     wp_enqueue_script('legiscope-interactivity', $interactivity_js_url, array('jquery' , 'legiscope-spider'), NULL);
+
+    syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
+    syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
+    syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
+    syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
+    syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
+    syslog( LOG_INFO, "- - - - -  Styles: " . $admin_css_url);
+    syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
+    syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
   }/*}}}*/
-
-  static function buffer_begin() {
-    syslog( LOG_INFO, __METHOD__ . ": " );
-    ob_start();
-  }
-
-  static function buffer_end() {
-    $o = @ob_get_clean();
-    syslog( LOG_INFO, __METHOD__ . ": {$o}" );
-  }
 
 }

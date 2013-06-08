@@ -333,13 +333,13 @@ EOH;
     $pagecontent .= <<<EOH
 </div>
 <script type="text/javascript">
-$(function(){
-  $('input[id=reset-cached-links]').click(function(e) {
-    $('div[class*=indent-2]').find('a').each(function(){
-      $(this).removeClass('cached').removeClass('uncached');
+jQuery(document).ready(function(){
+  jQuery('input[id=reset-cached-links]').click(function(e) {
+    jQuery('div[class*=indent-2]').find('a').each(function(){
+      jQuery(this).removeClass('cached').removeClass('uncached');
     });
   });
-  initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+  initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
   initialize_remote_links();
 });
 </script>

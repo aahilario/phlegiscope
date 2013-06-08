@@ -31,8 +31,6 @@ register_deactivation_hook(__FILE__, array($phlegiscope_instance, 'deactivate'))
 
 ////////////////////////////////////////////////////////////////
 
-add_action('wp_head'              , array($phlegiscope_instance, 'buffer_begin'));
-add_action('wp_footer'            , array($phlegiscope_instance, 'buffer_end'));
 add_action('admin_post'           , array($phlegiscope_instance, 'admin_post'));
 add_action('admin_menu'           , array($phlegiscope_instance, 'wordpress_register_admin_menus'));
 add_action('admin_init'           , array($phlegiscope_instance, 'wordpress_admin_initialize'));

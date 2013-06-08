@@ -111,42 +111,42 @@ EOH;
 <script type="text/javascript">
 var hits = 0;
 function crawl_dossier_links() {
-  if ( $('#spider').prop('checked') ) {
-    $('ul[id=house-bills-by-rep]').find("a[class*=uncached]").first().each(function(){
-      var self = $(this);
+  if ( jQuery('#spider').prop('checked') ) {
+    jQuery('ul[id=house-bills-by-rep]').find("a[class*=uncached]").first().each(function(){
+      var self = jQuery(this);
       load_content_window(
-        $(this).attr('href'),
-        $('#seek').prop('checked'),
-        $(this),
-        { url : $(this).attr('href'), async : true },
+        jQuery(this).attr('href'),
+        jQuery('#seek').prop('checked'),
+        jQuery(this),
+        { url : jQuery(this).attr('href'), async : true },
         { success : function (data, httpstatus, jqueryXHR) {
             std_seek_response_handler(data, httpstatus, jqueryXHR);
-            $(self).removeClass('uncached').addClass('cached');
+            jQuery(self).removeClass('uncached').addClass('cached');
             setTimeout((function() {crawl_dossier_links();}),200);
           }
         }
       );
     });
     hits = 0;
-    $('ul[id=house-bills-by-rep]').find("a[class*=uncached]").each(function(){
+    jQuery('ul[id=house-bills-by-rep]').find("a[class*=uncached]").each(function(){
       hits++;
     });
     if (hits == 0) {
-      $('div[id=congresista-list]')
+      jQuery('div[id=congresista-list]')
         .find('a[class*=seek]')
         .first()
         .each(function() { 
-          $('#doctitle').html('Loading '+$(this).attr('href'));
-          $(this).removeClass('seek').addClass('cached'); 
-          $(this).click();
+          jQuery('#doctitle').html('Loading '+jQuery(this).attr('href'));
+          jQuery(this).removeClass('seek').addClass('cached'); 
+          jQuery(this).click();
         });
     } else {
-      $('#doctitle').html('Remaining: '+hits);
+      jQuery('#doctitle').html('Remaining: '+hits);
     }
   }
 }
 
-$(function(){
+jQuery(document).ready(function(){
   update_representatives_avatars();
   setTimeout((function(){
     crawl_dossier_links();
@@ -299,29 +299,29 @@ EOH;
   <div class="float-left link-cluster">{$districts}</div>
 </div>
 <script type="text/javascript">
-$(function(){
-  $('input[class=reset-cached-links]').click(function(e) {
-    if ($(this).val() == 'Reset') {
-      $(this).parent().first().find('a').each(function(){
-        $(this).removeClass('cached').removeClass('uncached').addClass("seek");
+jQuery(document).ready(function(){
+  jQuery('input[class=reset-cached-links]').click(function(e) {
+    if (jQuery(this).val() == 'Reset') {
+      jQuery(this).parent().first().find('a').each(function(){
+        jQuery(this).removeClass('cached').removeClass('uncached').addClass("seek");
       });
     } else {
-      $(this).parent().first().find('a').each(function(){
-        $(this).removeClass('uncached').removeClass('seek').addClass("cached");
+      jQuery(this).parent().first().find('a').each(function(){
+        jQuery(this).removeClass('uncached').removeClass('seek').addClass("cached");
       });
     } 
   });
-  $('h1[class=surname-reset-children]').click(function(e){
-    var linkset = $(this).attr('id').replace(/^surname-reset-/,'surname-cluster-');
-    if ( $(this).hasClass('on') ) {
-      $(this).removeClass('on');
-      $('a[class*='+linkset+']').each(function(){
-        $(this).removeClass('cached').removeClass('uncached').addClass("seek");
+  jQuery('h1[class=surname-reset-children]').click(function(e){
+    var linkset = jQuery(this).attr('id').replace(/^surname-reset-/,'surname-cluster-');
+    if ( jQuery(this).hasClass('on') ) {
+      jQuery(this).removeClass('on');
+      jQuery('a[class*='+linkset+']').each(function(){
+        jQuery(this).removeClass('cached').removeClass('uncached').addClass("seek");
       });
     } else {
-      $(this).addClass('on');
-      $('a[class*='+linkset+']').each(function(){
-        $(this).removeClass('uncached').removeClass('seek').addClass("cached");
+      jQuery(this).addClass('on');
+      jQuery('a[class*='+linkset+']').each(function(){
+        jQuery(this).removeClass('uncached').removeClass('seek').addClass("cached");
       });
     }
   });
@@ -333,7 +333,7 @@ EOH;
 /*
  * Javascript fragment to trigger cycling
  *   setTimeout(function(){
- *   $('div[class*=float-left]').first().find('a[class*=trigger]').removeClass('trigger').click();
+ *   jQuery('div[class*=float-left]').first().find('a[class*=trigger]').removeClass('trigger').click();
  *   },1000);
  */
 
@@ -1268,13 +1268,13 @@ EOH;
     $pagecontent = <<<EOH
 <h1>Clearing cached links</h1>
 <script type="text/javascript">
-$(function(){
-  $('ul[class*=link-cluster]').each(function(){
-    $(this).find('a[class*=legiscope-remote]').each(function(){
-      $(this).removeClass('cached');
+jQuery(document).ready(function(){
+  jQuery('ul[class*=link-cluster]').each(function(){
+    jQuery(this).find('a[class*=legiscope-remote]').each(function(){
+      jQuery(this).removeClass('cached');
     });
   });
-  initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
+  initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
 });
 </script>
 EOH;

@@ -1,0 +1,273 @@
+/** Various overrides of default admin template **/
+
+li > a {
+  margin-right: 0;
+  padding-right: 0;
+}
+h2.legiscope {
+  width: auto;
+  display: block;
+  float: left;
+}
+a {
+  text-decoration: none;
+  display: inline;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/** Major panel divisions **/
+
+.poc {
+  background-color: transparent;
+}
+.panels {
+  scroll: none;
+  clip: auto;
+  overflow: hidden;
+  display: block;
+  min-height: 300px;
+  border: 1px solid transparent;
+}
+#controlpanel {
+  float: left;
+  width: 20%;
+  line-height: 100%;
+  min-width: 240px;
+}
+#controlpanel > input {
+  background-color: #EEE;
+  width: 90%;
+}
+#controlpanel > a {
+  text-decoration: none;
+}
+
+#sitecontent {
+  right: 1px;
+  line-height: 120%;
+  float: right;
+  width: 79%;
+}
+div.linkset ul {
+  list-style-type: none;
+  margin-left: 0;
+  text-indent: 0;
+}
+ul.linkset-pager {
+  background-color: #EEE;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  margin-right: 10px;
+}
+ul.linkset-pager > li {
+  padding-bottom: 4px;
+}
+div.linkset > hr {
+  color: #DDD;
+  width: 88%;
+}
+
+/** Content tabs **/
+
+div.contenttabs {
+  height: 20px;
+}
+span.contenttab > a {
+  color: #99B;
+  text-decoration: underline;
+}
+span.contenttab > a:hover {
+  text-decoration: none;
+}
+span.contenttab {
+  font-size: 10px;
+  line-height: 24px;
+  vertical-align: bottom;
+  background-color: transparent; 
+  color: #222;
+  padding: 4px;
+  margin: 0 4px 0 0;
+}
+#currenturl {
+	display: block;
+	line-height: 20px;
+	vertical-align: top;
+	height: 49px;
+	max-height: 49px;
+	float: right;
+	clear: right;
+}
+
+span.inactivetab {
+  background-color: #CCC; 
+}
+span.activetab {
+  background-color: #AAA;
+}
+
+
+/****/
+
+span.legiscope-refresh {
+  display: none;
+  text-transform: uppercase;
+  color: white;
+  background-color: #AAA;
+  padding: 3px 2px 2px 3px;
+  margin-left: 0px;
+}
+a.legiscope-remote:hover + span.legiscope-refresh {
+  display: inline;
+}
+
+.no-bullets {
+  list-style-type: none;
+  marker-offset: 0;
+  text-indent: 0;
+  margin-left: 0;
+  padding-left: 0;
+}
+.hotsearch-active {
+  background-color: #DFD !important;
+}
+.hidden {
+  display: none;
+}
+
+/**** Senator Dossier Pages ****/
+
+div.dossier-strip {
+  display: block;
+  clear: both;
+  float: left;
+  height: 100px;
+  max-height: 100px;
+  width: auto;
+}
+div.senator-dossier-pan-bar {
+  display: inline-block;
+  max-height: 119px;
+  clear: both;
+  float: left;
+  width: 100%;
+  clip: auto;
+  overflow-y: hidden;
+  overflow-x: scroll;
+}
+
+div.congresista-dossier-list {
+  display: block;
+  width: 49%;
+  float: left;
+  clear: left;
+}
+
+div.half-container {
+  display: block;
+  float: right;
+  clear: right;
+  width: 50%;
+}
+
+div.float-left {
+  float: left;
+  display: block;
+  max-width: 49%;
+	clip: auto;
+	overflow: hidden;
+}
+
+img.representative-avatar {
+  display: inline-block;
+  float: right;
+}
+
+h1.representative-avatar-fullname {
+  display: inline-block;
+  float: left;
+  clear: left;
+  min-width: 50%;
+}
+
+div.congress-member-summary {
+  display: block;
+  clear: both;
+  float: left;
+  width: 100%;
+}
+span.representative-avatar-head {
+  display: block;
+  float: left;
+  clear: left;
+}
+
+span.congress-roles-committees, div.congress-doc-item {
+  display: block;
+  float: left;
+  clear: both;
+  width: 100%;
+}
+
+a.document-meta {
+	background-color: #AAA;
+	color: white !important;
+}
+
+div.congress-doc-item > span {
+  display: block;
+  float: left;
+  clear: both;
+  width: 100%;
+}
+
+.wrap-content > *, .wrap-content {
+  white-space: normal;
+  width: 100%;
+}
+
+.uncached {
+  color: #AA0 !important;
+  font-weight: bold;
+}
+
+
+/* Journals listings */
+.indent-1 {
+	display: block;
+	float: left;
+	clear: both;
+	width: 100%;
+}
+.indent-2 {
+	display: block;
+	float: left;
+	clear: none;
+	max-width: 32%;
+  min-width: 168px;
+	clip: auto;
+	overflow: hidden;
+}
+.indent-3 { margin-left: 0px; }
+
+/* Senate Journals */
+
+.senate-journal {
+	display: block;
+	float: left;
+	clear: left;
+  max-width: 525px;
+	min-height: 640px;
+}
+
+#senate-journal-block {
+  display: block;
+	background-color: #F4F4F4;
+	float: right;
+	clear: right;
+  max-width: 450px;
+	min-height: 640px;
+}
+
+

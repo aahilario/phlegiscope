@@ -70,6 +70,9 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function & set_pending_comm_date($v) { $this->pending_comm_date_utx = $v; return $this; }
   function get_pending_comm_date($v = NULL) { if (!is_null($v)) $this->set_pending_comm_date($v); return $this->pending_comm_date_utx; }
 
+  function & set_url($v) { $this->url_vc4096 = $v; return $this; }
+  function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
+ 
   function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
   function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
   

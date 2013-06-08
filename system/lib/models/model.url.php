@@ -43,7 +43,7 @@ class UrlModel extends DatabaseUtility {
 
   function set_url($url, $load = TRUE) {/*{{{*/
 		$this->url_vc4096 = $url;
-		$this->urlhash_vc128uniq = (is_null($url) || empty($url)) ? NULL : self::get_url_hash($url);
+		$this->urlhash_vc128uniq = (is_null($url) || empty($url)) ? NULL : static::get_url_hash($url);
 		if ( $load && !is_null($this->urlhash_vc128uniq ) ) {
 			$this->id = NULL;
 			$this->fetch($this->urlhash_vc128uniq,'urlhash');

@@ -18,7 +18,7 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
   function parse_activity_summary(array & $journal_data) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
     $sn = NULL;
 
     // $this->activity_summary is populated by the parser

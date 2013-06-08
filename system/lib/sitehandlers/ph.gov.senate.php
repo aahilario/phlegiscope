@@ -1391,7 +1391,7 @@ EOH;
 
   function non_session_linked_content_parser_worker($documents, $document_parser, $senatedoc, $prefix, & $parser, & $pagecontent, & $urlmodel ) {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     ///////////////////////////////////////////
     $senate_document = new $documents(); 
@@ -1416,13 +1416,13 @@ EOH;
 
     $this->recursive_dump(
       array_keys($traversal_resultarray),
-      "(marker) Extract"
+      "(------) Extract"
     );
     extract($traversal_resultarray);
 
     $this->recursive_dump(
       ($joins = $senate_document->get_joins()),
-      '(marker) Join attrs for ' . get_class($senate_document)
+      '(-----) Join attrs for ' . get_class($senate_document)
     );
 
     if ( !(0 < count($document_contents)) ) {/*{{{*/
@@ -1447,6 +1447,7 @@ EOH;
       $parser->from_network = TRUE;
     }/*}}}*/
     else {/*{{{*/
+			if ( $debug_method )
       $this->recursive_dump($document_contents,"(marker) ------- --- - ----- ---- -- NZD");
       if ( array_key_exists('comm_report_url', $document_contents) ) { $u = array('url' => $document_contents['comm_report_url']); $l = UrlModel::parse_url($action_url->get_url()); $document_contents['comm_report_url'] = UrlModel::normalize_url($l, $u); }
       if ( array_key_exists('doc_url', $document_contents) )         { $u = array('url' => $document_contents['doc_url'])        ; $l = UrlModel::parse_url($action_url->get_url()); $document_contents['doc_url'] = UrlModel::normalize_url($l, $u); }
@@ -1469,9 +1470,10 @@ EOH;
       $document_contents['urlid'] = $action_url->get_id();
       $document_contents['congress_tag'] = $target_congress;
       krsort($document_contents);
-      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning)');
+      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning) -- Stowing!');
       $senate_document->set_contents_from_array($document_contents);
       // FIXME: Prevent overwriting content
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- After set_contents_from_array" );
       $senate_document->fetch($document_contents['sn'],'sn');
       $id = $senate_document->stow();
       if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed SB {$sbn_regex_result}.{$target_congress} #{$id}" );

@@ -772,6 +772,7 @@ EOH;
           } else {
             $this->syslog(__FUNCTION__,__LINE__, "(marker) --- - - - --- --- - - - Attribute '{$conj_or_attr}' not found in attribute list!");
             $this->recursive_dump(array_keys($attrlist),"(marker) - - - --- ->");
+						$this->log_stack();
           }
           if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) C {$conj_or_attr} {$operands} -> {$value}");
         }/*}}}*/

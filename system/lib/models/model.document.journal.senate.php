@@ -17,17 +17,18 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
   var $congress_tag_vc8 = NULL;
   var $session_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
-	var $content_blob = NULL;
+	// var $content_blob = NULL;
 	var $pdf_fetch_time_utx = NULL;
 	var $pdf_url_vc4096 = NULL;
 	var $report_SenateCommitteeReportDocumentModel = NULL;
   var $bill_SenateBillDocumentModel = NULL;
   var $resolution_SenateResolutionDocumentModel = NULL;
 
+	var $urlrefs_UrlModel = NULL; // Document source URLs
+
   function __construct() {
     parent::__construct();
     // $this->dump_accessor_defs_to_syslog();
-		// $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
   }
 
 	function fetch_by_congress_sn( $congress, $house_session, $sn ) {/*{{{*/
@@ -37,7 +38,9 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
 			'session_tag' => $house_session,
 			'sn' => $sn,
 		);
+		$this->debug_final_sql = TRUE;
 		$this->fetch($match, 'AND');
+		$this->debug_final_sql = FALSE;
 		return $this->in_database() ? $this->id : NULL;
 
 	}/*}}}*/
@@ -48,6 +51,8 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
 		$metadata       = $journal_data;
 		$journal_head   = $journal_parser->filter_nested_array($journal_data,'#[tag*=HEAD]',0);
 		$metadata       = $journal_parser->filter_nested_array($metadata,'#metadata[tag*=META]',0);
+
+    $this->syslog(__FUNCTION__, __LINE__, "(marker) Stowing Journal No. {$journal_head['sn']} " . (is_null($id) ? "missing" : "cached #{$id}"));
 
 		$id = $this->fetch_by_congress_sn( $metadata['congress'], $metadata['short_session'], $journal_head['sn'] );
 

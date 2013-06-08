@@ -121,17 +121,19 @@ class LegiscopeBase extends SystemUtility {
   }/*}}}*/
 
   final private function handle_plugin_context() {/*{{{*/
-    // Modify $_REQUEST to 
+
+    $debug_method = FALSE;
+    // Modify $_REQUEST by extracting an action value from the request URI 
     if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) return NULL;
     if (!('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) return NULL;
     // TODO: Permit XMLHTTPRequest GET
     if (!('POST' == $this->filter_server('REQUEST_METHOD'))) return NULL;
-
-    $this->recursive_dump(UrlModel::parse_url($request_uri)   , "(marker) Q - - - ->");
-    $this->recursive_dump($_POST   , "(marker) - P - - ->");
-    $this->recursive_dump($_REQUEST, "(marker) - - R - ->");
-    $this->recursive_dump($_SERVER , "(marker) - - - S ->");
-
+    if ( $debug_method ) {
+      $this->recursive_dump(UrlModel::parse_url($request_uri)   , "(marker) Q - - - ->");
+      $this->recursive_dump($_POST   , "(marker) - P - - ->");
+      $this->recursive_dump($_REQUEST, "(marker) - - R - ->");
+      $this->recursive_dump($_SERVER , "(marker) - - - S ->");
+    }
     $request_uri    = $this->filter_server('REQUEST_URI');
     $remote_addr    = $this->filter_server('REMOTE_ADDR');
     $actions_match  = array();
@@ -147,7 +149,7 @@ class LegiscopeBase extends SystemUtility {
     $request_regex  = '@/(' . join('|',array_values($actions_lookup)) . ')/(([^/]*)/)*@i';
 
     if ( 1 == preg_match($request_regex, $request_uri, $actions_match) ) {
-      $this->recursive_dump($actions_match,"(marker) -- -- -- -- --");
+      if ( $debug_method ) $this->recursive_dump($actions_match,"(marker) -- -- -- -- --");
       $_REQUEST['q'] = array_element($actions_match,1);
     }
 

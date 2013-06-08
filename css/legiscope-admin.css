@@ -257,7 +257,7 @@ div.congress-doc-item > span {
 	display: block;
 	float: left;
 	clear: left;
-  max-width: 525px;
+  width: 52%;
 	min-height: 640px;
 }
 
@@ -266,7 +266,7 @@ div.congress-doc-item > span {
 	background-color: #F4F4F4;
 	float: right;
 	clear: right;
-  max-width: 450px;
+  width: 43%;
 	min-height: 640px;
 }
 

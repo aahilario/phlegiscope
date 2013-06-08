@@ -41,7 +41,7 @@ class SenateGovPh extends SeekAction {
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method   = TRUE;
+    $debug_method   = FALSE;
 
     $report         = new SenateCommitteeReportDocumentModel();
     $journal        = new SenateJournalDocumentModel();
@@ -53,6 +53,9 @@ class SenateGovPh extends SeekAction {
     $billjournal    = new SenateBillSenateJournalJoin();
     $bill           = new SenateBillDocumentModel();
 
+		$urlmodel->ensure_custom_parse();
+
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Invoking parser.");
     $journal_parser->
       set_parent_url($urlmodel->get_url())->
       parse_html(
@@ -63,10 +66,12 @@ class SenateGovPh extends SeekAction {
     $congress_number  = $urlmodel->get_query_element('congress');
     $congress_session = $urlmodel->get_query_element('session');
 
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Parsing activity summary.");
     $journal_data = array();
     $pagecontent = $journal_parser->parse_activity_summary($journal_data);
 
     // Store this Journal
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Store/fetch journal data.");
     $journal_id = $journal->store($journal_data, $urlmodel, $pagecontent);
 
     // Get reading date
@@ -98,6 +103,7 @@ class SenateGovPh extends SeekAction {
     // Extract Bills, Resolutions and Committee Reports
     if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - prefilter');
     $reading_state = array('R1','R2','R3');
+
     $journal_parser->debug_operators = FALSE;
 
     $self_join_propertyname = join('_', camelcase_to_array(str_replace('DocumentModel','',get_class($journal))));
@@ -489,7 +495,7 @@ EOH;
   function seek_postparse_7150c562d8623591da65174bd4b85eea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/committee/list.asp ('List of Committees')
 
-    $debug_method      = TRUE;
+    $debug_method      = FALSE;
     $committee_parser  = new SenateCommitteeListParseUtility();
     $committee_senator = new SenateCommitteeSenatorDossierJoin();
     $committee         = new SenateCommitteeModel();
@@ -2490,7 +2496,8 @@ EOH;
     $report->set_contents_from_array($committee_report);
     if ( empty($committee_report['sn']) ) {
       $pagecontent = join('',$commreport_parser->get_filtered_doc());
-    } else {
+		}
+	 	else {
       $report_id = $report->stow();
       if ( 0 < intval($report_id) ) {
         // Create Committee Report - Committee Joins
@@ -2628,6 +2635,7 @@ EOH;
       1 == preg_match('@q=SBN-([0-9]*)@i', $url->get_url()) ||
       1 == preg_match('@http://www.senate.gov.ph/lis/bill_res.aspx\?congress=([0-9]*)&q=HBN-([0-9]*)@i', $url->get_url()) ||
       1 == preg_match('@http://www.senate.gov.ph/lis/leg_sys.aspx\?congress=([0-9]*)&type=(bill|resolution)&p=([0-9]*)@i', $url->get_url()) ||
+      1 == preg_match('@http://www.senate.gov.ph/lis/journal.aspx\?congress=([0-9]*)&session=([0-9RS]*)&q=([0-9]*)@i', $url->get_url()) ||
       1 == preg_match('@http://www.senate.gov.ph/lis/committee_rpt.aspx\?congress=([0-9]*)&q=([0-9]*)@i', $url->get_url())
     );
   }/*}}}*/

@@ -11,6 +11,7 @@ echo <<<EOH
     <span class="access-bar-container">&nbsp;&nbsp;Spider <input id="spider" type="checkbox" value="1" /></span>
     <span class="access-bar-container">&nbsp;&nbsp;Proxy <input id="proxy" type="checkbox" value="1" /></span>
     <span class="access-bar-container" id="search-wait"></span>
+    <span class="access-bar-container" id="time-delta"></span>
     <div class="contenttabs" id="contenttabs"></div>
   </div>
 </div>
@@ -43,17 +44,8 @@ jQuery(document).ready(function(){
     <span id="metalink" style="display:none"></span>
     <div class="contentwindow hidden" id="markup"></div>
     <div class="contentwindow hidden" id="responseheader"></div>
-<?php if ( C('DISPLAY_ORIGINAL') ) { ?>
     <div class="contentwindow hidden" id="original"></div>
-<?php } ?>
-    <div class="contentwindow hidden" id="issues">
-      <div><a class="legiscope-remote" href="http://<?=SITE_URL?>">Problems to solve:</a></div>
-<ul>
-  <li>Use <code>pdfimages</code> to convert PDFs to OCR-processable images.</li>
-</ul>
-
-      </div>
-    </div>
+  </div>
 </div> <!-- poc -->
 
 

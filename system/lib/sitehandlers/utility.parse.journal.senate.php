@@ -112,7 +112,7 @@ EOH;
       if ( intval($n) == 0 ) {/*{{{*/// Journal page descriptor (Title, publication date)
         foreach ($e['content'] as $entry) {
           $properties = array('legiscope-remote');
-          $properties[] = ( $test_url->is_cached(array_element($entry,'url')) ) ? 'cached' : 'uncached';
+          $properties[] = 'cached' ; // ( $test_url->is_cached(array_element($entry,'url')) ) ? 'cached' : 'uncached';
           $properties = join(' ', $properties);
           $urlhash = UrlModel::get_url_hash(array_element($entry,'url'));
           if ( array_key_exists('url',$entry) ) {/*{{{*/
@@ -146,7 +146,7 @@ EOH;
       $sorttype = NULL;
       if ( is_array($e) && array_key_exists('content',$e) && is_array($e['content']) ) {/*{{{*/// Sort by suffix
         // Pass 1: Obtain list of uncached URLs 
-        $links = $test_url->get_caching_state($e['content']);
+        $links = array();// $test_url->get_caching_state($e['content']);
         // Pass 2:  Generate markup and update Journal element entries (serial number and prefix [SBN, SRN, etc.])
         foreach ($e['content'] as $content_idx => $entry) {/*{{{*/// Iterate through the list
           $properties = array('legiscope-remote');
@@ -159,7 +159,7 @@ EOH;
           preg_match($pattern, $title, $matches);
           $title = $matches[1];
           $desc  = $matches[3];
-          $properties[] = array_key_exists($entry['url'],$links) ? 'uncached' : 'cached';
+          $properties[] = 'cached'; // array_key_exists($entry['url'],$links) ? 'uncached' : 'cached';
           $properties = join(' ', $properties);
           $urlhash = UrlModel::get_url_hash($entry['url']);
           $sortkey = preg_replace('@[^0-9]@','',$title);

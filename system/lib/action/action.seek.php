@@ -224,6 +224,7 @@ class SeekAction extends LegiscopeBase {
               $parser->cluster_urldefs  = $cluster_urls;
               $parser->urlhashes        = $urlhashes;
 
+							$invocation_delta = microtime(TRUE);
               if ( $this->debug_memory_usage_delta ) {
                 $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name} - Memory usage " . memory_get_usage(TRUE) );
               }
@@ -231,9 +232,11 @@ class SeekAction extends LegiscopeBase {
               if ( $this->debug_memory_usage_delta ) {
                 $this->syslog(__FUNCTION__,__LINE__,"(warning)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) );
               }
+							$invocation_delta = round(microtime(TRUE) - $invocation_delta,3);
 
               $linkset        = $parser->linkset;
               $json_reply     = $parser->json_reply; // Merged with response JSON
+							$json_reply['timedelta'] = $invocation_delta;
               $target_url     = $parser->target_url;
 
               break;

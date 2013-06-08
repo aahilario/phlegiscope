@@ -53,6 +53,7 @@ function preload_worker() {
       success  : (function(data, httpstatus, jqueryXHR) {
         jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
         if ( data && data.original ) replace_contentof('original',data.original);
+				if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
         preload_worker();
       })
     });
@@ -77,6 +78,7 @@ function preload(components) {
     success  : (function(data, httpstatus, jqueryXHR) {
       var uncached_entries = data.count ? data.count : 0;
       var uncached_list = data.uncached ? data.uncached : [];
+			if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
       preload_a = new Array(uncached_entries);
       preload_n = 0;
       for (var n in uncached_list) {
@@ -121,6 +123,8 @@ function initialize_linkset_clickevents(linkset,childtag) {
         success  : (function(data, httpstatus, jqueryXHR) {
 
           var linkset = data.linkset;
+
+					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
 
           if ( linkset && linkset.length > 0 ) {
             replace_contentof('linkset', linkset);
@@ -171,6 +175,8 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 		if (jQuery(this).attr('id') == 'original') return;
 		jQuery(this).children().remove();
 	});
+
+	if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
 
 	if ( /^application\/pdf/.test(contenttype) ) {
     if ( !(jQuery('#spider').prop('checked')) ) {
@@ -435,6 +441,7 @@ function initialize_hot_search() {
           var records = data.records ? data.records : [];
           var returns = data.count ? data.count : 0;
           var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
+					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           jQuery('#currenturl').html("Matches: "+returns);
           jQuery('div[class*=contentwindow]').each(function(){
             if (jQuery(this).attr('id') == 'issues') return;
@@ -442,6 +449,7 @@ function initialize_hot_search() {
             if (jQuery(this).attr('id') == 'original') return;
             jQuery(this).children().remove();
           });
+					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           if ( !(0 < returns) ) return;
           replace_contentof('original',jQuery(document.createElement('UL')).attr('id','searchresults'));
           for ( var r in records ) {

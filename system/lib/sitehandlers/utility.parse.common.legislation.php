@@ -16,7 +16,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 
   function get_per_congress_pager(UrlModel & $urlmodel, & $session, & $q, & $session_select, $pager_uuid = '1cb903bd644be9596931e7c368676982') {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     if ( $debug_method ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");

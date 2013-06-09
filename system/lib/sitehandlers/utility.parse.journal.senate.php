@@ -210,8 +210,8 @@ EOH;
 			$cached = array_filter($cached); // Contains entries that are in DB 
 			$this->recursive_dump($cached  , '(marker) - - - - - -   Cached');
 			$this->recursive_dump($uncached, '(marker) - - - - - - Uncached');
-			str_replace($cached,'cached', $pagecontent);
-			str_replace($uncached, 'uncached', $pagecontent);
+			$pagecontent = str_replace(array_values($cached),'cached', $pagecontent);
+			$pagecontent = str_replace(array_values($uncached), 'uncached', $pagecontent);
 		}
 
     if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - end');

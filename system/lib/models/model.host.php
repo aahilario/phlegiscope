@@ -18,6 +18,7 @@ class HostModel extends UrlModel {
   // END ModelFields
 
   function __construct($url_or_hostname = NULL) {
+		$debug_method = FALSE;
     parent::__construct();
     $this->hostname_vc512 = NULL;
     $this->hostname_hash_vc128uniq = NULL;
@@ -25,8 +26,10 @@ class HostModel extends UrlModel {
       $this->hostname_vc512 = UrlModel::parse_url($url_or_hostname, PHP_URL_HOST); 
       $this->hostname_hash_vc128uniq = UrlModel::get_url_hash($this->hostname_vc512);
       $this->fetch($this->hostname_hash_vc128uniq, 'hostname_hash');
-      $state = $this->in_database() ? "Fetched {$this->id}" : "Recording";
-      $this->syslog( __FUNCTION__, 'FORCE', "(marker) {$state} URL {$this->hostname_vc512} [{$this->hostname_hash_vc128uniq}]" ); 
+			if ( $debug_method ) {
+				$state = $this->in_database() ? "Fetched {$this->id}" : "Recording";
+				$this->syslog( __FUNCTION__, 'FORCE', "(marker) {$state} URL {$this->hostname_vc512} [{$this->hostname_hash_vc128uniq}]" ); 
+			}
     }
   }
 

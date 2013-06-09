@@ -252,7 +252,7 @@ class LegiscopeBase extends SystemUtility {
   protected function get_handler_names(UrlModel & $url, array $cluster_urls) {/*{{{*/
 
     // Construct post-processing method name from path parts
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
@@ -684,7 +684,7 @@ class LegiscopeBase extends SystemUtility {
 	 */
 
 	protected function register_derived_class() {
-		$this->syslog(__FUNCTION__,__LINE__,"(marker)");
+		// $this->syslog(__FUNCTION__,__LINE__,"(marker)");
 	}
 
   //////////////////////////////////////////////////////////////////////////

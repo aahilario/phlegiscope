@@ -1426,7 +1426,7 @@ EOH;
     );
 
     if ( !(0 < count($document_contents)) ) {/*{{{*/
-      $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- EMPTY DOCUMENT CONTENT ARRAY" );
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- NONEMPTY DOCUMENT CONTENT ARRAY" );
       $doc_url = $senate_document_parser->get_containers(
         'children[tagname*=div][id=lis_download]',0
       );
@@ -1444,7 +1444,8 @@ EOH;
       );
       $document_contents['comm_report_info'] = array_element(array_element($document_contents,'comm_report_url',array()),'text');
       $document_contents['comm_report_url']  = array_element(array_element($document_contents,'comm_report_url',array()),'url');
-      $parser->from_network = TRUE;
+			// FIXME: Remove this, it forces an update. Better to do an array diff.
+      // $parser->from_network = TRUE;
     }/*}}}*/
     else {/*{{{*/
 			if ( $debug_method )
@@ -1459,10 +1460,14 @@ EOH;
       $this->recursive_dump($document_contents,"(marker) -- DC -- SB {$sbn_regex_result}.{$target_congress}");
     }/*}}}*/
 
+		$senate_document->debug_method    = FALSE;
+		$senate_document->debug_final_sql = FALSE;
     $senate_document->fetch(array(
       'sn' => $sbn_regex_result,
       'congress_tag' => $target_congress, 
     ),'AND');
+		$senate_document->debug_final_sql = FALSE;
+		$senate_document->debug_method    = FALSE;
 
     if ( !$senate_document->in_database() || $parser->from_network ) {/*{{{*/
       $document_contents['sn'] = $sbn_regex_result;
@@ -1470,14 +1475,17 @@ EOH;
       $document_contents['urlid'] = $action_url->get_id();
       $document_contents['congress_tag'] = $target_congress;
       krsort($document_contents);
-      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning) -- Stowing!');
+      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning) -- Stowing! ' . $senate_document->get_id());
+			$document_contents = array_filter($document_contents);
+      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning) -- Filtered');
       $senate_document->set_contents_from_array($document_contents);
-      // FIXME: Prevent overwriting content
+      // Prevent overwriting content, assign, then fetch
       if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- After set_contents_from_array" );
       $senate_document->fetch($document_contents['sn'],'sn');
+			if ( !$senate_document->in_database() ) $senate_document->set_contents_from_array();
       $id = $senate_document->stow();
-      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed SB {$sbn_regex_result}.{$target_congress} #{$id}" );
-      $senate_document->fetch(array(
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
+      if (0) $senate_document->fetch(array(
         'sn' => $sbn_regex_result,
         'congress_tag' => $target_congress, 
       ),'AND');
@@ -2658,7 +2666,7 @@ EOH;
     if ( 1 == preg_match('@(.*)' . $prefix . '-([0-9]*)(.*)@', $target_action['query']) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Normal parse");
     } else {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to comprehend query part '{$target_action['query']}' of '{$action_url}'");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to comprehend query part '{$target_action['query']}' of URL '" . (is_a($action_url,'UrlModel') ? $action_url->get_url() : '<Unknown URL>') . "'");
       $this->recursive_dump($target_action,"(marker) -- - --");
       return FALSE;
     }

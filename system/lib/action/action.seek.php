@@ -34,9 +34,9 @@ class SeekAction extends LegiscopeBase {
     $referrer        = $this->filter_session('referrer');
     $url             = new UrlModel($target_url, empty($target_url) ? FALSE : TRUE);
 
-    $this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
 
     if ( $debug_method ) {
+			$this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
       $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
     }
 
@@ -91,8 +91,8 @@ class SeekAction extends LegiscopeBase {
 
       $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method );
       $action = $retrieved
-        ? "(marker) Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
-        : "(marker) WARNING Failed to retrieve"
+        ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
+        : "WARNING Failed to retrieve"
         ;
       if (!$retrieved) {/*{{{*/
 
@@ -267,7 +267,7 @@ class SeekAction extends LegiscopeBase {
           $headers['legiscope-regular-markup'] = 0;
           // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
           $json_reply = array('retainoriginal' => 'true');
-          $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
+          if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
         }/*}}}*/
       }/*}}}*/
 

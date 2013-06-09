@@ -673,6 +673,20 @@ EOH;
     return $this;
   }/*}}}*/
 
+	protected function get_std_id_attrset() {/*{{{*/
+		return array(
+			'name' => 'id',
+			'type' => 'int11',
+			'value' => NULL,
+			'attrs' => array(
+				"fieldname" => 'id', 
+				"properties" => "INT(11)",
+				"quoted" => FALSE,
+				"mustbind" => FALSE,
+			)
+		);
+	}/*}}}*/
+
   private function full_property_list($pivot_by = NULL, $only_entry = NULL) {/*{{{*/
     $attrlist     = $this->fetch_property_list();
     foreach ( $attrlist as $member_index => $attrs ) {
@@ -933,17 +947,7 @@ EOS;
         $rtable_property_list = $this->get_join_object($attrname,'ref','obj')->full_property_list();
         // Include 'id' field 
         if ( !array_key_exists('id', $rtable_property_list) ) {
-          $rtable_property_list['id'] = array(
-            'name' => 'id',
-            'type' => 'int11',
-            'value' => NULL,
-            'attrs' => array(
-              "fieldname" => 'id', 
-              "properties" => "INT(11)",
-              "quoted" => FALSE,
-              "mustbind" => FALSE,
-            )
-          );
+					$rtable_property_list['id'] = $this->get_std_id_attrset();
         }
         // If the attribute name exists in the list of Join objects,
         // then it hasn't been parsed for conditions at all, so that the
@@ -1148,7 +1152,7 @@ EOS;
 
     $debug_method    = $this->debug_method;
     $key_by_varname  = create_function('$a', 'return $a["name"];');
-    $attrlist        = $this->full_property_list();
+    $attrlist        = array_merge(array('id' => $this->get_std_id_attrset()),$this->full_property_list());
     $key_map         = array_map($key_by_varname, $attrlist);
     $conditionstring = NULL;
     $join_attrlists  = array();
@@ -1360,13 +1364,12 @@ EOS;
       return FALSE;
     }
     $result = $this->query($sql)->resultset();
-    if ( $this->debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - res " . gettype($result));
-      $this->recursive_dump($result,"(marker) -- - - res " . gettype($result));
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - res query {$sql}");
-    }
-
     if ( is_array($result) ) $this->result_to_model($result);
+		if ( $this->debug_method ) {/*{{{*/
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - res #{$this->id} " . gettype($result));
+			$this->recursive_dump($result,"(marker) -- - - res " . gettype($result));
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - res query {$sql}");
+		}/*}}}*/
     return $this->query_result;
   }/*}}}*/
 
@@ -1748,12 +1751,14 @@ EOP
           $n = count($a);
           $this->syslog(__FUNCTION__,__LINE__,"A ------ (marker) N = {$n} Map: {$map}");
         }/*}}}*/
-        $a = array_filter(array_map(create_function('$a',$map), $a));
-        if ( $this->debug_operators ) {/*{{{*/
-          $n = count($a);
-          $this->syslog(__FUNCTION__,__LINE__,"A <<<<<< (marker) N = {$n} Map: {$map}");
-        }/*}}}*/
-        $this->resequence_children($a);
+				if ( is_array($a) ) {
+					$a = array_filter(array_map(create_function('$a',$map), $a));
+					if ( $this->debug_operators ) {/*{{{*/
+						$n = count($a);
+						$this->syslog(__FUNCTION__,__LINE__,"A <<<<<< (marker) N = {$n} Map: {$map}");
+					}/*}}}*/
+					$this->resequence_children($a);
+				}
       } else {
         if ( $this->debug_operators ) {/*{{{*/
           $this->syslog(__FUNCTION__,__LINE__,"B ------ (marker) N = {$n} Map: {$a}");

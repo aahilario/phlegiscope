@@ -1163,54 +1163,65 @@ EOH;
       'vice-chairperson',
     )));
 
+		// A list of Representative bio URLs results from the parsing stage above.
     if ( 0 < count($membership_roles) ) foreach ( $membership_roles as $role => $urls ) {/*{{{*/
       unset($parser->committee_information[$role]);
-      $rep_ids = array();
+			$rep_ids = array();
       while ( 0 < count($urls) ) {/*{{{*/
         $rep_urls = array();
         while ( count($rep_urls) < 10 && 0 < count($urls) ) {
-          $rep_urls[] = array_pop($urls);
+					$url           = array_pop($urls);
+					$rep_urls[]    = $url;
+					$rep_ids[$url] = NULL;
         } 
-        $rep_urls = array('AND' => array(
-          'bio_url' => $rep_urls,
-        ));
-        if ( $representative->join_all()->where($rep_urls)->recordfetch_setup() ) {/*{{{*/
+				// If a Join matching the role and committee already exists, NULL out the
+				// corresponding entry in $rep_urls; otherwise assign the representative record ID 
+        if ( $representative->join_all()->where(array('AND' => array('bio_url' => $rep_urls)))->recordfetch_setup() ) {/*{{{*/
+
           $rep_urls = array();
-          while ( $representative->recordfetch($rep_urls,TRUE) ) {
-            $rep_id = intval(array_element($rep_urls,'id'));
+
+          while ( $representative->recordfetch($rep_urls,TRUE) ) {/*{{{*/
+
+						$bio_url = array_element($rep_urls, 'bio_url');
+						$rep_id  = intval(array_element($rep_urls,'id'));
+
             if ( !($rep_id > 0) ) continue;
+
             $data_component = $representative->get_committees('data');
             $join_component = $representative->get_committees('join');
-            if ( is_null(array_element($data_component,'id')) ||
-              !(array_element($data_component,'committee_name') == $committee_name) ||
-              !(array_element($join_component,'role') == $role) ) {
+
+            if (
+              (array_element($data_component,'committee_name') == $committee_name) && 
+              (array_element($join_component,'role') == $role) ) {
               // WARNING: If URL formats change so that the 'congress' query component is lost, 
               // then this will fail to capture the Congress number for the join.
-              //{$rep_urls['bio_url']}
-              $this->syslog( __FUNCTION__,__LINE__,"(marker) - - - - Found unlinked rep {$rep_id} ({$rep_urls['fullname']} - ".$representative->get_bio_url().")");
-              $rep_ids[$rep_id] = array(
-                'id' => $rep_id,
-                'congress_tag' => UrlModel::query_element('congress',$representative->get_bio_url())
-              ); 
-            } else {
-              if ( $debug_method ) {
-                $this->syslog( __FUNCTION__,__LINE__,"(marker) - - - - Found rep {$rep_id} ({$rep_urls['fullname']}) - ".$representative->get_bio_url().")");
-                // $this->recursive_dump($rep_urls,"(marker) - - - ");
-              }
+              $this->syslog( __FUNCTION__,__LINE__,"(marker) - - - - Omitting already-linked rep {$rep_id} ({$rep_urls['fullname']} - ".$representative->get_bio_url().")");
+							unset($rep_ids[$bio_url]);
             }
-          }
+
+						if ( is_null(array_element($rep_ids,$bio_url)) && array_key_exists($bio_url, $rep_ids) ) 
+						$rep_ids[$bio_url] = array(
+							'id' => $rep_id,
+							'congress_tag' => UrlModel::query_element('congress',$bio_url)
+						); 
+
+          }/*}}}*/
+
+					$rep_ids = array_filter($rep_ids);
+
+					while ( 0 < count($rep_ids) ) {/*{{{*/
+						// Create missing Committee - Representative joins. Pop IDs from the list generated above.
+						$rep_id = array_pop($rep_ids);
+						$r = array(array_element($rep_id,'id') => array(
+							'role' => $role,
+							'congress_tag' => array_element($rep_id,'congress_tag','--'),
+						));
+						$committee->create_joins('representative',$r);
+					}/*}}}*/
+
         }/*}}}*/
       }/*}}}*/
-      while ( 0 < count($rep_ids) ) {/*{{{*/
-        // Create missing Committee - Representative joins. Pop IDs from the list generated above.
-        $rep_id = array_pop($rep_ids);
-        $r = array(array_element($rep_id,'id') => array(
-          'role' => $role,
-          'congress_tag' => array_element($rep_id,'congress_tag','--'),
-        ));
-        $committee->create_joins('representative',$r);
-      }/*}}}*/
-    }/*}}}*/
+   }/*}}}*/
 
     
   }/*}}}*/

@@ -208,8 +208,10 @@ EOH;
 				unset($uncached[$url['url']]);
 			}
 			$cached = array_filter($cached); // Contains entries that are in DB 
-			$this->recursive_dump($cached  , '(marker) - - - - - -   Cached');
-			$this->recursive_dump($uncached, '(marker) - - - - - - Uncached');
+			if ( $debug_method ) {
+				$this->recursive_dump($cached  , '(marker) - - - - - -   Cached');
+				$this->recursive_dump($uncached, '(marker) - - - - - - Uncached');
+			}
 			$pagecontent = str_replace(array_values($cached),'cached', $pagecontent);
 			$pagecontent = str_replace(array_values($uncached), 'uncached', $pagecontent);
 		}

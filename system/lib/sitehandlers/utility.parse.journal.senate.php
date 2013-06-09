@@ -18,7 +18,7 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
   function parse_activity_summary(array & $journal_data) {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSe;
     $sn = NULL;
 
     // $this->activity_summary is populated by the parser
@@ -28,7 +28,7 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
     $pagecontent = '';
 
-    $test_url = new UrlModel();
+		$test_urls = array();
 
     foreach ( $journal_data as $n => $e ) {/*{{{*/
 
@@ -111,11 +111,12 @@ EOH;
 
       if ( intval($n) == 0 ) {/*{{{*/// Journal page descriptor (Title, publication date)
         foreach ($e['content'] as $entry) {
-          $properties = array('legiscope-remote');
-          $properties[] = 'cached' ; // ( $test_url->is_cached(array_element($entry,'url')) ) ? 'cached' : 'uncached';
-          $properties = join(' ', $properties);
           $urlhash = UrlModel::get_url_hash(array_element($entry,'url'));
+          $properties = array('legiscope-remote', "{urlstate-{$urlhash}}");
+          $properties = join(' ', $properties);
           if ( array_key_exists('url',$entry) ) {/*{{{*/
+						$test_urls[] = array("{urlstate-{$urlhash}}" => array('url' => $entry['url'], 'hash' => $urlhash));
+						$entry['urlhash'] = $urlhash;
             $journal_data[$n]['pdf'] = $entry;
             $pagecontent .= <<<EOH
 <b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
@@ -146,10 +147,8 @@ EOH;
       $sorttype = NULL;
       if ( is_array($e) && array_key_exists('content',$e) && is_array($e['content']) ) {/*{{{*/// Sort by suffix
         // Pass 1: Obtain list of uncached URLs 
-        $links = array();// $test_url->get_caching_state($e['content']);
         // Pass 2:  Generate markup and update Journal element entries (serial number and prefix [SBN, SRN, etc.])
         foreach ($e['content'] as $content_idx => $entry) {/*{{{*/// Iterate through the list
-          $properties = array('legiscope-remote');
           $matches = array();
           $title = $entry['text'];
           // Split these patterns:
@@ -159,9 +158,10 @@ EOH;
           preg_match($pattern, $title, $matches);
           $title = $matches[1];
           $desc  = $matches[3];
-          $properties[] = 'cached'; // array_key_exists($entry['url'],$links) ? 'uncached' : 'cached';
-          $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
+					$urlhash = UrlModel::get_url_hash($entry['url']);
+					$properties = array('legiscope-remote', "{urlstate-{$urlhash}}");
+					$properties = join(' ', $properties);
+					$test_urls[] = array("{urlstate-{$urlhash}}" => array('url' => $entry['url'], 'hash' => $urlhash));
           $sortkey = preg_replace('@[^0-9]@','',$title);
 
           $journal_data[$n]['content'][$content_idx]['sn'] = $title;
@@ -186,6 +186,33 @@ EOH;
 EOH;
 
     }/*}}}*/// END iteration through sections
+
+		// Iterate through test_urls[] to obtain caching state for all URLs in batches
+
+		$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - Testing " . count($test_urls) . " for caching state");
+		if ( $debug_method ) $this->recursive_dump($test_urls,'(marker) T - end');
+    $test_url = new UrlModel();
+		while ( 0 < count($test_urls) ) {
+			$cached = array();
+			$uncached = array();
+			while ( 10 > count($cached) && 0 < count($test_urls) ) {
+				list($matchpattern, $url) = each(array_pop($test_urls));
+				$urlhash = $url['hash'];
+				$url = $url['url'];
+				$cached[$urlhash] = NULL;
+				$uncached[$url] = $matchpattern;
+			}
+			$test_url->where(array('AND' => array('urlhash' => array_keys($cached))))->recordfetch_setup();
+			while ( $test_url->recordfetch($url) ) {
+				$cached[$url['urlhash']] = $uncached[$url['url']]; 
+				unset($uncached[$url['url']]);
+			}
+			$cached = array_filter($cached); // Contains entries that are in DB 
+			$this->recursive_dump($cached  , '(marker) - - - - - -   Cached');
+			$this->recursive_dump($uncached, '(marker) - - - - - - Uncached');
+			str_replace($cached,'cached', $pagecontent);
+			str_replace($uncached, 'uncached', $pagecontent);
+		}
 
     if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - end');
 

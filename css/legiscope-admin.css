@@ -270,4 +270,49 @@ div.congress-doc-item > span {
 	min-height: 640px;
 }
 
+/* Senate Bill match items */
+span.senate-bill-searchlisting {
+  display: block;
+  max-width: 40%;
+}
+.sb-match-item {
+  display: block;
+}
+.sb-match-subjects {
+  font-size: 120%;
+  font-weight: bold;
+  line-height: 110%;
+  color: #117;
+}
+.sb-match-description {
+  font-size: 100%;
+  color: #777;
+}
+span.hilight, .hilight {
+  background-color: yellow;
+}
+
+/**** Senate Committee Listings ****/
+div.committee-functions-leadership {
+  display: table-row;
+  border-top: 10px dotted #777;
+  margin-top: 10px;
+  width: 70%;
+}
+div.committee-name {
+  display: table-cell;
+  clear: left;
+  min-width: 25%;
+}
+div.committee-leaders {
+  display: table-cell;
+  clear: none;
+  min-width: 30%;
+}
+div.committee-jurisdiction {
+  display: table-cell;
+  clear: none;
+  max-width: 40%;
+}
+
 

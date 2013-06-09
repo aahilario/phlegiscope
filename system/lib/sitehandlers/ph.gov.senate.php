@@ -1561,7 +1561,7 @@ EOH
     $documents       = new $documents();
     $document_parser = new $document_parser();
 
-    $documents->dump_accessor_defs_to_syslog();
+    if ( $debug_method ) $documents->dump_accessor_defs_to_syslog();
 
     $this->method_cache_emit($parser);
 
@@ -1618,7 +1618,7 @@ EOH
       : array();
     unset($text_entries_only);
 
-		if ( TRUE || $debug_method ) $this->recursive_dump($markup_tabulation,"(marker) -- Blitter");
+		if ( $debug_method ) $this->recursive_dump($markup_tabulation,"(marker) -- Blitter");
 
     $url_checker = new UrlModel();
 
@@ -1882,7 +1882,7 @@ EOH;
 
     $document_parser->cluster_urldefs = $document_parser->generate_linkset($urlmodel->get_url(),'cluster_urls');
 
-    if ( TRUE || $debug_method ) $this->recursive_dump($document_parser->cluster_urldefs, "(marker) ----- ---- --- -- - - Cluster URLdefs" );
+    if ( $debug_method ) $this->recursive_dump($document_parser->cluster_urldefs, "(marker) ----- ---- --- -- - - Cluster URLdefs" );
 
     $session_select = $document_parser->extract_house_session_select($urlmodel, FALSE);
 
@@ -2036,7 +2036,7 @@ EOH;
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$document_parser}, {$documents}" );
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     ///////////////////////////////////////////
 

@@ -18,8 +18,8 @@ class UrlUrlJoin extends ModelJoin {
     parent::__construct();
     $this->left_url_UrlModel = NULL;
     $this->right_url_UrlModel = NULL;
-    $this->dump_accessor_defs_to_syslog();
-    $this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
+    // $this->dump_accessor_defs_to_syslog();
+    // $this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
     if ( !is_null($a) && !is_null($b) ) {
       $this->fetch($a, $b);
     }

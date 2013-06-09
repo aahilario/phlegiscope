@@ -315,4 +315,34 @@ div.committee-jurisdiction {
   max-width: 40%;
 }
 
+/** Congressional Committee Listing **/
+
+a.listing-committee-name {
+  display: inline-block;
+  width: 200px;
+  padding-right: 5px;
+  text-align: right;
+  vertical-align: top;
+}
+
+span.listing-committee-representative {
+  display: inline-block;
+  width: auto;
+  vertical-align: top;
+}
+
+
+/** Republic Act Listings **/
+
+.republic-act-desc, .republic-act-meta {
+  margin-left: 10px;
+  text-indent: 0;
+}
+.republic-act-desc > a.legiscope-remote {
+  text-decoration: none;
+  color: #222;
+}
+.republic-act-meta {
+  display: block;
+}
 

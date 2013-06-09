@@ -215,7 +215,7 @@ class {$classname} {$base} {
 EOH;
     }/*}}}*/
     if (!('LegiscopeBase' == $classname) && !C('DISABLE_CLASS_AUTOGENERATE') ) {
-      if ( !file_exists($target_filename) ) {/*{{{*/
+      if ( ( FALSE == stripos($target_filename,'_') ) && !file_exists($target_filename) ) {/*{{{*/
         $class_skeleton = <<<EOH
 <?php
 
@@ -234,6 +234,7 @@ EOH;
       }/*}}}*/
     }
   }/*}}}*/
+
   if ( file_exists($target_filename) ) {
     // syslog( LOG_INFO, "- Try to load {$target_filename} for class {$classname} " . ini_get('include_path') . " cwd " . getcwd() );
     require_once($target_filename);

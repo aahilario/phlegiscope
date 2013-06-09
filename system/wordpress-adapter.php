@@ -20,7 +20,7 @@ function legiscope_extend_include_path() {
     syslog( LOG_INFO, "- - - - - Include: " . ini_get('include_path'));
   }
 
-  define('DISABLE_CLASS_AUTOGENERATE', TRUE);
+  // define('DISABLE_CLASS_AUTOGENERATE', TRUE);
   define('MODE_WORDPRESS_PLUGIN'     , TRUE);
 
   $sub_path = $system_path;

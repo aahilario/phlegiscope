@@ -10,6 +10,7 @@ class LegiscopeBase extends SystemUtility {
   var $subject_host_hash = NULL;
   var $seek_cache_filename = NULL;
   var $enable_proxy = TRUE;
+  var $debug_handler_names = TRUE;
 
   function __construct() {/*{{{*/
     parent::__construct();
@@ -252,7 +253,7 @@ class LegiscopeBase extends SystemUtility {
   protected function get_handler_names(UrlModel & $url, array $cluster_urls) {/*{{{*/
 
     // Construct post-processing method name from path parts
-    $debug_method = FALSE;
+    $debug_method = $this->debug_handler_names;
 
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());

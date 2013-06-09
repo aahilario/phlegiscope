@@ -95,6 +95,8 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     return FALSE;
   }/*}}}*/
 
+
+
 	/** User markup-generating and utility methods **/
 
 	function & get_member_contact_details() {/*{{{*/
@@ -396,6 +398,142 @@ EOH
 		if ( $debug_method ) $this->recursive_dump($legislation_links, "(marker) - -- -");
     return join('',$pagecontent);
   }/*}}}*/
+
+  function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    // Representative bio parser
+
+    $m    = new RepresentativeDossierModel();
+    $hb   = new HouseBillDocumentModel();
+    $url  = new UrlModel();
+
+    $this->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
+
+    $urlmodel->ensure_custom_parse();
+
+    $pagecontent = '';
+
+    $m->fetch($urlmodel->get_url(), 'bio_url');
+
+    if ( !$m->in_database() || $parser->from_network ) {/*{{{*/
+
+      $this->stow_parsed_representative_info($m,$urlmodel);
+
+    }/*}}}*/
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) E ------------------------------ " );
+    $member               = $this->get_member_contact_details();
+    $contact_items        = $m->get_contact_json();
+    $member_avatar_base64 = $m->get_avatar_image();
+    $member_uuid          = $m->get_member_uuid();
+    $member['fullname']   = $m->get_fullname();
+    $member['avatar']     = $m->get_avatar_url();
+
+    extract($this->extract_committee_membership_and_bills());
+
+    $membership_role   = $this->generate_committee_membership_markup($membership_role);
+    $legislation_links = array();
+    $bills             = $this->generate_legislation_links_markup($m, $legislation_links, $bills);
+    $legislation_links = join('',$legislation_links);
+
+    // To trigger automated fetch, crawl this list after loading the entire dossier doc;
+    // then find the next unvisited dossier entry
+    $legislation_links = <<<EOH
+<ul id="house-bills-by-rep" class="link-cluster">{$legislation_links}</ul>
+EOH;
+    if ( $urlmodel->is_custom_parse() ) {
+      extract($this->generate_linkset($urlmodel->get_url()));
+      $parser->linkset = $linkset; 
+    }
+    $parser->linkset = "{$legislation_links}{$parser->linkset}";
+
+    $pagecontent = <<<EOH
+<div class="congress-member-summary">
+  <h1 class="representative-avatar-fullname">{$member['fullname']}</h1>
+  <img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member['fullname']}" />
+  <input type="hidden" class="representative-avatar-source" name="image-ref" id="imagesrc-{$member_uuid}" value="{$member['avatar']}" />
+  <span class="representative-avatar-head">Role: {$contact_items['district']} {$contact_items['role']}</span>
+  <span class="representative-avatar-head">Term: {$contact_items['term']}</span>
+  <hr/>
+  <span class="representative-avatar-head">Room: {$contact_items['room']}</span>
+  <span class="representative-avatar-head">Phone: {$contact_items['phone']}</span>
+  <span class="representative-avatar-head">Chief of Staff: {$contact_items['cos']}</span>
+</div>
+<hr/>
+
+<div class="congress-member-summary">
+  <hr/>
+  <div class="congress-member-roles">
+{$membership_role}
+  </div>
+  <hr/>
+  <div class="congress-legislation-tally link-cluster">
+{$bills}
+  </div>
+</div>
+
+<script type="text/javascript">
+var hits = 0;
+function crawl_dossier_links() {
+  if ( jQuery('#spider').prop('checked') ) {
+    jQuery('ul[id=house-bills-by-rep]').find("a[class*=uncached]").first().each(function(){
+      var self = jQuery(this);
+      load_content_window(
+        jQuery(this).attr('href'),
+        jQuery('#seek').prop('checked'),
+        jQuery(this),
+        { url : jQuery(this).attr('href'), async : true },
+        { success : function (data, httpstatus, jqueryXHR) {
+            std_seek_response_handler(data, httpstatus, jqueryXHR);
+            jQuery(self).removeClass('uncached').addClass('cached');
+            setTimeout((function() {crawl_dossier_links();}),200);
+          }
+        }
+      );
+    });
+    hits = 0;
+    jQuery('ul[id=house-bills-by-rep]').find("a[class*=uncached]").each(function(){
+      hits++;
+    });
+    if (hits == 0) {
+      jQuery('div[id=congresista-list]')
+        .find('a[class*=seek]')
+        .first()
+        .each(function() { 
+          jQuery('#doctitle').html('Loading '+jQuery(this).attr('href'));
+          jQuery(this).removeClass('seek').addClass('cached'); 
+          jQuery(this).click();
+        });
+    } else {
+      jQuery('#doctitle').html('Remaining: '+hits);
+    }
+  }
+}
+
+jQuery(document).ready(function(){
+  update_representatives_avatars();
+  setTimeout((function(){
+    crawl_dossier_links();
+  }),2000);
+});
+</script>
+EOH;
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Final content length: " . strlen($pagecontent) );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) I ------------------------------ " );
+
+    $pagecontent = utf8_encode($pagecontent);
+
+
+	}/*}}}*/
 
 }
 

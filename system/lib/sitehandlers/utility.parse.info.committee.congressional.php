@@ -270,5 +270,168 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
 		$attrname = preg_replace('@^get_@i', '', __FUNCTION__);
 		return array_element($this->committee_information, $attrname);
 	}
+
+	function committee_information_page(& $stdparser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+		/* Parse a committee information page to obtain these items of information:
+		 * - Committee jurisdiction and contact information
+		 * - List of members
+		 * - Bills referred to the Committee
+		 * - Committee meetings
+		 */
+		$debug_method = FALSE;
+
+		$this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+
+		$urlmodel->ensure_custom_parse();
+
+		$committee      = new CongressionalCommitteeDocumentModel();
+		$representative = new RepresentativeDossierModel();
+
+		$this->
+			set_parent_url($urlmodel->get_url())->
+			parse_html(
+				$urlmodel->get_pagecontent(),
+				$urlmodel->get_response_header()
+			);
+
+		$pagecontent = str_replace('[BR]','<br/>',join('',$this->get_filtered_doc()));
+		$stdparser->json_reply = array('retainoriginal' => TRUE);
+
+		$this->parse_committee_information_page($urlmodel, $committee);
+
+		// Dump XMLParser raw output
+		if (0) $this->recursive_dump($this->get_containers(), "(marker) - -- - -- -");
+
+		$committee_id   = $committee->get_id();
+		$committee_name = $committee->get_committee_name();
+
+		$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Committee Name: {$committee_name} #{$committee_id}");
+
+		if ( !empty($committee_name) ) {/*{{{*/
+			$committee_record = $committee->
+				join_all()->
+				fetch($committee_name,'committee_name');
+
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - " . get_class($committee) . " JOIN search result");
+			$this->recursive_dump($committee_record, "(marker) - - -- -- - C");
+
+		}/*}}}*/
+
+		$representative_record = $representative->
+			fetch($this->get_chairperson(),'bio_url');
+
+		$representative_id = array_element($representative_record,'id');
+		$committee_id      = array_element($committee_record,'id');
+
+		//////////////////////////////////////////////////////////////////////
+		// Bail out if a committee ID cannot be derived from parsed content
+		//
+		if ( is_null($committee_id) ) {/*{{{*/
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Parsed attributes " . get_class($committee));
+			$this->recursive_dump($this->committee_information,"(marker) - - - - -");
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - No committee ID found, cannot proceed.");
+			return;
+		}/*}}}*/
+
+		if ( !is_null($representative_id) ) {/*{{{*/
+			$r = array($representative_id => array(
+				'role' => 'chairperson',
+				'congress_tag' => UrlModel::query_element('congress',$representative->get_bio_url())
+			));
+			$committee->create_joins('representative', $r); 
+			$representative_record = $representative->
+				join_all()->
+				fetch(array(
+					'bio_url' => $this->get_chairperson(),
+					'`b`.`role`' => 'chairperson'
+				),'AND');
+
+		}/*}}}*/
+
+		if ( $debug_method ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - " . get_class($representative) . " JOIN search result");
+			$this->recursive_dump($representative_record, "(marker) - - -- -- - R");
+
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Parsed attributes " . get_class($committee));
+			$this->recursive_dump($this->committee_information,"(marker) - - - - -");
+		}
+
+		//////////////////////////////////////////////////////////////////////
+		// Create URL-independent joins between Committees and Representative records
+		//
+		$membership_roles = array_intersect_key($this->committee_information,array_flip(array(
+			'member-minority',
+			'member-majority',
+			'vice-chairperson',
+		)));
+
+		// A list of Representative bio URLs results from the parsing stage above.
+		if ( 0 < count($membership_roles) ) foreach ( $membership_roles as $role => $urls ) {/*{{{*/
+			unset($this->committee_information[$role]);
+			$rep_ids = array();
+			while ( 0 < count($urls) ) {/*{{{*/
+				$rep_urls = array();
+				while ( count($rep_urls) < 10 && 0 < count($urls) ) {
+					$url           = array_pop($urls);
+					$rep_urls[]    = $url;
+					$rep_ids[$url] = NULL;
+				} 
+				// If a Join matching the role and committee already exists, NULL out the
+				// corresponding entry in $rep_urls; otherwise assign the representative record ID 
+				if ( $representative->join_all()->where(array('AND' => array('bio_url' => $rep_urls)))->recordfetch_setup() ) {/*{{{*/
+
+					$rep_urls = array();
+
+					while ( $representative->recordfetch($rep_urls,TRUE) ) {/*{{{*/
+
+						$bio_url = array_element($rep_urls, 'bio_url');
+						$rep_id  = intval(array_element($rep_urls,'id'));
+
+						if ( !($rep_id > 0) ) continue;
+
+						$data_component = $representative->get_committees('data');
+						$join_component = $representative->get_committees('join');
+
+						if (
+							(array_element($data_component,'committee_name') == $committee_name) && 
+							(array_element($join_component,'role') == $role) ) {
+								// WARNING: If URL formats change so that the 'congress' query component is lost, 
+								// then this will fail to capture the Congress number for the join.
+								if ( $debug_method ) $this->syslog( __FUNCTION__,__LINE__,"(marker) - - - - Omitting already-linked rep {$rep_id} ({$rep_urls['fullname']} - ".$representative->get_bio_url().")");
+								unset($rep_ids[$bio_url]);
+							}
+
+						if ( is_null(array_element($rep_ids,$bio_url)) && array_key_exists($bio_url, $rep_ids) ) 
+							$rep_ids[$bio_url] = array(
+								'id' => $rep_id,
+								'fullname' => array_element($rep_urls,'fullname','--'),
+								'congress_tag' => UrlModel::query_element('congress',$bio_url)
+							); 
+
+					}/*}}}*/
+
+					$rep_ids = array_filter($rep_ids);
+
+					while ( 0 < count($rep_ids) ) {/*{{{*/
+						// Create missing Committee - Representative joins. Pop IDs from the list generated above.
+						$rep_id = array_pop($rep_ids);
+						$r = array(array_element($rep_id,'id') => array(
+							'role' => $role,
+							'congress_tag' => array_element($rep_id,'congress_tag','--'),
+						));
+
+						// if ( $debug_method )
+						$this->syslog( __FUNCTION__,__LINE__,"(marker) - - - - Adding link to {$role} representative #{$rep_id['id']} ({$rep_id['fullname']})");
+						$committee->create_joins('representative',$r);
+					}/*}}}*/
+
+				}/*}}}*/
+			}/*}}}*/
+		}/*}}}*/
+
+
+	}/*}}}*/
+
 }
 

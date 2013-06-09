@@ -23,8 +23,9 @@ class RepublicActDocumentModel extends SenateDocCommonDocumentModel {
 	var $content_json_vc65535 = NULL;
 	var $content_blob = NULL;
 
-	var $sb_precursors_SenateBillDocumentModel = NULL;
-	var $hb_precursors_HouseBillDocumentModel = NULL;
+	var $sb_precursors_SenateBillDocumentModel = NULL; // TODO: Link Republic Act records to precursor Senate Bills
+	var $hb_precursors_HouseBillDocumentModel = NULL; // TODO: Link Republic Act records to precursor Congress House Bills
+	var $versions_UrlModel = NULL;
 
   function __construct() {
     parent::__construct();

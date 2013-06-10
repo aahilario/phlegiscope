@@ -17,7 +17,6 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
   var $last_fetch_utx = NULL;
   var $url_vc4096 = NULL; // TODO: Replace with UrlModel[ {} ]
   var $office_address_vc4096 = NULL;
-  var $contact_json_vc4096 = NULL; // TODO: Create contact Directory entries
 
   var $representative_RepresentativeDossierModel = NULL; // Relationship between a committee and a representative (role, mainly: e.g. chairman, member)
 	var $master_document_links_UrlModel = NULL; // Note that this also supersedes the Committee URL
@@ -68,7 +67,7 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
  	}
 	function get_office_address($v = NULL) { 
 		if (!is_null($v)) $this->set_office_address($v);
-		return $this->office_address_vc4096;
+		return is_string($this->office_address_vc4096) ? json_decode($this->office_address_vc4096,TRUE) : $this->office_address_vc4096;
  	}
 
   function & set_contact_json($v) { $this->contact_json_vc4096 = $v; return $this; }

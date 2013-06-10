@@ -7,7 +7,6 @@ class DatabaseUtility extends ReflectionClass {
   // TODO:  Implement reference counter?
   protected static $obj_attrdefs = array(); // Lookup table of class attributes and names. 
   protected static $obj_ondisk   = array();
-  protected static $cached_joinmaps = array();
 
   protected $tablename           = NULL;
   protected $query_conditions    = array();
@@ -536,7 +535,10 @@ EOH;
 
   function & join_all() {/*{{{*/
     $join_names = $this->get_join_names();
-    if ( $this->debug_method ) $this->recursive_dump($join_names,"(marker) - -- - ALL ATTRS - -- -");
+		if ( $this->debug_method ) {
+		 	$this->recursive_dump($this->join_attrs,"(marker) - -- - CURRENT - - -- -");
+		 	$this->recursive_dump($join_names,"(marker) - -- - ALL ATTRS - -- -");
+		}
     return $this->join($join_names);
   }/*}}}*/
 
@@ -918,6 +920,7 @@ EOS;
   }/*}}}*/
 
   protected function get_join_clauses(& $consolidated_aliasmap) {/*{{{*/
+
     $debug_method          = FALSE;
     $debug_method         |= $this->debug_method;
     $join_clauses          = array();
@@ -936,6 +939,7 @@ EOS;
       $ft_aliases          = array('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k'); // Alias 'a' is always the join parent
       $ft_aliasmap         = array();
       $join_instance_table = array();
+
       foreach ( $this->join_attrs as $k => $jv ) {/*{{{*/
         $attribute_list_present = TRUE;
         if ( $debug_method ) {/*{{{*/
@@ -972,24 +976,6 @@ EOS;
         }/*}}}*/
         $fm_hash = md5(json_encode($fm));
 
-        // Skip regenerating JOIN clauses when the map exists; see CACHE, below
-        if ( array_key_exists($fm_hash,static::$cached_joinmaps) ) {/*{{{*/
-          if ( $debug_method ) {
-            $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - Returning cached join data");
-          }
-          $cached_joinmap = json_decode(static::$cached_joinmaps[$fm_hash],TRUE);
-          $this->recursive_dump(($join_clauses[] = $cached_joinmap['join_map']),
-            $debug_method ? "(marker) - - - Cached JOIN map - - -" : "(------) - - - Cached"
-          );
-          $consolidated_aliasmap = array_merge(
-            $consolidated_aliasmap,
-            $cached_joinmap['alias_map']
-          );
-          $this->recursive_dump($cached_joinmap['alias_map'],
-            $debug_method ? "(marker) - - - Cached JOIN map - - -" : "(------) - - - Cached"
-          );
-          continue;
-        }/*}}}*/
         $join_attr        = array_element($joins,$attrname);
         $join_object_name = array_element($join_attr,'joinobject');
         // Test whether a named attribute actually exists
@@ -1107,11 +1093,6 @@ EOS;
           );
         }/*}}}*/
 
-        // CACHE
-        static::$cached_joinmaps[$fm_hash] = json_encode(array(
-          'join_map' => $fm,
-          'alias_map' => $ft_aliasmap,
-        )); // Store compressed, instead of as an accessible, in-memory structure
         $join_clauses[] = $fm;
 
         if ( $debug_method ) {
@@ -1230,32 +1211,6 @@ EOS;
         if ( $debug_method ) {/*{{{*/
           $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - JOIN clause list");
           $this->recursive_dump($join_clauses,"(marker) - - -");
-        }/*}}}*/
-
-        if (0) {/*{{{*/
-          $join_attrlist = $this->get_joins();
-          array_walk($join_attrlist, create_function(
-            '& $a, $k', '$a["name"] = $k;'
-          ));
-          $attrlist = array_merge(
-            $attrlist,
-            array_combine(
-              array_keys($join_attrlist),
-              array_map(create_function('$a','return array("name" => $a["name"], "type" => $a["joinobject"], "attrs" => array("fieldname" => $a["name"], "quoted" => FALSE, "mustbind" => FALSE));'),$join_attrlist)
-            )
-          );
-          $key_map = array_merge(
-            $key_map,
-            array_combine(
-              array_keys($join_attrlist),
-              array_keys($join_attrlist)
-            )
-          );
-
-          $this->syslog(__FUNCTION__,__LINE__,"(marker)  - - - - - - Attrs");
-          $this->recursive_dump($attrlist,"(marker)  - - -");
-          $this->syslog(__FUNCTION__,__LINE__,"(marker)  - - - - - - JOINS");
-          $this->recursive_dump($this->get_joins(),"(marker)  - - -");
         }/*}}}*/
 
         $join_clauses = join(' ', $join_clauses);
@@ -1391,7 +1346,10 @@ EOS;
         ));
       }
       $single_record = array_combine($single_record['attrnames'], $single_record['values']); 
-    }
+		} else {
+			// Reset
+			$this->alias_map = array(); 
+		}
     return $a;
   }/*}}}*/
 
@@ -1406,6 +1364,7 @@ EOS;
       $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - - Fetch: ({$attrname}, {$attrval}) -> ID obtained is ({$this->id})" );
       $this->recursive_dump($this->query_result, "(marker)" );
     }
+		$this->alias_map = array(); 
     return $this->query_result;
   }/*}}}*/
 

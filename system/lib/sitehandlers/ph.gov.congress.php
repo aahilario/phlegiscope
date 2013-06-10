@@ -478,10 +478,10 @@ EOH;
 
   function committee_information_page(& $stdparser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $parser         = new CongressionalCommitteeInfoParseUtility();
-		$parser->committee_information_page(& $stdparser, & $pagecontent, & $urlmodel);
-		$parser = NULL;
-		unset($parser);
+    $document_parser = new CongressionalCommitteeInfoParseUtility();
+		$document_parser->committee_information_page(& $stdparser, & $pagecontent, & $urlmodel);
+		$document_parser = NULL;
+		unset($document_parser);
 
   }/*}}}*/
 

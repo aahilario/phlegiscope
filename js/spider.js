@@ -103,39 +103,38 @@ function initialize_linkset_clickevents(linkset,childtag) {
     e.stopPropagation();
     e.preventDefault();
 
-    if ( !jQuery(this).prop || !jQuery(this).prop('coordinates') ) return;
+    if ( jQuery(this).prop && jQuery(this).prop('coordinates') ) {
+			if ( jQuery(this).hasClass('upper-section') || jQuery(this).hasClass('lower-section') ) {
+				var coordinates = jQuery(this).prop('coordinates');
+				jQuery.ajax({
+					type     : 'POST',
+					url      : '/reorder/',
+					data     : { clusterid : jQuery(this).attr('id'), proxy : jQuery('#proxy').prop('checked'), move : jQuery(this).hasClass('upper-section') ? -1 : 1 },
+					cache    : false,
+					dataType : 'json',
+					async    : true,
+					beforeSend : (function() {
+						display_wait_notification();
+					}),
+					complete : (function(jqueryXHR, textStatus) {
+						remove_wait_notification();
+					}),
+					success  : (function(data, httpstatus, jqueryXHR) {
 
-    if ( jQuery(this).hasClass('upper-section') || jQuery(this).hasClass('lower-section') ) {
-      var coordinates = jQuery(this).prop('coordinates');
-      jQuery.ajax({
-        type     : 'POST',
-        url      : '/reorder/',
-        data     : { clusterid : jQuery(this).attr('id'), proxy : jQuery('#proxy').prop('checked'), move : jQuery(this).hasClass('upper-section') ? -1 : 1 },
-        cache    : false,
-        dataType : 'json',
-        async    : true,
-        beforeSend : (function() {
-          display_wait_notification();
-        }),
-        complete : (function(jqueryXHR, textStatus) {
-          remove_wait_notification();
-        }),
-        success  : (function(data, httpstatus, jqueryXHR) {
+						var linkset = data.linkset;
 
-          var linkset = data.linkset;
+						if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
 
-					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-
-          if ( linkset && linkset.length > 0 ) {
-            replace_contentof('linkset', linkset);
-            initialize_linkset_clickevents(self,child_tags);
-            setTimeout(function(){ initialize_remote_links(); },1);
-          }
-        })
-      });
-
-      return;
-    }
+						if ( linkset && linkset.length > 0 ) {
+							replace_contentof('linkset', linkset);
+							initialize_linkset_clickevents(self,child_tags);
+							setTimeout(function(){ initialize_remote_links(); },1);
+						}
+					})
+				});
+				return;
+			}
+		}
 
     var components = new Array(jQuery(this).children(child_tags).length);
     var component_index = 0;
@@ -285,7 +284,6 @@ function load_content_window(a,ck,obj,data,handlers) {
     async    : async,
     beforeSend : (handlers && handlers.beforeSend) ? handlers.beforeSend : (function() {
       jQuery('a[class*=legiscope-remote]').unbind('click');
-      /* jQuery('#siteURL').val(a); */
       display_wait_notification();
     }),
     complete : (handlers && handlers.complete) ? handlers.complete : (function(jqueryXHR, textStatus) {
@@ -347,11 +345,14 @@ function initialize_remote_links() {
     .unbind('mousemove');
 
   jQuery('[class*=link-cluster]').mouseenter(function(e){
+		if ( jQuery(this).hasClass('suppress-reorder') ) return;
     jQuery(this).prop('linkset-location', jQuery(this).offset());
   }).mouseleave(function(e){
+		if ( jQuery(this).hasClass('suppress-reorder') ) return;
     jQuery(this).removeClass('upper-section').removeClass('lower-section');
     jQuery('#doctitle').html('Legiscope');
   }).mousemove(function(e){
+		if ( jQuery(this).hasClass('suppress-reorder') ) return;
     if ( !jQuery(this).prop || !jQuery(this).prop('linkset-location') ) return;
     var y = (jQuery(this).innerHeight() / 2) - (e.pageY - jQuery(this).prop('linkset-location').top);
     var x = (e.pageX - jQuery(this).prop('linkset-location').left) - (jQuery(this).innerWidth() / 2);

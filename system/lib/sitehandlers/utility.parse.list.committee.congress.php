@@ -53,7 +53,7 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
             $hash = UrlModel::get_url_hash($tag['url']);
             $congress_tag = 
             $pagecontent .= <<<EOH
-<a href="{$tag['url']}" class="legiscope-remote listing-committee-name">{$tag['text']}</a>
+<a href="{$tag['url']}" id="{$hash}" class="legiscope-remote listing-committee-name">{$tag['text']}</a>
 EOH;
             $committees[$hash] = array(
               'url'            => $tag['url'],
@@ -121,8 +121,14 @@ EOH;
     if ( $updated == 0 ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - All {$committees_found} committee names stowed");
 
     $pagecontent = utf8_encode( <<<EOH
-<div class="congresista-dossier-list" id="committee-listing">{$pagecontent}</div>
+<div class="congresista-dossier-list link-cluster suppress-reorder" id="committee-listing"><div>{$pagecontent}</div></div>
 <div id="committee-details-container" class="alternate-original half-container"></div>
+<script type="text/javascript">
+jQuery(document).ready(function(){
+  initialize_linkset_clickevents(jQuery('div[id*=committee-listing]'),'div');
+});
+</script>
+
 EOH
 		);
 

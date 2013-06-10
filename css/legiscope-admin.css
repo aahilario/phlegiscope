@@ -135,6 +135,9 @@ a.legiscope-remote:hover + span.legiscope-refresh {
 .hidden {
   display: none;
 }
+.center {
+  margin-left: 50%;
+}
 
 /**** Senator Dossier Pages ****/
 
@@ -332,6 +335,34 @@ span.listing-committee-representative {
 }
 
 
+/** Committee Detail **/
+img.bio-avatar {
+  display: block;
+  float: right;
+  clear: right;
+}
+
+div.congress-committee-info-tabs {
+  float: left;
+  clear: both;
+  width: 100%;
+}
+
+div.committee-contact-block-right {
+  float: right;
+  clear: both;
+  text-align: right;
+  padding-bottom: 10px;
+  width: auto;
+}
+
+div.committee-contact-block {
+  float: right;
+  padding-right: 10px;
+  text-align: right;
+  width: 70%;
+}
+
 /** Republic Act Listings **/
 
 .republic-act-desc, .republic-act-meta {
@@ -345,4 +376,5 @@ span.listing-committee-representative {
 .republic-act-meta {
   display: block;
 }
+
 

@@ -35,7 +35,7 @@ class SeekAction extends LegiscopeBase {
     $url             = new UrlModel($target_url, empty($target_url) ? FALSE : TRUE);
 
 
-    if ( $debug_method ) {
+    if ( TRUE || $debug_method ) {
 			$this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
       $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
     }
@@ -326,7 +326,7 @@ class SeekAction extends LegiscopeBase {
           'referrer'       => $referrer,
           'contenttype'    => $url->get_content_type(),
           'linkset'        => $linkset,
-          'markup'         => $headers['legiscope-regular-markup'] == 1 ? utf8_encode($final_content) : '[OBSCURED CONTENT]',
+          'markup'         => $headers['legiscope-regular-markup'] == 1 ? $final_content : '[OBSCURED CONTENT]',
           'responseheader' => $responseheader,
           'httpcode'       => $headers['http-response-code'], 
           'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
@@ -353,6 +353,17 @@ class SeekAction extends LegiscopeBase {
 
     $this->exit_cache_json_reply($json_reply,get_class($this));
 
+  }/*}}}*/
+
+  function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    /** SVN #418 (internal): Loading raw page content breaks processing of committee information page **/
+    $common      = new GenericParseUtility();
+    $common->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = str_replace('[BR]','<br/>',join('',$common->get_filtered_doc()));
+    // $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
 }

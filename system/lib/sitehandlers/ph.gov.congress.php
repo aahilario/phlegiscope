@@ -205,7 +205,7 @@ EOH;
     $parent_url   = UrlModel::recompose_url($parent_url,array(),FALSE);
     $test_url     = new UrlModel();
 
-    $pagecontent = utf8_encode("{$replacement_content}<br/><hr/>");
+    $pagecontent = "{$replacement_content}<br/><hr/>";
     $urlmodel->increment_hits()->stow();
 
     $test_url->fetch($parent_url,'url');
@@ -215,7 +215,7 @@ EOH;
 
     $ra_listparser = new CongressRaListParseUtility();
     $ra_listparser->debug_tags = FALSE;
-    $ra_listparser->set_parent_url($urlmodel->get_url())->parse_html(utf8_encode($page),$urlmodel->get_response_header());
+    $ra_listparser->set_parent_url($urlmodel->get_url())->parse_html($page,$urlmodel->get_response_header());
     $ra_listparser->debug_operators = FALSE;
 
     $this->recursive_dump(($ra_list = $ra_listparser->get_containers(

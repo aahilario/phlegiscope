@@ -121,7 +121,7 @@ class ProxyformAction extends LegiscopeBase {
           'referrer'       => $referrer,
           'contenttype'    => $url->get_content_type(),
           'linkset'        => NULL,
-          'markup'         => $headers['legiscope-regular-markup'] == 1 ? utf8_encode($final_content) : '[OBSCURED CONTENT]',
+          'markup'         => $headers['legiscope-regular-markup'] == 1 ? $final_content : '[OBSCURED CONTENT]',
           'responseheader' => $responseheader,
           'httpcode'       => $headers['http-response-code'], 
           'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',

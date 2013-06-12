@@ -17,6 +17,15 @@ a:hover {
   text-decoration: underline;
 }
 
+.clear-both {
+	clear: both;
+}
+
+.clear-both > hr {
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
 /** Major panel divisions **/
 
 .poc {
@@ -199,6 +208,7 @@ div.congress-member-summary {
   clear: both;
   float: left;
   width: 100%;
+	padding-bottom: 10px;
 }
 span.representative-avatar-head {
   display: block;
@@ -208,6 +218,7 @@ span.representative-avatar-head {
 
 span.congress-roles-committees, div.congress-doc-item {
   display: block;
+	text-transform: none;
   float: left;
   clear: both;
   width: 100%;

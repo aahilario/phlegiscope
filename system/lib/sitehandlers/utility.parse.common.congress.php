@@ -188,6 +188,10 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
 		// link event ourselves, replacing the link HREF attribute with the
 		// event handler source URL.
 		$onclick_event = array_element($this->current_tag['attrs'],'ONCLICK');
+		if ( property_exists($this, 'current_member_classification') &&
+		 	!is_null($this->current_member_classification) ) {
+			$link_data['classification'] = $this->current_member_classification;
+		}
 		if ( !is_null($onclick_event) ) {
 			$event_url_match = array();
 			$link_data['onclick'] = $onclick_event;

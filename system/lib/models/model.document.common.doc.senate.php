@@ -110,14 +110,14 @@ EOH;
 
 EOH;
     }
-    $replacement_line = utf8_encode(<<<EOH
+    $replacement_line = <<<EOH
 <div class="republic-act-entry">
 <span class="republic-act-heading"><a href="{$ra['url']}" class="{$cache_state}" id="{$urlhash}">{$ra['bill-head']}</a></span>
 <span class="republic-act-desc"><a href="{$ra['url']}" class="legiscope-remote" id="title-{$urlhash}">{$ra['desc']}</a></span>
 {$house_bill_meta}
 </div>
 EOH
-    );
+    ;
     return $replacement_line;
 
   }/*}}}*/

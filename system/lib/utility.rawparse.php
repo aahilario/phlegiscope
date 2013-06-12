@@ -17,6 +17,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
   private $tag_counter                 = 0;
   protected $promise_stack             = array();
   protected $enable_filtered_doc_cache = TRUE;
+	protected $content_type = NULL;
 
   /*
    * HTML document XML parser class
@@ -244,13 +245,13 @@ EOH;
     }
 
     $doctype_match = array(); 
-    $content_type = array_key_exists('content-type', $response_headers) &&
+    $this->content_type = array_key_exists('content-type', $response_headers) &&
       1 == preg_match('@charset=([^;]*)@', $response_headers['content-type'], $doctype_match)
       ? strtolower($doctype_match[1])
       : 'iso-8859-1' // Default assumption
       ;
     if ( $debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$content_type}' <- " . array_element($response_headers,'content-type') );
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) Assuming encoding '{$this->content_type}' <- " . array_element($response_headers,'content-type') );
       $this->recursive_dump($doctype_match,"(marker) - --- - Matches");
       $this->recursive_dump($response_headers,"(marker) - - --- - - Headers");
     }
@@ -290,7 +291,7 @@ EOH;
           '',
           '',
         ),
-        iconv( strtoupper($content_type), 'UTF-8//TRANSLIT', $raw_html )
+				$this->iconv($raw_html)
       )
     ))));
 
@@ -815,5 +816,14 @@ EOH;
       $this->current_tag['cdata'] = array_filter(explode('[BR]',preg_replace('@(&nbsp([;]*))+@i',' ',join('',$this->current_tag['cdata']))));
     }
   }
+
+	function iconv($s) {/*{{{*/
+		return iconv( strtoupper($this->content_type), 'UTF-8//TRANSLIT', $s );
+	}/*}}}*/
+
+	function reverse_iconv($s) {/*{{{*/
+		return iconv( 'UTF-8', strtoupper($this->content_type), $s );
+	}/*}}}*/
+
 
 }/*}}}*/

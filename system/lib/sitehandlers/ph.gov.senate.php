@@ -546,7 +546,7 @@ EOH;
           ); 
         }/*}}}*/
         else {/*{{{*/// Committee name
-          $committee_name = utf8_decode($entry['text']); 
+          $committee_name = $entry['text']; 
           $name_regex =  LegislationCommonParseUtility::committee_name_regex($committee_name);
           array_push($committee_list, $committee_entry);
           if ( FALSE == $name_regex ) continue;
@@ -675,7 +675,7 @@ EOH;
           $link_attribs = array('legiscope-remote');
           if ( 0 < intval($senator_entry['id']) ) $link_attribs[] = 'cached';
           $link_attribs = join(' ', $link_attribs);
-          $linktext = utf8_decode( nonempty_array_element($senator_entry,'fullname_db',array_element($senator_entry,'fullname','...')) );
+          $linktext = nonempty_array_element($senator_entry,'fullname_db',array_element($senator_entry,'fullname','...'));
           if ( (0 == strlen(array_element($senator_entry,'url_db'))) || 
             (0 == strlen(array_element($senator_entry,'fullname_db'))) ||
             (!(1 == preg_match("@_old@i",$senator_entry['url'])) && !($senator_entry['url_db'] == $senator_entry['url'])) ||
@@ -724,10 +724,10 @@ EOH;
 </span>
 EOH;
         $committee_desc = 0 < intval($c['id'])
-          ? htmlspecialchars(utf8_decode($c['jurisdiction']))
+          ? htmlspecialchars($c['jurisdiction'])
           : '...'
           ;
-        $c['committee_name'] = utf8_decode($c['committee_name']);
+        $c['committee_name'] = $c['committee_name'];
         $replacement_content = <<<EOH
 <div class="committee-functions-leadership">
   <div class="committee-name">{$c['committee_name']}</div>
@@ -741,7 +741,7 @@ EOH;
         $pagecontent .= $replacement_content;
       }/*}}}*/
     }
-    $pagecontent = utf8_encode($pagecontent);
+    $pagecontent = $pagecontent;
 
   }/*}}}*/
 
@@ -768,7 +768,7 @@ EOH;
       ),
       $urlmodel->get_pagecontent()
     );
-    $pagecontent = utf8_encode($content);
+    $pagecontent = $content;
     $committee_parser->
       set_parent_url($urlmodel->get_url())->
       parse_html($content,$urlmodel->get_response_header());
@@ -1372,8 +1372,6 @@ EOH;
       }
     }
     $pagecontent = join('<br/>', $items);
-
-    $pagecontent = utf8_encode($pagecontent);
 
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
@@ -2612,7 +2610,7 @@ EOH;
       $image_content_type = $url->get_content_type();
       $image_content = base64_encode($url->get_pagecontent());
       $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-      $json_reply['altmarkup'] = utf8_encode($member_avatar_base64);
+      $json_reply['altmarkup'] = $member_avatar_base64;
       if ( 'false' == $this->filter_post('no_replace','false') ) {
         $this->syslog(__FUNCTION__,__LINE__, "(marker) Replacing {$member_uuid} avatar: {$json_reply['altmarkup']}");
         $member->set_avatar_image($member_avatar_base64)->stow();

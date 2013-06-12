@@ -17,6 +17,16 @@ class GenericParseUtility extends RawparseUtility {
 		$this->debug_tags = FALSE;
   }
 
+  function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    /** SVN #418 (internal): Loading raw page content breaks processing of committee information page **/
+    $common = new GenericParseUtility();
+    $common->
+      set_parent_url($urlmodel->get_url())->
+      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $pagecontent = str_replace('[BR]','<br/>',join('',$common->get_filtered_doc()));
+  }/*}}}*/
+
   // ------------ Specific HTML tag handler methods -------------
 
   function ru_script_open(& $parser, & $attrs) {/*{{{*/

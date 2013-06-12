@@ -73,10 +73,10 @@ EOH;
             $m->fetch($name['id'],'id');
             $m->
               set_fullname($name['original'])-> 
-              set_firstname(utf8_decode($parsed_name['given']))->
+              set_firstname($parsed_name['given'])->
               set_mi($parsed_name['mi'])->
-              set_surname(utf8_decode($parsed_name['surname']))->
-              set_namesuffix(utf8_decode($parsed_name['suffix']))->
+              set_surname($parsed_name['surname'])->
+              set_namesuffix($parsed_name['suffix'])->
               stow();
           }
           $pagecontent .= <<<EOH
@@ -120,7 +120,7 @@ EOH;
     }/*}}}*/
     if ( $updated == 0 ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - All {$committees_found} committee names stowed");
 
-    $pagecontent = utf8_encode( <<<EOH
+    $pagecontent = <<<EOH
 <div class="congresista-dossier-list link-cluster suppress-reorder" id="committee-listing"><div>{$pagecontent}</div></div>
 <div id="committee-details-container" class="alternate-original half-container"></div>
 <script type="text/javascript">
@@ -130,7 +130,7 @@ jQuery(document).ready(function(){
 </script>
 
 EOH
-		);
+		;
 
     // $parser->json_reply = array('retainoriginal' => TRUE);
 

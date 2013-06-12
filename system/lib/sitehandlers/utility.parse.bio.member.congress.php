@@ -11,17 +11,17 @@
 class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   
 	var $member_contact_details = NULL;
+  var $current_member_classification = NULL;
 
   function __construct() {
     parent::__construct();
   }
 
   function ru_p_open(& $parser, & $attrs, $tagname ) {/*{{{*/
-    if ( 0 < count($this->tag_stack) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'] = array();
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
+    if (!('silver_hdr' == array_element($this->current_tag['attrs'],'CLASS')))
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
@@ -35,8 +35,9 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   }/*}}}*/
   function ru_p_close(& $parser, $tag) {/*{{{*/
 		$skip = FALSE;
-		$this->pop_tagstack();
-		$this->push_tagstack();
+    $is_container = TRUE;
+		$this->current_tag();
+    $text = trim(join('',array_element($this->current_tag,'cdata')));
 		if ( array_element($this->current_tag['attrs'],'CLASS') == 'meta' ) $skip = TRUE;
 		else
 		if ( array_element($this->current_tag['attrs'],'CLASS') == 'mem_info' ) {
@@ -50,12 +51,20 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 					'avatar'   => $images[0],
 					'fullname' => $strings[0],
 					'contact'  => explode("[BR]",preg_replace('@(\s)*\[BR\]$@','',trim($strings[1]))),
-					'extra'    => explode("[BR]",preg_replace('@(\s)*\[BR\]$@','',trim(join('',$this->current_tag['cdata'])))),
+					'extra'    => explode("[BR]",preg_replace('@(\s)*\[BR\]$@','',$text)),
 				);
 			}
 			$skip = TRUE;
-		}
-    $this->stack_to_containers();
+    }
+    else if ( ( array_element($this->current_tag['attrs'],'CLASS') == 'silver_hdr' ) &&
+   (1 == preg_match('@(member for the|chairperson)@i',$text)) ) {
+      $this->current_member_classification = $text;
+      $skip = FALSE;
+      $is_container = FALSE;
+      if ( $this->debug_tags ) $this->syslog( __FUNCTION__, __LINE__, "(marker) {$tag} - - - {$text} " );
+    }
+    if ( $this->debug_tags ) $this->recursive_dump($this->current_tag,"(marker) " . ($skip ? "REJ" : "ACC"));
+    if ( !$skip && $is_container ) $this->stack_to_containers();
     return !$skip;
   }/*}}}*/
 
@@ -153,14 +162,15 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 		return $member_id;
 	}/*}}}*/
 
-  function extract_committee_membership_and_bills() {/*{{{*/
+  function extract_committee_membership_and_bills($selector = 'children[tagname=ul][id=nostylelist]' ) {/*{{{*/
     
 		$debug_method = FALSE;
 
     $this->recursive_dump(($entries = array_filter($this->get_containers(
-      'children[tagname=ul][id=nostylelist]'
-    ))),'Main parser');
+      $selector 
+    ))),($debug_method ? '(marker)' : '-') . ' - - - Main parser');
 
+    $classifications = array();
     $membership_role = array();
     $bills           = array();
 
@@ -171,15 +181,41 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       // The container presents committee membership as a series of URL+text+text containers
       if ( array_key_exists('image', $container) ) continue;
       $a = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(about the committee)@i", $a["title"])) ? $a : NULL;'),$container));
-      $b = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(text of bill)@i", $a["title"])) ? $a : NULL;'),$container));
+      $b = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(text of bill|history of bill)@i", $a["title"])) ? $a : NULL;'),$container));
+      $c = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(about our member)@i", $a["title"])) ? $a : NULL;'),$container));
       $signature = array(
         'a' => 0 < count($a), 
         'b' => 0 < count($b),
+        'c' => 0 < count($c),
       );
       // $this->recursive_dump($signature,__LINE__);
-      if ( !$signature['a'] && !$signature['b'] ) continue;
+      if ( !$signature['a'] && !$signature['b'] && $signature['c'] ) {/*{{{*/// Representative item for a committee
+        foreach ( $container as $tag ) {
+          if ( array_key_exists('text',$tag) ) $tag['text'] = $this->reverse_iconv($tag['text']);
+          $classification = array_element($tag,'classification');
+          if ( !is_null($classification) && !array_key_exists($classification,$classifications) ) $classifications[$classification] = array();
+          if ( array_key_exists('url',$tag) ) {/*{{{*/
+            $new_entry = array(
+              'committee'     => $tag['text'], // Full name
+              'committee-url' => $tag['url'],  // Bio URL
+              'role'          => NULL, // Keep NULL, prefix to member entry 
+              'ref'           => NULL, // Date when recorded
+              'classification' => $classification,
+            );
+            array_push($membership_role, $new_entry);
+            continue;
+          }/*}}}*/
+          $member = array_pop($membership_role);
+          if ( array_key_exists('text',$tag) ) {
+            if ( is_null($member['ref']) ) $member['ref'] = $tag['text'];
+          }
+          array_push($membership_role, $new_entry);
+        }
+        continue;
+      }/*}}}*/
       if ( $signature['a'] && !$signature['b'] ) {/*{{{*/// Committee membership
         foreach ( $container as $tag ) {
+          if ( array_key_exists('text',$tag) ) $tag['text'] = $this->reverse_iconv($tag['text']);
           if ( array_key_exists('url',$tag) ) {
             array_push($membership_role,array(
               'committee' => $tag['text'],
@@ -207,7 +243,11 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
         // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
         foreach ( $container as $tag ) {/*{{{*/
-          if ( array_key_exists('text', $tag) && 1 == preg_match('@^([A-Z]{2,3})([0-9]*)$@i', $tag['text']) ) {/*{{{*/
+          if ( array_key_exists('text',$tag) ) $tag['text'] = $this->reverse_iconv($tag['text']);
+          if ( array_key_exists('text',$tag) && 1 == preg_match('@^([A-Z]{2,3})([0-9]*)$@i', $tag['text']) ) {/*{{{*/
+
+            if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - Found {$tag['text']}");
+
             if ( 0 < count($bills) ) {
               $bill = array_pop($bills);
               array_push($bills, $bill);
@@ -215,6 +255,7 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
             array_push($bills,array(
               'bill'             => $tag['text'],
               'bill-url'         => NULL,
+              'history'          => NULL,
               'bill-title'       => NULL,
               'principal-author' => NULL,
               'status'           => NULL,
@@ -241,6 +282,10 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 						continue;
 					}
           $bill = array_pop($bills);
+          if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(history of bill)@i", $tag["title"])) ) {
+            $bill['history'] = $tag['url'];
+            array_push($bills, $bill); continue;
+          }
           if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill)@i", $tag["title"])) ) {
             $bill['bill-url'] = $tag['url'];
             array_push($bills, $bill); continue;
@@ -266,13 +311,40 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       }/*}}}*/
     }/*}}}*/
 
+    if ( 0 < count($bills) ) {
+      $bills = array_combine(
+        array_map(create_function('$a', 'return array_element($a,"bill");'), $bills),
+        $bills
+      );
+
+      krsort($bills);
+    }
+
+    if ( 0 < count($classifications) ) {
+      foreach ( $classifications as $classification => $content ) {
+        $classifications[$classification] = array_filter(
+          array_map(create_function(
+            '$a', 'return array_element($a,"classification") == "'.$classification.'" ? $a : NULL;'
+          ),$membership_role));
+        $classifications[$classification] = array_combine(
+          array_map(create_function('$a','return array_element($a,"committee");'), $classifications[$classification]),
+          array_map(create_function('$a','unset($a["classification"]); return $a;'), $classifications[$classification])
+        );
+        ksort($classifications[$classification]);
+        $classifications[$classification] = array_values($classifications[$classification]);
+      }
+      $membership_role = $classifications;
+    }
+
+    if ( $debug_method ) $this->recursive_dump($membership_role,"(marker) - - - Mem");
+
 		return array(
 			'membership_role' => $membership_role,
 			'bills'           => $bills
 		);
   }/*}}}*/
 
-  function generate_committee_membership_markup(& $membership_role) {/*{{{*/
+  function generate_committee_membership_markup(& $membership_role, $entry_wrap = NULL) {/*{{{*/
 		$pagecontent = '';
     if ( !(0 < count($membership_role) ) ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) G ------------------------------ " );
@@ -290,15 +362,15 @@ EOH;
     $debug_method = FALSE;
     $pagecontent = array();
     if ( !(0 < count($bills) ) ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) H ------------------------------ " );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) H ------------------------------ No bills received" );
     }
 		$legislation_links = array();
     foreach ( $bills as $bill ) {/*{{{*/
-      $bill_url_hash = UrlModel::get_url_hash($bill['bill-url']);
-			$bill_history = array_element($bill,'history');
-			$bill_history_url_hash = UrlModel::get_url_hash($bill_history);
-			$active_hash = is_null($bill['bill-url']) ? $bill_history_url_hash : $bill_url_hash;
-      $bill_title = is_null($bill['bill-url']) 
+      $bill_url_hash         = UrlModel::get_url_hash($bill['bill-url']);
+      $bill_history          = array_element($bill,'history');
+      $bill_history_url_hash = UrlModel::get_url_hash($bill_history);
+      $active_hash           = is_null($bill['bill-url']) ? $bill_history_url_hash : $bill_url_hash;
+      $bill_title            = is_null($bill['bill-url'])
 				? ( is_null($bill_history) ?
 			 	<<<EOH
 {$bill['bill']}
@@ -325,10 +397,10 @@ EOH;
 
       // Override contents of $parser->linkset
 			$legislation_links[] = array(
-				'seq'      => "{$bill['bill']}", // Sort key
-				'url'      => "{$bill['bill-url']}",
-				'urlhash'  => $active_hash,
-				'link'     => <<<EOH
+				'seq'     => "{$bill['bill']}", // Sort key
+				'url'     => "{$bill['bill-url']}",
+				'urlhash' => $active_hash,
+				'link'    => <<<EOH
 <li>{$bill_title}</li>
 EOH
 			);
@@ -396,6 +468,7 @@ EOH
 			ksort($pagecontent);
 		}
 		if ( $debug_method ) $this->recursive_dump($legislation_links, "(marker) - -- -");
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Page content entries: " . count($pagecontent));
     return join('',$pagecontent);
   }/*}}}*/
 
@@ -454,26 +527,25 @@ EOH;
     $parser->linkset = "{$legislation_links}{$parser->linkset}";
 
     $pagecontent = <<<EOH
-<div class="congress-member-summary">
+<div class="congress-member-summary clear-both">
   <h1 class="representative-avatar-fullname">{$member['fullname']}</h1>
   <img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member['fullname']}" />
   <input type="hidden" class="representative-avatar-source" name="image-ref" id="imagesrc-{$member_uuid}" value="{$member['avatar']}" />
   <span class="representative-avatar-head">Role: {$contact_items['district']} {$contact_items['role']}</span>
   <span class="representative-avatar-head">Term: {$contact_items['term']}</span>
-  <hr/>
+  <br/>
   <span class="representative-avatar-head">Room: {$contact_items['room']}</span>
   <span class="representative-avatar-head">Phone: {$contact_items['phone']}</span>
   <span class="representative-avatar-head">Chief of Staff: {$contact_items['cos']}</span>
 </div>
-<hr/>
 
 <div class="congress-member-summary">
   <hr/>
   <div class="congress-member-roles">
 {$membership_role}
   </div>
+  <div class="congress-legislation-tally link-cluster clear-both">
   <hr/>
-  <div class="congress-legislation-tally link-cluster">
 {$bills}
   </div>
 </div>
@@ -529,9 +601,6 @@ EOH;
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Final content length: " . strlen($pagecontent) );
     $this->syslog( __FUNCTION__, __LINE__, "(marker) I ------------------------------ " );
-
-    $pagecontent = utf8_encode($pagecontent);
-
 
 	}/*}}}*/
 

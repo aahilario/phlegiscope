@@ -173,7 +173,7 @@ class LegiscopeBase extends SystemUtility {
 
     // Update host hits
     $hostModel  = new HostModel($host);
-    if ( !is_null($host) ) {
+    if ( !is_null($host) && (0 < strlen($host)) ) {
       if ( !$hostModel->in_database() ) {
         $hostModel->stow();
       }
@@ -220,6 +220,22 @@ class LegiscopeBase extends SystemUtility {
     if ( get_class($this) == $class_match ) {/*{{{*/
 			$cache_force = $this->filter_post('cache');
       $pagecontent = json_encode($json_reply);
+			$json_last_error = json_last_error();
+		  switch ( $json_last_error ) {
+				case JSON_ERROR_NONE: break;
+				case JSON_ERROR_CTRL_CHAR:
+				case JSON_ERROR_UTF8:
+					array_walk($json_reply,create_function(
+						'& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
+					));
+					$pagecontent = json_encode($json_reply);
+					$json_last_error = json_last_error();
+					$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
+					break;
+				default:
+					$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
+					break;
+			}	
       header('Content-Type: application/json');
       header('Content-Length: ' . strlen($pagecontent));
       $this->flush_output_buffer();

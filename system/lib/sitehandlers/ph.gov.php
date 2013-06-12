@@ -19,7 +19,7 @@ class GovPh extends SeekAction {
     $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
     // $this->mark_container_sequence(); // Not needed for GazetteCommonParseUtility::parse_html()
-    $pagecontent = join('',$gazette->get_filtered_doc());
+    $pagecontent = str_replace('[BR]','<br/>',join('',$gazette->get_filtered_doc()));
 
   }/*}}}*/
 
@@ -159,46 +159,6 @@ EOH;
       $distinct_pages[$matches] = $new_url;
       // $this->syslog( __FUNCTION__, __LINE__, "------ {$new_url}");
       if ( $matches > $maximum_page_number ) $maximum_page_number = $matches;
-
-      if (0) {/*{{{*/
-
-        // Parse the markup of each of these pages to obtain [category-legis] links
-
-        $url = $test_url->get_url();
-        $markup = 1 == preg_match('@(utf)@i',$test_url->get_content_type()) 
-          ? $test_url->get_pagecontent()
-          : utf8_decode($test_url->get_pagecontent())
-          ;
-
-        $gaz->set_parent_url('http://www.gov.ph/');
-
-        if ( is_null($gaz->parse_html($markup,$urlmodel->get_response_header())) ) {
-
-          if (1) $this->syslog(__FUNCTION__,__LINE__,"-----------------------" );
-          if (1) $this->syslog(__FUNCTION__,__LINE__,"Nothing to process from {$url}. Method parse_html() did not return a content structure array. Content length = " . strlen($markup) . " " . substr($markup,0,500) );
-          if (1) $this->recursive_dump($record,__LINE__);
-
-        } else {
-          $links = $gaz->get_containers(
-            'children[tagname=div][class*=category-legis|category-senate|category-republic-acts|nav-previous|nav-next|i]'
-          );
-
-          if (0) $this->syslog(__FUNCTION__,__LINE__,"-----------------------" );
-          if (0) $this->recursive_dump($record,__LINE__);
-
-          $record['url'] = $test_url->get_url();
-
-          $this->syslog(__FUNCTION__,__LINE__,
-            "Parsed {$record['url']} for links. Found " . count($links) . '/' . count($gaz->get_containers()) . 
-            " with content in " . $test_url->get_cache_filename() . 
-            " of length " . strlen($markup) );
-
-          array_walk($links,
-            create_function('&$a, $k', '$a = array_values($a); $a = $a[0]; $a["hash"] = UrlModel::get_url_hash($a["url"]);'));
-
-          foreach ( $links as $link ) $distinct_links[$link['hash']] = $link;
-        }
-      }/*}}}*/
 
     }/*}}}*/
 

@@ -431,8 +431,6 @@ class UrlModel extends DatabaseUtility {
       $header_lines = array();
       foreach ( $h as $key => $val ) {
 				if ( is_array($val) ) continue;
-        $key = utf8_encode($key);
-        $val = utf8_encode($val);
         $header_lines[] = "{$key}: {$val}";
       }
       $h = join($interline_break, $header_lines);

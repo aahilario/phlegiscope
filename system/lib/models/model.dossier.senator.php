@@ -61,7 +61,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
   function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_vc8192; }
 
   function cleanup_senator_name($senator_fullname) {/*{{{*/
-    $senator_fullname = trim(preg_replace('@^Sen\.@i', '', utf8_decode($senator_fullname)));
+    $senator_fullname = trim(preg_replace('@^Sen\.@i', '', $senator_fullname));
     // Deal with quotes mistakenly parsed as '?'
     $senator_fullname = str_replace(array('“',"\x09","[BR]","[EMPTY]"), array(' “',""," ",""), $senator_fullname);
     $senator_fullname = preg_replace(array('@(\?|\')([^?\']*)(\?|\')@','@([ ]+)@'),array("$2",' '), $senator_fullname);

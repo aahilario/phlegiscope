@@ -10,6 +10,8 @@
 
 class LegislationCommonParseUtility extends GenericParseUtility {
   
+	var $restrict_length = NULL;
+
   function __construct() {
     parent::__construct();
   }
@@ -143,18 +145,36 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     return $per_congress_pager;
   }/*}}}*/
 
-  function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $query_fragment_filter = '\&q=([0-9]*)', $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99' ) {/*{{{*/
+	function generate_congress_session_column_markup(& $q, $query_regex) {/*{{{*/
+		$pagecontent = '';
+		$nq = 0;
+		foreach ( $q as $child_link ) {/*{{{*/
+			$urlparts = UrlModel::parse_url($child_link['url'],PHP_URL_QUERY);
+			$linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
+			$child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
+			$child_link['url'] = str_replace(' ','%20', $child_link['url']);
+			// Typical links will have URL query components; this is assumed when
+			// the caller provides a non-null regex in $query_fragment_filter.
+			// If that parameter is given as NULL, then it is not possible to extract link text
+			// from the URL, and we must then use the plain URL+text pair to construct child links.
+			if ( !is_null($query_regex) && ($linktext == $child_link['url']) ) {
+				$url_query_components = array();
+				$url_query_parts      = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
+				preg_match_all($query_regex, $url_query_parts, $url_query_components);
+				$url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
+				$linktext = "No. {$url_query_parts['q']}";
+			}
+			$cached = array_element($child_link,'cached') == TRUE ? "cached" : "";
+			$pagecontent .= <<<EOH
+<li class="no-bullets"><a class="legiscope-remote {$cached} indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
-		$debug_method = FALSE;
+EOH;
+			if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
+		}/*}}}*/
+		return $pagecontent;
+	}/*}}}*/
 
-    if ( !isset($this->cluster_urldefs) ) throw new Exception("Missing cluster_urldefs");
-
-    $target_congress = $urlmodel->get_query_element('congress');
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Target Congress '{$target_congress}'");
-
-    if ( $debug_method ) $this->recursive_dump($session_select,'(marker) parameter session_select - -- -');
-
+	function construct_congress_change_link($pager_regex_uid) {/*{{{*/
 		$congress_change_link = array();
 		if ( is_string($pager_regex_uid) ) {
 			// Extract Congress selector (15th, 14th, 13th [as of 2013 April 9])
@@ -168,31 +188,50 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 			$congress_change_link = $pager_regex_uid;
 		}
 		if ( $debug_method ) $this->recursive_dump($congress_change_link,'(marker) Congress Change Link');
-    $congress_change_link = join('', $congress_change_link);
-    /*{{{*/
-    // Pager regex UIDs are taken from the parameterized URLs in $this->cluster_urldefs, as below:
-    //  9f35fc4cce1f01b32697e7c34b397a99 =>
-    //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
-    //    query_template => type=journal&congress=({PARAMS})
-    //    query_components =>
-    //       361d558f79a9d15a277468b313f49528 => 15|14|13
-    //    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?type=journal&congress=({PARAMS})
-    //  1cb903bd644be9596931e7c368676982 =>
-    //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
-    //    query_template => congress=15&type=journal&p=({PARAMS})
-    //    query_components =>
-    //       0cd3e2b45d2ebc55ca85d461abb6880c => 2|3|4|5
-    //    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=journal&p=({PARAMS})
-    //  acafee00836e5fbce173f8f4b22d13e1 =>
-    //    query_base_url => http://www.senate.gov.ph/lis/journal.aspx
-    //    query_template => congress=15&session=1R&q=({PARAMS})
-    //    query_components =>
-    //       40b2fa87aab9d7dfd8be00197298b532 => 94|93|92|91|90|89|88|87|86|85|84
-    //       c64b23d94c86d9370fb246769579776d => 83|82|81|80|79|78|77|76|75|74|73
-    //    whole_url => http://www.senate.gov.ph/lis/journal.aspx?congress=15&session=1R&q=({PARAMS})
-    /*}}}*/
+		$congress_change_link = join('', $congress_change_link);
+		/*{{{*/
+		// Pager regex UIDs are taken from the parameterized URLs in $this->cluster_urldefs, as below:
+		//  9f35fc4cce1f01b32697e7c34b397a99 =>
+		//    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
+		//    query_template => type=journal&congress=({PARAMS})
+		//    query_components =>
+		//       361d558f79a9d15a277468b313f49528 => 15|14|13
+		//    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?type=journal&congress=({PARAMS})
+		//  1cb903bd644be9596931e7c368676982 =>
+		//    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
+		//    query_template => congress=15&type=journal&p=({PARAMS})
+		//    query_components =>
+		//       0cd3e2b45d2ebc55ca85d461abb6880c => 2|3|4|5
+		//    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=journal&p=({PARAMS})
+		//  acafee00836e5fbce173f8f4b22d13e1 =>
+		//    query_base_url => http://www.senate.gov.ph/lis/journal.aspx
+		//    query_template => congress=15&session=1R&q=({PARAMS})
+		//    query_components =>
+		//       40b2fa87aab9d7dfd8be00197298b532 => 94|93|92|91|90|89|88|87|86|85|84
+		//       c64b23d94c86d9370fb246769579776d => 83|82|81|80|79|78|77|76|75|74|73
+		//    whole_url => http://www.senate.gov.ph/lis/journal.aspx?congress=15&session=1R&q=({PARAMS})
+		/*}}}*/
+		return $congress_change_link;
+	}/*}}}*/
+
+  function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $query_fragment_filter = '\&q=([0-9]*)', $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99' ) {/*{{{*/
+
+		$debug_method = FALSE;
+
+    if ( !isset($this->cluster_urldefs) ) throw new Exception("Missing cluster_urldefs");
+
+    $target_congress = $urlmodel->get_query_element('congress');
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Target Congress '{$target_congress}'");
+
+    if ( $debug_method ) $this->recursive_dump($session_select,'(marker) parameter session_select - -- -');
+
+		$congress_change_link = $this->construct_congress_change_link($pager_regex_uid);
+
     $pagecontent = <<<EOH
+
 <div class="senate-journal">
+
 EOH;
 
     // For priming an empty database:  Fetch child page links, use session_select metalink data
@@ -221,6 +260,7 @@ EOH;
 			if ( $dump_all_congress_entries ) {/*{{{*/
         if ( !$level_0_rendered ) { 
           $pagecontent .= <<<EOH
+
 <span class="indent-1">Last 3 Congress Conventions {$congress_change_link}<input type="button" value="Reset" id="reset-cached-links" /><br/>
 
 EOH;
@@ -241,6 +281,7 @@ EOH;
       else {/*{{{*/
 				if ( !$level_0_rendered ) { 
           $pagecontent .= <<<EOH
+
 <span class="indent-1">Congress {$congress} {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
 
 EOH;
@@ -268,64 +309,42 @@ EOH;
 
       foreach ( $session_q as $session => $q ) {/*{{{*/
 
+				if ( empty($session) ) continue;
+
+				$session_fragment = empty($session)
+					? NULL
+					: "{$depth_2_label} {$session}";
+
 				$per_congress_pager = ( $dump_all_congress_entries )
 					? "[PAGER{$session}]"
 					: $this->get_per_congress_pager($urlmodel, $session, $q, $session_select);
 
-				$session_fragment = empty($session)
-					? NULL
-					: <<<EOH
-<div class="indent-2">{$depth_2_label} {$session}<br/>
-EOH;
 				$per_congress_pager = empty($per_congress_pager)
 					? NULL
 					: <<<EOH
 <span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
 EOH;
-        $pagecontent .= <<<EOH
-{$session_fragment}
-{$per_congress_pager}
-<ul class="link-cluster no-bullets">
-EOH;
+
         // Extract sequence position from query component in $query_fragment_filter 
         if ( !is_null($query_fragment_filter) ) {
           $this->reorder_url_array_by_queryfragment($q, $query_fragment_filter);
         }
 
         $query_regex = '@([^&=]*)=([^&]*)@';
+				$column_entries = $this->generate_congress_session_column_markup($q, is_null($query_fragment_filter) ? NULL : $query_regex);
 
-        $previous_url = NULL;
-        foreach ( $q as $child_link ) {/*{{{*/
-          $urlparts = UrlModel::parse_url($child_link['url'],PHP_URL_QUERY);
-          $linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
-          $child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
-          $child_link['url'] = str_replace(' ','%20', $child_link['url']);
-          // Typical links will have URL query components; this is assumed when
-          // the caller provides a non-null regex in $query_fragment_filter.
-          // If that parameter is given as NULL, then it is not possible to extract link text
-          // from the URL, and we must then use the plain URL+text pair to construct child links.
-          if ( !is_null($query_fragment_filter) && ($linktext == $child_link['url']) ) {
-            $url_query_components = array();
-            $url_query_parts      = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
-            preg_match_all($query_regex, $url_query_parts, $url_query_components);
-            $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
-            $linktext = "No. {$url_query_parts['q']}";
-          }
-          $cached = array_element($child_link,'cached') == TRUE ? "cached" : "";
-          $pagecontent .= <<<EOH
-<li class="no-bullets"><a class="legiscope-remote {$cached} indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
-
-EOH;
-        }/*}}}*/
-        $q = NULL;
         $pagecontent .= <<<EOH
+<div class="indent-2">{$session_fragment}<br/>
+{$per_congress_pager}
+<ul class="link-cluster no-bullets">
+{$column_entries}
 </ul>
 </div>
 
 EOH;
       }/*}}}*/
 
-				$pagecontent .= <<<EOH
+			$pagecontent .= <<<EOH
 </span>
 EOH;
     }/*}}}*/
@@ -356,11 +375,11 @@ EOH;
     // bound implicitly to the same HTTP session state (during live network
     // fetch), and explicitly in  
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     $this->recursive_dump(($paginator_form = array_values($this->get_containers(
       "children[tagname=form]{$form_selector}"
-    ))),'(------) StructureParser');
+    ))),'(marker) StructureParser');
 
     $paginator_form = $paginator_form[0];
     $control_set    = $this->extract_form_controls($paginator_form);
@@ -374,7 +393,7 @@ EOH;
 
     $select_options = array_filter(array_map(create_function(
       '$a', 'return empty($a["value"]) ? NULL : $a;'
-    ),$select_options));
+    ),is_null($select_options) ? array() : $select_options));
 
     // Extract the Session selector (First Regular Session, etc.)
     $select_elements = array();

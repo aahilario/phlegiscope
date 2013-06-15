@@ -18,6 +18,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
   protected $promise_stack             = array();
   protected $enable_filtered_doc_cache = TRUE;
 	protected $content_type = NULL;
+	protected $freewheel = FALSE;
 
   /*
    * HTML document XML parser class
@@ -365,7 +366,7 @@ EOH;
       array_walk($containerset,create_function(
         '& $a, $k, $s', '$s->reorder_with_sequence_tags($a["children"]);'
       ),$this);
-      // FIXME: Remove duplicate containers
+      // Remove any child that shares the same sequence number as it's parent
       array_walk( $containerset, create_function(
         '& $a, $k', 'if ( is_numeric($k) && array_key_exists($k,$a) ) unset($a[$k]); if ( is_numeric($k) && array_key_exists("children", $a) && array_key_exists($k,$a["children"]) ) unset($a["children"][$k]);'
       ));
@@ -474,13 +475,15 @@ EOH;
 	}
 
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
+		if ( $this->freewheel ) return TRUE;
     $tag = strtoupper($tag);
     // $this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>> {$tag}" );
     if ( $tag == 'HTTP:' ) return; 
     $tag_handler = strtolower("ru_{$tag}_open");
+		$seq = intval($this->tag_counter);
     $current_tag = array(
       'tag' => $tag, 
-      'attrs' => is_array($attrs) ? array_merge( $attrs, array('seq' => $this->tag_counter) ) : array('seq' => $this->tag_counter),
+      'attrs' => is_array($attrs) ? array_merge( $attrs, array('seq' => $seq) ) : array('seq' => $seq),
       'position' => NULL,
     );
     $this->current_tag = $current_tag;
@@ -503,7 +506,7 @@ EOH;
     }
     $this->current_tag['position'] = count($this->filtered_doc);
     $this->push_tagstack();
-    $this->tag_counter++;
+		$this->tag_counter = intval($this->tag_counter) + 1;
     return TRUE;
   }/*}}}*/
 
@@ -517,6 +520,7 @@ EOH;
 	}/*}}}*/
 
   function ru_tag_close($parser, $tag) {/*{{{*/
+		if ( $this->freewheel ) return TRUE;
     $debug_method = FALSE;
     $tag = strtoupper($tag);
     $tag_handler = strtolower("ru_{$tag}_close");
@@ -601,6 +605,7 @@ EOH;
   }/*}}}*/
 
   function ru_cdata($parser, $cdata) {/*{{{*/
+		if ( $this->freewheel ) return TRUE;
     // Character data will always be contained within a parent container.
     // If there is no handler specified for a given tag, the topmost 
     // tag on the tag stack receives link content.
@@ -622,6 +627,7 @@ EOH;
   }/*}}}*/
 
   function ru_default($parser, & $cdata) {/*{{{*/
+		if ( $this->freewheel ) return TRUE;
     // $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$cdata}" );
     // $cdata = NULL;
     return FALSE;
@@ -645,8 +651,10 @@ EOH;
     if ( is_null($target_tag) ) {
       $container = array_pop($this->container_stack);
       $container['children'][] = $link_data; 
+			$link_data['sethash'] = array_element($container,'sethash');
+			$link_data['found_index'] = NULL;
       array_push($this->container_stack, $container);
-      return;
+			return TRUE;
     }
     $found_index = NULL;
     foreach( $this->container_stack as $stack_index => $stacked_element ) {
@@ -654,10 +662,14 @@ EOH;
       $found_index = $stack_index; // Continue; find the uppermost tag
     }
     if ( !is_null($found_index) ) {
+			$link_data['found_index'] = $found_index;
+			$link_data['sethash'] = array_element($this->container_stack[$found_index],'sethash');
       $this->container_stack[$found_index]['children'][] = $link_data;
+			return TRUE;
     } else {
       if (C('DEBUG_'.get_class($this))) $this->syslog( __FUNCTION__, __LINE__, "Lost tag content" );
     }
+		return FALSE;
   }/*}}}*/
 
   function push_container_def($tagname, & $attrs) {/*{{{*/
@@ -671,7 +683,7 @@ EOH;
       'id'      => array_key_exists('ID'   , $attrs) ? "{$attrs['ID']}"    : NULL,
       'attrs'   => $attrs,
       'children' => array(),
-      'seq'     => $this->current_tag['attrs']['seq'],
+      'seq'     => nonempty_array_element($this->current_tag['attrs'],'seq',0),
     );
     $container_sethash = sha1(base64_encode(print_r($container_def,TRUE) . ' ' . mt_rand(10000,100000)));
     $container_def['sethash'] = $container_sethash;
@@ -794,6 +806,13 @@ EOH;
     }
     return $this;
   }/*}}}*/
+
+	function & set_freewheel($v = TRUE) {
+		// Suspend parsing when $v := TRUE
+		$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - freewheel = " . ($v ? "TRUE" : "FALSE"));
+		$this->freewheel = $v;
+		return $this;
+	}
 
   function & current_tag() {
     $this->pop_tagstack();

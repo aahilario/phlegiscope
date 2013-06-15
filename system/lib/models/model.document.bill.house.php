@@ -38,7 +38,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 	var $house_approval_date_utx = NULL;
 	var $significance_vc16 = NULL;
 
-  var $housebill_HouseBillDocumentModel = NULL; // Reference to other house bills.
+  var $housebill_HouseBillDocumentModel = NULL; // Reference to other house bills, indicating the relationship (e.g. substitution).
   var $republic_act_RepublicActDocumentModel = NULL; // Republic Act toward which this House Bill contributed essential language and intent. 
 	var $representative_RepresentativeDossierModel = NULL; // Several types of association between a house bill and representatives (authorship, etc.).
   var $content_UrlModel = NULL; // Content BLOB edges.

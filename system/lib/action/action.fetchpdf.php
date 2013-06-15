@@ -11,13 +11,13 @@
 class FetchpdfAction extends LegiscopeBase {
   
   function __construct() {
-    // $this->syslog( __FUNCTION__, __LINE__, '(marker) Generic action handler.' );
     parent::__construct();
+    $this->register_derived_class();
   }
 
   function fetchpdf($a) {/*{{{*/
 
-    $this->syslog( '----', __LINE__, "----------------------------------");
+    $this->syslog( __FUNCTION__,__LINE__, "(marker) -------------- - {$a} " . get_class($this));
 
     ob_start();
 
@@ -26,7 +26,7 @@ class FetchpdfAction extends LegiscopeBase {
     $target_url = $url->get_url();
     $content_type = $url->get_content_type();
 
-    $this->syslog( __FUNCTION__, __LINE__, "Doctype '{$content_type}' passed: '{$a}', from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Doctype '{$content_type}' passed: '{$a}', from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url}" );
 
     $output_buffer = ob_get_clean();
     if ( 0 < strlen($output_buffer) ) {

@@ -26,6 +26,13 @@ a:hover {
 	margin-bottom: 5px;
 }
 
+#search-wait {
+	vertical-align: bottom;
+	line-height: 15px;
+}
+#search-wait > img {
+	height: 15px;
+}
 /** Major panel divisions **/
 
 .poc {
@@ -77,6 +84,44 @@ div.linkset > hr {
   color: #DDD;
   width: 88%;
 }
+
+/** Search hits **/
+
+a.search-match {
+  font-size: 120%;
+  display: inline;
+  color: blue;
+  text-decoration: underline;
+}
+a.search-match:hover {
+  text-decoration: none;
+}
+li.search-match {
+  list-style-type: none;
+  display: block;
+  max-width: 60%;
+  clear: both;
+  padding-bottom: 10px;
+}
+span.search-hit-category {
+  font-size: 110%;
+  color: #AAA;
+}
+span.search-hit-category {
+  display: inline-block;
+  clear: right;
+  color: #D44 !important;
+}
+span.search-hit-url, a.search-match-url {
+  display: block;
+  clear: both;
+  color: green;
+}
+span.search-hit-desc {
+  display: block;
+  margin-left: 30px;  
+}
+
 
 /** Content tabs **/
 

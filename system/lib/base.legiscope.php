@@ -125,10 +125,12 @@ class LegiscopeBase extends SystemUtility {
 
     $debug_method = FALSE;
     // Modify $_REQUEST by extracting an action value from the request URI 
-    if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) return NULL;
-    if (!('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) return NULL;
+		if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) {
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) Not a plugin context. Leaving" );
+		 	return NULL;
+		}
     // TODO: Permit XMLHTTPRequest GET
-    if (!('POST' == $this->filter_server('REQUEST_METHOD'))) return NULL;
+    // if (!('POST' == $this->filter_server('REQUEST_METHOD'))) return NULL;
     if ( $debug_method ) {
       $this->recursive_dump(UrlModel::parse_url($request_uri)   , "(marker) Q - - - ->");
       $this->recursive_dump($_POST   , "(marker) - P - - ->");
@@ -141,16 +143,26 @@ class LegiscopeBase extends SystemUtility {
     $actions_lookup = array(
       'seek',
       'reorder',
-      'keywords',
+      'keyword',
       'fetchpdf',
       'preload',
       'proxyform',
     );
 
-    $request_regex  = '@/(' . join('|',array_values($actions_lookup)) . ')/(([^/]*)/)*@i';
+    $request_regex  = '@/(' . join('|',array_values($actions_lookup)) . ')/(.*)@i';
 
     if ( 1 == preg_match($request_regex, $request_uri, $actions_match) ) {
-      if ( $debug_method ) $this->recursive_dump($actions_match,"(marker) -- -- -- -- --");
+
+			if (('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) {
+			}
+			else if (!('fetchpdf' == array_element($actions_match,1))) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) Not an XMLHttpRequest context. Leaving." );
+				return NULL;
+			} else {
+				$_REQUEST['r'] = array_element($actions_match,2);
+			}
+
+      if ( $debug_method ) $this->recursive_dump($actions_match,"(marker) -- -- -- REMAP -- --");
       $_REQUEST['q'] = array_element($actions_match,1);
     }
 
@@ -181,6 +193,8 @@ class LegiscopeBase extends SystemUtility {
     }
 
 		$action_hdl = ucfirst(strtolower($action)) . "Action";
+
+    $remote_addr    = $this->filter_server('REMOTE_ADDR');
 
 		if ( $debug_method ) {
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$remote_addr}");
@@ -218,13 +232,14 @@ class LegiscopeBase extends SystemUtility {
 
   function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
-			$cache_force = $this->filter_post('cache');
-      $pagecontent = json_encode($json_reply);
+			$cache_force     = $this->filter_post('cache');
+			$pagecontent     = json_encode($json_reply);
 			$json_last_error = json_last_error();
 		  switch ( $json_last_error ) {
 				case JSON_ERROR_NONE: break;
 				case JSON_ERROR_CTRL_CHAR:
 				case JSON_ERROR_UTF8:
+					// Reencode every string element of the JSON response array
 					array_walk($json_reply,create_function(
 						'& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
 					));
@@ -701,7 +716,7 @@ class LegiscopeBase extends SystemUtility {
 	 */
 
 	protected function register_derived_class() {
-		// $this->syslog(__FUNCTION__,__LINE__,"(marker)");
+		$this->syslog(__FUNCTION__,__LINE__,"(marker)");
 	}
 
   //////////////////////////////////////////////////////////////////////////
@@ -891,6 +906,12 @@ class LegiscopeBase extends SystemUtility {
     wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
     wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
     wp_enqueue_script('legiscope-interactivity', $interactivity_js_url, array('jquery' , 'legiscope-spider'), NULL);
+
+		$inline_script = <<<EOH
+<script type="text/javascript">
+  PDFJS.workerSrc = 'js/pdf.js';
+</script>
+EOH;
 
     syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
     syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));

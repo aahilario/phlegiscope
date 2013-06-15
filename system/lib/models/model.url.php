@@ -255,7 +255,7 @@ class UrlModel extends DatabaseUtility {
   }
 
 	function is_cached($url) {
-		$this->fetch($url,'url');
+		$this->fetch(static::get_url_hash($url),'urlhash');
 		return $this->in_database();
 	}
 

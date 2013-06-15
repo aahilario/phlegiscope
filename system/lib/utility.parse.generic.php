@@ -561,7 +561,7 @@ EOH
 
     $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
 
-    foreach ( $containers as $container ) {/*{{{*/
+		if ( is_array($containers) ) foreach ( $containers as $container ) {/*{{{*/
 
       // $this->syslog( __FUNCTION__, __LINE__, "Container #{$container_counter}");
       // $this->recursive_dump($container, __LINE__);

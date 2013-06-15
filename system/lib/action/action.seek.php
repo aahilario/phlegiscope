@@ -35,7 +35,7 @@ class SeekAction extends LegiscopeBase {
     $url             = new UrlModel($target_url, empty($target_url) ? FALSE : TRUE);
 
 
-    if ( TRUE || $debug_method ) {
+    if ( $debug_method ) {
 			$this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
       $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
     }
@@ -145,8 +145,9 @@ class SeekAction extends LegiscopeBase {
 
       $json_reply  = array(); // May be overridden by per-site handler, see below
 
+			$contenttype = array_element($headers,'content-type','unspecified');
       $subject_url = is_null($faux_url) ? $target_url : $faux_url;
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response (content-type: {$contenttype}) from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
 
       if ( !is_null($faux_url) ) {/*{{{*/
         // If we've loaded content from an ephemeral URL, 
@@ -207,6 +208,8 @@ class SeekAction extends LegiscopeBase {
 
           $matched = FALSE;
 
+          $invocation_delta = microtime(TRUE);
+
           foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
             // Break on first match
             if ( method_exists($this, $method_name) ) {/*{{{*/
@@ -224,24 +227,25 @@ class SeekAction extends LegiscopeBase {
               $parser->cluster_urldefs  = $cluster_urls;
               $parser->urlhashes        = $urlhashes;
 
-							$invocation_delta = microtime(TRUE);
               if ( $this->debug_memory_usage_delta ) {
                 $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name} - Memory usage " . memory_get_usage(TRUE) );
               }
               $this->$method_name($parser, $body_content, $url);
-              if ( $this->debug_memory_usage_delta ) {
-                $this->syslog(__FUNCTION__,__LINE__,"(warning)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) );
-              }
-							$invocation_delta = round(microtime(TRUE) - $invocation_delta,3);
 
               $linkset        = $parser->linkset;
               $json_reply     = $parser->json_reply; // Merged with response JSON
-							$json_reply['timedelta'] = $invocation_delta;
               $target_url     = $parser->target_url;
 
               break;
             }/*}}}*/
           }/*}}}*/
+
+          $invocation_delta = round(microtime(TRUE) - $invocation_delta,3);
+          $json_reply['timedelta'] = $invocation_delta;
+
+          if ( $this->debug_memory_usage_delta ) {
+            $this->syslog(__FUNCTION__,__LINE__,"(warning)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) . " delta {$invocation_delta}" );
+          }
 
           if ( !$matched ) {
             $this->syslog( __FUNCTION__, __LINE__, "No custom handler for path " . $url->get_url());
@@ -263,7 +267,7 @@ class SeekAction extends LegiscopeBase {
         else if ( 1 == preg_match('@^application/pdf@i', $headers['content-type']) ) {/*{{{*/
           $body_content = 'PDF';
           $body_content_length = $url->get_content_length();
-          $this->syslog( __FUNCTION__, __LINE__, "PDF fetch {$body_content_length} from " . $url->get_url());
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) PDF fetch {$body_content_length} from " . $url->get_url());
           $headers['legiscope-regular-markup'] = 0;
           // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
           $json_reply = array('retainoriginal' => 'true');
@@ -358,7 +362,7 @@ class SeekAction extends LegiscopeBase {
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     /** SVN #418 (internal): Loading raw page content breaks processing of committee information page **/
-    $common      = new GenericParseUtility();
+    $common = new GenericParseUtility();
     $common->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());

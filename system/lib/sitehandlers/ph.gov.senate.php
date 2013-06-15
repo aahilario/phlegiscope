@@ -17,10 +17,12 @@ class SenateGovPh extends SeekAction {
       array(
         "@\&\#10;@",
         "@\n@",
+				"@\[BR\]@",
       ),
       array(
         "",
         "",
+				"<br/>",
       ),
       join('',$common->get_filtered_doc())
     );
@@ -489,6 +491,7 @@ EOH;
     else {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) No placeholder found!" );
     }
+		$pagecontent = str_replace('[BR]','<br/>', $pagecontent);
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
@@ -1413,6 +1416,11 @@ EOH;
     if ( is_null($faux_url) ) return FALSE;
 
     $this->recursive_dump(
+      $senate_document_parser->get_containers(), 
+      "(------) All containers"
+    );
+
+    $this->recursive_dump(
       array_keys($traversal_resultarray),
       "(------) Extract"
     );
@@ -1455,38 +1463,31 @@ EOH;
     if ( $debug_method ) {/*{{{*/
       $document_structure = $senate_document_parser->get_containers();
       $this->recursive_dump($document_structure,"(marker) -- -- -- {$sbn_regex_result}.{$target_congress}");
-      $this->recursive_dump($document_contents,"(marker) -- DC -- SB {$sbn_regex_result}.{$target_congress}");
+      $this->recursive_dump($document_contents,"(marker) -- DC -- {$sbn_regex_result}.{$target_congress}");
     }/*}}}*/
 
-		$senate_document->debug_method    = FALSE;
-		$senate_document->debug_final_sql = FALSE;
     $senate_document->fetch(array(
       'sn' => $sbn_regex_result,
       'congress_tag' => $target_congress, 
     ),'AND');
-		$senate_document->debug_final_sql = FALSE;
-		$senate_document->debug_method    = FALSE;
 
-    if ( !$senate_document->in_database() || $parser->from_network ) {/*{{{*/
-      $document_contents['sn'] = $sbn_regex_result;
-      $document_contents['url'] = $action_url->get_url();
-      $document_contents['urlid'] = $action_url->get_id();
-      $document_contents['congress_tag'] = $target_congress;
+    if ( !$senate_document->in_database() || $parser->from_network || (array_element($document_contents,'sn',"x{$sbn_regex_result}") ==  $sbn_regex_result)) {/*{{{*/
+
+			$document_contents['sn']           = $sbn_regex_result;
+			$document_contents['url']          = $action_url->get_url();
+			$document_contents['urlid']        = $action_url->get_id();
+			$document_contents['congress_tag'] = $target_congress;
       krsort($document_contents);
-      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning) -- Stowing! ' . $senate_document->get_id());
+			
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Filter ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress}" );
 			$document_contents = array_filter($document_contents);
-      if ( $debug_method ) $this->recursive_dump($document_contents,'(warning) -- Filtered');
-      $senate_document->set_contents_from_array($document_contents);
-      // Prevent overwriting content, assign, then fetch
-      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- After set_contents_from_array" );
-      $senate_document->fetch($document_contents['sn'],'sn');
-			if ( !$senate_document->in_database() ) $senate_document->set_contents_from_array();
-      $id = $senate_document->stow();
-      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
-      if (0) $senate_document->fetch(array(
+      $senate_document->fetch(array(
         'sn' => $sbn_regex_result,
         'congress_tag' => $target_congress, 
       ),'AND');
+			$senate_document->set_contents_from_array($document_contents);
+      $id = $senate_document->stow();
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
 
     }/*}}}*/
 
@@ -1503,10 +1504,13 @@ EOH;
 
     if ( $senate_document->in_database() ) {/*{{{*/
 
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
+
       $total_bills_in_system = $senate_document->count();
 
       $doc_url_attrs = array('legiscope-remote');
-      $faux_url->fetch($senate_document->get_url(),'url');
+			$faux_url_hash = UrlModel::get_url_hash($senate_document->get_url()); 
+      $faux_url->fetch($faux_url_hash,'urlhash');
       if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
       $doc_url_attrs = join(' ', $doc_url_attrs);
 
@@ -1522,6 +1526,7 @@ Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 EOH
       );
+			$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
       $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
     }/*}}}*/
 
@@ -2107,20 +2112,23 @@ EOH;
       'congress_tag' => $target_congress, 
     ),'AND');
 
-    if ( !$senate_document->in_database() || $parser->from_network ) {/*{{{*/
-      $document_contents['sn'] = $sbn_regex_result;
-      $document_contents['url'] = $action_url->get_url();
-      $document_contents['urlid'] = $action_url->get_id();
-      $document_contents['congress_tag'] = $target_congress;
+    if ( !$senate_document->in_database() || $parser->from_network || (array_element($document_contents,'sn',"x{$sbn_regex_result}") ==  $sbn_regex_result)) {/*{{{*/
+
+			$document_contents['sn']           = $sbn_regex_result;
+			$document_contents['url']          = $action_url->get_url();
+			$document_contents['urlid']        = $action_url->get_id();
+			$document_contents['congress_tag'] = $target_congress;
       krsort($document_contents);
-      if ( TRUE || $debug_method ) $this->recursive_dump($document_contents,'(warning)');
-      $senate_document->set_contents_from_array($document_contents);
-      $id = $senate_document->stow();
-      $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed SB {$sbn_regex_result}.{$target_congress} #{$id}" );
+			
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Filter ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress}" );
+			$document_contents = array_filter($document_contents);
       $senate_document->fetch(array(
         'sn' => $sbn_regex_result,
         'congress_tag' => $target_congress, 
       ),'AND');
+			$senate_document->set_contents_from_array($document_contents);
+      $id = $senate_document->stow();
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
 
     }/*}}}*/
 
@@ -2137,10 +2145,13 @@ EOH;
 
     if ( $senate_document->in_database() ) {/*{{{*/
 
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
+
       $total_bills_in_system = $senate_document->count();
 
       $doc_url_attrs = array('legiscope-remote');
-      $faux_url->fetch($senate_document->get_url(),'url');
+			$faux_url_hash = UrlModel::get_url_hash($senate_document->get_url());
+      $faux_url->fetch($faux_url_hash,'urlhash');
       if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
       $doc_url_attrs = join(' ', $doc_url_attrs);
 

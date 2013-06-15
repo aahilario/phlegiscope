@@ -15,19 +15,6 @@ class SecGovPh extends SeekAction {
     parent::__construct();
   }
 
-  function seek() {
-    $json_reply = parent::seek();
-    $response = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {
-      file_put_contents($this->seek_cache_filename, $response);
-    }
-    echo $response;
-    exit(0);
-  }
-
   function proxyform() {/*{{{*/
     $json_reply = parent::proxyform();
     $response = json_encode($json_reply);

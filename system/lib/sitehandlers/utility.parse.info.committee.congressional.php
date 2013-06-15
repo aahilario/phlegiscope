@@ -401,6 +401,7 @@ function initialize_committee_detail_triggers() {
           { url : url, defaulttab : parent_id, async : true },
           { success : (function(data, httpstatus, jqueryXHR) {
               jQuery('div[id='+tab_id+']').addClass('loaded').html(data && data.original ? data.original : 'No content retrieved');
+              if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
               setTimeout((function(){initialize_committee_detail_triggers();}),300);
             })
           }

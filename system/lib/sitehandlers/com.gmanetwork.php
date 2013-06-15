@@ -8,25 +8,11 @@
  * Release license terms: GNU Public License V2
  */
 
-class GmanetworkCom extends LegiscopeBase {
+class GmanetworkCom extends SeekAction {
   
   function __construct() {
     $this->syslog( __FUNCTION__, 'FORCE', 'Using site-specific container class' );
     parent::__construct();
-  }
-
-  function seek() {
-    $cache_force = $this->filter_post('cache');
-    $json_reply  = parent::seek();
-    $response    = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-      file_put_contents($this->seek_cache_filename, $response);
-    }
-    echo $response;
-    exit(0);
   }
 
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/

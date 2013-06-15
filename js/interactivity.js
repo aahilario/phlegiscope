@@ -17,6 +17,8 @@ function initialize_dossier_triggers() {
       var linkset = data.linkset ? data.linkset : null;
       jQuery('#doctitle').html("Legiscope");
 
+			if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+
       if ( /^text\/html/.test(contenttype) ) {
         if ( typeof linkset != 'null' ) {
           replace_contentof('linkset', linkset);
@@ -71,6 +73,7 @@ function update_representatives_avatars() {
         var altmarkup = data.altmarkup ? data.altmarkup : null;
         var total_image_width = 0;
         jQuery('img[id='+alt_name+']').attr('src', altmarkup);
+				if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
         if ( !no_replace ) {
           jQuery("div[class=dossier-strip]").find("img").each(function(){
             total_image_width += (jQuery(this).outerWidth() + 4);

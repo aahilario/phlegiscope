@@ -12,10 +12,46 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   
 	var $member_contact_details = NULL;
   var $current_member_classification = NULL;
+  var $link_title_classif_map = array();
+  var $span_content_prefix_map = array();
 
-  function __construct() {
+  var $temporary_document_container = array();
+  var $complete_document_container = NULL;
+  var $total_bills_parsed = 0;
+
+  function __construct() {/*{{{*/
     parent::__construct();
-  }
+    $this->temporary_document_container = array();
+    $this->link_title_classif_map = array(
+      'about the committee' => 'committee',
+      'text of bill'        => 'bill-url',
+      'history of bill'     => 'history',
+      'about our member'    => 'representative',
+    );
+    $this->link_title_classif_regex = '@(' . join('|',array_keys($this->link_title_classif_map)) . ')@i';
+    $this->link_title_classif_map = array_combine(
+      array_map(create_function('$a','return "@(.*)({$a})(.*)@i";'), array_keys($this->link_title_classif_map)),
+      array_values($this->link_title_classif_map)
+    );
+
+    $this->span_content_prefix_map = array(
+      'status' => 'status',
+      'principal author' => 'principal-author',
+    );
+    $this->span_content_prefix_regex = '@^(' . join('|',array_keys($this->span_content_prefix_map)) . '):(.*)@i';
+    $this->span_content_prefix_map = array_combine(
+      array_map(create_function('$a','return "@^(({$a}):(.*))@i";'), array_keys($this->span_content_prefix_map)),
+      array_values($this->span_content_prefix_map)
+    );
+  }/*}}}*/
+
+  function get_document_sn_regex() {/*{{{*/
+    return '@^([A-Z]{2,3})([-]*)([0-9]*)$@i';
+    /*
+    $this->document_sn_regex = '@^([A-Z]{2,3})([-]*)([0-9]*)$@i';
+    return $this->document_sn_regex;
+    */
+  }/*}}}*/
 
   function ru_p_open(& $parser, & $attrs, $tagname ) {/*{{{*/
     $this->pop_tagstack();
@@ -56,14 +92,13 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 			}
 			$skip = TRUE;
     }
-    else if ( ( array_element($this->current_tag['attrs'],'CLASS') == 'silver_hdr' ) &&
-   (1 == preg_match('@(member for the|chairperson)@i',$text)) ) {
+    else if ( ( array_element($this->current_tag['attrs'],'CLASS') == 'silver_hdr' ) && (1 == preg_match('@(member for the|chairperson)@i',$text)) ) {
       $this->current_member_classification = $text;
       $skip = FALSE;
       $is_container = FALSE;
       if ( $this->debug_tags ) $this->syslog( __FUNCTION__, __LINE__, "(marker) {$tag} - - - {$text} " );
     }
-    if ( $this->debug_tags ) $this->recursive_dump($this->current_tag,"(marker) " . ($skip ? "REJ" : "ACC"));
+    if ( $this->debug_tags && (0 < count(array_element($this->current_tag,'cdata',array()))) ) $this->recursive_dump($this->current_tag,"(marker) " . ($skip ? "REJ" : "ACC"));
     if ( !$skip && $is_container ) $this->stack_to_containers();
     return !$skip;
   }/*}}}*/
@@ -78,6 +113,94 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   function ru_ul_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;
+  }/*}}}*/
+
+  function ru_span_close(& $parser, $tag) {/*{{{*/
+    $this->current_tag();
+    $paragraph = array(
+      'text' => trim(join('', $this->current_tag['cdata'])),
+      'seq'  => $this->current_tag['attrs']['seq'],
+    );
+    $regex_matches = array();
+
+    if (1 == preg_match($this->span_content_prefix_regex, $paragraph['text'], $regex_matches)) {
+      $paragraph['indicator'] = preg_replace(
+        array_keys($this->span_content_prefix_map),
+        array_values($this->span_content_prefix_map),
+        $paragraph['text']
+      );
+      $paragraph['content'] = trim(array_element($regex_matches,2,'--'));
+
+      $this->temporary_document_container = array_merge(
+        $this->temporary_document_container,
+        array($paragraph['indicator'] => $paragraph['content']) 
+      );
+
+      $paragraph['tag-class'] = 'bill-content';
+    }
+    else if ( (1 == preg_match($this->get_document_sn_regex(), $paragraph['text'],$regex_matches)) &&
+      (0 < strlen(($prefix = array_element($regex_matches,1)))) &&
+      (0 < strlen(($suffix = array_element($regex_matches,3))))
+    ) {
+      // Detect a document serial number next (a document SN may be embedded in a status line) 
+      unset($regex_matches[0]);
+      if ( join('',$regex_matches) == $paragraph['text'] ) {
+        $paragraph['tag-class']         = 'bill-head'; 
+        $paragraph['sequence-position'] = $this->current_tag['attrs']['seq'];
+        $this->complete_document_container = $this->temporary_document_container;
+        $this->temporary_document_container = array(
+          'seq'              => $this->current_tag['attrs']['seq'],
+          'bill'             => $paragraph['text'],
+          'bill-url'         => NULL,
+          'history'          => NULL,
+          'bill-title'       => NULL,
+          'principal-author' => NULL,
+          'status'           => NULL,
+          'ref'              => NULL,
+          'prune-to'         => $this->current_tag['attrs']['seq'],
+        );
+        if (!is_null(($prune_to = array_element($this->complete_document_container,'prune-to')))) {
+          $this->complete_document_container['prune-from'] = $this->current_tag['attrs']['seq'];
+          // $this->recursive_dump($this->complete_document_container,"(marker) -- - -- - Cricker");
+          array_walk($this->container_stack,create_function(
+            '& $a, $k, $s', 'if ( array_element($a,"sethash") == "'.array_element($this->complete_document_container,'container').'" ) $s->flush_document_container_range($k);'
+          ),$this);
+          //unset($this->complete_document_container['prune-to']);
+          unset($this->complete_document_container['prune-from']);
+          unset($this->complete_document_container['container']);
+          $this->add_to_container_stack($this->complete_document_container);
+          $this->total_bills_parsed++;
+          if ( $this->total_bills_parsed > 200 ) {
+            // Suspend parsing of the remainder of the document
+            $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - - Parsing suspended - - - - - - -");
+            $this->set_freewheel();
+          }
+        }
+      }
+    }
+    else if ( !is_null(array_element($this->temporary_document_container,'bill')) && is_null(array_element($this->temporary_document_container,'bill-title')) ) {
+      $key = 1 == preg_match('@Journal@i', $paragraph['text']) ? 'ref' : 'bill-title';
+      $this->temporary_document_container = array_merge(
+        $this->temporary_document_container,
+        array($key => $paragraph['text']) 
+      );
+    }
+    if (0 < strlen(trim($paragraph['text']))) {
+      $this->add_to_container_stack($paragraph);
+      if ( array_element($this->current_tag['attrs'],'seq') == array_element($this->temporary_document_container,'seq') )
+        $this->temporary_document_container['container'] = array_element($paragraph,'sethash');
+    }
+    return TRUE;
+  }/*}}}*/
+
+  function flush_document_container_range($k) {/*{{{*/
+    // $this->recursive_dump($this->container_stack[$k]["children"],"(marker) - - Subj");
+    array_walk($this->container_stack[$k]['children'],create_function(
+      '& $a, $k, $s', 
+      //'$a = $s->flush_document_container_range_worker($a,$k);'
+      '$n = array_element($a,"seq"); if (($s->complete_document_container["prune-to"] <= $n) && ($n < $s->complete_document_container["prune-from"])) $a = NULL;'
+    ), $this);
+    $this->container_stack[$k]['children'] = array_filter($this->container_stack[$k]['children']);
   }/*}}}*/
 
   /* Span tags contain legislation items. Moved to parent class. */
@@ -104,7 +227,79 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     return FALSE;
   }/*}}}*/
 
+  /** Pre-extract committee, membership, and bill information **/
+  // Parsing long pages of House Bill data is extremely memory-intensive:
+  // a typical run (ca. SVN #597) consumes up to 490MB of memory with the parsed
+  // document retained in memory.  We need the capability to specify parsing 
+  // start and endpoint blocks (to enable partitioning of a long document), 
+  // as well as the capability to preprocess blocks of bill data DURING 
+  // XML parser document traversal. We will probably have to convert the
+  // underlying PHP array store to make use of an SPL stack or queue,
+  // to further reduce memory consumption and improve speed.
+  //
+  // An alternative approach (partially implemented here) transfers parsing workload to the remote client.
+  // This approach entails Javascript parsing of the DOM, which is then transferred
+  // to this server as pre-parsed JSON data, and should probably be used
+  // for documents exceeding a certain size.  Do either 1) send the client a
+  // partially scrubbed JSON representation of the data, or 2) send the source 
+  // link up to the client, which then performs the necessary transformation of
+  // the page to storable form.
+  //
+  // The latter approach will require fairly rigorous input checking, to prevent
+  // a rogue user corrupting the data store.
 
+  function ru_a_open(& $parser, & $attrs, $tag) {/*{{{*/
+    parent::ru_a_open($parser,$attrs,$tag);
+    return TRUE;
+  }/*}}}*/
+  function ru_a_close(& $parser, $tag) {/*{{{*/
+    parent::ru_a_close($parser,$tag);
+    if ( is_null(array_element($this->current_tag,'sethash')) ) {
+
+    } else if ( 1 == preg_match($this->link_title_classif_regex, ($classification = array_element($this->current_tag['attrs'],'TITLE'))) ) {
+      // If the 'title' attribute matches telltale strings (above), we try to
+      // match it's content to one of three categories - bill, representative, or
+      // committee - and label the URL with that classification.
+      $classification = preg_replace(
+        array_keys($this->link_title_classif_map),
+        array_values($this->link_title_classif_map),
+        $classification
+      );
+      switch ( $classification ) {
+        case 'history'  : $key = 'onclick-param'; break;
+        case 'bill-url' : $key = 'url'; break;
+      }
+      $add_to_tempdoc = NULL;
+      if ( is_null(($found_index = array_element($this->current_tag,'found_index'))) ) {
+        $cstack_top = array_pop($this->container_stack);
+        if ( is_array(($lasttag = array_element($cstack_top,'children'))) && (0 < count($lasttag)) ) {
+          $lasttag = array_pop($cstack_top['children']);
+          $lasttag['tag-class'] = $classification;
+          if ( !is_null($key) && array_key_exists($key, $lasttag) ) {
+            $add_to_tempdoc = array($classification => array_element($lasttag,$key,'--'));
+          }
+          if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - Tag class '{$classification}'" );
+          array_push($cstack_top['children'],$lasttag);
+        }
+        array_push($this->container_stack, $cstack_top);
+      } else {
+        $link_data = array_pop($this->container_stack[$found_index]['children']);
+        $link_data['tag-class'] = $classification;
+        if ( !is_null($key) && array_key_exists($key, $link_data) ) {
+          $add_to_tempdoc = array($classification => array_element($link_data,$key,'--'));
+        }
+        if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - Tag class '{$classification}'" );
+        array_push($this->container_stack[$found_index]['children'], $link_data);
+      }
+      if ( !is_null($add_to_tempdoc) ) {
+        $this->temporary_document_container = array_merge(
+          $this->temporary_document_container,
+          $add_to_tempdoc
+        );
+      }
+    }
+    return TRUE;
+  }/*}}}*/
 
 	/** User markup-generating and utility methods **/
 
@@ -168,7 +363,10 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 
     $this->recursive_dump(($entries = array_filter($this->get_containers(
       $selector 
-    ))),($debug_method ? '(marker)' : '-') . ' - - - Main parser');
+    ))),(($debug_method) ? '(marker)' : '-') . ' - - - Main parser');
+
+    $nullo = NULL;
+    $this->assign_containers($nullo);
 
     $classifications = array();
     $membership_role = array();
@@ -180,18 +378,18 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     foreach ( $entries as $item => $container ) {/*{{{*/
       // The container presents committee membership as a series of URL+text+text containers
       if ( array_key_exists('image', $container) ) continue;
-      $a = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(about the committee)@i", $a["title"])) ? $a : NULL;'),$container));
-      $b = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(text of bill|history of bill)@i", $a["title"])) ? $a : NULL;'),$container));
-      $c = array_filter(array_map(create_function('$a','return array_key_exists("url", $a) && (1 == preg_match("@(about our member)@i", $a["title"])) ? $a : NULL;'),$container));
+      // FIXME: Detection of sections should probably be relegated to the parse stage.
+      $a = array_filter(array_map(create_function('$a', 'return array_key_exists("url", $a) && (1 == preg_match("@(about the committee)@i"         , $a["title"])) ? $a : NULL;'), $container));
+      $b = array_filter(array_map(create_function('$a', 'return ((array_key_exists("url", $a) && (1 == preg_match("@(text of bill|history of bill)@i", $a["title"]))) || (array_key_exists("prune-to",$a))) ? $a : NULL;'), $container));
+      $c = array_filter(array_map(create_function('$a', 'return array_key_exists("url", $a) && (1 == preg_match("@(about our member)@i"            , $a["title"])) ? $a : NULL;'), $container));
       $signature = array(
         'a' => 0 < count($a), 
         'b' => 0 < count($b),
         'c' => 0 < count($c),
       );
-      // $this->recursive_dump($signature,__LINE__);
-      if ( !$signature['a'] && !$signature['b'] && $signature['c'] ) {/*{{{*/// Representative item for a committee
-        foreach ( $container as $tag ) {
-          if ( array_key_exists('text',$tag) ) $tag['text'] = $this->reverse_iconv($tag['text']);
+      if ( $signature['c'] && !$signature['a'] && !$signature['b'] ) {/*{{{*/// Representative item for a committee
+        foreach ( $container as $tag ) {/*{{{*/
+          if ( array_key_exists('text',$tag) ) $tag['text'] = $tag['text'];
           $classification = array_element($tag,'classification');
           if ( !is_null($classification) && !array_key_exists($classification,$classifications) ) $classifications[$classification] = array();
           if ( array_key_exists('url',$tag) ) {/*{{{*/
@@ -210,12 +408,12 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
             if ( is_null($member['ref']) ) $member['ref'] = $tag['text'];
           }
           array_push($membership_role, $new_entry);
-        }
+        }/*}}}*/
         continue;
       }/*}}}*/
       if ( $signature['a'] && !$signature['b'] ) {/*{{{*/// Committee membership
         foreach ( $container as $tag ) {
-          if ( array_key_exists('text',$tag) ) $tag['text'] = $this->reverse_iconv($tag['text']);
+          if ( array_key_exists('text',$tag) ) $tag['text'] = $tag['text'];
           if ( array_key_exists('url',$tag) ) {
             array_push($membership_role,array(
               'committee' => $tag['text'],
@@ -243,8 +441,13 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
         // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
         foreach ( $container as $tag ) {/*{{{*/
-          if ( array_key_exists('text',$tag) ) $tag['text'] = $this->reverse_iconv($tag['text']);
-          if ( array_key_exists('text',$tag) && 1 == preg_match('@^([A-Z]{2,3})([0-9]*)$@i', $tag['text']) ) {/*{{{*/
+
+          if ( !is_null(array_element($tag,'prune-to'))) {
+            array_push($bills, $tag);
+            continue;
+          }
+
+          if ( array_key_exists('text',$tag) && 1 == preg_match($this->get_document_sn_regex(), $tag['text']) ) {/*{{{*/
 
             if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - Found {$tag['text']}");
 
@@ -263,8 +466,10 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
             ));
             continue;
           }/*}}}*/
+
           if ( array_key_exists('image', $tag) ) continue;
-					if ( array_key_exists('url', $tag) && ('[HISTORY]' == strtoupper(trim($tag['text']))) ) {
+
+					if ( array_key_exists('url', $tag) && ('[HISTORY]' == strtoupper(trim($tag['text']))) ) {/*{{{*/
 						$clickevent = array_element($tag,'onclick');
 					 	if ( is_null($clickevent) ) continue;
 						$displayWindow_regex = "display_Window\('([^']*)','([0-9]*)'\)";
@@ -280,7 +485,8 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 							array_push($bills,$bill);
 						}
 						continue;
-					}
+					}/*}}}*/
+
           $bill = array_pop($bills);
           if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(history of bill)@i", $tag["title"])) ) {
             $bill['history'] = $tag['url'];
@@ -311,16 +517,16 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       }/*}}}*/
     }/*}}}*/
 
-    if ( 0 < count($bills) ) {
+    // Sort the list
+    if ( 0 < count($bills) ) {/*{{{*/
       $bills = array_combine(
         array_map(create_function('$a', 'return array_element($a,"bill");'), $bills),
         $bills
       );
-
       krsort($bills);
-    }
+    }/*}}}*/
 
-    if ( 0 < count($classifications) ) {
+    if ( 0 < count($classifications) ) {/*{{{*/
       foreach ( $classifications as $classification => $content ) {
         $classifications[$classification] = array_filter(
           array_map(create_function(
@@ -334,7 +540,7 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
         $classifications[$classification] = array_values($classifications[$classification]);
       }
       $membership_role = $classifications;
-    }
+    }/*}}}*/
 
     if ( $debug_method ) $this->recursive_dump($membership_role,"(marker) - - - Mem");
 
@@ -422,7 +628,7 @@ EOH
 
 		while ( 0 < count($legislation_links) ) {/*{{{*/
 			$n = 0;
-			while ( $n++ < 10 ) {
+			while ( $n++ < 20 ) {
 				$legislation_item = array_pop($legislation_links);
         if ( !is_null(array_element($legislation_item,'seq')) && !is_null(array_element($legislation_item,'url')) )
         $legislation_links_temp[$legislation_item['urlhash']] = $legislation_item; 
@@ -430,6 +636,7 @@ EOH
 			$u->where(array('AND' => array(
 				'urlhash' => array_keys($legislation_links_temp)
 			)))->recordfetch_setup();
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) L ---------- Remaining: " . count($legislation_links) );
 			while ( $u->recordfetch($url) ) {
 				$urlhash = UrlModel::get_url_hash($url['url']);
           $legislation_links_temp[$urlhash]["link"] = preg_replace(
@@ -481,12 +688,14 @@ EOH
     $hb   = new HouseBillDocumentModel();
     $url  = new UrlModel();
 
+    $this->debug_tags = FALSE;
     $this->
       set_parent_url($urlmodel->get_url())->
       parse_html(
         $urlmodel->get_pagecontent(),
         $urlmodel->get_response_header()
       );
+    $this->debug_tags = FALSE;
 
     $urlmodel->ensure_custom_parse();
 
@@ -545,6 +754,7 @@ EOH;
 {$membership_role}
   </div>
   <div class="congress-legislation-tally link-cluster clear-both">
+  &nbsp;<br/>
   <hr/>
 {$bills}
   </div>
@@ -564,6 +774,7 @@ function crawl_dossier_links() {
         { success : function (data, httpstatus, jqueryXHR) {
             std_seek_response_handler(data, httpstatus, jqueryXHR);
             jQuery(self).removeClass('uncached').addClass('cached');
+            if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
             setTimeout((function() {crawl_dossier_links();}),200);
           }
         }
@@ -596,6 +807,7 @@ jQuery(document).ready(function(){
 });
 </script>
 EOH;
+    // PDFJS.workerSrc = 'wp-content/plugins/phlegiscope/js/pdf.js';
 
     $parser->json_reply = array('retainoriginal' => TRUE);
 

@@ -76,7 +76,6 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
         'footer',
         'footer_content',
         'main_right',
-        'silver_hdr',
         'breadcrumb',
       )) . ')@', array_element($this->current_tag['attrs'],'CLASS'))) $skip = TRUE;
 			$id    = array_element($this->current_tag['attrs'],'ID');
@@ -143,7 +142,7 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     if ( !$skip ) {
 			$image = array(
 				'image' => $this->current_tag['attrs']['SRC'],
-				'seq'  => $this->current_tag['attrs']['seq'],
+				'seq'   => $this->current_tag['attrs']['seq'],
 			);
       $this->add_to_container_stack($image);
     } else {
@@ -205,7 +204,7 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
 				 [3] => ../contact/popform.php?re=sendemail&to=committee&id=C501&congress=15
 				 [4] => ,'param2','param3'
 			 )
-			 */
+			*/
 			if ( 1 == preg_match($link_regex,$onclick_event,$event_url_match) ) {
 				$fixurl = array('url' => array_element($event_url_match,3));
 				$link_data['onclick-param'] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
@@ -213,7 +212,14 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
 			}
 			unset($this->current_tag['attrs']['ONCLICK']);
 		}
-		if ( !empty($link_data['url']) ) $this->add_to_container_stack($link_data);
+		if ( !empty($link_data['url']) ) {
+			if ( $this->add_to_container_stack($link_data) ) {
+				// See system/lib/utility.rawparse.php add_to_container_stack(& $link_data, $target_tag);
+				// The newly-added link is found at the top $this->container_stack[$found_index]['children'];
+				$this->current_tag['found_index'] = array_element($link_data,'found_index','--');
+				$this->current_tag['sethash']     = array_element($link_data,'sethash','--');
+			}
+		}
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  "--- {$this->current_tag['tag']}" );
     return TRUE;
@@ -241,8 +247,7 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
       'text' => join('', $this->current_tag['cdata']),
       'seq'  => $this->current_tag['attrs']['seq'],
     );
-		if (0 < strlen(trim($paragraph['text'])))
-    $this->add_to_container_stack($paragraph);
+		if (0 < strlen(trim($paragraph['text']))) $this->add_to_container_stack($paragraph);
     return TRUE;
   }/*}}}*/
 

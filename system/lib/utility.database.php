@@ -1143,7 +1143,7 @@ EOS;
       $this->syslog(__FUNCTION__,__LINE__, "(marker) --- Attribute list");
       $this->recursive_dump( $attrlist, "(marker) - - - -" );
     }/*}}}*/
-    if ( 0 < count($attrlist) && count($attrlist) == count($key_map) ) {
+    if ( 0 < count($attrlist) && (count($attrlist) == count($key_map)) ) {
       $primary_table_alias = '';
       $join_clauses        = '';
       $attrnames           = array();
@@ -1362,7 +1362,7 @@ EOS;
     }
     if ( $this->debug_method ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - - Fetch: ({$attrname}, {$attrval}) -> ID obtained is ({$this->id})" );
-      $this->recursive_dump($this->query_result, "(marker)" );
+      $this->recursive_dump($this->query_result, "(marker) - - - - Result" );
     }
 		$this->alias_map = array(); 
     return $this->query_result;
@@ -1521,7 +1521,7 @@ EOS;
     );
   }/*}}}*/
 
-  final protected function syslog($fxn, $line, $message) {/*{{{*/
+  final function syslog($fxn, $line, $message) {/*{{{*/
     if ( $this->logging_ok($message) ) { 
       syslog( LOG_INFO, $this->syslog_preamble($fxn, $line) . " {$message}" );
       if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));
@@ -1668,7 +1668,7 @@ EOP
     if ( is_array($c) ) {
       if ( array_key_exists('children', $c) ) return $this->reorder_with_sequence_tags($c['children']);
       $sequence_num = create_function('$a', 'return is_array($a) ? array_element($a,"seq",array_element(array_element($a,"attrs",array()),"seq")) : NULL;');
-      $filter_src   = create_function('$a', '$rv = is_array($a) && array_key_exists("seq",$a)  ? $a : (is_array($a) && is_array(array_element($a,"attrs")) && array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
+      $filter_src   = create_function('$a', '$rv = (is_array($a) && array_key_exists("seq",$a)) ? $a : (is_array($a) && is_array(array_element($a,"attrs")) && array_key_exists("seq",$a["attrs"]) ? $a : NULL); if (!is_null($rv)) { unset($rv["attrs"]["seq"]); unset($rv["seq"]); }; return $rv;');
       $containers   = array_filter(array_map($sequence_num, $c));
       if ( is_array($containers) && (0 < count($containers))) {
 				$filtered = array_map($filter_src, $c);

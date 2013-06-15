@@ -167,6 +167,7 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 	var url = data.url;
 	var contenttype = data.contenttype ? data.contenttype : '';
 	var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
+  var targetframe = data.targetframe ? data.targetframe : '[class*=alternate-original]'; 
 
 	jQuery('div[class*=contentwindow]').each(function(){
 		if (jQuery(this).attr('id') == 'issues') return;
@@ -179,7 +180,8 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 
 	if ( /^application\/pdf/.test(contenttype) ) {
     if ( !(jQuery('#spider').prop('checked')) ) {
-      var target_container = jQuery(retainoriginal ? ('#'+jQuery('[class*=alternate-original]').first().attr('id')) : '#original');
+      var target_container = jQuery(retainoriginal ? ('#'+jQuery(targetframe).first().attr('id')) : '#original');
+      display_wait_notification();
       PDFJS.getDocument('/fetchpdf/'+data.contenthash).then(function(pdf){
         var np = pdf.numPages;
         for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
@@ -207,6 +209,7 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
             }
           });
         }
+        remove_wait_notification();
       });
     }
 	} else {

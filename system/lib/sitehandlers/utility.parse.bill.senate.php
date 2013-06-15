@@ -14,22 +14,33 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
 
   function __construct() {
     parent::__construct();
-		$this->offset_1_keys_array       = array('long title' , 'scope'       , 'legislative status', 'subject' , 'primary committee' , 'secondary committee');
-		$this->offset_1_keys_replacement = array('description', 'significance', 'status'            , 'subjects', 'main_referral_comm', 'secondary_committee');
+		$this->offset_1_keys_array       = array('filed by', 'long title' , 'scope'       , 'legislative status', 'subject' , 'primary committee' , 'secondary committee');
+		$this->offset_1_keys_replacement = array('senator' , 'description', 'significance', 'status'            , 'subjects', 'main_referral_comm', 'secondary_committee');
 		$this->offset_2_keys_array       = array('committee report');
 		$this->offset_2_keys_replacement = array('comm_report_url');
   }
 
   function parse_html($content, array $response_headers) {/*{{{*/
+		// This method fills (array) $this->filtered_content with parsed information,
+		// suitable to be passed directly to method set_contents_from_array() 
+		// Return value should be the contents of $this->filtered_content 
     parent::parse_html($content, $response_headers);
-    // $extract_containers = create_function('$a', 'return (("table" == $a["tagname"]) && (1 == preg_match("@^(lis_table|container)@i", $a["id"]))) ? array($a["id"] => $a["children"]) : NULL;');
-    // $containers         = array_values(array_filter(array_map($extract_containers, $this->get_containers())));
+
+		// Clean up containers
     $containers = $this->get_containers();
-    if ( $this->debug_tags ) {
-      $this->syslog( __FUNCTION__, 'FORCE', "Final structure" );
+		$this->reorder_with_sequence_tags($containers);
+		array_walk($containers,create_function('& $a, $k, $s', '$s->reorder_with_sequence_tags($a);'),$this);
+		array_walk($containers,create_function('& $a, $k', 'if (is_array(array_element($a,"children"))) unset($a["children"][$k]);'));
+		$this->assign_containers($containers);
+
+		$debug_method = $this->debug_tags;
+    if ( $debug_method ) {/*{{{*/
       $this->recursive_dump($containers,'(warning)');
-    }
+      $this->syslog( __FUNCTION__, 'FORCE', "(marker) - - - - - - - - - - Parsed containers" );
+      $this->recursive_dump($this->filtered_content,'(warning)');
+    }/*}}}*/
     $heading_map = array(
+			'Filed by'            => 'senator',
       'Long title'          => 'description',
       'Scope'               => 'significance',
       'Legislative status'  => 'status',
@@ -39,87 +50,115 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
       'Legislative History' => NULL,
     );
     $senate_bill_recordparts = array(
-      'legislative_history' => array(),
+			'sn' => NULL,
+			'filing_date' => NULL,
       'doc_url' => NULL,
       'comm_report_url' => NULL,
+      'legislative_history' => array(),
+			'senator' => array(),
     );
-    $current_heading = NULL;
-    foreach ( $containers as $container ) {
-      $legis_history_entry = array();
-      $item_stack = array();
-      $no_lis_date = TRUE;
-      foreach ( $container as $table_id => $children ) {
-        if ( !is_array($children) ) continue;
-        foreach ( $children as $tag ) {
-          if ( !is_array($tag) || !is_array(array_element($tag,'cdata')) ) continue;
-          $text = trim(join(' ',$tag['cdata']));
-          switch ( $tag['tag'] ) {
-            case 'A': 
-              if ( ( 1 == preg_match('@/lisdata/@i', $tag['attrs']['HREF']) ) && 
-                is_null($senate_bill_recordparts['doc_url']) )
-                $senate_bill_recordparts['doc_url'] = $tag['attrs']['HREF'];
-              else if ( $current_heading == "comm_report_info" ) {
-                $senate_bill_recordparts[$current_heading] = array("{$text}");
-                $senate_bill_recordparts['comm_report_url'] = array(
-                  'url' => $tag['attrs']['HREF'],
-                  'text' => trim(join(' ',$tag['cdata'])),
-                );
-                $senate_bill_recordparts['comm_report_url'] = $tag['attrs']['HREF']; 
-              }  
-              break;
-            case 'P':
-              $item = array("{$text}");
-              array_push($item_stack, $item);
-              $current_heading = $heading_map[trim($text)];
-              break;
-            case 'BLOCKQUOTE':
-              $item = array_pop($item_stack);
-              $item = $heading_map[trim($item[0])];
-              if ( 0 < strlen($item) ) {
-                if ( array_key_exists($item, $senate_bill_recordparts) && is_array($senate_bill_recordparts[$item]) ) 
-                  $senate_bill_recordparts[$item][] = $text;
-                else
-                  $senate_bill_recordparts[$item] = $text;
-              }
-              break;
-            case 'TD':
-              // Alternating cells contain date and legislative history events.
-              if ( $table_id == "lis_table" ) {
-                if ( $tag['attrs']['CLASS'] == 'lis_table_date' ) {
-                  $no_lis_date = FALSE;
-                }
-                if ( !$no_lis_date ) {
-                  if ( 1 == preg_match('@^([0-9]+)/([0-9]+)/([0-9]+)@', $text) ) {
-                    $history_entry = array(
-                      'date' => $text,
-                      'entry' => NULL,
-                    );
-                    array_push($senate_bill_recordparts['legislative_history'], $history_entry);
-                  } else {
-                    $legis_history_entry = array_pop($senate_bill_recordparts['legislative_history']);
-                    $legis_history_entry["entry"] = $text;
-                    array_push($senate_bill_recordparts['legislative_history'], $legis_history_entry);
-                  }
-                }
-              }
-              break;
-            default:
-              break;
-          }
-        }
-      }  
-    }
+
+		// Obtain URLs of downloadable content
+		$downloadable = $containers;
+		$this->filter_nested_array($downloadable,'children[tagname=div][id=lis_download]',0);
+		$downloadable = array_element($downloadable,0,array());
+
+		// Table rows containing extended information about Senate Bill
+		$extended = $containers;
+		$this->filter_nested_array($extended,'children[tagname=tr]');
+
+		// Chainable cells (legislative history, if present and nonempty)
+		$chainable = $containers;
+		$this->filter_nested_array($chainable,'children[class*=alt_color_g]');
+		$concatenated = array();
+		foreach ( $chainable as $p => $child ) {/*{{{*/
+			foreach ( $child as $seq => $elements ) {
+				$concatenated[$seq] = $elements;
+				if ( !is_null(($next = array_element($containers, $seq + 1))) ) {
+					$next = nonempty_array_element($next,'children',$next);
+					$concatenated = array_merge($concatenated,$next);
+					unset($containers[$seq + 1]);
+					unset($extended[$seq + 1]);
+					unset($extended[$seq]);
+				}
+			}
+			unset($extended[$p]);
+		}/*}}}*/
+
+		// Remove noise entries (line breaks, text enclosed in square brackets)
+		array_walk($concatenated,create_function(
+			'& $a, $k', 'if (1 == preg_match("@(back to top|\[.*\])@i",array_element($a,"text"))) $a = NULL;'
+		));	
+		$senate_bill_recordparts['legislative_history'] = array_values(array_filter($concatenated));
+		unset($concatenated);
+		unset($chainable);
+
+		// Remove other containers that do not contain an 'sn' text entry
+		array_walk($extended,create_function(
+			'& $a, $k, $s', '$d = $a ; $s->filter_nested_array($d,"#[text=sn]"); if ( !(0 < count($d)) ) $a = NULL;'
+		),$this);
+		$extended = array_element(array_values(array_filter($extended)),0);
+
+		// Obtain SN
+		$sn = $extended;
+		$this->filter_nested_array($sn,'sn[text=sn]',0);
+		$sn = array_element($sn,0);
+		$senate_bill_recordparts['sn'] = $sn; 
+
+		// Obtain doc_url entry from $downloadable using SN
+		$doc_url = $downloadable;
+		$this->filter_nested_array($doc_url,"url[text={$sn}]",0);
+		$senate_bill_recordparts['doc_url'] = nonempty_array_element($doc_url,0);
+
+		// Obtain Senator bio URLs following 'Filed by' entry
+		$filing_date = $extended;
+		$this->filter_nested_array($filing_date,'#[text*=Filed by|i]');
+
+		foreach ( $extended as $index => $elements ) {
+			if ( is_null(array_element($senate_bill_recordparts,"filing_date")) ) {
+				if (is_null(($filing_date = array_element($elements,"file-date")))) continue;
+				$senate_bill_recordparts["filing_date"] = $filing_date;
+				continue;
+			}
+			if ( !array_key_exists('url',$elements) ) break;
+			array_push($senate_bill_recordparts["senator"], $elements);
+		}
+
+		if ( $debug_method ) {/*{{{*/
+			$this->recursive_dump($doc_url,"(warning) - F - {$sn} {$doc_url}");
+			$this->recursive_dump($chainable,'(warning) C - -');
+			$this->recursive_dump($extended,'(warning) - - E');
+		}/*}}}*/
+
     $senate_bill_recordparts = array_filter($senate_bill_recordparts);
-    if ( array_key_exists('legislative_history', $senate_bill_recordparts) ) {
-      $senate_bill_recordparts['legislative_history'] = json_encode($senate_bill_recordparts['legislative_history']);
-    }
+
+		// Cleanup the result array
     foreach ( $senate_bill_recordparts as $k => $v ) {
-      if ( !is_array($v) ) continue;
-      if ( array_key_exists('url', $v) ) $senate_bill_recordparts[$k] = json_encode($v);
-      else $senate_bill_recordparts[$k] = trim(join(' ', $v));
+			if ( !is_array($v) ) continue;
+			if ( $k == 'senator' ) continue; // Keep unencoded, we use this later to construct Joins
+      $senate_bill_recordparts[$k] = json_encode($v);
     }
-    if ( $this->debug_tags ) $this->recursive_dump($senate_bill_recordparts,'(warning)');
-    return $senate_bill_recordparts;
+
+		// Merge the result array with $this->filtered_content 
+		$senate_bill_recordparts = array_merge(
+			$this->filtered_content,
+			$senate_bill_recordparts
+		);
+
+		if (is_array(array_element($senate_bill_recordparts,'comm_report_url'))) {
+			$senate_bill_recordparts['comm_report_info'] = array_element($senate_bill_recordparts['comm_report_url'],'text');
+			$senate_bill_recordparts['comm_report_url']  = array_element($senate_bill_recordparts['comm_report_url'],'url');
+		}
+
+		//unset($senate_bill_recordparts['legislative_history']);
+		//unset($this->filtered_content['legislative_history']);
+		if ( TRUE || $debug_method ) {
+			$this->syslog(__FUNCTION__,__LINE__,'(warning) -- -- - -- Final parsed structure');
+			//$this->syslog(__FUNCTION__,__LINE__,'(warning) -- -- - -- (removed [legislative_history] key before return)');
+			$this->recursive_dump($senate_bill_recordparts,'(warning) -- - - -');
+		}
+
+		return $senate_bill_recordparts;
   }/*}}}*/
 
   function ru_table_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -210,7 +249,6 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = trim($cdata);
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
   function ru_tr_close(& $parser, $tag) {/*{{{*/
@@ -229,9 +267,42 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
   }/*}}}*/
   function ru_td_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
-    $this->current_tag['cdata'][] = trim($cdata);
+
+		$class = array_element($this->current_tag['attrs'],'CLASS','--');
+		$id    = array_element($this->current_tag['attrs'],'ID','--');
+		if ( $this->debug_tags ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - [{$class},{$id} s({$this->current_tag['attrs']['seq']} | {$this->tag_counter})] {$cdata}");
+		if ( $class == '--' && $id == 'content' ) {
+			// Special treatment for Senate Bill detail container,
+			// to allow 'Filed on ... by ... text to be placed in container order
+			// along with associated Senator bio URLs 
+			$text = trim(trim($cdata,','));
+			if ( 0 < strlen($text) ) { 
+				$date_regex = '@(.*)filed on ([a-z ]+[0-9]+,[0-9 ]+) by(.*)@i';
+				$sbn_regex = '@(.*)senate bill (no. )*([0-9]*)(.*)@i';
+				$match_parts = array();
+				$seq = intval($this->tag_counter) + 1;
+				$this->tag_counter = $seq;
+				$paragraph = array(
+					'text' => $text,
+					'seq'  => $seq,
+				);
+				if ( 1 == preg_match($date_regex, $paragraph['text'], $match_parts) ) {
+					// All URLs following this child node are to be taken as Senators' bio URLs
+					$paragraph['text'] = 'Filed by';
+					$paragraph['file-date'] = array_element($match_parts,2);
+				}
+				else if ( 1 == preg_match($sbn_regex, $paragraph['text'], $match_parts) ) {
+					// All URLs following this child node are to be taken as Senators' bio URLs
+					$paragraph['text'] = 'sn';
+					$paragraph['sn'] = "SBN-" . array_element($match_parts,3);
+				}
+				$this->add_to_container_stack($paragraph);
+			}
+		} else {
+			$this->current_tag['cdata'][] = trim($cdata);
+		}
+
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
   function ru_td_close(& $parser, $tag) {/*{{{*/
@@ -239,7 +310,7 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
 		$content = array_filter(array(
 			'text' => trim(join('',$this->current_tag['cdata'])),
 			'class' => array_element($this->current_tag['attrs'],'CLASS'),
-			'seq'   => $this->current_tag['attrs']['seq'],
+			'seq'   => nonempty_array_element($this->current_tag['attrs'],'seq',0),
 		));
     $this->add_to_container_stack($content);
     $this->push_tagstack();

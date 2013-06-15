@@ -11,7 +11,7 @@
 class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256uniq = NULL;
-  var $sn_vc64uniq = NULL;
+  var $sn_vc16 = NULL;
   var $origin_vc2048 = NULL;
   var $description_vc4096 = NULL;
   var $create_time_utx = NULL;
@@ -25,6 +25,8 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 	var $subjects_vc1024 = NULL;
   var $comm_report_url_vc256 = NULL;
   var $comm_report_info_vc256 = NULL;
+	var $filing_date_dtm = NULL;
+	var $legislative_history_vc8192 = NULL;
 
 	var $date_read_utx = NULL;
 	var $house_approval_date_utx = NULL;
@@ -32,12 +34,14 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 	var $principal_author_int11 = NULL;
   var $sponsor_int11 = NULL; // SenatorsModel
 	var $main_referral_comm_vc64 = NULL;
+	var $secondary_committee_vc64 = NULL;
 	var $pending_comm_vc64 = NULL;
 	var $pending_comm_date_utx = NULL;
 	var $significance_vc16 = NULL;
 
   var $journal_SenateJournalDocumentModel = NULL;
   var $committee_SenateCommitteeModel = NULL;
+	var $senator_SenatorDossierModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -100,8 +104,8 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function & set_title($v) { $this->title_vc256uniq = $v; return $this; }
   function get_title($v = NULL) { if (!is_null($v)) $this->set_title($v); return $this->title_vc256uniq; }
 
-  function & set_sn($v) { $this->sn_vc64uniq = $v; return $this; }
-  function get_sn($v = NULL) { if (!is_null($v)) $this->set_sn($v); return $this->sn_vc64uniq; }
+  function & set_sn($v) { $this->sn_vc16 = $v; return $this; }
+  function get_sn($v = NULL) { if (!is_null($v)) $this->set_sn($v); return $this->sn_vc16; }
 
   function & set_origin($v) { $this->origin_vc2048 = $v; return $this; }
   function get_origin($v = NULL) { if (!is_null($v)) $this->set_origin($v); return $this->origin_vc2048; }
@@ -114,4 +118,13 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 
   function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
+
+	function & set_secondary_committee($v) { $this->secondary_committee_vc64 = $v; return $this; }
+	function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc64; }
+
+	function & set_legislative_history($v) { $this->legislative_history_vc8192 = $v; return $this; }
+	function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_vc8192; }
+
+	function & set_filing_date($v) { $this->filing_date_dtm = $v; return $this; }
+	function get_filing_date($v = NULL) { if (!is_null($v)) $this->set_filing_date($v); return $this->filing_date_dtm; }
 }

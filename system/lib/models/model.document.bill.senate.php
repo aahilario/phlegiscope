@@ -127,4 +127,39 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 
 	function & set_filing_date($v) { $this->filing_date_dtm = $v; return $this; }
 	function get_filing_date($v = NULL) { if (!is_null($v)) $this->set_filing_date($v); return $this->filing_date_dtm; }
+
+	function generate_non_session_linked_markup() {/*{{{*/
+
+		$faux_url = new UrlModel();
+
+		$senatedoc = get_class($this);
+
+		$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $this->get_id() . " " . get_class($this) );
+
+		$total_bills_in_system = $this->count();
+
+		$doc_url_attrs = array('legiscope-remote');
+		$faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
+		$faux_url->fetch($faux_url_hash,'urlhash');
+		if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
+		$doc_url_attrs = join(' ', $doc_url_attrs);
+
+		$pagecontent = $this->substitute(<<<EOH
+Senate {$senatedoc}s in system: {$total_bills_in_system}
+<span class="sb-match-item">{sn}.{congress_tag}</span>
+<span class="sb-match-item sb-match-subjects">{subjects}</span>
+<span class="sb-match-item sb-match-description">{description}</span>
+<span class="sb-match-item sb-match-significance">Scope: {significance}</span>
+<span class="sb-match-item sb-match-status">Status: {status}</span>
+<span class="sb-match-item sb-match-doc-url">Document: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
+<span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
+<span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committee}</span>
+<span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
+EOH
+		);
+		$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+
+		return $pagecontent;
+
+	}/*}}}*/
 }

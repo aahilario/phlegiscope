@@ -1504,17 +1504,22 @@ EOH;
 
     if ( $senate_document->in_database() ) {/*{{{*/
 
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
+			$markup_generator = 'generate_non_session_linked_markup';
+			if ( method_exists($senate_document,$markup_generator) ) {
+				$pagecontent = $senate_document->$markup_generator();
+			} else {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: No markup generator " . get_class($senate_document) . "::{$markup_generator}()" );
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
 
-      $total_bills_in_system = $senate_document->count();
+				$total_bills_in_system = $senate_document->count();
 
-      $doc_url_attrs = array('legiscope-remote');
-			$faux_url_hash = UrlModel::get_url_hash($senate_document->get_url()); 
-      $faux_url->fetch($faux_url_hash,'urlhash');
-      if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
-      $doc_url_attrs = join(' ', $doc_url_attrs);
+				$doc_url_attrs = array('legiscope-remote');
+				$faux_url_hash = UrlModel::get_url_hash($senate_document->get_url()); 
+				$faux_url->fetch($faux_url_hash,'urlhash');
+				if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
+				$doc_url_attrs = join(' ', $doc_url_attrs);
 
-      $pagecontent = $senate_document->substitute(<<<EOH
+				$pagecontent = $senate_document->substitute(<<<EOH
 Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>
 <span class="sb-match-item sb-match-subjects">{subjects}</span>
@@ -1525,9 +1530,10 @@ Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 EOH
-      );
-			$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
-      $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+				);
+				$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+				$pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+			}
     }/*}}}*/
 
     ///////////////////////////////////////////

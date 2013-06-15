@@ -114,13 +114,53 @@ class SenateBillParseUtility extends SenateCommonParseUtility {
 		$filing_date = $extended;
 		$this->filter_nested_array($filing_date,'#[text*=Filed by|i]');
 
+		$senator = new SenatorDossierModel();
+
 		foreach ( $extended as $index => $elements ) {
 			if ( is_null(array_element($senate_bill_recordparts,"filing_date")) ) {
 				if (is_null(($filing_date = array_element($elements,"file-date")))) continue;
 				$senate_bill_recordparts["filing_date"] = $filing_date;
 				continue;
 			}
-			if ( !array_key_exists('url',$elements) ) break;
+			if ( is_null(array_element($elements,'url')) ) break;
+			$senator->fetch($elements['url'],'bio_url');
+			$elements['id'] = $senator->in_database()
+				? $senator->get_id()
+				: NULL
+				;
+			if ( is_null($elements['id']) ) {
+				$name = $senator->cleanup_senator_name($elements['text']);
+				if (!(FALSE == stripos($name,","))) {
+					$name = explode(",",$name);
+					krsort($name);
+					$name = trim(join(' ',$name));
+					$elements['text'] = $name;
+				}
+				$this->syslog(__FUNCTION__,__LINE__,"(warning) -- -- - -- No match for bio_url '{$elements['url']}', trying name '{$name}'");
+				$senator->fetch($name,'fullname');
+				$elements['id'] = $senator->in_database()
+					? $senator->get_id()
+					: NULL
+					;
+			}
+			if ( !is_null($elements['id']) ) {
+
+        $date = DateTime::createFromFormat('F d, Y H:i:s', "{$filing_date} 00:00:00");
+				$date = FALSE === $date
+					? NULL
+					: $date->format(DateTime::ISO8601); 
+
+				if ( is_null($date) ) {
+					$senator->syslog(__FUNCTION__,__LINE__,"(warning) - - - Unable to parse date '{$filing_date_orig}'");
+				}
+
+				$join_info = array( $elements['id'] => array(
+					'relationship' => 'sponsor',
+					'relationship_date' => $date,
+					'create_time' => time()
+				));	
+				$senator->create_joins('senate_bill', $join_info);
+			}
 			array_push($senate_bill_recordparts["senator"], $elements);
 		}
 

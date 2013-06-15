@@ -626,7 +626,6 @@ EOH;
 				}/*}}}*/
 
 				// TODO: Handle larger arrays of more than a handful of foreign Joins 
-				// TODO: Allow assignment of Join object properties in $foreignkey
 				foreach ( $foreign_keys as $fk_or_dummy => $foreignkey ) {
           $data = is_array($foreignkey)
             ? array_merge(
@@ -640,10 +639,20 @@ EOH;
               $self_attrname => $self_id,
               $foreign_attrname => $foreignkey
             );
-					$joinobj->fetch($data,'AND');
+          $this->recursive_dump($data,"(marker) --- - F ---");
+          $joinobj->fetch(array(
+            $self_attrname => $self_id,
+            $foreign_attrname => $fk_or_dummy,
+          ),'AND');
 					$join_present = $joinobj->in_database();
 					if ( !$join_present || $allow_update ) {
 						$join_id      = $join_present ? $joinobj->get_id() : NULL;
+            if ( $join_present ) {
+              unset($data[$self_attrname]);
+              unset($data[$foreign_attrname]);
+              $joinobj->fields(array_keys($data));
+              $this->syslog( __FUNCTION__, __LINE__, "(marker) - -- Restrict update to ". join(',',array_keys($data)) );
+            }
 						$joinobj->set_contents_from_array($data);	
 						$new_joinid = $joinobj->stow();
 						$join_exists  = $join_present ? ("#{$join_id} in DB updated") : "created as #{$new_joinid}";

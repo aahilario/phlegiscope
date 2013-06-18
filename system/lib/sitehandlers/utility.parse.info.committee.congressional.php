@@ -572,7 +572,9 @@ EOH;
         } 
         // If a Join matching the role and committee already exists, NULL out the
         // corresponding entry in $rep_urls; otherwise assign the representative record ID 
+				$representative->debug_method = FALSE;
         if ( $representative->join_all()->where(array('AND' => array('bio_url' => $rep_urls)))->recordfetch_setup() ) {/*{{{*/
+				$representative->debug_method = FALSE;
 
           $rep_urls = array();
 

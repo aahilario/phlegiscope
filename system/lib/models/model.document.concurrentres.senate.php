@@ -1,14 +1,14 @@
 <?php
 
 /*
- * Class SenateResolutionDocumentModel
+ * Class SenateConcurrentresDocumentModel
  * Legiscope - web site reflection framework
  *
  * Antonio A Hilario
  * Release license terms: GNU Public License V2
  */
 
-class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
+class SenateConcurrentresDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256 = NULL;
 	var $description_vc4096 = NULL;
@@ -88,6 +88,5 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
 
   function & set_significance($v) { $this->significance_vc16 = $v; return $this; }
   function get_significance($v = NULL) { if (!is_null($v)) $this->set_significance($v); return $this->significance_vc16; }
-
 }
 

@@ -327,6 +327,7 @@ div.congress-doc-item > span {
 	clear: right;
   width: 43%;
 	min-height: 640px;
+	padding: 4px;
 }
 
 /* Senate Bill match items */
@@ -434,3 +435,9 @@ div.committee-contact-block {
 }
 
 
+/** Senate listing mode switch links **/
+span.listing-mode-switcher {
+	padding: 3px;
+	margin: 3px;
+	background-color: #EEE;
+}

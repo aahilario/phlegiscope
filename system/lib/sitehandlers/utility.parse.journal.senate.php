@@ -110,7 +110,7 @@ EOH;
       }/*}}}*/
 
       if ( intval($n) == 0 ) {/*{{{*/// Journal page descriptor (Title, publication date)
-        foreach ($e['content'] as $entry) {
+        if (is_array(nonempty_array_element($e,'content'))) foreach ($e['content'] as $entry) {
           $urlhash = UrlModel::get_url_hash(array_element($entry,'url'));
           $properties = array('legiscope-remote', "{urlstate-{$urlhash}}");
           $properties = join(' ', $properties);

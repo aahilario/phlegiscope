@@ -23,5 +23,6 @@ class ModelJoin extends DatabaseUtility {
     parent::remove();
     return $this;
   }
+
 }
 

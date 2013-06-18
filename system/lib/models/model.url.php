@@ -83,7 +83,7 @@ class UrlModel extends DatabaseUtility {
       $url = self::parse_url($url, $url_component);
       if ( $url === FALSE || empty($url) ) return FALSE;
     }
-    return md5($url);
+    return empty($url) ? FALSE : md5($url);
   }/*}}}*/
 
   static function recompose_url(array $q, $link_item = array('url' => NULL), $strip_query_scripttail = FALSE ) {/*{{{*/
@@ -313,7 +313,12 @@ class UrlModel extends DatabaseUtility {
   }/*}}}*/
 
   function set_pagecontent($t) {/*{{{*/
-
+		// Returns array(
+		//   'http_response_code'      => $http_response_code,
+		//   'parsed_headers'          => $final_headers,
+		//   'response_regular_markup' => $response_regular_markup ? 1 : 0,
+		// );
+		//
     // Accept cURL output
     $content_length          = strlen($t);
     $header_regex            = '@^HTTP/1.@';
@@ -530,8 +535,9 @@ class UrlModel extends DatabaseUtility {
     return intval($this->content_length_int11);
   }
 
-  function & increment_hits() {
+  function & increment_hits($update = FALSE) {
     $this->hits_int11 = intval($this->hits_int11) + 1; 
+		if ( $update && $this->in_database() ) $this->fields(array('hits'))->stow();
     return $this;
   }
 

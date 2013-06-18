@@ -1,17 +1,17 @@
 <?php
 
 /*
- * Class SenateBillSenatorDossierJoin
+ * Class SenateResolutionSenatorDossierJoin
  * Legiscope - web site reflection framework
  *
  * Antonio A Hilario
  * Release license terms: GNU Public License V2
  */
 
-class SenateBillSenatorDossierJoin extends ModelJoin {
+class SenateResolutionSenatorDossierJoin extends ModelJoin {
   
   // Join table model
-  var $senate_bill_SenateBillDocumentModel;
+  var $senate_resolution_SenateResolutionDocumentModel;
   var $senator_dossier_SenatorDossierModel;
 
   var $relationship_vc16 = NULL; // Sponsor, author 
@@ -22,8 +22,8 @@ class SenateBillSenatorDossierJoin extends ModelJoin {
     parent::__construct();
   }
 
-  function & set_senate_bill($v) { $this->senate_bill_SenateBillDocumentModel = $v; return $this; }
-  function get_senate_bill($v = NULL) { if (!is_null($v)) $this->set_senate_bill($v); return $this->senate_bill_SenateBillDocumentModel; }
+  function & set_senate_resolution($v) { $this->senate_resolution_SenateResolutionDocumentModel = $v; return $this; }
+  function get_senate_resolution($v = NULL) { if (!is_null($v)) $this->set_senate_resolution($v); return $this->senate_resolution_SenateResolutionDocumentModel; }
 
   function & set_senator_dossier($v) { $this->senator_dossier_SenatorDossierModel = $v; return $this; }
   function get_senator_dossier($v = NULL) { if (!is_null($v)) $this->set_senator_dossier($v); return $this->senator_dossier_SenatorDossierModel; }

@@ -22,18 +22,19 @@ class SeekAction extends LegiscopeBase {
     // Perform an HTTP GET
     ob_start();
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     $json_reply      = array();
     $modifier        = $this->filter_post('modifier');
     $metalink        = $this->filter_post('metalink');
     $linktext        = $this->filter_post('linktext');
     $target_url      = $this->filter_post('url','');
-    $freeze_referrer = $this->filter_post('fr');
+    $freeze_referrer = $this->filter_post('fr'); // Freeze referrer
     $cache_force     = $this->filter_post('cache');
     $referrer        = $this->filter_session('referrer');
-    $url             = new UrlModel($target_url, empty($target_url) ? FALSE : TRUE);
+    $url             = new UrlModel();
 
+    if ( !empty($target_url) ) $url->fetch(UrlModel::get_url_hash($target_url),'urlhash');
 
     if ( $debug_method ) {
 			$this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
@@ -63,6 +64,7 @@ class SeekAction extends LegiscopeBase {
     );
 
     $faux_url       = GenericParseUtility::get_faux_url_s($url, $metalink);
+
     $urlhash        = $url->get_urlhash();
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || !$url->in_database();
     $content_length = $url->get_content_length();
@@ -79,13 +81,14 @@ class SeekAction extends LegiscopeBase {
 
     if ( ( $debug_method ) || !is_null($faux_url) ) {/*{{{*/
       $in_db = $retrieved ? 'in DB' : 'uncached';
+			$faux_url_type = gettype($faux_url);
       if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
-      $this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) {$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
       $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) Metalink URL src');
     }/*}}}*/
 
 		// FIXME: Modify DatabaseUtility to permit update of only a single attribute, rather than updating entire record.
-    if ( $retrieved ) $url->increment_hits()->stow();
+    if ( $retrieved ) $url->increment_hits(TRUE);
 
     if ( $network_fetch ) {/*{{{*/
 

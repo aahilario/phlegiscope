@@ -147,5 +147,32 @@ EOH
     return $document_id;
   }/*}}}*/
 
+  function senate_document_senator_dossier_join(& $senator) {/*{{{*/
+
+    $debug_method = FALSE;
+
+    if ( !$this->in_database() ) return FALSE;
+
+    if ( !is_null($senator['id']) ) {/*{{{*/
+
+      $join_info = array( $senator['id'] => array(
+        'relationship' => array_element($senator,'relationship'),
+        'relationship_date' => array_element($senator,'filing_date'),
+        'create_time' => time()
+      ));	
+
+      $join_type = get_class($this);
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Join type '{$join_type}'");
+        $this->recursive_dump($join_info, '(marker) -- - --');
+      }
+      $this->create_joins('SenatorDossierModel', $join_info);
+      return TRUE;
+    }/*}}}*/
+
+    return FALSE;
+
+  }/*}}}*/
+
 }
 

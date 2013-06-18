@@ -935,7 +935,7 @@ EOH;
 EOH;
         if ( $debug_method ) {
           $this->syslog(__FUNCTION__,__LINE__, "(marker) -- {$form}");
-          $this->recursive_dump($controls,'(marker) -- CF');
+          $this->recursive_dump($controls,'(marker) -- form controls');
         }
 
       }/*}}}*/

@@ -164,9 +164,11 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 				$url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
 				$linktext = "No. {$url_query_parts['q']}";
 			}
-			$cached = array_element($child_link,'cached') == TRUE ? "cached" : "";
+			$link_class = array('legiscope-remote','suppress-reorder','indent-3');
+		  if ( array_element($child_link,'cached') == TRUE ) $link_class[] = "cached";
+			$link_class = join(' ', $link_class);
 			$pagecontent .= <<<EOH
-<li class="no-bullets"><a class="legiscope-remote {$cached} indent-3" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
+<li class="no-bullets"><a class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
 EOH;
 			if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
@@ -261,7 +263,8 @@ EOH;
         if ( !$level_0_rendered ) { 
           $pagecontent .= <<<EOH
 
-<span class="indent-1">Last 3 Congress Conventions {$congress_change_link}<input type="button" value="Reset" id="reset-cached-links" /><br/>
+[SWITCHER]
+<span class="indent-1">Last 3 Congress Conventions {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
 
 EOH;
           $level_0_rendered = TRUE;
@@ -351,6 +354,7 @@ EOH;
 
     $pagecontent .= <<<EOH
 </div>
+
 <script type="text/javascript">
 jQuery(document).ready(function(){
   jQuery('input[id=reset-cached-links]').click(function(e) {
@@ -375,19 +379,20 @@ EOH;
     // bound implicitly to the same HTTP session state (during live network
     // fetch), and explicitly in  
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     $this->recursive_dump(($paginator_form = array_values($this->get_containers(
       "children[tagname=form]{$form_selector}"
-    ))),'(marker) StructureParser');
+    ))),'(------) StructureParser');
 
     $paginator_form = $paginator_form[0];
     $control_set    = $this->extract_form_controls($paginator_form);
     $test_url       = new UrlModel($urlmodel->get_url(),TRUE);
 
     if ( $debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - Extract form controls matching {$form_selector} " . $urlmodel->get_url());
-      $this->recursive_dump($control_set,"(marker) - - - -");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - - - - - - -");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Extract form controls matching {$form_selector} " . $urlmodel->get_url());
+      $this->recursive_dump($control_set,"(marker) - -");
     }
     extract($control_set); // form_controls, select_name, select_options, userset
 

@@ -21,6 +21,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
 
 	var $committee_SenateCommitteeModel = NULL;
   var $senate_bill_SenateBillDocumentModel = NULL;
+  var $senate_resolution_SenateResolutionDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -101,7 +102,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
         stow();
     }
     if ( !is_null($senator_info['id']) ) {
-      $senator_info['url'] = $this->get_bio_url();
+      $senator_info['url']      = $this->get_bio_url();
       $senator_info['linktext'] = $this->get_fullname();
     }
     return $senator_info['id'];

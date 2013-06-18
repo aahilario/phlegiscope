@@ -140,8 +140,9 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 
 		$doc_url_attrs = array('legiscope-remote');
 		$faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
-		$faux_url->fetch($faux_url_hash,'urlhash');
-		if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
+		if( $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ) {
+			$doc_url_attrs[] = 'cached';
+		}
 		$doc_url_attrs = join(' ', $doc_url_attrs);
 
 		$pagecontent = $this->substitute(<<<EOH
@@ -157,9 +158,61 @@ Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 EOH
 		);
+
+		$congress_tag = $this->get_congress_tag();
+
+		$this->debug_final_sql = FALSE;
+		$this->
+			join_all()->
+			where(array(
+				'`a`.`id`' => $this->get_id(),
+				'`b`.`congress_tag`' => $congress_tag
+			))->
+			recordfetch_setup();
+		$sb = array();
+		$this->debug_final_sql = FALSE;
+
+		$reading_state = array();
+
+		$reading_replace = array(
+			'@R1@' => 'First Reading',
+			'@R2@' => 'Second Reading',
+			'@R3@' => 'Third Reading',
+		);
+
+		while ( $this->recordfetch($sb) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - Got entry {$sb['id']}");
+			$this->recursive_dump($sb['journal'],"(marker) - - - {$sb['id']} -");
+			$journal      = $sb['journal'];
+			$reading      = nonempty_array_element($journal['join'],'reading');
+			$reading_date  = nonempty_array_element(explode(' ',nonempty_array_element($journal['join'],'reading_date',' -')),0);
+			$journal_title = array_element($journal['data'],'title');
+			$journal_url   = nonempty_array_element($journal['data'],'url');
+			if ( is_null($reading) || is_null($journal_url) ) continue;
+			$reading_lbl   = preg_replace(
+				array_keys($reading_replace),
+				array_values($reading_replace),
+				$reading
+			);
+			$reading_state["{$reading}{$reading_date}"] = <<<EOH
+<li><a href="{$journal_url}" class="legiscope-remote suppress-reorder">{$reading_lbl} ({$reading_date})</a> {$journal_title}</li>
+EOH;
+		}
+
+		if ( 0 < count($reading_state) ) {
+			krsort($reading_state);
+			$reading_state = join(" ", $reading_state);
+			$reading_state = <<<EOH
+<ul>{$reading_state}</ul>
+
+EOH;
+			$pagecontent .= $reading_state;
+		}
+
 		$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
 
 		return $pagecontent;
 
 	}/*}}}*/
+
 }

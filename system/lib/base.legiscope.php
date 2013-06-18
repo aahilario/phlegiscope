@@ -16,10 +16,11 @@ class LegiscopeBase extends SystemUtility {
     parent::__construct();
 		gc_enable();
     $this->session_start_wrapper();
-    $target_url = $this->filter_post('url');
+    $target_url                = $this->filter_post('url');
+    $this->subject_host_hash   = UrlModel::get_url_hash($target_url,PHP_URL_HOST);
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
-    $this->seek_cache_filename = "./cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
-    $this->enable_proxy = $this->filter_post('proxy','false') == 'true';
+    $this->seek_cache_filename = SYSTEM_BASE . "/../cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
+    $this->enable_proxy        = $this->filter_post('proxy','false') == 'true';
   }/*}}}*/
 
   static function & instantiate_by_host() {/*{{{*/
@@ -55,29 +56,29 @@ class LegiscopeBase extends SystemUtility {
     return static::$singleton;
   }/*}}}*/
 
-  static public function __callStatic($methodname, array $arguments) {
+  static public function __callStatic($methodname, array $arguments) {/*{{{*/
 
     $arglist = join(',', array_keys($arguments));
 
     $this->syslog(__FUNCTION__,__LINE__,"(marker) - ------- Inaccessible method {$methodname}({$arglist})");
 
-  }
+  }/*}}}*/
 
-  static function image_request() {
+  static function image_request() {/*{{{*/
     static::$singleton->handle_image_request();
-  }
+  }/*}}}*/
 
-  static function javascript_request() {
+  static function javascript_request() {/*{{{*/
     static::$singleton->handle_javascript_request();
-  }
+  }/*}}}*/
 
-  static function stylesheet_request() {
+  static function stylesheet_request() {/*{{{*/
     static::$singleton->handle_stylesheet_request();
-  }
+  }/*}}}*/
 
-  static function model_action() {
+  static function model_action() {/*{{{*/
     static::$singleton->handle_model_action();
-  }
+  }/*}}}*/
 
   protected function handle_stylesheet_request() {/*{{{*/
     if ( !is_null($stylesheetname = $this->filter_request('css') ) ) {
@@ -172,16 +173,15 @@ class LegiscopeBase extends SystemUtility {
 
 		$debug_method = FALSE;
 
-    $host = $this->filter_request('url');
-
     // Extract controller, action, and subject values from server context
     $this->handle_plugin_context();
 
     // These request variables are normally unavailable in a WordPress plugin context
     // They are assigned by URL rewrite rules, usually set in an .htaccess file
-    $controller     = $this->filter_request('p');
-    $action         = $this->filter_request('q');
-    $subject        = $this->filter_request('r');
+    $host       = $this->filter_request('url');
+    $controller = $this->filter_request('p');
+    $action     = $this->filter_request('q');
+    $subject    = $this->filter_request('r');
 
     // Update host hits
     $hostModel  = new HostModel($host);
@@ -189,7 +189,7 @@ class LegiscopeBase extends SystemUtility {
       if ( !$hostModel->in_database() ) {
         $hostModel->stow();
       }
-      $hostModel->increment_hits()->stow();
+      $hostModel->increment_hits(TRUE);
     }
 
 		$action_hdl = ucfirst(strtolower($action)) . "Action";
@@ -263,11 +263,12 @@ class LegiscopeBase extends SystemUtility {
   }/*}}}*/
 
   function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
-    if ( FALSE == ( $this->subject_host_hash = UrlModel::get_url_hash($target_url,PHP_URL_HOST) ) ) {
-      $this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do.");
+
+    if ( FALSE == $this->subject_host_hash ) {/*{{{*/
+      $this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do, exiting.");
       header('HTTP/1.0 404 Not Found');
       exit(0);
-    }
+    }/*}}}*/
 
     if ( (C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true')) && (!$network_fetch) ) {/*{{{*/
       if ( file_exists($this->seek_cache_filename) && !$network_fetch ) {
@@ -279,6 +280,7 @@ class LegiscopeBase extends SystemUtility {
         exit(0);
       }
     }/*}}}*/
+
   }/*}}}*/
 
   protected function get_handler_names(UrlModel & $url, array $cluster_urls) {/*{{{*/
@@ -395,8 +397,9 @@ class LegiscopeBase extends SystemUtility {
     $faux_url, $metalink, $debug_dump = FALSE
   ) {/*{{{*/
 
-    $modifier = FALSE; // TRUE to execute HEAD instead of GET
-    $session_cookie = $this->filter_session("CF{$this->subject_host_hash}");
+    $debug_dump         = TRUE;
+    $modifier           = FALSE; // TRUE to execute HEAD instead of GET
+    $session_cookie     = $this->filter_session("CF{$this->subject_host_hash}");
     $session_has_cookie = !is_null($session_cookie);
 
     if ( $debug_dump ) {/*{{{*/
@@ -404,11 +407,12 @@ class LegiscopeBase extends SystemUtility {
       $this->syslog(__FUNCTION__,__LINE__,"(marker)        Target URL: {$target_url}");
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Metalink/faux URL: {$faux_url}");
       $this->syslog(__FUNCTION__,__LINE__,"(marker)     Metalink data: " . gettype($metalink));
-      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) Metalink URL src');
+      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) - - ->');
     }/*}}}*/
 
     $cookie_from_store = NULL;
-    $cookiestore = "./cache/legiscope.{$this->subject_host_hash}.cookiejar";
+
+    $cookiestore = SYSTEM_BASE . "/../cache/legiscope.{$this->subject_host_hash}.cookiejar";
 
     if ( !$session_has_cookie && file_exists($cookiestore) ) {/*{{{*/
       // If a cookie has NOT yet been set, we need to make sure we don't 
@@ -462,8 +466,8 @@ class LegiscopeBase extends SystemUtility {
         $skip_get = FALSE;
       } else {
         $response = CurlUtility::post($url_copy, $metalink, $curl_options);
+        $url_copy = str_replace(' ','%20',$target_url); // Restore URL; CurlUtility methods modify the URL parameter (passed by ref)
         $skip_get = $this->get_after_post();
-        $url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
         $successful_fetch = CurlUtility::$last_error_number == 0;
         if ( $debug_dump ) {
           $fetch_state = $successful_fetch ? "OK" : "FAILED";
@@ -492,31 +496,29 @@ class LegiscopeBase extends SystemUtility {
 
       // If we used a metalink to specify POST action parameters, change to the faux URL first
       if ( is_array($metalink) && !$skip_fake_url_update ) {
-         $url->set_is_fake(TRUE)->set_url($faux_url,FALSE);
+        // Note that the faux URL isn't validated; the second parameter indicates that
+        // the URL is not to be retrieved from backing store, so that it's database id remains the same.
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Temporarily replacing URL '" . $url->get_url() . ". with '{$faux_url}'");
+        $url->set_is_fake(TRUE)->set_url($faux_url,FALSE);
       }
+
       // Split response into header and content parts
       $transfer_info = CurlUtility::$last_transfer_info;
       $http_code = intval(array_element($transfer_info,'http_code',400));
 
-      if ( 400 <= $http_code && $http_code < 500 ) {
+      if ( 400 <= $http_code && $http_code < 500 ) {/*{{{*/
 
         $this->syslog( __FUNCTION__, __LINE__, "(warning) cURL last_transfer_info" );
         $this->recursive_dump($transfer_info, "(warning) HTTP {$http_code}");
         $successful_fetch = FALSE;
 
-      }
+      }/*}}}*/
       else {
-        // Store contents to disk (DB/cache file)
-        $page_content_result = $url->set_pagecontent($response); // No stow() yet
 
-        if ( $debug_dump ) {/*{{{*/
-          $hash = $url->get_content_hash();
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Result [{$hash}] set_pagecontent for " . $url->get_url() );
-          $this->recursive_dump($page_content_result,"(marker)");
-        }/*}}}*/
-
-        $url->set_last_fetch(time());
-        $url->increment_hits()->stow();
+        $url->
+          set_pagecontent_c($response)->
+          set_last_fetch(time())->
+          increment_hits(TRUE); // This only updates the 'hits' attribute
 
         // Take cookie jar contents and place them in our per-host session cookie store
         if ( file_exists($cookiestore) ) {
@@ -532,18 +534,42 @@ class LegiscopeBase extends SystemUtility {
         }
 
         if ( is_array($metalink) && $skip_fake_url_update ) {
+
           $contenthash = sha1($response);
           $faux_url_instance = new UrlModel($faux_url,TRUE);
-          $faux_url_instance->set_pagecontent($response);
-          $faux_stow = $faux_url_instance->set_is_fake(TRUE)->stow();
+          $faux_stow = $faux_url_instance->
+            set_pagecontent_c($response)->
+            set_is_fake(TRUE)->
+            stow();
+
           if ( $debug_dump ) {
-            $this->syslog( __FUNCTION__, __LINE__, "(marker) Stow content " . (0 < intval($faux_stow) ? "OK (id #{$faux_stow})" : "FAILED") . " [{$contenthash}] to fake URL {$faux_url}" );
+            $this->syslog( __FUNCTION__, __LINE__, "(marker) Stow faux URL content " . (0 < intval($faux_stow) ? "OK (id #{$faux_stow})" : "FAILED") . " [content hash {$contenthash}] fake URL {$faux_url}" );
           }
+
           // Override content of target URL (possibly a FORM POST action URL) 
           // with response content.
-          $url->fetch($target_url,'url');
-          $url->set_pagecontent($response);
-          $url->stow();
+					$url->debug_method = FALSE;
+
+					$prior_url_id = $url->get_id();
+					$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Prior ID #{$prior_url_id} " . $url->get_url());
+
+          // Reload content of original URL object from DB
+					$url->set_id(NULL)->fetch(UrlModel::get_url_hash($target_url),'urlhash');
+
+					if ( !$url->in_database() ) {
+            $url_id = $url->set_url_c($target_url,FALSE)->set_pagecontent_c($response)->stow();
+            $action = "Created";
+					} else {
+            $url_id = $url->
+              set_url_c($target_url,FALSE)->
+              set_pagecontent_c($response)->
+              fields(array('pagecontent','update_time','content_length','content_hash','last_modified','content_type','hits','response_header'))->
+              stow();
+            $action = "Matched";
+					}
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - {$action} #{$url_id} {$target_url}");
+
+					$url->debug_method = FALSE;
         }
       }
     }/*}}}*/

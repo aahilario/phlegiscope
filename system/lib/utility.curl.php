@@ -61,7 +61,7 @@ class CurlUtility {/*{{{*/
       CURLOPT_USERAGENT      => LEGISCOPE_USER_AGENT,
     );
     if ($method == 'POST') {
-      syslog( LOG_INFO, "POST Action requested" );
+      syslog( LOG_INFO, "POST Action requested, target URL {$url}" );
       $options[CURLOPT_POST]         = TRUE;
       $options[CURLOPT_POSTFIELDS]   = $data;
     }

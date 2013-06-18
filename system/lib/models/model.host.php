@@ -18,7 +18,7 @@ class HostModel extends UrlModel {
   // END ModelFields
 
   function __construct($url_or_hostname = NULL) {
-		$debug_method = FALSE;
+		$debug_method = TRUE;
     parent::__construct();
     $this->hostname_vc512 = NULL;
     $this->hostname_hash_vc128uniq = NULL;

@@ -416,15 +416,20 @@ EOH
 		return self::get_faux_url_s($url, $metalink);
 	}
 
+	static function decode_metalink_post(& $metalink) {
+		$runtime_metalink_info = filter_post('LEGISCOPE', array());
+		if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
+		if ( is_array($runtime_metalink_info) && is_array($metalink) ) $metalink = array_merge($metalink, $runtime_metalink_info);
+		return $metalink;
+	}
+
   static function get_faux_url_s(UrlModel & $url, & $metalink) {/*{{{*/
     $faux_url = NULL;
     if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
       // The POST action may be a URL which permits a GET action,
       // in which case we need to use a fake URL to store the results of 
       // the POST.  We'll generate the fake URL here. 
-      $runtime_metalink_info = filter_post('LEGISCOPE', array());
-			if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
-      if ( is_array($runtime_metalink_info) && is_array($metalink) ) $metalink = array_merge($metalink, $runtime_metalink_info);
+      $metalink = static::decode_metalink_post($metalink);
       // Prepare faux metalink URL by combining the metalink components
       // with POST target URL query components. After the POST, a new cookie
       // may be returned; if so, it will be used to traverse sibling links
@@ -434,6 +439,12 @@ EOH
       } else if ( 0 < count($metalink) ) {/*{{{*/
 
         $faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
+				$original_url = $url->get_url();
+				$url->fetch(UrlModel::get_url_hash($faux_url),'urlhash');
+				$url->set_url($original_url,FALSE);
+				if ( !$url->in_database() ) {
+					$url->fetch(UrlModel::get_url_hash($original_url),'urlhash');
+				}
 
       }/*}}}*/
       else $metalink = NULL;
@@ -465,7 +476,7 @@ EOH
 
     if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) ) {
       if ( !array_key_exists($url_uuid, $cluster_urldefs) ) {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - EXCEPTION THROW {$url_uuid}");
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - EXCEPTION THROW {$url_uuid}");
         $this->recursive_dump($cluster_urldefs,"(marker) - - - - - - -");
         throw new Exception(__METHOD__ . ": No pager matches UUID {$url_uuid}");
       }

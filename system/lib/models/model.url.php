@@ -26,7 +26,7 @@ class UrlModel extends DatabaseUtility {
   var $is_fake_bool = NULL;
   var $custom_parse_bool = NULL;
   var $prior_content_hash_vc128 = NULL;///'sha1';
-  var $content_hash_vc128 = 'sha1';
+  var $content_hash_vc128 = NULL; 
   // END ModelFields
 
   var $a_UrlModel = NULL;
@@ -499,30 +499,26 @@ class UrlModel extends DatabaseUtility {
   function get_pagecontent() {/*{{{*/
     $headers = $this->get_response_header();
     $is_pdf  = (1 == preg_match('@^application/pdf@i',$this->get_content_type()));
-    // $is_html = (1 == preg_match('@^text/html@i',$this->get_content_type()));
     $cache_filename = $this->get_cache_filename();
-    if ( is_null($this->pagecontent_blob) && file_exists($cache_filename) ) {
-      // $this->recursive_dump(explode("\n",__LINE__);
+    if ( $this->in_database() && is_null($this->pagecontent_blob) && file_exists($cache_filename) ) {
+
+			// If pagecontent_blob is empty, but a cache file exists, then move the contents of that file into DB
+
       $this->syslog(__FUNCTION__,__LINE__,"---------- LOADING {$cache_filename}" );
       $this->pagecontent_blob = @file_get_contents($this->get_cache_filename());
       $length = strlen($this->pagecontent_blob);
       $this->syslog(__FUNCTION__,__LINE__,"---------- LOADED {$length} octets from {$cache_filename}" );
-      if ( is_null($this->pagecontent_blob) && $is_pdf ) {
+      if ( empty($this->pagecontent_blob) && $is_pdf ) {
         $this->syslog(__FUNCTION__, __LINE__, "PDF could not be obtained from {$cache_filename}");
       }
-      $stowresult = $this->stow();
+			if ( $this->in_database() ) $stowresult = $this->fields(array('pagecontent'))->stow();
       $sr_type = gettype($stowresult);
-      $this->syslog(__FUNCTION__,__LINE__,"---------- [{$sr_type} {$stowresult}] LOADED {$length} octets from {$cache_filename}" );
+      $this->syslog(__FUNCTION__,__LINE__,"---------- [{$sr_type} {$stowresult}] LOADED {$length} octets from {$cache_filename} into DB" );
       if ( 'string' == $sr_type && (0 < strlen(intval($stowresult))) ) {
         $unlink_result = unlink($cache_filename);
         $ur_type = gettype($unlink_result);
         $this->syslog(__FUNCTION__,__LINE__,"---------- [{$ur_type} {$unlink_result}] WARNING: Unlinking now-unneeded cache file {$cache_filename}" );
       }
-    }
-    if ( (!is_array($headers) || !(0 < count($headers))) && !empty($this->pagecontent_blob) ) {
-      $this->syslog(__FUNCTION__,__LINE__,"---------- WARNING: Content length " . strlen($this->pagecontent_blob) . " but empty headers" );
-      $this->set_pagecontent($this->pagecontent_blob);
-      $this->stow();
     }
     return $this->pagecontent_blob;
   }/*}}}*/
@@ -580,7 +576,7 @@ class UrlModel extends DatabaseUtility {
   function ensure_custom_parse() {
     if ( !$this->is_custom_parse() ) {
       $this->set_custom_parse(TRUE);
-      if ( $this->in_database() ) $this->stow();
+      if ( $this->in_database() ) $this->fields(array('custom_parse'))->stow();
     }
   }
 

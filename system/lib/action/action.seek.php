@@ -22,7 +22,7 @@ class SeekAction extends LegiscopeBase {
     // Perform an HTTP GET
     ob_start();
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     $json_reply      = array();
     $modifier        = $this->filter_post('modifier');
@@ -63,6 +63,8 @@ class SeekAction extends LegiscopeBase {
       'contenttype'    => 'unknown',
     );
 
+    $content_hash   = $url->get_content_hash();
+
     $faux_url       = GenericParseUtility::get_faux_url_s($url, $metalink);
 
     $urlhash        = $url->get_urlhash();
@@ -74,17 +76,21 @@ class SeekAction extends LegiscopeBase {
       : "Reloading"
       ;
 
-    if ( $debug_method ) {/*{{{*/
+    if ( ( $debug_method ) || !is_null($faux_url) ) {/*{{{*/
+
       $cached_before_retrieval = $retrieved ? "existing" : "uncached";
       $this->syslog( __FUNCTION__, __LINE__, "(marker) " . ($network_fetch ? "Network Fetch" : "Parse") . " {$cached_before_retrieval} link, invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
-    }/*}}}*/
 
-    if ( ( $debug_method ) || !is_null($faux_url) ) {/*{{{*/
       $in_db = $retrieved ? 'in DB' : 'uncached';
 			$faux_url_type = gettype($faux_url);
-      if ( !is_null($faux_url) ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Faux URL present - {$faux_url}");
-      $this->syslog(__FUNCTION__,__LINE__, "(marker) Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url} from components, mapping {$faux_url} <- {$target_url}" );
+
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)   Mapped real URL {$target_url} -> faux URL {$faux_url}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) Instance contains " . $url->get_url() );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Instance content " . $url->get_content_hash() );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Original content " . $content_hash );
       $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) Metalink URL src');
+
     }/*}}}*/
 
 		// FIXME: Modify DatabaseUtility to permit update of only a single attribute, rather than updating entire record.
@@ -93,10 +99,12 @@ class SeekAction extends LegiscopeBase {
     if ( $network_fetch ) {/*{{{*/
 
       $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method );
+
       $action = $retrieved
         ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
         : "WARNING Failed to retrieve"
         ;
+
       if (!$retrieved) {/*{{{*/
 
         $json_reply['error']          = CurlUtility::$last_error_number;
@@ -105,7 +113,7 @@ class SeekAction extends LegiscopeBase {
         $json_reply['defaulttab']     = 'original';
         $json_reply['retainoriginal'] = TRUE;
         $this->syslog( __FUNCTION__, __LINE__, "WARNING: Failed to retrieve {$target_url}" );
-        if (TRUE || $debug_method) $this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
+        $this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
 
       }/*}}}*/
 
@@ -150,9 +158,18 @@ class SeekAction extends LegiscopeBase {
 
 			$contenttype = array_element($headers,'content-type','unspecified');
       $subject_url = is_null($faux_url) ? $target_url : $faux_url;
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response (content-type: {$contenttype}) from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
 
-      if ( !is_null($faux_url) ) {/*{{{*/
+      if ( $debug_method || $network_fetch ) {/*{{{*/
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response (content-type: {$contenttype}) from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) - Subject URL: {$subject_url}"); 
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) -    Faux URL: {$faux_url}"); 
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) -  Target URL: {$target_url}"); 
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) - Working URL: " . $url->get_url());
+      }/*}}}*/
+
+      if ( !(0 < strlen($url->get_url())) && (0 < strlen($subject_url))) $url->set_url($subject_url,FALSE);
+
+      if ( !is_null($faux_url) && !empty($target_url) ) {/*{{{*/
         // If we've loaded content from an ephemeral URL, 
         // use the POST target page action for generating links,
         // rather than the fake URL.
@@ -181,7 +198,7 @@ class SeekAction extends LegiscopeBase {
 
           $is_custom_parse = $url->is_custom_parse();
 
-          if ( $is_custom_parse ) $this->syslog( __FUNCTION__, __LINE__, "(warning) Custom parse" );
+          if ( $is_custom_parse && $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) Custom parse" );
 
 					$parser = new GenericParseUtility();
 
@@ -282,7 +299,7 @@ class SeekAction extends LegiscopeBase {
         $_SESSION['referrer'] = $target_url;
       }/*}}}*/
       else {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Freeze referrer {$referrer} for " . $url->get_url());
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Freeze referrer {$referrer} for " . $url->get_url());
       }/*}}}*/
 
       $final_body_content = preg_replace(

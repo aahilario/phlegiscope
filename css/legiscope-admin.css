@@ -438,6 +438,11 @@ div.committee-contact-block {
 /** Senate listing mode switch links **/
 span.listing-mode-switcher {
 	padding: 3px;
-	margin: 3px;
+	margin: 3px 6px 3px 0;
 	background-color: #EEE;
 }
+
+li > a.invalidated, li.invalidated {
+  color: #F22;
+}
+

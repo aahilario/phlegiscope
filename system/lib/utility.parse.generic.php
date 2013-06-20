@@ -190,7 +190,10 @@ class GenericParseUtility extends RawparseUtility {
       $link_data = array(
         'value'    => $this->current_tag['attrs']['VALUE'],
         'text'     => join(' ',$this->current_tag['cdata']),
+        'selected' => strtolower(nonempty_array_element($this->current_tag['attrs'],'SELECTED')) == 'selected' ? '1' : '0', 
+        'seq'      => array_element($this->current_tag['attrs'],'seq'),
       );
+      
       $this->add_to_container_stack($link_data);
     }
     $this->push_tagstack();
@@ -438,11 +441,13 @@ EOH
         $metalink = NULL;
       } else if ( 0 < count($metalink) ) {/*{{{*/
 
-        $faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
-				$original_url = $url->get_url();
+        $original_id  = $url->get_id();
+        $original_url = $url->get_url();
+        $faux_url     = UrlModel::construct_metalink_fake_url($url, $metalink);
 				$url->fetch(UrlModel::get_url_hash($faux_url),'urlhash');
-				$url->set_url($original_url,FALSE);
-				if ( !$url->in_database() ) {
+				if ( $url->in_database() ) {
+          $url->set_url_c($original_url,FALSE)->set_id($original_id);
+        } else {
 					$url->fetch(UrlModel::get_url_hash($original_url),'urlhash');
 				}
 
@@ -453,6 +458,7 @@ EOH
   }/*}}}*/
 
   function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL, $insert_p1_link = FALSE) {/*{{{*/
+
     $debug_method    = FALSE;
     $check_cache     = TRUE;
     $links           = array();
@@ -474,60 +480,60 @@ EOH
     //       361d558f79a9d15a277468b313f49528 => 15|14|13
     //    whole_url => http://www.senate.gov.ph/lis/pdf_sys.aspx?type=republic_act&congress=({PARAMS})
 
-    if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) ) {
+    if ( is_array($cluster_urldefs) && ( 0 < count($cluster_urldefs) ) ) {/*{{{*/
       if ( !array_key_exists($url_uuid, $cluster_urldefs) ) {
         $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - EXCEPTION THROW {$url_uuid}");
         $this->recursive_dump($cluster_urldefs,"(marker) - - - - - - -");
         throw new Exception(__METHOD__ . ": No pager matches UUID {$url_uuid}");
       }
-      foreach( $cluster_urldefs as $url_uid => $urldef ) {/*{{{*/
-        if ( !is_null($url_uuid) && !($url_uid == $url_uuid ) ) continue;
-        $counter = 0;
-        $have_pullin_link = FALSE;
-        foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
-          $parameters = array_flip(explode('|', $parameters));
-        if ($insert_p1_link && !array_key_exists(1, $parameters) ) $parameters[1] = 1;
-        ksort($parameters);
-        $parameters = array_keys($parameters);
-        foreach ( $parameters as $parameter ) {/*{{{*/
-          $counter++;
-          $link_class = array("legiscope-remote");
-          $href = str_replace('({PARAMS})',"{$parameter}","{$urldef['whole_url']}");
-          $urlhash = UrlModel::get_url_hash($href);
-          if ( $check_cache ) {/*{{{*/
-            $senate_bill_url->fetch($urlhash,'urlhash');
-            $is_in_cache = $senate_bill_url->in_database();
-            if ( $is_in_cache ) $link_class[] = 'cached';
-            if ( ($counter >= 5 || !$is_in_cache) && !$have_pullin_link ) {
-              $have_pullin_link = TRUE;
-            }
-          }/*}}}*/
-          if ( !is_null($parent_state) ) {/*{{{*/
-            // Client-side JS sees a selector class attribute 'fauxpost'
-            $link_class = array("fauxpost");
-            $link_components = UrlModel::parse_url($href);
-            $query_parameters = array_merge(
-              array('_' => '1'),
-              $parent_state,
-              UrlModel::decompose_query_parts($link_components['query'])
-            ); 
-            $senate_bill_url->set_url($href,FALSE);
-            // $this->recursive_dump($query_parameters,"(marker) A");
-            $link = $this->get_faux_url($senate_bill_url,$query_parameters);
-            $links[UrlModel::get_url_hash($link)] = $link;  
-            $link = UrlModel::create_metalink($parameter, $href, $query_parameters, join(' ', $link_class));
-          }/*}}}*/
-          else $links[$urlhash] = $href;
-          $link_class = join(' ',$link_class);
-          if ( is_null($parent_state) ) $link = <<<EOH
+			foreach( $cluster_urldefs as $url_uid => $urldef ) {/*{{{*/
+				if ( !is_null($url_uuid) && !($url_uid == $url_uuid ) ) continue;
+				$counter = 0;
+				$have_pullin_link = FALSE;
+				foreach ( $urldef['query_components'] as $parameters ) {/*{{{*/// Loop over variable query components
+					$parameters = array_flip(explode('|', $parameters));
+          if ($insert_p1_link && !array_key_exists(1, $parameters) ) $parameters[1] = 1;
+          ksort($parameters);
+          $parameters = array_keys($parameters);
+          foreach ( $parameters as $parameter ) {/*{{{*/
+            $counter++;
+            $link_class = array("legiscope-remote");
+            $href = str_replace('({PARAMS})',"{$parameter}","{$urldef['whole_url']}");
+            $urlhash = UrlModel::get_url_hash($href);
+            if ( $check_cache ) {/*{{{*/
+              $senate_bill_url->fetch($urlhash,'urlhash');
+              $is_in_cache = $senate_bill_url->in_database();
+              if ( $is_in_cache ) $link_class[] = 'cached';
+              if ( ($counter >= 5 || !$is_in_cache) && !$have_pullin_link ) {
+                $have_pullin_link = TRUE;
+              }
+            }/*}}}*/
+            if ( !is_null($parent_state) ) {/*{{{*/
+              // Client-side JS sees a selector class attribute 'fauxpost'
+              $link_class = array("fauxpost");
+              $link_components = UrlModel::parse_url($href);
+              $query_parameters = array_merge(
+                array('_' => '1'),
+                $parent_state,
+                UrlModel::decompose_query_parts($link_components['query'])
+              ); 
+              $senate_bill_url->set_url($href,FALSE);
+              // $this->recursive_dump($query_parameters,"(marker) A");
+              $link = $this->get_faux_url($senate_bill_url,$query_parameters);
+              $links[UrlModel::get_url_hash($link)] = $link;  
+              $link = UrlModel::create_metalink($parameter, $href, $query_parameters, join(' ', $link_class));
+            }/*}}}*/
+            else $links[$urlhash] = $href;
+            $link_class = join(' ',$link_class);
+            if ( is_null($parent_state) ) $link = <<<EOH
 <span class="link-faux-menuitem"><a class="{$link_class}" href="{$href}" id="{$urlhash}">{$parameter}</a></span>
 
 EOH;
-          $pager_links[] = $link;
-        }/*}}}*/
-        }/*}}}*/
-      }/*}}}*/
-    }
+            $pager_links[] = $link;
+          }/*}}}*/
+				}/*}}}*/
+			}/*}}}*/
+    }/*}}}*/
     return $pager_links;
   }/*}}}*/
 
@@ -864,8 +870,7 @@ EOH
 		// Reorder array
 		$q = array_combine(
 			array_map(create_function('$a','return array_element($a,"seq");'),$q),
-			array_map(create_function('$a','return array("url" => array_element($a,"url"), "text" => array_element($a,"text"), "cached" => array_element($a,"cached"));'),$q)
-			// array_map(create_function('$a','return array("url" => $a["url"], "text" => $a["text"], "cached" => !array_key_exists("_", $a));'),$q)
+      array_map(create_function('$a','return array("url" => array_element($a,"url"), "text" => array_element($a,"text"), "cached" => array_element($a,"cached"), "inv" => array_element($a,"inv"));'),$q)
 		);
 		krsort($q);
 	}/*}}}*/

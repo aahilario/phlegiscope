@@ -49,12 +49,28 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     );
     $senate_bill_recordparts = array(
 			'sn' => NULL,
+      'title' => NULL,
 			'filing_date' => NULL,
       'doc_url' => NULL,
       'comm_report_url' => NULL,
       'legislative_history' => array(),
 			'senator' => array(),
+      'invalidated' => FALSE,
     );
+
+    /*
+     * <div class="lis_doctitle" seq="111">
+     * <p class="h1_bold" seq="112">UNDERPRIVILEGED COLLEGE STUDENTS' DISCOUNTS ACT</p>
+     * </div>
+     */
+
+    $doctitle = $containers;
+    $this->filter_nested_array($doctitle,'children[tagname*=div][class*=lis_doctitle]',0);
+    $doctitle = array_values(nonempty_array_element($doctitle,0,array()));
+    $doctitle = nonempty_array_element($doctitle,0,array());
+    $doctitle = nonempty_array_element($doctitle,'text');
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - -- - - -- Document: {$doctitle}");
+    $senate_bill_recordparts['title'] = $doctitle;
 
 		// Obtain URLs of downloadable content
 		$downloadable = $containers;
@@ -125,7 +141,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 
 		$senator = new SenatorDossierModel();
 
-		if ( is_null($date) ) {
+		if ( is_null($date) && $debug_method ) {
 			$senator->syslog(__FUNCTION__,__LINE__,"(warning) - - - Unable to parse date '{$filing_date_orig}'");
 		}
 
@@ -201,9 +217,8 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 
 		//unset($senate_bill_recordparts['legislative_history']);
 		//unset($this->filtered_content['legislative_history']);
-		if ( TRUE || $debug_method ) {
+		if ( $debug_method ) {
 			$this->syslog(__FUNCTION__,__LINE__,'(warning) -- -- - -- Final parsed structure');
-			//$this->syslog(__FUNCTION__,__LINE__,'(warning) -- -- - -- (removed [legislative_history] key before return)');
 			$this->recursive_dump($senate_bill_recordparts,'(warning) -- - - -');
 		}
 
@@ -388,6 +403,24 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 		if ($debug_method) $this->recursive_dump($containerset, "(marker) - -- F -- C");
 	}/*}}}*/
 
+  /** Methods shared by derived classes **/
+
+	function modify_congress_session_item_markup(& $pagecontent, $session_select) {/*{{{*/
+		if ( is_array($session_select) ) {
+			$alt_switcher = array();
+			$this->recursive_dump($session_select, "(marker) - - - - Mode switcher");
+			foreach ( $session_select as $switcher ) {
+				$optval   = array_element($switcher,'optval');
+				$markup   = array_element($switcher,'markup');
+				$linktext = array_element($switcher,'linktext');
+				$alt_switcher[] = <<<EOH
+<span class="listing-mode-switcher" id="listing-mode-{$optval}">{$markup}</span>
+EOH;
+			}
+			$switcher = join(' ', $alt_switcher);
+			$pagecontent = str_replace('[SWITCHER]', $switcher, $pagecontent);
+		}
+	}/*}}}*/
 
 }
 

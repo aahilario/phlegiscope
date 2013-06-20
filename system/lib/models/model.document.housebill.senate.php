@@ -16,7 +16,7 @@ class SenateHousebillDocumentModel extends SenateDocCommonDocumentModel {
   var $sn_vc64 = NULL;
   var $last_fetch_utx = NULL;
   var $congress_tag_vc8 = NULL;
-  var $session_tag_vc8 = NULL;
+  // var $session_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
   var $urlid_int11 = NULL;
   var $doc_url_vc256 = NULL;
@@ -24,17 +24,25 @@ class SenateHousebillDocumentModel extends SenateDocCommonDocumentModel {
 	var $subjects_vc1024 = NULL;
   var $comm_report_url_vc256 = NULL;
   var $comm_report_info_vc256 = NULL;
+  var $invalidated_bool = NULL;
+	var $legislative_history_vc8192 = NULL;
 
 	var $main_referral_comm_vc64 = NULL;
+	var $secondary_committee_vc64 = NULL;
 	var $significance_vc16 = NULL;
 
 	var $journal_SenateJournalDocumentModel = NULL;
+  var $committee_SenateCommitteeModel = NULL;
+	var $senator_SenatorDossierModel = NULL;
 
 	function __construct() {
 		parent::__construct();
 		//$this->dump_accessor_defs_to_syslog();
 		//$this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
 	}
+
+	function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
+	function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
 
 	function & set_text($v) { $this->title_vc256 = $v; return $this; }
 	function get_text($v = NULL) { if (!is_null($v)) $this->set_title($v); return $this->title_vc256; }
@@ -87,9 +95,14 @@ class SenateHousebillDocumentModel extends SenateDocCommonDocumentModel {
   function & set_main_referral_comm($v) { $this->main_referral_comm_vc64 = $v; return $this; }
   function get_main_referral_comm($v = NULL) { if (!is_null($v)) $this->set_main_referral_comm($v); return $this->main_referral_comm_vc64; }
 
+	function & set_secondary_committee($v) { $this->secondary_committee_vc64 = $v; return $this; }
+	function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc64; }
+
+	function & set_legislative_history($v) { $this->legislative_history_vc8192 = $v; return $this; }
+	function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_vc8192; }
+
+
   function & set_significance($v) { $this->significance_vc16 = $v; return $this; }
   function get_significance($v = NULL) { if (!is_null($v)) $this->set_significance($v); return $this->significance_vc16; }
 
-
 }
-

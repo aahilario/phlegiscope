@@ -52,7 +52,7 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
 		$journal_head   = $journal_parser->filter_nested_array($journal_data,'#[tag*=HEAD]',0);
 		$metadata       = $journal_parser->filter_nested_array($metadata,'#metadata[tag*=META]',0);
 
-    $this->syslog(__FUNCTION__, __LINE__, "(marker) Stowing Journal No. {$journal_head['sn']} " . (is_null($id) ? "missing" : "cached #{$id}"));
+    $this->syslog(__FUNCTION__, __LINE__, "(marker) Stowing Journal No. {$journal_head['sn']}");
 
 		$id = $this->fetch_by_congress_sn( $metadata['congress'], $metadata['short_session'], $journal_head['sn'] );
 

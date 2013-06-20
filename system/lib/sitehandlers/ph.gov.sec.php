@@ -15,19 +15,6 @@ class SecGovPh extends SeekAction {
     parent::__construct();
   }
 
-  function proxyform() {/*{{{*/
-    $json_reply = parent::proxyform();
-    $response = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {
-      file_put_contents($this->seek_cache_filename, $response);
-    }
-    echo $response;
-    exit(0);
-  }/*}}}*/
-
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) -- Invoked for " . $urlmodel->get_url() );
@@ -422,7 +409,9 @@ EOH;
             $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- -+- POST {$form_url}");
             $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - Value {$value}");
             $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - Text {$text}");
-            $this->recursive_dump($metalink_data, "(marker) ----- ---- --- -- -");
+            if ( $debug_method ) {
+              $this->recursive_dump($metalink_data, "(marker) ----- ---- --- -- -");
+            }
           }
 
           // Construct main link
@@ -441,17 +430,17 @@ EOH;
 var timerInstance = null;
 
 function seek_uncached_entry() {
-  $('ul[id=psic-level-0]').find('a[class*=uncached]').first().each(function(){
-    var content_id = /^switch-/.test($(this).attr('id')) ? ('content-'+$(this).attr('id').replace(/^switch-/,'')) : null;
-    var content = $('span[id='+content_id+']').html();
-    $('#metalink').html(content);
-    load_content_window($(this).attr('href'), true,$(this));
-    $('#metalink').html('');
-    $(this).removeClass('uncached').addClass('cached');
+  jQuery('ul[id=psic-level-0]').find('a[class*=uncached]').first().each(function(){
+    var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
+    var content = jQuery('span[id='+content_id+']').html();
+    jQuery('#metalink').html(content);
+    load_content_window(jQuery(this).attr('href'), true,jQuery(this));
+    jQuery('#metalink').html('');
+    jQuery(this).removeClass('uncached').addClass('cached');
   });
 }
 
-$(function(){
+jQuery(document).ready(function(){
   timerInstance = setTimeout(function(){
     seek_uncached_entry();
   },500);
@@ -478,8 +467,10 @@ EOH;
 
           $fake_url          = UrlModel::construct_metalink_fake_url($form_url, $descend_hierarchy);
           $text              = '<img src="images/button-down.gif" alt="&gt;" >';
+          if ( $debug_method ) {
             $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - Hier {$text}");
             $this->recursive_dump($descend_hierarchy, "(marker) ----- ---- --- -- -");
+          }
           $descend_hierarchy = UrlModel::create_metalink($text, $form_url, $descend_hierarchy, $link_properties);
 
           // Construct sub-link
@@ -533,22 +524,22 @@ var timerInstance = null;
 
 function seek_uncached_entry() {
   if ( typeof timerInstance != 'null' ) clearTimeout(timerInstance);
-  if ( $('input[id=spider]').prop('checked') ) 
-  $('ul[id=psic-level-0]').find('a[class*=uncached]').first().each(function(){
-    var content_id = /^switch-/.test($(this).attr('id')) ? ('content-'+$(this).attr('id').replace(/^switch-/,'')) : null;
-    var content = $('span[id='+content_id+']').html();
-    $('#metalink').html(content);
-    load_content_window($(this).attr('href'), $('input[id=seek]').prop('checked'),$(this));
-    $('#metalink').html('');
-    $(this).removeClass('uncached').addClass('cached');
+  if ( jQuery('input[id=spider]').prop('checked') ) 
+  jQuery('ul[id=psic-level-0]').find('a[class*=uncached]').first().each(function(){
+    var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
+    var content = jQuery('span[id='+content_id+']').html();
+    jQuery('#metalink').html(content);
+    load_content_window(jQuery(this).attr('href'), jQuery('input[id=seek]').prop('checked'),jQuery(this));
+    jQuery('#metalink').html('');
+    jQuery(this).removeClass('uncached').addClass('cached');
     timerInstance = setTimeout((function(){seek_uncached_entry();}),1200);
   });
   else {
-    window.status = 'Spider switch: '+$('input[id=spider]').prop('checked'); 
+    window.status = 'Spider switch: '+jQuery('input[id=spider]').prop('checked'); 
   }
 }
 
-$(function(){
+jQuery(document).ready(function(){
   timerInstance = setTimeout(function(){
     seek_uncached_entry();
   },5000);
@@ -562,11 +553,11 @@ EOH;
 </div>
 
 <script type="text/javascript">
-$(function(){
+jQuery(document).ready(function(){
   initialize_remote_links();
-  $('div[id=original]').find('a[class*=legiscope-remote]').each(function(){
-    if ( /{$parser->trigger_linktext}/.test($(this).html()) ) {
-      $(this).addClass('hilight');
+  jQuery('div[id=original]').find('a[class*=legiscope-remote]').each(function(){
+    if ( /{$parser->trigger_linktext}/.test(jQuery(this).html()) ) {
+      jQuery(this).addClass('hilight');
     }
   });
 });
@@ -803,7 +794,7 @@ EOH;
 </div>
 
 <script type="text/javascript">
-$(function(){
+jQuery(document).ready(function(){
   initialize_remote_links();
 });
 </script>
@@ -829,18 +820,18 @@ EOH;
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
 
     $pagecontent = join('',$common->get_filtered_doc());
+    $containers = $common->get_containers('children[tagname=frameset]');
 
-    if (0) {
-    // Dump entire structure
-    $this->recursive_dump(($containers = $common->get_containers(
-    )),'(marker) '. __LINE__ .'----- ---- --- -- - - Filter page ALL --');
+    if (0) {/*{{{*/
+      // Dump entire structure
+      $this->recursive_dump(($containers),'(marker) '. __LINE__ .'----- ---- --- -- - - Filter page ALL --');
 
-    // Load frameset contents
-    $this->recursive_dump(($containers = $common->get_containers(
-      //'#[tagname=frameset]'
-      'children[tagname=frameset]'
-    )),'(marker) '. __LINE__ .' Filter page frames --');
-    }
+      // Load frameset contents
+      $this->recursive_dump(($containers = $common->get_containers(
+        //'#[tagname=frameset]'
+        'children[tagname=frameset]'
+      )),'(marker) '. __LINE__ .' Filter page frames --');
+    }/*}}}*/
 
     $is_frameset_container = count($containers) > 0;
 
@@ -969,13 +960,13 @@ EOH;
       // - Logout: /iview/logoutClient.sx
       $pagecontent .= <<<EOH
 <script type="text/javascript">
-$('form[name=jvmForm]').remove();
-$('form[name=clientForm]').submit(function(e){
-  var url = $(this).attr('action');
-  var data = $('input').serializeArray();
-  var modifier = $('#seek').prop('checked');
+jQuery('form[name=jvmForm]').remove();
+jQuery('form[name=clientForm]').submit(function(e){
+  var url = jQuery(this).attr('action');
+  var data = jQuery('input').serializeArray();
+  var modifier = jQuery('#seek').prop('checked');
   e.preventDefault();
-  $.ajax({
+  jQuery.ajax({
     type     : 'POST',
     url      : '/proxyform/',
     data     : { url: url, data : data, modifier : modifier },
@@ -991,11 +982,11 @@ $('form[name=clientForm]').submit(function(e){
   });
   return false;
 });
-$('input[class*=clsText]').each(function(){
-  $(this).keyup(function(e){
-    if ($(e).attr('keyCode') == 13) {
+jQuery('input[class*=clsText]').each(function(){
+  jQuery(this).keyup(function(e){
+    if (jQuery(e).attr('keyCode') == 13) {
       e.preventDefault();
-      $('form[name=clientForm]').submit();
+      jQuery('form[name=clientForm]').submit();
       return false;
     }
     return true;

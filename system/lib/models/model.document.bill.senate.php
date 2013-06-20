@@ -25,6 +25,7 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 	var $subjects_vc1024 = NULL;
   var $comm_report_url_vc256 = NULL;
   var $comm_report_info_vc256 = NULL;
+  var $invalidated_bool = NULL;
 	var $filing_date_dtm = NULL;
 	var $legislative_history_vc8192 = NULL;
 
@@ -46,6 +47,9 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function __construct() {
     parent::__construct();
   }
+
+	function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
+	function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
 
   function & set_text($v) { return $this; }
   function get_text($v = NULL) { if (!is_null($v)) $this->set_text($v); return NULL; }

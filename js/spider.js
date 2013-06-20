@@ -27,11 +27,11 @@ function remove_wait_notification() {
   jQuery('#search-wait').children().remove();
 }
 
-function preload_worker() {
+function preload_worker_original() {
   if ( typeof preload_a != 'null' && preload_n < preload_a.length ) {
-    var hashpair = preload_a[preload_n++];
-    var hash = hashpair.hash;
-    var live = jQuery('#seek').prop('checked') ? jQuery('#seek').prop('checked') : hashpair.live;
+    var hashpair   = preload_a[preload_n++];
+    var hash       = hashpair.hash;
+    var live       = jQuery('#seek').prop('checked') ? jQuery('#seek').prop('checked') : hashpair.live;
     var linkstring = jQuery('a[id='+hash+']').attr('href');
 
     jQuery('a[id='+hash+']').addClass('uncached').removeClass('cached');
@@ -59,6 +59,38 @@ function preload_worker() {
     });
   } 
 }
+
+function preload_worker() {
+
+  var hash       = jQuery("div[id=original]").find('a[class*=legiscope-remote][class*=uncached]').first().attr('id');
+  var live       = jQuery('#seek').prop('checked');
+  var linkstring = jQuery('a[id='+hash+']').attr('href');
+
+  jQuery('a[id='+hash+']').addClass('uncached').removeClass('cached');
+
+  jQuery.ajax({
+    type     : 'POST',
+    url      : '/seek/',
+    data     : { url : linkstring, proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
+    cache    : false,
+    dataType : 'json',
+    async    : true,
+    beforeSend : (function() {
+      display_wait_notification();
+      jQuery('#doctitle').html('Loading '+linkstring);
+    }),
+    complete : (function(jqueryXHR, textStatus) {
+      remove_wait_notification();
+    }),
+    success  : (function(data, httpstatus, jqueryXHR) {
+      jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
+      if ( data && data.original ) replace_contentof('original',data.original);
+      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      setTimeout((function(){preload_worker();}),100);
+    })
+  });
+}
+
 function preload(components) {
   jQuery.ajax({
     type     : 'POST',
@@ -160,7 +192,10 @@ function initialize_linkset_clickevents(linkset,childtag) {
 }
 
 function std_seek_response_handler(data, httpstatus, jqueryXHR) {
-	var response = data.error ? data.message : data.linkset;
+
+  if (typeof data == 'null') return;
+
+	var response = data && data.error ? data.message : data.linkset;
 	var markup = data.markup;
 	var responseheader = data.responseheader;
 	var referrer = data.referrer;

@@ -18,7 +18,7 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
   function parse_activity_summary(array & $journal_data) {/*{{{*/
 
-    $debug_method = FALSe;
+    $debug_method = FALSE;
     $sn = NULL;
 
     // $this->activity_summary is populated by the parser
@@ -436,6 +436,5 @@ EOH;
     $this->stack_to_containers();
     return TRUE;
   }/*}}}*/
-
 
 }

@@ -1339,16 +1339,17 @@ EOS;
             ;
         }
 				// Reconstruct the attribute / field name, as declared in the Model definition.
+				$plain_attrname = $this->attrlist[$rescol]['name'];
         $attrname = $rescol == 'id'
           ? 'id'
-          : "{$this->attrlist[$rescol]['name']}_{$this->attrlist[$rescol]['type']}"
+          : "{$plain_attrname}_{$this->attrlist[$rescol]['type']}"
           ;
         if ( ('___' == $attrname) ) {
           $this->syslog(__FUNCTION__,__LINE__,"(warning) - -- - Failed to assign value for [{$rescol}]");
 					$assignment_failures |= TRUE;
         } else {
           $value = $result['values'][0][$resattridx]; // A single-record fetch reduces nest depth by 1
-          $this->query_result[$attrname] = $value; 
+          $this->query_result[$plain_attrname] = $value; 
           $this->$attrname = $value; 
         }
         if ( $this->debug_operators ) { 
@@ -1522,10 +1523,12 @@ EOS;
   }/*}}}*/
 
   function & limit(int $n, int $offset = NULL) {/*{{{*/
-    $this->limit = array(
-      'n' => $n,
-      'o' => $offset
-    );
+    $this->limit = is_null($n)
+      ? array()
+      : array(
+        'n' => $n,
+        'o' => $offset
+      );
     return $this;
   }/*}}}*/
 

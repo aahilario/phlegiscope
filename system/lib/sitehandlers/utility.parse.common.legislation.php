@@ -23,7 +23,8 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     if ( $debug_method ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - Input: Session {$session}");
-      $this->recursive_dump( $session_select, "(marker) - - - - -" );
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - -  Pager UUID: {$pager_uuid}");
+      // $this->recursive_dump( $session_select, "(marker) - - - - -" );
     }
 
     $url_iterator = new UrlModel();
@@ -35,11 +36,18 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 			: array_filter(array_map(create_function(
 					'$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? $a["metalink"] : NULL;'
 				), $session_select));
+
     $linktext = method_exists($this,'session_select_to_linktext')
 			? $this->session_select_to_linktext($session_select, $session)
 			: array_filter(array_map(create_function(
 					'$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? str_replace($a["linktext"],$a["optval"],$a["markup"]) : NULL;'
 				), $session_select));
+
+    $active = $session_select;
+    $this->filter_nested_array($active,"optval[active=1]",0);
+    $active = nonempty_array_element($active,0,'----') == $session;
+
+    if ( $active ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Processing active session selector now: {$session}");
 
     if ( $debug_method ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - + + Session data for {$session}");
@@ -51,9 +59,9 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     if ( is_array($session_data) ) {/*{{{*/
       // Extract the pager for the current Congress and Session series 
       $extracted_links = array();
-      $session_data    = array_values($session_data);
       // Get zeroth element
-      $session_data    = array_element($session_data,0,$session_data);
+      $session_data    = array_values($session_data);
+      $session_data    = nonempty_array_element($session_data,0,$session_data);
       $url_iterator->set_url($urlmodel->get_url(),FALSE);
       $cached_url      = $this->get_faux_url($url_iterator, $session_data);
       $in_db           = $url_iterator->set_url($cached_url,TRUE);
@@ -83,10 +91,14 @@ class LegislationCommonParseUtility extends GenericParseUtility {
         ///*}}}*/
         if ( is_array($cluster_urls) ) 
           $per_congress_pager = $this->extract_pager_links(
-            $extracted_links, $cluster_urls,
+            $extracted_links,
+            $cluster_urls,
             $pager_uuid,
-            $session_data,
-            TRUE
+            // Set _ := NOSKIPGET to execute a POST and then a GET
+            //       := SKIPGET to execute just a POST action
+            //       := 1 to execute just a GET action
+            array_merge($session_data,$active ? array() : array('_' => 'NOSKIPGET')),
+            TRUE // 
           );
         $per_congress_pager = join('', $per_congress_pager);
         $linktext = array_values($linktext);
@@ -113,23 +125,23 @@ class LegislationCommonParseUtility extends GenericParseUtility {
                 '& $a, $k, $s', '$h = UrlModel::get_url_hash($a["url"]); if ( array_key_exists($h, $s) ) $a["url"] = NULL; else $a["hash"] = $h;'),
               $r
             );
-              // Remove entries where the URL has been nulled out
-              $found_links = array_filter(array_map(create_function(
-                '$a', 'return is_null($a["url"]) ? NULL : $a;'
-              ),$found_links));
-              // Make the URL hash be the key for this array of links
-              $r_hashes = array_map(create_function('$a','return $a["hash"];'), $found_links);
-              $found_links = array_values(array_map(create_function('$a','return array("_" => "_", "url" => $a["url"],"text" => $a["text"]);'), $found_links));
-              if ( is_array($r_hashes) && is_array($found_links) && (0 < count($r_hashes)) && (count($r_hashes) == count($found_links)) ) {
-                $found_links = array_combine($r_hashes,$found_links);
-                if ( is_array($found_links) && (0 < count($found_links)) ) $q = array_merge($q, $found_links);
-              }
-              $found_links = NULL;
+            // Remove entries where the URL has been nulled out
+            $found_links = array_filter(array_map(create_function(
+              '$a', 'return is_null($a["url"]) ? NULL : $a;'
+            ),$found_links));
+            // Make the URL hash be the key for this array of links
+            $r_hashes = array_map(create_function('$a','return $a["hash"];'), $found_links);
+            $found_links = array_values(array_map(create_function('$a','return array("_" => "_", "url" => $a["url"],"text" => $a["text"], "inv" => $a["inv"]);'), $found_links));
+            if ( is_array($r_hashes) && is_array($found_links) && (0 < count($r_hashes)) && (count($r_hashes) == count($found_links)) ) {
+              $found_links = array_combine($r_hashes,$found_links);
+              if ( is_array($found_links) && (0 < count($found_links)) ) $q = array_merge($q, $found_links);
             }
-          }/*}}}*/
+            $found_links = NULL;
+          }
+        }/*}}}*/
         //////////////////////////////////////////////////////////////
       }/*}}}*/
-      else  if ( !is_null($pager_uuid) && is_array($this->cluster_urldefs) && array_key_exists($pager_uuid,$this->cluster_urldefs) ) {/*{{{*/
+      else if ( !is_null($pager_uuid) && is_array($this->cluster_urldefs) && array_key_exists($pager_uuid,$this->cluster_urldefs) ) {/*{{{*/
         $linktext = array_values($linktext);
         $session = array_element($linktext,0,$linktext);
         $per_congress_pager = $this->extract_pager_links(
@@ -142,8 +154,168 @@ class LegislationCommonParseUtility extends GenericParseUtility {
         $per_congress_pager = join('', $per_congress_pager);
       }/*}}}*/
     }/*}}}*/
+
     return $per_congress_pager;
   }/*}}}*/
+
+	function generate_links_and_bounds(& $documents, $url_fetch_regex, $link_regex) {/*{{{*/
+
+    $debug_method = FALSE;
+    // Now let's update the child links collection, using the database 
+    if ( is_array($url_fetch_regex) ) {
+      $documents->
+        where(array('AND' => $url_fetch_regex))->
+        recordfetch_setup();
+    } else {
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) - -  - - URL Match regex is [{$link_regex}]");
+      $documents->where(array('AND' => array(
+        'url' => 'REGEXP \''. $url_fetch_regex .'\'' 
+      )))->recordfetch_setup();
+    }
+
+    $child_collection = array();
+    $document         = NULL;
+    $bounds           = array();
+		$pagers           = array();
+    $total_records    = 0;
+    // Construct the nested array, compute span of serial numbers.
+    // Pager links ('[PAGERx]') must be replaced 
+		$can_invalidate = method_exists($documents,'get_invalidated');
+    $have_inv = 0;
+    while ( $documents->recordfetch($document) ) {/*{{{*/
+      $datum_parts = array();
+      $text        = array_element($document,'sn');
+      $url_orig    = array_element($document,'url');
+      $url         = urldecode($url_orig);
+      preg_match("@{$link_regex}@i", $url, $datum_parts);
+      $congress    = array_element($document,'congress_tag'); // $datum_parts[1];
+      $srn         = intval(array_element($datum_parts,2,0));
+      $alt_srn     = NULL;
+      if ( $srn > C('LEGISCOPE_SENATE_DOC_SN_UBOUND') ) {/*{{{*/
+        $alt_srn = ltrim(preg_replace('@[^0-9]@','',$text),'0');
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) Unusual boundary value found {$srn} from url {$url}. Using {$alt_srn} <- {$text}");
+        $this->recursive_dump($document,"(marker) --- --- ---");
+        if ( !(0 < $alt_srn) || (is_array($child_collection[$congress]['ALLSESSIONS']) && array_key_exists($alt_srn, $child_collection[$congress]['ALLSESSIONS'])) ) {
+          $this->syslog(__FUNCTION__, __LINE__, "(WARNING) --- --- -- -- - - Omitting url {$url} from tabulation, no legitimate sequence number can be used.");
+          continue;
+        }
+        $srn = $alt_srn;
+      }/*}}}*/
+      if ( !array_key_exists($congress, $bounds) ) {
+        $bounds[$congress] = array(
+          'min'   => NULL,
+          'max'   => 0,
+          'd'     => 0, // Span
+          'count' => 0,
+        );
+      }
+      $bounds[$congress]['min'] = min(is_null($bounds[$congress]['min']) ? $srn : $bounds[$congress]['min'], $srn);
+      $bounds[$congress]['max'] = max($bounds[$congress]['max'], $srn);
+      $bounds[$congress]['d']   = $bounds[$congress]['max'] - $bounds[$congress]['min'];
+      $bounds[$congress]['count']++;
+			$pagers[$congress] = NULL;
+
+      // Store URL regex patterns for documents within each congress. 
+      if ( !array_key_exists($congress, $child_collection) ) $child_collection[$congress] = array();
+      if ( !array_key_exists('ALLSESSIONS', $child_collection[$congress]) ) $child_collection[$congress]['ALLSESSIONS'] = array();
+
+			// $include_this = !$can_invalidate || !$documents->get_invalidated();	if ( $include_this ) 
+      $invalidated = intval(nonempty_array_element($document,'invalidated',0)) == 1;
+
+      if ( 0 < strlen($url_orig) )
+			$child_collection[$congress]['ALLSESSIONS'][$srn] = array(
+        'url'    => $url_orig,
+        'text'   => $text,
+        'cached' => TRUE,
+				// This is used by generate_congress_session_column_markup()
+				'inv'    => $invalidated ? 1 : 0,
+      );
+      $total_records++;
+    }/*}}}*/
+
+    //////////////////////////////////////////////////////////////////////
+    // Insert missing links, which may lead to invalid pages (i.e. unpublished Resolutions)
+    $missing_links = 0;
+    ksort($bounds, SORT_NUMERIC);
+
+    if ( $debug_method ) $this->recursive_dump(array_keys($bounds),"(marker) Bounds sort keys");
+
+    $next_cycle_lower_bound = NULL;
+
+    foreach ( $bounds as $congress_tag => $limits ) {/*{{{*/
+
+      $extant_components = 0;
+      $dumped_sample     = FALSE;
+
+      if ( $sequential_serial_numbers && !is_null($next_cycle_lower_bound) ) {
+        $limits['min'] = max($limits['min'],$next_cycle_lower_bound);
+      }
+
+      for ( $p = $limits['min'] ; $p <= $limits['max'] ; $p++ ) {/*{{{*/
+        if ( !is_array($child_collection[$congress_tag]['ALLSESSIONS']) ) continue;
+        if ( array_key_exists($p, $child_collection[$congress_tag]['ALLSESSIONS']) ) {
+          $extant_components++;
+          if ( $debug_method ) {
+            $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Extant: {$p}.{$congress_tag} {$child_collection[$congress_tag]['ALLSESSIONS'][$p]['url']}");
+          }
+          continue;
+        }
+        if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Missing: {$p}.{$congress_tag}");
+        $text = is_array($url_fetch_regex) ? "{$p}" : preg_replace('@(\(.*\))@i', $p, $url_fetch_regex);
+        $url = str_replace(
+          array(
+            '{congress_tag}',
+            '{full_sn}',
+          ),
+          array(
+            $congress_tag,
+            $text,
+          ),
+          $url_template
+        );
+				// if ( !array_key_exists($p,$child_collection[intval($congress_tag)]['ALLSESSIONS']) && (0 < strlen($url)) )
+        $child_collection[intval($congress_tag)]['ALLSESSIONS'][$p] = array(
+          'url'       => $url,
+          'text'      => $text,
+          'sn_suffix' => $p,
+          'cached'    => FALSE,
+        );
+        if ( $debug_method && ( FALSE == $dumped_sample ) ) {
+          $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Sample entry: {$p}.{$congress_tag}");
+          $dumped_sample = array($p => $child_collection[intval($congress_tag)]['ALLSESSIONS'][$p]);
+          $this->recursive_dump($dumped_sample,"(marker) - -- - Sample {$p}.{$congress_tag}");
+        }
+        $missing_links++;
+      }/*}}}*/
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Treated Congress {$congress_tag} n = {$extant_components}, last entry {$p}");
+      }
+      if ( is_array( $child_collection[$congress_tag]['ALLSESSIONS'] ) )
+        krsort($child_collection[$congress_tag]['ALLSESSIONS'], SORT_NUMERIC);
+      // Get maximum value of SN suffix in this round, to serve as 
+      // greatest lower bound for next iteration.
+      if ( $sequential_serial_numbers )
+      foreach ( $child_collection[$congress_tag]['ALLSESSIONS'] as $p => $entry ) {
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Bounding entry: {$p}.{$congress_tag}");
+          $dumped_sample = array($p => $entry);
+          $this->recursive_dump($dumped_sample,"(marker) - -- - Sample {$p}.{$congress_tag}");
+        }
+        $next_cycle_lower_bound = intval($p);
+        break;
+      }
+    }/*}}}*/
+
+
+    //////////////////////////////////////////////////////////////////////
+		return array(
+			'child_collection' => $child_collection,
+			'bounds' => $bounds,
+			'pagers' => $pagers,
+      'total_records' => $total_records,
+      'missing_links' => $missing_links,
+		);
+	}/*}}}*/
 
 	function generate_congress_session_column_markup(& $q, $query_regex) {/*{{{*/
 		$pagecontent = '';
@@ -165,10 +337,20 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 				$linktext = "No. {$url_query_parts['q']}";
 			}
 			$link_class = array('legiscope-remote','suppress-reorder','indent-3');
-		  if ( array_element($child_link,'cached') == TRUE ) $link_class[] = "cached";
+		  $link_class[] = ( array_element($child_link,'cached') == TRUE ) ? "cached" : "uncached";
+      $li_class = array('no-bullets');
+      $invalidated = 1 == nonempty_array_element($child_link,'inv',0);
+      if ( $invalidated ) $li_class[] = 'invalidated';
+      $title = join(' ', array_keys($child_link));
 			$link_class = join(' ', $link_class);
-			$pagecontent .= <<<EOH
-<li class="no-bullets"><a class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
+      $li_class = join(' ',$li_class);
+      $pagecontent .= $invalidated
+        ? <<<EOH
+<li class="{$li_class}">{$linktext}</li>
+
+EOH
+        : <<<EOH
+<li class="no-bullets"><a title="{$title}" class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
 EOH;
 			if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
@@ -218,6 +400,19 @@ EOH;
 
   function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $query_fragment_filter = '\&q=([0-9]*)', $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99' ) {/*{{{*/
 
+    /**
+     *  There's a special complication introduced by HTTP statefulness,
+     *  in that the meaning of certain Senate page URLs depends on session state
+     *  that we cannot replicate in the spider application.  Senate Bills and Senate
+     *  House Bills, for example, are reachable via pager URLs which meaning depends on
+     *  Senate server-side session flags.
+     *
+     *  We can deal with this by decorating pager URLs with a locally-defined state value.
+     *  This state value will be appended to the query part of all pager URLs we store locally.
+     *  Because the mapping between local state and subject (i.e. Senate) state can differ
+     *  from page to page, we will need to relegate processing of the state to parser callbacks rather than
+     *  perform the mapping in the general-purpose markup generator.
+     */
 		$debug_method = FALSE;
 
     if ( !isset($this->cluster_urldefs) ) throw new Exception("Missing cluster_urldefs");
@@ -238,11 +433,18 @@ EOH;
 
     // For priming an empty database:  Fetch child page links, use session_select metalink data
 
-    if ( $debug_method ) $this->recursive_dump($child_collection,'(marker) Session and item src');
+    if ( $debug_method )
+      $this->recursive_dump($child_collection,'(marker) Session and item src');
 
 		$dump_all_congress_entries = FALSE;
 		$level_0_rendered = FALSE;
 		$depth_2_label = 'Session';
+
+    $active = $session_select;
+    $this->filter_nested_array($active,"optval[active=1]",0);
+    $active = nonempty_array_element($active,0);
+
+    if ( !is_null($active) ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  Active session: {$active}");
 
     foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
 
@@ -269,17 +471,17 @@ EOH;
 EOH;
           $level_0_rendered = TRUE;
         }
-				$depth_2_label = 'Congress';
-				// Restructure the input child collection
-				// [Congress] => 'ALLSESSIONS' => { Resolutions list }
-				// [ DUMMY ] => [Congress] => 'ALL' => { Resolutions list }
-				reset($child_collection);
-				$session_q = array();
-				foreach ( $child_collection as $congress => $resolutionset ) {
-					foreach ( $resolutionset as $resolutions )
-						$session_q[$congress] = $resolutions;
-				}
-				$child_collection = array();
+        $depth_2_label = 'Congress';
+        // Restructure the input child collection
+        // [Congress] => 'ALLSESSIONS' => { Resolutions list }
+        // [ DUMMY ] => [Congress] => 'ALL' => { Resolutions list }
+        reset($child_collection);
+        $session_q = array();
+        foreach ( $child_collection as $congress => $resolutionset ) {
+          foreach ( $resolutionset as $resolutions )
+            $session_q[$congress] = $resolutions;
+        }
+        $child_collection = array();
       }/*}}}*/
       else {/*{{{*/
 				if ( !$level_0_rendered ) { 
@@ -329,6 +531,7 @@ EOH;
 EOH;
 
         // Extract sequence position from query component in $query_fragment_filter 
+
         if ( !is_null($query_fragment_filter) ) {
           $this->reorder_url_array_by_queryfragment($q, $query_fragment_filter);
         }
@@ -337,6 +540,7 @@ EOH;
 				$column_entries = $this->generate_congress_session_column_markup($q, is_null($query_fragment_filter) ? NULL : $query_regex);
 
         $pagecontent .= <<<EOH
+
 <div class="indent-2">{$session_fragment}<br/>
 {$per_congress_pager}
 <ul class="link-cluster no-bullets">
@@ -359,7 +563,7 @@ EOH;
 jQuery(document).ready(function(){
   jQuery('input[id=reset-cached-links]').click(function(e) {
     jQuery('div[class*=indent-2]').find('a').each(function(){
-      jQuery(this).removeClass('cached').removeClass('uncached');
+      jQuery(this).removeClass('cached').addClass('uncached');
     });
   });
   initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
@@ -381,9 +585,11 @@ EOH;
 
     $debug_method = FALSE;
 
-    $this->recursive_dump(($paginator_form = array_values($this->get_containers(
+    $paginator_form = array_values($this->get_containers(
       "children[tagname=form]{$form_selector}"
-    ))),'(------) StructureParser');
+    ));
+
+    // $this->recursive_dump(($this->get_containers()),'(marker) StructureParser');
 
     $paginator_form = $paginator_form[0];
     $control_set    = $this->extract_form_controls($paginator_form);
@@ -394,7 +600,7 @@ EOH;
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Extract form controls matching {$form_selector} " . $urlmodel->get_url());
       $this->recursive_dump($control_set,"(marker) - -");
     }
-    extract($control_set); // form_controls, select_name, select_options, userset
+    extract($control_set); // form_controls, select_name, select_options, userset, selected (userset[selected] == currently active OPTION element)
 
     $select_options = array_filter(array_map(create_function(
       '$a', 'return empty($a["value"]) ? NULL : $a;'
@@ -430,6 +636,9 @@ EOH;
           'markup'          => $generated_link,
           'url_model'       => $this->get_faux_url($test_url, $controlset_json_base64),
         );
+        // The default selected option determines whether we need to execute another POST request,
+        // when traversing stateful links.
+        if ( $select_option['value'] == $select_active ) $select_elements[$controlset_hash]['active'] = 1;
       }
     }/*}}}*/
 
@@ -475,4 +684,3 @@ EOH;
   }/*}}}*/
 
 }
-

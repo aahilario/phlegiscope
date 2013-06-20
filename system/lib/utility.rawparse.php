@@ -308,10 +308,9 @@ EOH;
 
     if ( $xml_errno == 0 ) {
 
-      $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
       $dom->formatOutput = FALSE;
       $raw_html = $dom->saveHTML();
-      $this->syslog(__FUNCTION__,__LINE__, " - Parse OK: \n" . substr($raw_html,0,500));
+      if ($debug_method) $this->syslog(__FUNCTION__,__LINE__, "(marker) ---------- XML parse OK\n" . substr($raw_html,0,500));
 
     } else {
 
@@ -736,11 +735,13 @@ EOH;
       $select_options = array_values(array_filter(array_map($extract_select, $form_control_source)));
 
       $userset = array();
+			$selected = NULL;
       foreach ( $select_options as $select_option ) {
         //$this->recursive_dump($select_options,__LINE__);
         $select_name    = $select_option['name'];
         $select_option  = $select_option['keys'];
         foreach ( $select_option as $option ) {
+					if ( is_null($selected) && (1 == intval(array_element($option,'selected')))) $selected = $option['value']; 
           if ( empty($option['value']) ) continue;
           $userset[$select_name][$option['value']] = $option['text'];
         }
@@ -752,6 +753,7 @@ EOH;
       'form_controls'  => $form_controls,
       'select_name'    => $select_name,
       'select_options' => $select_option,
+			'select_active'  => $selected,
     );
   }/*}}}*/
 

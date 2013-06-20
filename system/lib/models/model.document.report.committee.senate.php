@@ -128,7 +128,7 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
         }
         // What remains is an array of committee report ID:urlhash pairs
         $joinqueue_filtered = array_flip(array_filter($joinqueue_filtered));
-        //if ($debug_method) 
+        if ($debug_method) 
         $this->recursive_dump($joinqueue_filtered,'(marker) Store Joins for these CRs');
         foreach ( $joinqueue_filtered as $senate_committee_report_id ) {
           $reportjournal->id = NULL;
@@ -136,6 +136,7 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
             set_senate_committee_report($senate_committee_report_id)->
             set_senate_journal($journal_id)->
             stow(); 
+					if ( !(0 < intval($join_id)) || $debug_method )
           $this->syslog( __FUNCTION__, __LINE__, ( 0 < intval($join_id) )
             ? ("(marker) Created " . get_class($reportjournal) . " #{$join_id}")
             : ("(marker) Failed to create Join between CR DB#{$senate_committee_report_id} <-> Journal DB#{$journal_id}")

@@ -657,9 +657,12 @@ EOH;
             }
 						$joinobj->set_contents_from_array($data);	
 						$new_joinid = $joinobj->stow();
-						$join_exists  = $join_present ? ("#{$join_id} in DB updated") : "created as #{$new_joinid}";
-						$this->syslog( __FUNCTION__, __LINE__, "(marker) - -- JOIN ". get_class($joinobj) ." {$join_exists} to {$modelname}" );
-						$this->recursive_dump($data,"(marker) --- - ---");
+            $foreign_keys[$fk_or_dummy]['joinid'] = $new_joinid;
+            if ( $debug_method ) {
+              $join_exists  = $join_present ? ("#{$join_id} in DB updated") : "created as #{$new_joinid}";
+              $this->syslog( __FUNCTION__, __LINE__, "(marker) - -- JOIN ". get_class($joinobj) ." {$join_exists} to {$modelname}" );
+              $this->recursive_dump($data,"(marker) --- - ---");
+            }
 					}
 				}/*}}}*/
 
@@ -669,6 +672,7 @@ EOH;
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- ERROR: Multiple or zero matches for {$modelname}. Available attributes are:");
 			$this->recursive_dump($join_attrdefs, "(marker) - -- ---");
 		}
+    return $foreign_keys;
 	}/*}}}*/
 
   function & execute() {/*{{{*/
@@ -740,8 +744,20 @@ EOH;
 
     if ( $this->debug_method ) $this->recursive_dump($iteration_source,"(marker) - - - - - - - - - - - - CSFC @ {$depth}");
 
+    // Detect use of placeholder in alias name position
+    $alias_placeholder_regex = '@{([^}]*)}[.]`([^`]*)`@i';
+
     foreach ( $iteration_source as $conj_or_attr => $operands ) {
 
+      $alias_subst_matches = array();
+      if ( 1 == preg_match($alias_placeholder_regex, $conj_or_attr, $alias_subst_matches) ) {
+        $alias_name = nonempty_array_element($alias_subst_matches,1);
+        $alias_name = nonempty_array_element($this->alias_map['attrmap'], $alias_name,array());
+        $alias_name = nonempty_array_element($alias_name,'alias');
+        if ( $this->debug_final_sql ) $this->syslog(__FUNCTION__,__LINE__,"(marker) +++++++++++++++++++  Remap {$conj_or_attr} -> `{$alias_name}`.`{$alias_subst_matches[2]}`");
+        $conj_or_attr = "`{$alias_name}`.`{$alias_subst_matches[2]}`";
+      }
+      
       if ( array_key_exists(strtoupper($conj_or_attr), array_flip(array('AND', 'OR')))) {
         if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) A conj '{$conj_or_attr}'");
         $fragment = $this->construct_sql_from_conditiontree($attrlist, $operands, $depth + 1);
@@ -797,8 +813,9 @@ EOH;
               $value = NULL;
             } else {
               $this->syslog(__FUNCTION__,__LINE__, "(marker) --- - - - --- --- - - - Unable to add Join attribute '{$conj_or_attr}', using operator {$operator}, value '{$operands}', testing against '{$test_attr}': No match in attrlist");
-              $this->recursive_dump(array_keys($attrlist),"(marker) - - - --- ->");
-              $this->recursive_dump($attr_match_components,"(marker) - - --- - ->");
+              $this->recursive_dump(array_keys($attrlist) , "(marker) - - - ----- ->");
+              $this->recursive_dump($attr_match_components, "(marker) - - ----- - ->");
+              $this->recursive_dump($this->alias_map      , "(marker) - Aliasmap -->");
             }
 
           } else {
@@ -1214,7 +1231,7 @@ EOS;
             }
             if ( 0 < count(array_element($condstack,'AND')) ) {
               if ( $debug_method ) {
-                $this->syslog(__FUNCTION__,__LINE__,"(marker) {$remaining_elements} - - - - - - PREEXISTING QUERY CONSTRAINTS");
+                $this->syslog(__FUNCTION__,__LINE__,"(marker) {$remaining_elements} - - - - - - MODIFIED QUERY CONSTRAINTS");
                 $this->recursive_dump($this->query_conditions,"(marker) {$remaining_elements} - - -");
               }
               if ( !array_key_exists('AND',$this->query_conditions) ) {
@@ -1408,6 +1425,55 @@ EOS;
 			$this->alias_map = array(); 
 		}
     return $a;
+  }/*}}}*/
+
+  function fetch_single_joinrecord($document_contents = array()) {/*{{{*/
+
+    $debug_method = FALSE;
+
+    $this->recordfetch_setup();
+
+    // Create placeholder associative arrays to contain child Join data
+    $j = $this->get_join_names();
+
+    foreach ( $j as $attrnames ) $document_contents[$attrnames] = array();
+
+    if ( $debug_method ) $this->recursive_dump($j,"(marker) J - - -");
+
+    $bill = array();
+
+    // Collect all Join attributes for a single record
+    while ( $this->recordfetch($bill) ) {/*{{{*/
+
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - {$bill['sn']} {$bill['id']}");
+      if ( $debug_method ) $this->recursive_dump($bill,"(marker) -^- {$id}");
+
+      foreach ( $j as $attrnames ) {
+        $joinattr_data = $bill[$attrnames]['data'];
+        if ( !is_null(array_element($joinattr_data,'id')) ) {
+          $joinattr_join = $bill[$attrnames]['join'];
+          $joinattr_id = $joinattr_data['id'];
+          if ( !array_key_exists($joinattr_id, $document_contents[$attrnames]) ) {
+            $document_contents[$attrnames][$joinattr_id] = 
+              array_merge($joinattr_data, array('join' => array()));
+          }
+          $document_contents[$attrnames][$joinattr_id]['join'][$joinattr_join['id']] = $bill[$attrnames]['join'];
+        }
+        /*
+        // Join root
+        $committee_data = $bill[$attrnames]['data'];
+        if ( !is_null(array_element($committee_data,'id')) &&
+          !array_key_exists($committee_data['id'], $document_contents[$attrnames]) )
+        $document_contents[$attrnames][$committee_data['id']] = array_merge(
+          $committee_data,
+          array('join' => $bill[$attrnames]['join'])
+        );
+        */
+      }
+
+    }/*}}}*/
+
+    return $document_contents;
   }/*}}}*/
 
   function fetch($attrval, $attrname = NULL) {/*{{{*/
@@ -1685,7 +1751,7 @@ EOP
         if ( $debug_method ) $this->recursive_dump($this->join_value_cache,"({$marker}) - -"); 
       } else {
         $type = array_key_exists($name, $property_list) ? $property_list[$name] : NULL;
-        $marker = $debug_method ? 'marker' : '-----';
+        $marker = TRUE || $debug_method ? 'marker' : '-----';
         $this->syslog(__FUNCTION__, __LINE__, <<<EOP
 ({$marker})
 function & {$setter}(\$v) { \$this->{$name}_{$type} = \$v; return \$this; }
@@ -1704,6 +1770,7 @@ EOP
   }/*}}}*/
 
   function dump_accessor_defs_to_syslog() {/*{{{*/
+    // FIXME: Remove this debugging method pre-R1
 		$debug_method = TRUE;
     $data_items = array_flip(array_map($this->slice('name'), $this->fetch_property_list()));
     if ( $debug_method ) $this->recursive_dump($data_items,'(marker) ' . __METHOD__);
@@ -1816,7 +1883,7 @@ EOP
     }
     try {
       if ( !array_key_exists($join_desc_key, $this->join_instance_cache) ) {
-        if ( TRUE || $debug_method )
+        if ( $debug_method )
         $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - Instantiating objects for {$which} property '{$property}'");
         $this->join_instance_cache[$join_desc_key] = array(
           'join' => array(

@@ -16,7 +16,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     parent::__construct();
   }
 
-  function get_per_congress_pager(UrlModel & $urlmodel, & $session, & $q, & $session_select, $pager_uuid = '1cb903bd644be9596931e7c368676982') {/*{{{*/
+  function get_per_congress_pager(UrlModel & $urlmodel, & $session, $q, $session_select, $pager_uuid = '1cb903bd644be9596931e7c368676982') {/*{{{*/
 
     $debug_method = FALSE;
 
@@ -274,6 +274,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
           $url_template
         );
 				// if ( !array_key_exists($p,$child_collection[intval($congress_tag)]['ALLSESSIONS']) && (0 < strlen($url)) )
+        if ( 0 < strlen($url) )
         $child_collection[intval($congress_tag)]['ALLSESSIONS'][$p] = array(
           'url'       => $url,
           'text'      => $text,
@@ -320,8 +321,8 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 	function generate_congress_session_column_markup(& $q, $query_regex) {/*{{{*/
 		$pagecontent = '';
 		$nq = 0;
+		krsort($q);
 		foreach ( $q as $child_link ) {/*{{{*/
-			$urlparts = UrlModel::parse_url($child_link['url'],PHP_URL_QUERY);
 			$linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
 			$child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
 			$child_link['url'] = str_replace(' ','%20', $child_link['url']);
@@ -453,9 +454,7 @@ EOH;
 				// Test whether the document entries have a Regular/Special session partition.
 				// Some documents (resolutions) are not clustered by session, and 
 				// instead contain the single key 'ALLSESSIONS'.
-				list( $session, $q ) = each($session_q);
-				reset($session_q);
-				if ( $session == 'ALLSESSIONS' ) {
+				if ( array_element(array_keys($session_q),0) == 'ALLSESSIONS' ) {
 					$this->syslog(__FUNCTION__, __LINE__, "(marker) Two-level array");
 					$dump_all_congress_entries = TRUE;
 				}
@@ -514,6 +513,10 @@ EOH;
 
       foreach ( $session_q as $session => $q ) {/*{{{*/
 
+				krsort($q);
+
+				// $this->recursive_dump($q,"(marker) {$session} --- ");
+
 				if ( empty($session) ) continue;
 
 				$session_fragment = empty($session)
@@ -532,7 +535,7 @@ EOH;
 
         // Extract sequence position from query component in $query_fragment_filter 
 
-        if ( !is_null($query_fragment_filter) ) {
+        if (1) if ( !is_null($query_fragment_filter) ) {
           $this->reorder_url_array_by_queryfragment($q, $query_fragment_filter);
         }
 
@@ -541,7 +544,7 @@ EOH;
 
         $pagecontent .= <<<EOH
 
-<div class="indent-2">{$session_fragment}<br/>
+<div class="indent-2"><span class="link-cluster-column-heading">{$session_fragment}</span><br/>
 {$per_congress_pager}
 <ul class="link-cluster no-bullets">
 {$column_entries}
@@ -682,5 +685,16 @@ EOH;
     if (!(0 < strlen($search_name) ) ) return FALSE;
     return $search_name;
   }/*}}}*/
+
+	static function permalinkify_name($name) {
+		// Manipulate name to allow it's use as a URL component
+		$name = preg_replace(array('@[^a-zñ ]@i','@ñ@i'), array('','n'),strtolower($name));
+		$name = explode(' ', $name);
+		array_walk($name,create_function(
+			'& $a, $k', '$a = 3 < strlen($a) ? strtolower($a) : NULL;'
+		));
+		$name = array_filter($name);
+		return join('-', $name); 
+	}
 
 }

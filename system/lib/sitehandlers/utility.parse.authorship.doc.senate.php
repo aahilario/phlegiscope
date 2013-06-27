@@ -11,8 +11,8 @@
 class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
   
   function __construct() {
-		$this->offset_1_keys_array       = array('filed by', 'long title' , 'scope'       , 'legislative status', 'subject' , 'primary committee' , 'secondary committee');
-		$this->offset_1_keys_replacement = array('senator' , 'description', 'significance', 'status'            , 'subjects', 'main_referral_comm', 'secondary_committee');
+		$this->offset_1_keys_array       = array('filed by', 'long title' , 'scope'       , 'legislative status', 'subject' , 'primary committee' , 'secondary committee', 'president(.*)action', 'date lapsed into law', 'date received by the president', 'republic act');
+		$this->offset_1_keys_replacement = array('senator' , 'description', 'significance', 'status'            , 'subjects', 'main_referral_comm', 'secondary_committee', 'presidential_action', 'lapse_date',           'receive_date_op',                'republic_act');
 		$this->offset_2_keys_array       = array('committee report');
 		$this->offset_2_keys_replacement = array('comm_report_url');
     parent::__construct();
@@ -33,20 +33,10 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 
 		$debug_method = $this->debug_tags;
     if ( $debug_method ) {/*{{{*/
-      $this->recursive_dump($containers,'(warning)');
+      $this->recursive_dump($containers,'(warning) Raw -');
       $this->syslog( __FUNCTION__, 'FORCE', "(marker) - - - - - - - - - - Parsed containers" );
-      $this->recursive_dump($this->filtered_content,'(warning)');
+      $this->recursive_dump($this->filtered_content,'(warning) Filtered -');
     }/*}}}*/
-    $heading_map = array(
-			'Filed by'            => 'senator',
-      'Long title'          => 'description',
-      'Scope'               => 'significance',
-      'Legislative status'  => 'status',
-      'Subject(s)'          => 'subjects',
-      'Primary committee'   => 'main_referral_comm',
-      'Committee report'    => 'comm_report_info',
-      'Legislative History' => NULL,
-    );
     $senate_bill_recordparts = array(
 			'sn' => NULL,
       'title' => NULL,
@@ -76,6 +66,8 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 		$downloadable = $containers;
 		$this->filter_nested_array($downloadable,'children[tagname=div][id=lis_download]',0);
 		$downloadable = array_element($downloadable,0,array());
+
+		// $this->recursive_dump($downloadable,"(marker) Downloadable ---");
 
 		// Table rows containing extended information about Senate Bill
 		$extended = $containers;
@@ -126,7 +118,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 
 		// Obtain doc_url entry from $downloadable using SN
 		$doc_url = $downloadable;
-		$this->filter_nested_array($doc_url,"url[text={$sn}]",0);
+		$this->filter_nested_array($doc_url,"url[text*={$sn}]",0);
 		$senate_bill_recordparts['doc_url'] = nonempty_array_element($doc_url,0);
 
 		// Obtain Senator bio URLs following 'Filed by' entry
@@ -205,6 +197,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     }
 
 		// Merge the result array with $this->filtered_content 
+		if ( is_array($this->filtered_content) )
 		$senate_bill_recordparts = array_merge(
 			$this->filtered_content,
 			$senate_bill_recordparts
@@ -214,6 +207,8 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 			$senate_bill_recordparts['comm_report_info'] = array_element($senate_bill_recordparts['comm_report_url'],'text');
 			$senate_bill_recordparts['comm_report_url']  = array_element($senate_bill_recordparts['comm_report_url'],'url');
 		}
+
+		ksort($senate_bill_recordparts);
 
 		//unset($senate_bill_recordparts['legislative_history']);
 		//unset($this->filtered_content['legislative_history']);

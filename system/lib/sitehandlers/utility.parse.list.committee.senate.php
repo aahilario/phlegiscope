@@ -179,5 +179,12 @@ class SenateCommitteeListParseUtility extends SenateCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
+	/** Utility methods **/
+
+	static function get_committee_permalink_uri($committee_name, $as_array = FALSE) {
+		$permalink_tail = LegislationCommonParseUtility::permalinkify_name($committee_name);
+		$committee_url = array(C('LEGISCOPE_BASE'),'senate','committee',$permalink_tail);
+		return $as_array ? $committee_url : join('/', $committee_url);
+	}
 
 }

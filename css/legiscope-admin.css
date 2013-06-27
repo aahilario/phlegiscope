@@ -446,3 +446,17 @@ li > a.invalidated, li.invalidated {
   color: #F22;
 }
 
+span.link-faux-menuitem > a {
+  padding: 3px 5px 3px 5px;
+  margin: 3px 6px 3px 0;
+  background-color: #EEE;
+}
+
+span.link-cluster-column-heading {
+  margin: 2px;
+}
+
+a.clicked {
+	background-color: #AAF;
+	color: white !important;
+}

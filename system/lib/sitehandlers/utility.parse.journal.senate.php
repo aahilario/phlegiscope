@@ -30,16 +30,20 @@ class SenateJournalParseUtility extends SenateCommonParseUtility {
 
 		$test_urls = array();
 
+		$recording_date = NULL;
+		$approval_date  = NULL;
     foreach ( $journal_data as $n => $e ) {/*{{{*/
 
       if ( array_key_exists('metadata',$e) ) {/*{{{*/// Extract journal header info markup 
-        $e = $e['metadata'];
+        $e              = $e['metadata'];
+        $recording_date = $e['date'];
+        $approval_date  = $e['approved'];
         $pagecontent .= <<<EOH
 <br/>
 <div>
 Journal of the {$e['congress']} Congress, {$e['session']}<br/>
-Recorded: {$e['date']}<br/>
-Approved: {$e['approved']}
+Recorded: {$recording_date}<br/>
+Approved: {$approval_date}
 </div>
 EOH;
         $journal_data[$n]['metadata']['short_session'] = preg_replace(array(
@@ -111,15 +115,17 @@ EOH;
 
       if ( intval($n) == 0 ) {/*{{{*/// Journal page descriptor (Title, publication date)
         if (is_array(nonempty_array_element($e,'content'))) foreach ($e['content'] as $entry) {
-          $urlhash = UrlModel::get_url_hash(array_element($entry,'url'));
-          $properties = array('legiscope-remote', "{urlstate-{$urlhash}}");
-          $properties = join(' ', $properties);
           if ( array_key_exists('url',$entry) ) {/*{{{*/
+						$urlhash = UrlModel::get_url_hash(array_element($entry,'url'));
+						$properties = array('legiscope-remote', "{urlstate-{$urlhash}}","journal-pdf");
+						$properties = join(' ', $properties);
 						$test_urls[] = array("{urlstate-{$urlhash}}" => array('url' => $entry['url'], 'hash' => $urlhash));
 						$entry['urlhash'] = $urlhash;
             $journal_data[$n]['pdf'] = $entry;
             $pagecontent .= <<<EOH
 <b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
+Recorded: {recording_date}<br/>
+Approved: {approval_date}<br/>
 EOH;
 
             continue;
@@ -187,9 +193,15 @@ EOH;
 
     }/*}}}*/// END iteration through sections
 
+		$pagecontent = str_replace(
+			array("{approval_date}","{recording_date}"),
+			array("{$approval_date}","{$recording_date}"),
+			$pagecontent
+		);
+
 		// Iterate through test_urls[] to obtain caching state for all URLs in batches
 
-		$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - Testing " . count($test_urls) . " for caching state");
+		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - Testing " . count($test_urls) . " for caching state");
 		if ( $debug_method ) $this->recursive_dump($test_urls,'(marker) T - end');
     $test_url = new UrlModel();
 		while ( 0 < count($test_urls) ) {
@@ -215,6 +227,43 @@ EOH;
 			$pagecontent = str_replace(array_values($cached),'cached', $pagecontent);
 			$pagecontent = str_replace(array_values($uncached), 'uncached', $pagecontent);
 		}
+
+		// Append script to fetch missing PDFs
+		// if ( C('LEGISCOPE_JOURNAL_PDF_AUTOFETCH') )
+		$pagecontent .= <<<EOH
+
+<script type="text/javascript">
+
+jQuery(document).ready(function(){
+  jQuery('a[class*=journal-pdf]').each(function() {
+		if ( jQuery(this).hasClass('uncached') ) {
+			var self = jQuery(this);
+      var linkurl = jQuery(this).attr('href');
+			jQuery.ajax({
+				type     : 'POST',
+				url      : '/seek/',
+				data     : { url : linkurl, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true },
+				cache    : false,
+				dataType : 'json',
+				async    : false,
+				beforeSend : (function() {
+					display_wait_notification();
+				}),
+				complete : (function(jqueryXHR, textStatus) {
+					remove_wait_notification();
+				}),
+				success  : (function(data, httpstatus, jqueryXHR) {
+					jQuery(self).addClass('cached').removeClass('uncached');
+					if ( data && data.original ) replace_contentof('original',data.original);
+					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+				})
+			});
+		}
+  });
+});
+
+</script>
+EOH;
 
     if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - end');
 
@@ -359,6 +408,7 @@ EOH;
   }/*}}}*/
 
   // For committee reports only - BLOCKQUOTE tags wrap text lines
+
   function ru_blockquote_open(& $parser, & $attrs, $tag) {/*{{{*/
     return $this->ru_li_open($parser,$attrs,$tag);
   }  /*}}}*/

@@ -39,7 +39,7 @@ function preload_worker_original() {
     jQuery.ajax({
       type     : 'POST',
       url      : '/seek/',
-      data     : { url : linkstring, proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
+      data     : { url : linkstring, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
       cache    : false,
       dataType : 'json',
       async    : true,
@@ -71,7 +71,7 @@ function preload_worker() {
   jQuery.ajax({
     type     : 'POST',
     url      : '/seek/',
-    data     : { url : linkstring, proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
+    data     : { url : linkstring, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
     cache    : false,
     dataType : 'json',
     async    : true,
@@ -95,7 +95,7 @@ function preload(components) {
   jQuery.ajax({
     type     : 'POST',
     url      : '/preload/',
-    data     : { links: components, modifier : jQuery('#seek').prop('checked') },
+    data     : { links: components, update : jQuery('#update').prop('checked'), modifier : jQuery('#seek').prop('checked') },
     cache    : false,
     dataType : 'json',
     async    : true,
@@ -204,6 +204,11 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 	var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
   var targetframe = data.targetframe ? data.targetframe : '[class*=alternate-original]'; 
 
+	if ( data && data.clicked ) {
+	 	jQuery('a').removeClass('clicked');
+	 	jQuery('a[id='+data.clicked+']').addClass('clicked');
+	}
+
 	jQuery('div[class*=contentwindow]').each(function(){
 		if (jQuery(this).attr('id') == 'issues') return;
 		if (retainoriginal)
@@ -303,8 +308,8 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 function load_content_window(a,ck,obj,data,handlers) {
   var object_text = typeof obj != 'undefined' ? jQuery(obj).html() : null;
   var std_data = (jQuery('#metalink').html().length > 0)
-    ? { url : a, modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text, metalink : jQuery('#metalink').html() } 
-    : { url : a, modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text }
+    ? { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text, metalink : jQuery('#metalink').html() } 
+    : { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text }
     ;
   var async = (data && data.async) ? data.async : false;
   if ( typeof data != "undefined" && typeof data != "null" ) {

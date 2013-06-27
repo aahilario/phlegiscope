@@ -22,10 +22,11 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
 	var $doc_urlid_int11 = NULL;
   var $content_blob = NULL;
 	var $date_filed_utx = 0;
+
   var $journal_SenateJournalDocumentModel = NULL;
 	var $committee_SenateCommitteeModel = NULL;
-	var $bill_SenateBillDocumentModel = NULL;
   var $resolution_SenateResolutionDocumentModel = NULL;
+	var $bill_SenateBillDocumentModel = NULL;
 	var $housebill_SenateHousebillDocumentModel = NULL;
 
   function __construct() {

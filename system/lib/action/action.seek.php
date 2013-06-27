@@ -10,7 +10,8 @@
 
 class SeekAction extends LegiscopeBase {
   
-  var $debug_memory_usage_delta = TRUE;
+  var $debug_memory_usage_delta = FALSE;
+  var $update_existing = FALSE;
 
   function __construct() {
     parent::__construct();
@@ -25,6 +26,7 @@ class SeekAction extends LegiscopeBase {
     $debug_method = FALSE;
 
     $json_reply      = array();
+    $this->update_existing = $this->filter_post('update') == 'true'; 
     $modifier        = $this->filter_post('modifier');
     $metalink        = $this->filter_post('metalink');
     $linktext        = $this->filter_post('linktext');
@@ -35,6 +37,8 @@ class SeekAction extends LegiscopeBase {
     $url             = new UrlModel();
 
     if ( !empty($target_url) ) $url->fetch(UrlModel::get_url_hash($target_url),'urlhash');
+
+    $target_url_hash = UrlModel::get_url_hash($target_url); 
 
     if ( $debug_method ) {
 			$this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
@@ -143,8 +147,12 @@ class SeekAction extends LegiscopeBase {
       $cache_filename = $url->get_cache_filename();
       if ( $url->in_database() ) {
         $url_id = $url->get_id();
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing {$url} #{$url_id}. Must remove cache file {$cache_filename}" );
-        $url->remove();
+        if ( TRUE == C('DELETE_UNREACHABLE_URLS') ) {
+          $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing {$url} #{$url_id}. Must remove cache file {$cache_filename}" );
+          $url->remove();
+        } else {
+          $url->fetch($url_id);
+        }
       }
       if ( file_exists($cache_filename) ) {
         $unlink_ok = unlink($cache_filename) ? 'OK' : 'FAILED';
@@ -159,7 +167,7 @@ class SeekAction extends LegiscopeBase {
 			$contenttype = array_element($headers,'content-type','unspecified');
       $subject_url = is_null($faux_url) ? $target_url : $faux_url;
 
-      if ( $debug_method || $network_fetch ) {/*{{{*/
+      if ( $debug_method || ( $network_fetch && !$retrieved ) ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response (content-type: {$contenttype}) from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
         $this->syslog( __FUNCTION__, __LINE__, "(marker) - Subject URL: {$subject_url}"); 
         $this->syslog( __FUNCTION__, __LINE__, "(marker) -    Faux URL: {$faux_url}"); 
@@ -238,6 +246,7 @@ class SeekAction extends LegiscopeBase {
 
               $parser->trigger_linktext = $linktext;
               $parser->from_network     = $network_fetch;
+              $parser->update_existing  = $this->update_existing;
               $parser->json_reply       = $json_reply;
               $parser->target_url       = $target_url;
               $parser->metalink_url     = $faux_url; 
@@ -355,6 +364,7 @@ class SeekAction extends LegiscopeBase {
           'httpcode'       => $headers['http-response-code'], 
           'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
           'defaulttab'     => $defaulttab, 
+          'clicked'        => $target_url_hash,
         ),
         $json_reply
       );
@@ -374,6 +384,7 @@ class SeekAction extends LegiscopeBase {
       $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
       $this->recursive_dump($output_buffer,__LINE__);
     }/*}}}*/
+
 
     $this->exit_cache_json_reply($json_reply,get_class($this));
 

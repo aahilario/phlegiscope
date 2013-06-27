@@ -446,7 +446,8 @@ class UrlModel extends DatabaseUtility {
 
   function referrers($attr = NULL) {/*{{{*/
     if ( !$this->in_database() ) return NULL;
-    $edge = new UrlEdgeModel();
+		throw new Exception("Replace uses of UrlEdgeModel with UrlUrlJoin");
+    $edge = new urledgemodel();
     $link = new UrlModel();
     $record = array();
     $result = array();

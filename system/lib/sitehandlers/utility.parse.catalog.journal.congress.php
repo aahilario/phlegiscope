@@ -373,7 +373,6 @@ EOH;
     }
 
     $u  = new UrlModel();
-    $ue = new UrlEdgeModel();
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     while ( 0 < count($registry) ) {/*{{{*/
@@ -406,27 +405,6 @@ EOH;
         $this->syslog(__FUNCTION__,__LINE__,"(marker) Extant: " . count($extant));
         $this->recursive_dump($extant,"(marker) -- E --");
       }
-      if ( 0 < count($extant) ) {
-        ksort($extant,SORT_NUMERIC);
-        // Find already existing edges
-        $ue->where(array('AND' => array(
-          'a' => $urlmodel->get_id(),
-          'b' => array_keys($extant)
-        )))->recordfetch_setup();
-        $edge = array();
-        while ( $ue->recordfetch($edge) ) {
-          $extant_in_list = array_key_exists($edge['b'], $extant) ? "extant" : "nonexistent";
-          if ( $debug_method ) {
-            $this->syslog(__FUNCTION__,__LINE__,"(marker) Skipping {$extant_in_list} edge ({$edge['b']},{$edge['a']})" );
-          }
-          if ( array_key_exists($edge['b'], $extant) ) $extant[$edge['b']] = NULL;
-        }
-        $extant = array_filter($extant);
-        foreach ( $extant as $urlid => $urlinfo ) {
-          $edgeid = $ue->set_id(NULL)->stow($urlmodel->get_id(), $urlid);
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) Edge stow result ID for {$urlid} {$urlinfo['url']} = (" . gettype($edgeid) . ") {$edgeid}");
-        }
-      }
     }/*}}}*/
     ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -457,8 +435,6 @@ EOH;
       $this->recursive_dump($congress_select,"(marker)");
     }
 
-    $use_alternate_generator = FALSE;
-
     $batch_regex = 'http://www.congress.gov.ph/download/journals_([0-9]*)/(.*)';
 
     $session_select = array();
@@ -469,13 +445,10 @@ EOH;
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - Fake URL for recomposition: " . $fake_url_model->get_url());
     }
 
-    $child_collection = $use_alternate_generator
-      ? $this->find_incident_pages($urlmodel, $batch_regex, NULL)
-      // Generate $session_select from the session item source
-      : $house_journals->fetch_session_item_source($session_select, $fake_url_model, $target_congress)
-      ;
+    $child_collection =  $house_journals->fetch_session_item_source($session_select, $fake_url_model, $target_congress);
+
     if ( $debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Result of incident page search: " . count($child_collection) . ($use_alternate_generator ? "" : ", with regex {$batch_regex}"));
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Result of incident page search: " . count($child_collection) . ", with regex {$batch_regex}");
       $this->recursive_dump($child_collection,"(marker) - - - - - -");
     }
 

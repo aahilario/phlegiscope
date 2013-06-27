@@ -75,6 +75,8 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
 
   function fetch_by_committee_name($committee_name) {/*{{{*/
 
+		$debug_method = FALSE;
+
     $search_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
 
     if ( FALSE == $search_name ) {
@@ -87,7 +89,7 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
     ),'AND');
     $result = $this->in_database();
     if ( $result ) {
-      $this->syslog(__FUNCTION__,__LINE__,
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,
         "(marker) Found record " . $this->get_id() . " (" .
         $this->get_committee_name() . ") using regex " .
         $search_name

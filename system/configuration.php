@@ -9,6 +9,8 @@ define('SITE_URL'   , 'http://ra1017x.avahilario.net');
 define('CACHE_PATH', './cache');
 if (!defined('SYSTEM_BASE')) define('SYSTEM_BASE', './system');
 
+define('LEGISCOPE_BASE','contents');
+
 // Settings for CurlUtility
 define('LEGISCOPE_USER_AGENT', $_SERVER['HTTP_USER_AGENT']);
 define('LEGISCOPE_CURLOPT_CONNECTTIMEOUT', 60);
@@ -47,6 +49,7 @@ define('CONTENT_SIZE_THRESHOLD', 65535);
 define('ENABLE_GENERATED_CONTENT_BUFFERING', FALSE);
 define('ENABLE_NEW_FETCHED_CONTENT_CACHING', TRUE);
 define('DISPLAY_EXISTING_REPUBLIC_ACTS', TRUE);
+define('DELETE_UNREACHABLE_URLS',FALSE);
 
 // Database configuration
 define('DBTYPE', 'Mysql');

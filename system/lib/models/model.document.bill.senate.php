@@ -19,7 +19,7 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $searchable_bool = NULL;
   var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
-  var $urlid_int11 = NULL;
+  var $urlid_int11 = NULL; // Invalidate
   var $doc_url_vc256 = NULL;
 	var $status_vc1024 = NULL;
 	var $subjects_vc1024 = NULL;
@@ -28,6 +28,7 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $invalidated_bool = NULL;
 	var $filing_date_dtm = NULL;
 	var $legislative_history_vc8192 = NULL;
+	var $significance_vc16 = NULL;
 
 	var $date_read_utx = NULL;
 	var $house_approval_date_utx = NULL;
@@ -36,13 +37,14 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $sponsor_int11 = NULL; // SenatorsModel
 	var $main_referral_comm_vc64 = NULL;
 	var $secondary_committee_vc64 = NULL;
-	var $pending_comm_vc64 = NULL;
-	var $pending_comm_date_utx = NULL;
-	var $significance_vc16 = NULL;
+
+	var $pending_comm_vc64 = NULL; // Replace with Join
+	var $pending_comm_date_utx = NULL; // Replace with Join
 
   var $journal_SenateJournalDocumentModel = NULL;
   var $committee_SenateCommitteeModel = NULL;
 	var $senator_SenatorDossierModel = NULL;
+  var $bill_info_SenateBillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -132,91 +134,61 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 	function & set_filing_date($v) { $this->filing_date_dtm = $v; return $this; }
 	function get_filing_date($v = NULL) { if (!is_null($v)) $this->set_filing_date($v); return $this->filing_date_dtm; }
 
-	function generate_non_session_linked_markup() {/*{{{*/
-
-		$faux_url = new UrlModel();
-
+  function single_record_markup_template_a() {
 		$senatedoc = get_class($this);
-
-		$this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $this->get_id() . " " . get_class($this) );
-
 		$total_bills_in_system = $this->count();
-
-		$doc_url_attrs = array('legiscope-remote');
-		$faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
-		if( $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ) {
-			$doc_url_attrs[] = 'cached';
-		}
-		$doc_url_attrs = join(' ', $doc_url_attrs);
-
-		$pagecontent = $this->substitute(<<<EOH
-Senate {$senatedoc}s in system: {$total_bills_in_system}
+    return <<<EOH
+{$senatedoc} in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>
 <span class="sb-match-item sb-match-subjects">{subjects}</span>
-<span class="sb-match-item sb-match-description">{description}</span>
 <span class="sb-match-item sb-match-significance">Scope: {significance}</span>
 <span class="sb-match-item sb-match-status">Status: {status}</span>
-<span class="sb-match-item sb-match-doc-url">Document: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
-<span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
-<span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committee}</span>
+<span class="sb-match-item sb-match-doc-url">Document: <a class="{doc_url_attrs}" href="{doc_url}">{sn}</a></span>
+<span class="sb-match-item sb-match-main-referral-comm">Committee: <a class="legiscope-remote" href="{main_referral_comm_url}">{main_referral_comm}</a></span>
+<span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committees}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
-EOH
-		);
-
-		$congress_tag = $this->get_congress_tag();
-
-		$this->debug_final_sql = FALSE;
-		$this->
-			join_all()->
-			where(array(
-				'`a`.`id`' => $this->get_id(),
-				'`b`.`congress_tag`' => $congress_tag
-			))->
-			recordfetch_setup();
-		$sb = array();
-		$this->debug_final_sql = FALSE;
-
-		$reading_state = array();
-
-		$reading_replace = array(
-			'@R1@' => 'First Reading',
-			'@R2@' => 'Second Reading',
-			'@R3@' => 'Third Reading',
-		);
-
-		while ( $this->recordfetch($sb) ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) - - Got entry {$sb['id']}");
-			$this->recursive_dump($sb['journal'],"(marker) - - - {$sb['id']} -");
-			$journal      = $sb['journal'];
-			$reading      = nonempty_array_element($journal['join'],'reading');
-			$reading_date  = nonempty_array_element(explode(' ',nonempty_array_element($journal['join'],'reading_date',' -')),0);
-			$journal_title = array_element($journal['data'],'title');
-			$journal_url   = nonempty_array_element($journal['data'],'url');
-			if ( is_null($reading) || is_null($journal_url) ) continue;
-			$reading_lbl   = preg_replace(
-				array_keys($reading_replace),
-				array_values($reading_replace),
-				$reading
-			);
-			$reading_state["{$reading}{$reading_date}"] = <<<EOH
-<li><a href="{$journal_url}" class="legiscope-remote suppress-reorder">{$reading_lbl} ({$reading_date})</a> {$journal_title}</li>
+<span class="sb-match-item sb-match-description">{description}</span>
 EOH;
-		}
+  }
 
-		if ( 0 < count($reading_state) ) {
-			krsort($reading_state);
-			$reading_state = join(" ", $reading_state);
-			$reading_state = <<<EOH
-<ul>{$reading_state}</ul>
+  function stow_parsed_content($document_contents) {/*{{{*/
+    // Accept an associative array that can be passed to 
+    // DatabaseUtility::set_contents_from_array()
+    // Returns the database record ID of this *Document
 
-EOH;
-			$pagecontent .= $reading_state;
-		}
+    $debug_method = FALSE; 
 
-		$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+    // Generate joins between this record and
+    // - Committees (sponsorship, primary responsibility)
+    // - Senators (proponent)
+    //
+    // Note that a Join to Journals is created only when the Journal 
+    // referencing this Senate Bill is accessed.
 
-		return $pagecontent;
+    $id           = $this->set_contents_from_array($document_contents)->stow();
+    $bill         = $this->get_sn();
+    $congress_tag = $this->get_congress_tag();
 
-	}/*}}}*/
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - {$bill}.{$congress_tag} #{$id}");
+
+    $this->debug_final_sql = FALSE;
+    $this->debug_method    = FALSE;
+
+    $document_contents = $this->join_all()->where(array('AND' => array(
+      '`a`.`id`' => $this->get_id(),
+      // Do not assert additional constraints; we want all Joined properties
+      //'{journal}.`congress_tag`' => $congress_tag,
+      //'{journal_senate_journal_document_model}.`congress_tag`' => $congress_tag
+    )))->fetch_single_joinrecord($document_contents);
+
+    $this->debug_final_sql = FALSE;
+    $this->debug_method    = FALSE;
+
+    if ( $debug_method ) $this->recursive_dump($document_contents,"(marker) - - {$bill}.{$congress_tag} #{$id}");
+
+    $this->move_committee_refs_to_joins($document_contents, $id);
+
+    return $id;
+  }/*}}}*/
 
 }

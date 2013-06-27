@@ -801,7 +801,6 @@ EOH
         recordfetch_setup();
       $hashlist = array();
       // Collect all URL hashes.
-      // Construct UrlEdgeModel join table entries for extant records. 
       while ( $url_cache_iterator->recordfetch($result) ) {/*{{{*/
         // $this->recursive_dump($result, $h > 2 ? '(skip)' : __LINE__);
         $idlist[] = $result['id'];
@@ -814,17 +813,6 @@ EOH
       // TODO: Implement link aging
       $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
 			if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
-    }/*}}}*/
-
-    // Stow edges.  This should probably be performed in a stored procedure.
-    if (!(TRUE == C('DISABLE_AUTOMATIC_URL_EDGES'))) {/*{{{*/
-      $edge = new UrlEdgeModel();
-      foreach ( $idlist as $idval ) {/*{{{*/
-        $edge->fetch($parent_page->id, $idval);
-        if ( !$edge->in_database() ) {
-          $edge->stow($parent_page->id, $idval);
-        }
-      }/*}}}*/
     }/*}}}*/
 
     $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);

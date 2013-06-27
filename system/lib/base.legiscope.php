@@ -178,45 +178,103 @@ class LegiscopeBase extends SystemUtility {
 
     // These request variables are normally unavailable in a WordPress plugin context
     // They are assigned by URL rewrite rules, usually set in an .htaccess file
-    $host       = $this->filter_request('url');
-    $controller = $this->filter_request('p');
-    $action     = $this->filter_request('q');
-    $subject    = $this->filter_request('r');
+    $host        = $this->filter_request('url');
+    $request_uri = explode('/',trim(nonempty_array_element($_SERVER,'REQUEST_URI'),'/'));
+    $controller  = $this->filter_request('p');
+    $action      = $this->filter_request('q');
+    $subject     = $this->filter_request('r');
 
     // Update host hits
-    $hostModel  = new HostModel($host);
-    if ( !is_null($host) && (0 < strlen($host)) ) {
+
+    if ( !is_null($host) && (0 < strlen($host)) ) {/*{{{*/
+      $hostModel  = new HostModel($host);
       if ( !$hostModel->in_database() ) {
         $hostModel->stow();
       }
       $hostModel->increment_hits(TRUE);
-    }
+    }/*}}}*/
 
 		$action_hdl = ucfirst(strtolower($action)) . "Action";
 
     $remote_addr    = $this->filter_server('REMOTE_ADDR');
 
-		if ( $debug_method ) {
+		if ( $debug_method ) {/*{{{*/
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$remote_addr}");
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Request URI: " . $_SERVER['REQUEST_URI']);
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -  controller: " . $controller);
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -      action: " . $action    );
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     subject: " . $subject   );
       if ( !is_null($host) )
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -        host: " . $hostModel->get_hostname() . ', ' . $hostModel->get_hits() );
-		}
+		}/*}}}*/
 
-		if ( is_null( $controller ) ) {
-			if ( !is_null($action) && class_exists($action_hdl) ) {
-				$a = new $action_hdl();
-        if ( method_exists( $this, $action ) ) {
-          $this->$action($subject);
-        } else if ( method_exists($a, $action) ) {
+		if ( !is_null( $controller ) ) {/*{{{*/
+
+
+    }/*}}}*/
+    else if ( !is_null($action) && class_exists($action_hdl) ) {/*{{{*/
+
+      if ( method_exists( $this, $action ) ) {
+
+        $this->$action($subject);
+
+      } else if ( class_exists($action_hdl) ) {
+
+        $a = new $action_hdl();
+        if ( method_exists($a, $action) ) {
           $a->$action($subject);
-				}
-				$a = NULL;
-				unset($a);
-			}
-		}
+        }
+        $a = NULL;
+        unset($a);
+
+      }
+
+    }/*}}}*/
+    else if (!is_null($request_uri) && (C('LEGISCOPE_BASE') == nonempty_array_element($request_uri,0,'--'))) {/*{{{*/
+
+      // The request URI will contain path parts that lead to either
+      // terminal leaves, or nodes. A uniform resource identifier such as
+      //
+      // /{LEGISCOPE_BASE}/senate/15th-congress/bills/sb-3166
+      //
+      // might be able to be interpreted identically to 
+      //
+      // /{LEGISCOPE_BASE}/bills/senate/15th-congress/sb-3166
+      //
+      // or
+      //
+      // /{LEGISCOPE_BASE}/15th-congress/bills/senate/sb-3166
+      //
+      // with the terminal leaf "SB-3166" resolving unambiguously to a 
+      // single document.  
+      //
+      // It would be useful for a leaf to have internal structure
+      // that is accessed using the same URI syntax, for example
+      //
+      // ../sb-3166/sponsor
+      // ../sb-3166/sponsor/antonio-trillanes
+      //
+      // This amounts to having each node contain active content. 
+      // Resources appear to be reachable as nodes of a highly-connected
+      // digraph. There may be multiple roots for the digraph, and these
+      // roots are reachable by absolute URIs.  Immediate
+      // neighbor nodes are reachable via relative URIs. 
+      //
+      // See RFC 3986 https://tools.ietf.org/html/rfc3986
+      unset($request_uri[0]);
+      $request_uri = array_values($request_uri);
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Remap " . join('/',$request_uri));
+
+      $action_hdl = ucfirst(strtolower(nonempty_array_element($request_uri,0))) . "Rootnode";
+
+      $uirn = new UnimplementedRootnode($request_uri);
+
+      if ( class_exists($action_hdl) ) {
+        $a = new $action_hdl($request_uri);
+      }
+
+    }/*}}}*/
+
 		return $this;
   }/*}}}*/
 
@@ -644,111 +702,6 @@ class LegiscopeBase extends SystemUtility {
       intval(CurlUtility::$last_transfer_info['http_code']),
       array_flip(array(100,302,301,504))
     ) ? FALSE : TRUE;
-  }/*}}}*/
-
-  // Shared by SenateGovPh and CongressGovPh for catalog pages
-
-  function find_incident_pages(UrlModel & $urlmodel, $batch_regex, $query_regex = '@([^&=]*)=([^&]*)@') { /*{{{*/
-    // Find all links that originate from this page
-
-    $debug_method     = FALSE;
-
-    $child_link       = array();
-    $child_links      = array(array());
-    $child_collection = array();
-    $batch_number     = 0;
-    $child_count      = 0;
-    $subset_size      = 20;
-
-    // You need to traverse each of the session selector URLs 
-    //  to obtain the pagers (and thus the list of journals) for that session.
-    // Instead of traversing those links by submitting fake POST requests,
-    //  we use URL edge lists:  We find all the URLs incident on this current
-    //  page, group those by Congress and session type, and display those.
-    // First collect a list of unique URLs referenced from $urlmodel,
-    //  partitioned into subsets of size $subset_size 
-
-    $tempmodel = new UrlModel();
-    $edge_iterator  = new UrlEdgeModel();
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) -- - -- Fetching edges for URL #" . $urlmodel->get_id() . " " . $urlmodel->get_url());
-    $edge_iterator->where(array('AND' => array(
-      'a' => $urlmodel->get_id()
-    )))->recordfetch_setup();
-    $n = 0; 
-    while ( $edge_iterator->recordfetch($child_link) ) {/*{{{*/
-      if ( !array_key_exists($child_link['b'], $child_collection) ) {/*{{{*/
-        $b = $child_link['b'];
-        $child_collection[$b] = count($child_collection);
-        $child_links[$batch_number][$b] = count(array_element($child_links,$batch_number,array()));
-        $child_count++;
-        if ( $child_count > $subset_size ) {/*{{{*/
-          ksort($child_links[$batch_number]);
-          $child_links[$batch_number] = array_keys($child_links[$batch_number]);
-          $child_count = 0;
-          $batch_number++;
-        }/*}}}*/
-      }/*}}}*/
-      $n++;
-    }/*}}}*/
-    // Finally sort the remaining links
-    if ( $child_count > 0 ) {
-      ksort($child_links[$batch_number]);
-      $child_links[$batch_number] = array_keys($child_links[$batch_number]);
-    }
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) -- - -- Found {$n} edge sets for URL #" . $urlmodel->get_id() . " " . $urlmodel->get_url());
-
-    $url_iterator = new UrlModel();
-    $child_collection = array();
-
-    // Iterate through URLs for journals matching any Congress, session, and series number. 
-    $child_link  = array();
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) -- - -- Fetching URLs for URL #" . $urlmodel->get_id() . " " . $batch_regex);
-    $link_batch  = "REGEXP '{$batch_regex}'";
-    $url_iterator->where(array('url' => $link_batch))->recordfetch_setup();
-
-    $n = 0;
-    while ( $url_iterator->recordfetch($child_link) ) {/*{{{*/
-
-      $url_query_parts = array(
-        'congress' => NULL,
-        'session'  => NULL,
-        'q' => NULL,
-      );
-
-      // Nested result set: CC[ Congress ][ Session ][ Entry ]
-      if ( !is_null($query_regex) ) {
-
-        $url_query_components = array(); 
-        $url_query_parts = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY); 
-        preg_match_all($query_regex, $url_query_parts, $url_query_components);
-
-        if ( !is_array($url_query_components[1]) ) continue;
-        if ( !is_array($url_query_components[2]) ) continue;
-        if ( !(0 < count($url_query_components[1])) ) continue;
-        if ( count($url_query_components[1]) != count($url_query_components[2]) ) continue;
-
-        $url_query_parts = array_combine($url_query_components[1],$url_query_components[2]);
-      } else if ( method_exists($this,'find_incident_edges_partitioner') ) {
-        $url_query_parts = $this->find_incident_edges_partitioner($urlmodel, $child_link);
-        if ( $url_query_parts == FALSE ) continue;
-      }
-
-      if ( empty($url_query_parts['session']) ) $url_query_parts['session'] = 'ALLSESSIONS';
-
-      $child_collection[$url_query_parts['congress']][$url_query_parts['session']][$url_query_parts['q']] = array( 
-        'hash' => $child_link['urlhash'],
-        'url'  => $child_link['url'],
-        'text' => $child_link['urltext'],
-      );
-      $n++;
-    }/*}}}*/
-    krsort($child_collection);
-    if ( $debug_method ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) -- - -- Found {$n} URLs matching '{$batch_regex}'");
-      $this->recursive_dump($child_collection,"(marker) " . __METHOD__);
-    }
-    return $child_collection;
   }/*}}}*/
 
 	/** Object Reflection Methods **/

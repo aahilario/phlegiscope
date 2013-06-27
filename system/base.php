@@ -51,7 +51,24 @@ spl_autoload_register(function ($classname) {
 	}/*}}}*/
  	else {/*{{{*/
 		$matches = array();
-    if ( 1 == preg_match('/((.*)Action(.*))/', $classname, $matches) ) {/*{{{*/
+    if ( 1 == preg_match('/((.*)Rootnode(.*))/', $classname, $matches) ) {/*{{{*/
+      $target_filename = SYSTEM_BASE . "/lib/nodes/{$target_filename}";
+      $base = 'extends GlobalRootnode';
+			$prefix = strtolower(array_element($matches,2,'action'));
+      $classdef = <<<EOH
+class {$classname} {$base} {
+  
+  function __construct(\$request_uri) {
+    \$this->syslog( __FUNCTION__, __LINE__, '(marker) Root node.' );
+    parent::__construct(\$request_uri);
+		\$this->register_derived_class();
+  }
+
+}
+
+EOH;
+		}/*}}}*/
+		else if ( 1 == preg_match('/((.*)Action(.*))/', $classname, $matches) ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/action/{$target_filename}";
       $base = 'extends LegiscopeBase';
 			$prefix = strtolower(array_element($matches,2,'action'));

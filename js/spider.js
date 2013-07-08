@@ -27,7 +27,7 @@ function remove_wait_notification() {
   jQuery('#search-wait').children().remove();
 }
 
-function preload_worker_original() {
+function preload_worker() {
   if ( typeof preload_a != 'null' && preload_n < preload_a.length ) {
     var hashpair   = preload_a[preload_n++];
     var hash       = hashpair.hash;
@@ -60,7 +60,7 @@ function preload_worker_original() {
   } 
 }
 
-function preload_worker() {
+function preload_worker_unconditional() {
 
   var hash       = jQuery("div[id=original]").find('a[class*=legiscope-remote][class*=uncached]').first().attr('id');
   var live       = jQuery('#seek').prop('checked');
@@ -86,7 +86,7 @@ function preload_worker() {
       jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
       if ( data && data.original ) replace_contentof('original',data.original);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-      setTimeout((function(){preload_worker();}),100);
+      setTimeout((function(){preload_unconditional();}),100);
     })
   });
 }
@@ -119,7 +119,7 @@ function preload(components) {
         preload_n++;
       }
       preload_n = 0;
-      preload_worker();
+      jQuery('#preload').prop('checked') ? preload_worker() : preload_worker_unconditional();
     })
   });
 }
@@ -173,7 +173,7 @@ function initialize_linkset_clickevents(linkset,childtag) {
     jQuery(this).children(child_tags).find('a').each(function(){
       if ( component_index > 300 ) return;
       var linkset_child = jQuery(this).attr('id');
-      if ( jQuery(this).hasClass('cached') ) return;
+      if ( jQuery(this).hasClass('cached') && !jQuery('#spider').prop('checked') ) return;
       components[component_index] = linkset_child; 
       component_index++;
     });

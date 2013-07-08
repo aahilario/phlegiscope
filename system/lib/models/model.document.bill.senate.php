@@ -19,7 +19,6 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $searchable_bool = NULL;
   var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
-  var $urlid_int11 = NULL; // Invalidate
   var $doc_url_vc256 = NULL;
 	var $status_vc1024 = NULL;
 	var $subjects_vc1024 = NULL;
@@ -30,18 +29,10 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 	var $legislative_history_vc8192 = NULL;
 	var $significance_vc16 = NULL;
 
-	var $date_read_utx = NULL;
-	var $house_approval_date_utx = NULL;
-	var $transmittal_date_utx = NULL;
-	var $principal_author_int11 = NULL;
-  var $sponsor_int11 = NULL; // SenatorsModel
 	var $main_referral_comm_vc64 = NULL;
-	var $secondary_committee_vc64 = NULL;
+	var $secondary_committee_vc128 = NULL;
 
-	var $pending_comm_vc64 = NULL; // Replace with Join
-	var $pending_comm_date_utx = NULL; // Replace with Join
-
-  var $journal_SenateJournalDocumentModel = NULL;
+  var $journal_SenateJournalDocumentModel = NULL; // Referring journals
   var $committee_SenateCommitteeModel = NULL;
 	var $senator_SenatorDossierModel = NULL;
   var $bill_info_SenateBillDocumentModel = NULL;
@@ -49,6 +40,9 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function __construct() {
     parent::__construct();
   }
+
+	function & set_presidential_action($v) { $this->presidential_action_vc256 = $v; return $this; }
+	function get_presidential_action($v = NULL) { if (!is_null($v)) $this->set_presidential_action($v); return $this->presidential_action_vc256; }
 
 	function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
 	function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
@@ -59,33 +53,9 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function & set_desc($v) { $this->description_vc4096 = $v; return $this; }
   function get_desc($v = NULL) { if (!is_null($v)) $this->set_desc($v); return $this->description_vc4096; }
 
-  function & set_date_read($v) { $this->date_read_utx = $v; return $this; }
-  function get_date_read($v = NULL) { if (!is_null($v)) $this->set_date_read($v); return $this->date_read_utx; }
-
-  function & set_house_approval_date($v) { $this->house_approval_date_utx = $v; return $this; }
-  function get_house_approval_date($v = NULL) { if (!is_null($v)) $this->set_house_approval_date($v); return $this->house_approval_date_utx; }
-
-  function & set_transmittal_date($v) { $this->transmittal_date_utx = $v; return $this; }
-  function get_transmittal_date($v = NULL) { if (!is_null($v)) $this->set_transmittal_date($v); return $this->transmittal_date_utx; }
-
-  function & set_principal_author($v) { $this->principal_author_int11 = $v; return $this; }
-  function get_principal_author($v = NULL) { if (!is_null($v)) $this->set_principal_author($v); return $this->principal_author_int11; }
-
-  function & set_sponsor($v) { $this->sponsor_int11 = $v; return $this; }
-  function get_sponsor($v = NULL) { if (!is_null($v)) $this->set_sponsor($v); return $this->sponsor_int11; }
-
-  function & set_pending_comm($v) { $this->pending_comm_vc64 = $v; return $this; }
-  function get_pending_comm($v = NULL) { if (!is_null($v)) $this->set_pending_comm($v); return $this->pending_comm_vc64; }
-
-  function & set_pending_comm_date($v) { $this->pending_comm_date_utx = $v; return $this; }
-  function get_pending_comm_date($v = NULL) { if (!is_null($v)) $this->set_pending_comm_date($v); return $this->pending_comm_date_utx; }
-
   function & set_url($v) { $this->url_vc4096 = $v; return $this; }
   function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
  
-  function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
-  function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
-  
   function & set_doc_url($v) { $this->doc_url_vc256 = $v; return $this; }
   function get_doc_url($v = NULL) { if (!is_null($v)) $this->set_doc_url($v); return $this->doc_url_vc256; }
   
@@ -125,14 +95,29 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 
-	function & set_secondary_committee($v) { $this->secondary_committee_vc64 = $v; return $this; }
-	function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc64; }
+	function & set_secondary_committee($v) { $this->secondary_committee_vc128 = $v; return $this; }
+	function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc128; }
 
 	function & set_legislative_history($v) { $this->legislative_history_vc8192 = $v; return $this; }
 	function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_vc8192; }
 
-	function & set_filing_date($v) { $this->filing_date_dtm = $v; return $this; }
-	function get_filing_date($v = NULL) { if (!is_null($v)) $this->set_filing_date($v); return $this->filing_date_dtm; }
+	function & set_filing_date($v) {
+		$filing_date = strtotime($v);
+		$date = new DateTime();
+		$date->setTimestamp($filing_date);
+		$this->filing_date_dtm = $date->format(DateTime::ISO8601); 
+		$date = NULL;
+		unset($date);
+		return $this;
+	}
+	function get_filing_date() {
+		$filing_date = strtotime($this->filing_date_dtm);
+		$date = new DateTime();
+		$date->setTimestamp($filing_date);
+		$filing_date = $date->format('F d, Y'); 
+		$date = NULL;
+		return $filing_date;
+ 	}
 
   function single_record_markup_template_a() {
 		$senatedoc = get_class($this);
@@ -140,7 +125,8 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
     return <<<EOH
 {$senatedoc} in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>
-<span class="sb-match-item sb-match-subjects">{subjects}</span>
+<span class="sb-match-item sb-match-subjects">{title}</span>
+<h3 class="sb-match-item">{subjects}</h3>
 <span class="sb-match-item sb-match-significance">Scope: {significance}</span>
 <span class="sb-match-item sb-match-status">Status: {status}</span>
 <span class="sb-match-item sb-match-doc-url">Document: <a class="{doc_url_attrs}" href="{doc_url}">{sn}</a></span>

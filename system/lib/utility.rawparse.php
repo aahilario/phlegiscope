@@ -2,24 +2,26 @@
 
 class RawparseUtility extends SystemUtility {/*{{{*/
 
+  private $containers             = array();
+  private $hash_generator_counter = 0;
+  private $tag_counter            = 0;
+
   protected $headerset                 = array();
   protected $parser                    = NULL;
   protected $current_tag               = NULL;
   protected $tag_stack                 = array();
   protected $links                     = array();
   protected $container_stack           = array();
-  private $containers                  = array();
   protected $filtered_doc              = array();
   protected $custom_parser_needed      = FALSE;
   protected $page_url_parts            = array();
   protected $removable_containers      = array();
-  private $hash_generator_counter      = 0;
-  private $tag_counter                 = 0;
   protected $promise_stack             = array();
   protected $enable_filtered_doc_cache = TRUE;
-	protected $content_type = NULL;
-	protected $freewheel = FALSE;
-
+  protected $content_type              = NULL;
+  protected $freewheel                 = FALSE; // TRUE to prevent execution of parser callbacks
+  protected $terminated                = FALSE; // TRUE to end piecewise parsing
+	protected $no_store                  = FALSE; // TRUE to prevent populating stacks
   /*
    * HTML document XML parser class
    */
@@ -28,13 +30,13 @@ class RawparseUtility extends SystemUtility {/*{{{*/
     $this->initialize();
   }/*}}}*/
 
-	function __destruct() {
+	function __destruct() {/*{{{*/
 		if ( !is_null($this->parser) ) {
       xml_parser_free($this->parser);
 		}
 		$this->parser = NULL;
 		$this->structure_reinit();
-	}
+	}/*}}}*/
   
   protected function initialize() {/*{{{*/
 
@@ -56,7 +58,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
 
   }/*}}}*/
 
-	function structure_reinit() {
+	function structure_reinit() {/*{{{*/
 		$this->headerset              = array();
 		$this->parser                 = NULL;
 		$this->current_tag            = NULL;
@@ -70,22 +72,22 @@ class RawparseUtility extends SystemUtility {/*{{{*/
 		$this->hash_generator_counter = 0;
 		$this->tag_counter            = 0;
 		$this->promise_stack          = array();
-	}
+	}/*}}}*/
 
-	function & clear_containers() {
+	function & clear_containers() {/*{{{*/
 		$this->containers = NULL;
 		$this->filtered_containers = NULL;
 		gc_collect_cycles();
 		$this->structure_reinit();
 		return $this;
-	}
+	}/*}}}*/
 
-  function & enable_filtered_doc($b) {
+  function & enable_filtered_doc($b) {/*{{{*/
     $this->enable_filtered_doc_cache = $b;
     return $this;
-  }
+  }/*}}}*/
 
-  function & assign_containers(& $c, $reduce_to_element = NULL) {
+  function & assign_containers(& $c, $reduce_to_element = NULL) {/*{{{*/
     if ( is_null($reduce_to_element) )
       $this->containers = $c;
     else {
@@ -93,7 +95,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
 		}
 		gc_collect_cycles();
     return $this->containers;
-  }
+  }/*}}}*/
 
   function attributes_as_string($attrs, $as_array = FALSE, $concat_with = " ") {/*{{{*/
     $attrstr = array();
@@ -122,21 +124,21 @@ EOH;
     return $this;
   }/*}}}*/
 
-	function & pop_from_containers(& $container) {
+	function & pop_from_containers(& $container) {/*{{{*/
 		$container = NULL;
 		$container = array_pop($this->containers);
     reset($this->containers);
 		return $this;
-	}
+	}/*}}}*/
 
-  function & containers_r() {
+  function & containers_r() {/*{{{*/
     return $this->containers;
-  }
+  }/*}}}*/
 
-	function clear_temporaries() {
+	function clear_temporaries() {/*{{{*/
 		$this->filtered_containers = NULL;
 		$this->removable_containers = NULL;
-	}
+	}/*}}}*/
 
   function get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
     $this->filtered_containers = array();
@@ -302,8 +304,17 @@ EOH;
 
     if ( !$loadresult ) $this->syslog( __FUNCTION__, __LINE__, "-- WARNING: Failed to filtering HTML as XML, load result FAIL" );
 
-    $this->syslog(__FUNCTION__,__LINE__, "--------------------------- " . __LINE__ );
-    xml_parse($this->parser, $dom->saveXML());
+		$full_length  = mb_strlen($dom->saveXML());
+		$chunk_length = 16384;
+    $this->syslog(__FUNCTION__,__LINE__, "(marker) --------------------------- mb_strlen " . $full_length );
+		for ( $offset = 0 ; $offset < $full_length ; $offset += $chunk_length ) {
+			$is_final = ($offset + $chunk_length) >= $full_length;
+			xml_parse($this->parser, mb_substr($dom->saveXML(), $offset, $chunk_length), $is_final);
+			if ( $this->terminated ) {
+				$this->syslog(__FUNCTION__,__LINE__,"(warning) Terminated.");
+				break;
+			}
+		}
     $xml_errno = xml_get_error_code($this->parser);
 
     if ( $xml_errno == 0 ) {
@@ -447,23 +458,23 @@ EOH;
     return 2 < count($this->tag_stack) ? $this->tag_stack[count($this->tag_stack)-2] : $this->current_tag;
   }/*}}}*/
 
-  function ru_processing_instr( $parser , string $target , string $data ) {
+  function ru_processing_instr( $parser , string $target , string $data ) {/*{{{*/
     $this->syslog(__FUNCTION__,__LINE__,"(marker) {$target} {$data}" );
-  }
+  }/*}}}*/
 
-  function ru_start_namespace( $parser , string $prefix , string $uri ) {
+  function ru_start_namespace( $parser , string $prefix , string $uri ) {/*{{{*/
     $this->syslog(__FUNCTION__,__LINE__,"(marker) {$prefix} {$uri}" );
-  }
+  }/*}}}*/
 
-  function ru_end_namespace( $parser , string $prefix ) {
+  function ru_end_namespace( $parser , string $prefix ) {/*{{{*/
     $this->syslog(__FUNCTION__,__LINE__,"(marker) {$prefix}" );
-  }
+  }/*}}}*/
 
-  function ru_external_entity_ref( $parser , string $open_entity_names , string $base , string $system_id , string $public_id ) {
+  function ru_external_entity_ref( $parser , string $open_entity_names , string $base , string $system_id , string $public_id ) {/*{{{*/
     $this->syslog(__FUNCTION__,__LINE__,"(marker) ENs {$open_entity_names} Base {$base} SID {$system_id} PID {$public_id}" );
-  }
+  }/*}}}*/
 
-	function tag_stack_parent(& $e) {
+	function tag_stack_parent(& $e) {/*{{{*/
 		$e = NULL;
 		if ( empty($this->tag_stack) || 2 > count($this->tag_stack) ) return FALSE;
 		$top = array_pop($this->tag_stack);
@@ -471,7 +482,7 @@ EOH;
 		array_push($this->tag_stack, $e);
 		array_push($this->tag_stack, $top);
 		return TRUE;
-	}
+	}/*}}}*/
 
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
 		if ( $this->freewheel ) return TRUE;
@@ -528,7 +539,7 @@ EOH;
       : TRUE 
       ;
     $this->pop_tagstack();
-    if (is_array($this->current_tag) && array_key_exists('__LEGISCOPE__',$this->current_tag) ) {
+    if (is_array($this->current_tag) && array_key_exists('__LEGISCOPE__',$this->current_tag) ) {/*{{{*/
       $promise_items = $this->current_tag['__LEGISCOPE__'];
       unset($this->current_tag['__LEGISCOPE__']);
       if (!is_null(array_element($promise_items,'__TYPE__'))) {
@@ -544,7 +555,7 @@ EOH;
             $sethash = array_element($postproc_data,'__SETHASH__','- - - -');
             if ( array_key_exists($sethash, $this->containers) ) {
               unset($postproc_data['__SETHASH__']);
-              $this->containers[$sethash]['__POSTPROC__'] = $postproc_data;
+							$this->containers[$sethash]['__POSTPROC__'] = $postproc_data;
             }
             break;
           case 'title':
@@ -564,7 +575,7 @@ EOH;
             break;
         }
       }
-    }
+    }/*}}}*/
     // The parser tag close method returns TRUE to cause this method 
     // to add the tag to the filtered markup result array.
     if ($result) {
@@ -586,7 +597,7 @@ EOH;
       $last_removed = "[NONE]";
       // $this->syslog(__FUNCTION__,__LINE__, "Removing children of {$tag} from {$start} to {$end}");
       for ( ; $start <= $end; $start++ ) { $last_removed = array_pop($this->filtered_doc); }
-      // $this->syslog(__FUNCTION__,__LINE__, "Removing children of {$tag} from {$this->current_tag['position']} to {$end} ({$last_removed})");
+      // $this->syslog(__FUNCTION__,__LINE__, "Removed children of {$tag} from {$this->current_tag['position']} to {$end} ({$last_removed})");
 
       // If this tag is a container, remove the container stack entry associated with this tag
       if ( array_key_exists('CONTAINER', $this->current_tag) ) {
@@ -666,7 +677,7 @@ EOH;
       $this->container_stack[$found_index]['children'][] = $link_data;
 			return TRUE;
     } else {
-      if (C('DEBUG_'.get_class($this))) $this->syslog( __FUNCTION__, __LINE__, "Lost tag content" );
+      if (C('DEBUG_'.get_class($this))) $this->syslog( __FUNCTION__, __LINE__, "(marker) Lost tag content" );
     }
 		return FALSE;
   }/*}}}*/
@@ -691,7 +702,6 @@ EOH;
     $this->push_tagstack();
     array_push($this->container_stack, $container_def);
   }/*}}}*/
-
 
   function & update_current_tag_url($k) {/*{{{*/
     if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) && is_array($this->current_tag) && array_key_exists('attrs', $this->current_tag) && array_key_exists($k, $this->current_tag['attrs'])) {
@@ -723,14 +733,23 @@ EOH;
     if ((is_array($form_control_source) && (0 < count($form_control_source)))) {
 
       $extract_hidden_input = create_function('$a','return strtoupper(array_element($a,"tag")) == "INPUT" && is_array(array_element($a,"attrs")) && strtoupper(array_element($a["attrs"],"TYPE")) == "HIDDEN" ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "value" => array_element(array_element($a,"attrs",array()),"VALUE")) : NULL;');
+      $extract_radio_input  = create_function('$a','return strtoupper(array_element($a,"tag")) == "INPUT" && is_array(array_element($a,"attrs")) && strtoupper(array_element($a["attrs"],"TYPE")) == "RADIO"  ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "value" => array_element(array_element($a,"attrs",array()),"VALUE")) : NULL;');
       $extract_text_input   = create_function('$a','return strtoupper(array_element($a,"tag")) == "INPUT" && is_array(array_element($a,"attrs")) && strtoupper(array_element($a["attrs"],"TYPE")) == "TEXT"   ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "value" => array_element(array_element($a,"attrs",array()),"VALUE")) : NULL;');
       $extract_select       = create_function('$a','return strtoupper(array_element($a,"tagname")) == "SELECT" ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "keys" => array_element($a,"children")) : NULL;');
+
+			$radio_options  = array_values(array_filter(array_map($extract_radio_input,$form_control_source)));
+
       foreach ( array_merge(
         array_values(array_filter(array_map($extract_hidden_input,$form_control_source))),
-        array_values(array_filter(array_map($extract_text_input, $form_control_source)))
+				array_values(array_filter(array_map($extract_text_input, $form_control_source)))
       ) as $form_control ) {
         $form_controls[$form_control['name']] = $form_control['value'];
       };
+
+			foreach ( $radio_options as $radio ) {
+				if ( !array_key_exists($radio['name'],$form_controls) ) $form_controls[$radio['name']] = array();
+				$form_controls[$radio['name']][] = $radio['value'];
+			}
 
       $select_options = array_values(array_filter(array_map($extract_select, $form_control_source)));
 
@@ -791,36 +810,60 @@ EOH;
     return TRUE;
   }/*}}}*/
 
-  function & stack_to_containers() {/*{{{*/
+  function stack_to_containers() {/*{{{*/
     $container = array_pop($this->container_stack);
-    // array_push($this->containers,$container);
-    $hash_value = array_key_exists('sethash',$container) ? $container['sethash'] : NULL;
-    // $this->recursive_dump($container,__LINE__);
+    $hash_value = (is_array($container) && array_key_exists('sethash',$container)) ? nonempty_array_element( $container,'sethash' ) : NULL;
     if ( is_null($hash_value) ) {
-      $this->syslog(__FUNCTION__, __LINE__, "- Missing container hash");
-      $this->recursive_dump($container,__LINE__);
+      $this->syslog(__FUNCTION__, __LINE__, "(warning) - Missing container hash");
+      $this->recursive_dump($container, "(warning) " . __METHOD__);
     } else if ( !is_array($container) ) {
-      $this->syslog(__FUNCTION__, __LINE__, "- Got non-container item from container stack! " . print_r($containers));
+      $this->syslog(__FUNCTION__, __LINE__, "(warning) - Got non-container item from container stack! " . print_r($containers));
+			$hash_value = NULL;
     } else if ( array_key_exists($hash_value,$this->containers) ) {
-      $this->syslog(__FUNCTION__, __LINE__, "- Hash collision on tag {$container['tagname']} - {$hash_value}");
-    } else {
+      $this->syslog(__FUNCTION__, __LINE__, "(warning) - Hash collision on tag {$container['tagname']} - {$hash_value}");
+			$hash_value = NULL;
+		} else if ( $this->no_store ) {
+			// We are disallowed from placing nodes into the container list
+			$hash_value = NULL;
+		} else {
       $this->containers[$hash_value] = $container;
     }
-    return $this;
+		return is_null($hash_value)
+			? NULL
+			: array(
+					'hash_value' => $hash_value,
+					'container' => $container,
+				);
   }/*}}}*/
 
-	function & set_freewheel($v = TRUE) {
+	function unset_container_by_hash($hash_value) {
+		if (!is_array($this->containers)) return;
+		if ( array_key_exists($hash_value, $this->containers) ) {
+			unset($this->containers[$hash_value]);
+		}
+	}
+
+	function & set_freewheel($v = TRUE) {/*{{{*/
 		// Suspend parsing when $v := TRUE
 		$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - freewheel = " . ($v ? "TRUE" : "FALSE"));
 		$this->freewheel = $v;
 		return $this;
-	}
+	}/*}}}*/
 
-  function & current_tag() {
+	function & set_terminated($v = TRUE) {/*{{{*/
+		// Suspend parsing when $v := TRUE
+		$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - terminated = " . ($v ? "TRUE" : "FALSE"));
+		$this->terminated = $v;
+		return $this;
+	}/*}}}*/
+
+
+
+  function & current_tag() {/*{{{*/
     $this->pop_tagstack();
     $this->push_tagstack();
     return $this;
-  }
+  }/*}}}*/
 
   function embed_cdata_in_parent() {/*{{{*/
     $i = $this->pop_tagstack();
@@ -832,11 +875,11 @@ EOH;
     return FALSE;
   }/*}}}*/
 
-  function cdata_cleanup() {
+  function cdata_cleanup() {/*{{{*/
     if ( is_array($this->current_tag) && array_key_exists('cdata',$this->current_tag) && is_array($this->current_tag['cdata']) ) {
       $this->current_tag['cdata'] = array_filter(explode('[BR]',preg_replace('@(&nbsp([;]*))+@i',' ',join('',$this->current_tag['cdata']))));
     }
-  }
+  }/*}}}*/
 
 	function iconv($s) {/*{{{*/
 		return iconv( strtoupper($this->content_type), 'UTF-8//TRANSLIT', $s );
@@ -845,6 +888,5 @@ EOH;
 	function reverse_iconv($s) {/*{{{*/
 		return iconv( 'UTF-8', strtoupper($this->content_type), $s );
 	}/*}}}*/
-
 
 }/*}}}*/

@@ -80,29 +80,9 @@ class SeekAction extends LegiscopeBase {
       : "Reloading"
       ;
 
-    if ( ( $debug_method ) || !is_null($faux_url) ) {/*{{{*/
-
-      $cached_before_retrieval = $retrieved ? "existing" : "uncached";
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) " . ($network_fetch ? "Network Fetch" : "Parse") . " {$cached_before_retrieval} link, invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
-
-      $in_db = $retrieved ? 'in DB' : 'uncached';
-			$faux_url_type = gettype($faux_url);
-
-      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url}" );
-      $this->syslog(__FUNCTION__,__LINE__, "(marker)   Mapped real URL {$target_url} -> faux URL {$faux_url}" );
-      $this->syslog(__FUNCTION__,__LINE__, "(marker) Instance contains " . $url->get_url() );
-      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Instance content " . $url->get_content_hash() );
-      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Original content " . $content_hash );
-      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) Metalink URL src');
-
-    }/*}}}*/
-
-		// FIXME: Modify DatabaseUtility to permit update of only a single attribute, rather than updating entire record.
-    if ( $retrieved ) $url->increment_hits(TRUE);
-
     if ( $network_fetch ) {/*{{{*/
 
-      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method );
+      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method || TRUE );
 
       $action = $retrieved
         ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
@@ -122,6 +102,25 @@ class SeekAction extends LegiscopeBase {
       }/*}}}*/
 
     }/*}}}*/
+
+		if ( ( $debug_method ) /*|| !is_null($faux_url)*/ ) {/*{{{*/
+
+      $cached_before_retrieval = $retrieved ? "existing" : "uncached";
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) " . ($network_fetch ? "Network Fetch" : "Parse") . " {$cached_before_retrieval} link, invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
+
+      $in_db = $retrieved ? 'in DB' : 'uncached';
+			$faux_url_type = gettype($faux_url);
+
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)   Mapped real URL {$target_url} -> faux URL {$faux_url}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) Instance contains " . $url->get_url() );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Instance content " . $url->get_content_hash() );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Original content " . $content_hash );
+      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) Metalink URL src');
+
+    }/*}}}*/
+
+    if ( $retrieved ) $url->increment_hits(TRUE);
 
     $pagecontent    = $url->get_pagecontent();
     $responseheader = '...';

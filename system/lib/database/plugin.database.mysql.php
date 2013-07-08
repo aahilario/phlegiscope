@@ -190,27 +190,25 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 					$left = array_element($map, 'attrname');
 					if ( !array_key_exists($left, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $left;
 					$index = array_flip($resultset['attrnames']);
-					if ( !array_key_exists($index[$left],$record) ) $record[$index[$left]] = array(
-						'join' => array(),
-						'data' => array(),
-					);
-					$record[$index[$left]]['join'] = array_merge(
-						$record[$index[$left]]['join'],
-						array($attrname => $val)
-					);
+          $attr = 'join';
 				} else {
 					$left = $this->alias_map['map'][$left]['attrname'];
 					if ( !array_key_exists($left, array_flip($resultset['attrnames'])) ) $resultset['attrnames'][] = $left;
 					$index = array_flip($resultset['attrnames']);
-					if ( !array_key_exists($index[$left],$record) ) $record[$index[$left]] = array(
-						'join' => array(),
-						'data' => array(),
-					);
-					$record[$index[$left]]['data'] = array_merge(
-						$record[$index[$left]]['data'],
-						array($attrname => $val)
-					);
+          $attr  = 'data';
 				}
+        if ( !array_key_exists($index[$left],$record) ) $record[$index[$left]] = array(
+          'join' => array(),
+          'data' => array(),
+        );
+        if ( !is_null($record[$index[$left]][$attr]) ) {
+          if ( $attrname == 'id' && is_null($val) ) $record[$index[$left]][$attr] = NULL;
+          else
+          $record[$index[$left]][$attr] = array_merge(
+            $record[$index[$left]][$attr],
+            array($attrname => $val)
+          );
+        }
 				continue;
 			}
 

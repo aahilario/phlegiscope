@@ -18,7 +18,7 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
 
   function ru_div_close(& $parser, $tag) {/*{{{*/
     // Hack to mark DIV containers of membership roster URLs in 
-    // CongressGovPh::committee_information_page()
+    // this->committee_information_page()
     $this->pop_tagstack();
     if ('main-ol' == array_element($this->current_tag['attrs'],'ID')) {
       unset($this->current_tag['attrs']['ID']);
@@ -86,7 +86,7 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
       'seq'  => $this->current_tag['attrs']['seq'],
     );
     // Label a SPAN[class*=mem-head] for selection in
-    // CongressGovPh::committee_information_page()
+    // this->committee_information_page()
     if (1 == preg_match('@(' . join('|',array(
         'mem-head',
       )) . ')@i', array_element($this->current_tag['attrs'],'CLASS'))
@@ -305,7 +305,9 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
       'bills_referred'     => 'Bills Referred',
       'member_list'        => 'Committee Members',
       'committee_meetings' => 'Meetings',
+			//'contact_form'       => 'Contact',
     );
+		// $this->committee_information['contact_form'] = $office_address;
     ksort($tab_options);
     $link_members = array_intersect_key(
       $this->committee_information,
@@ -325,9 +327,9 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
       $tab_links = array_combine(array_values($tab_options),array_values($link_members));
       array_walk($tab_links, create_function(
         '& $a, $k, $s', '$hash = UrlModel::get_url_hash($a); $a = "<li id=\"{$s[$k]}\"><a class=\"legiscope-content-tab\" id=\"{$hash}\" href=\"{$a}\">{$k}</a>";'
-      ),array_flip($tab_options));
-      $tab_links = array_values($tab_links);
-      $tab_links = join('',$tab_links);
+      ), array_flip($tab_options));
+
+      $tab_links = join('',array_values($tab_links));
 
       $tab_containers = array();
       foreach ( array_flip($tab_options) as $id ) {/*{{{*/
@@ -351,23 +353,24 @@ EOH;
 <br/>
 <br/>
 <div class="committee-contact-block-right clear-both">{$office_address}</div>
-<br/>
 <div class="clear-both"></div>
 <hr/>
-<br/>
-<img class="legiscope-remote bio-avatar" width="120" height="120" border="1" 
-href="{$chairperson_image}" 
-alt="{$chairperson_fullname}" 
-src="{$chairperson_avatar}"
+<img
+	class="legiscope-remote bio-avatar"
+	width="120" height="120" border="1" 
+	href="{$chairperson_image}" 
+	alt="{$chairperson_fullname}" 
+	src="{$chairperson_avatar}"
 >
-<div class="committee-contact-block"><a class="legiscope-remote" href="{$chairperson_bio_url}">{$chairperson_fullname}</a><br/>{$contact_details}</div>
+<div class="committee-contact-block">
+	<a class="legiscope-remote" href="{$chairperson_bio_url}">{$chairperson_fullname}</a><br/>
+	{$contact_details}
+</div>
 <br/>
 <div class="theme-options clear-both">
-<hr/>
-<ul>
-{$tab_links}
-</ul>
-<div class="congress-committee-info-tabs">{$tab_containers}</div>
+	<hr/>
+	<ul>{$tab_links}</ul>
+	<div class="congress-committee-info-tabs">{$tab_containers}</div>
 </div>
 
 EOH;
@@ -421,6 +424,8 @@ EOH;
   }/*}}}*/
 
   function committee_information_page(& $stdparser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    // http://www.congress.gov.ph/committees/search.php?congress=15&id=0501 
 
     /* Parse a committee information page to obtain these items of information:
      * - Committee jurisdiction and contact information

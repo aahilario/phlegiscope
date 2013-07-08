@@ -18,11 +18,22 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
   var $last_fetch_utx = NULL;
   var $url_vc4096 = NULL;
 
-	var $senator_SenatorDossierModel = NULL; // Relationships of Senator to this committee
+  var $senator_SenatorDossierModel = NULL; // Relationships of Senator to this committee
+  var $senate_bill_SenateBillDocumentModel = NULL;
+  var $senate_housebill_SenateHousebillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
   }
+
+  function get_senator() { return $this->senator_SenatorDossierModel; }
+  function & set_senator($v) { $this->senator_SenatorDossierModel = $v; return $this; }
+
+  function get_senate_bill() { return $this->senate_bill_SenateBillDocumentModel; }
+  function & set_senate_bill($v) { $this->senate_bill_SenateBillDocumentModel = $v; return $this; }
+
+  function get_senate_housebill() { return $this->senate_housebill_SenateHousebillDocumentModel; }
+  function & set_senate_housebill($v) { $this->senate_housebill_SenateHousebillDocumentModel = $v; return $this; }
 
   function & set_committee_name($v) { $this->committee_name_vc256uniq = $v; return $this; }
   function get_committee_name($v = NULL) { if (!is_null($v)) $this->set_committee_name($v); return $this->committee_name_vc256uniq; }
@@ -52,8 +63,8 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
     $this->fetch_by_committee_name($committee_name);
     $short_code = trim(preg_replace('@[^A-Z]@','',$committee_name));
     $id = $this->in_database()
-			? $this->get_id()
-			:	$this->
+      ? $this->get_id()
+      :  $this->
         set_committee_name($committee_name)->
         set_short_code($short_code)->
         set_jurisdiction(NULL)->
@@ -73,9 +84,49 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
     return trim($committee_name);
   }/*}}}*/
 
-  function fetch_by_committee_name($committee_name) {/*{{{*/
+  function cursor_fetch_by_name_regex(& $search_name) {/*{{{*/
+    return $this->fetch_by_name_regex($search_name, TRUE);
+  }/*}}}*/
 
-		$debug_method = FALSE;
+  function fetch_by_name_regex(& $search_name, $cursor = FALSE) {/*{{{*/
+
+    $debug_method = TRUE;
+
+    if ( !$cursor ) {
+      // The limit() call is necessary and reasonable since large resultsets
+      // can choke the application, and should be retrieved with a cursor anyway.
+      $search_name = $this->
+        limit(1,0)->
+        fetch(array(
+          'LOWER(committee_name)' => "REGEXP '({$search_name})'"
+        ),'AND');
+      $result = $this->in_database();
+    } else if ( is_null($search_name) ) {
+      $result = $this->recordfetch($search_name,TRUE);
+    } else {
+      // Return a record in the search_name parameter
+      $this->
+        join_all()->
+        where(array('AND' => array(
+        'committee_name' => "REGEXP '({$search_name})'"
+      )))->recordfetch_setup();
+      $result = $this->recordfetch($search_name,TRUE);
+    }
+    if ( $result ) {
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) Found record " . $this->get_id() . " (" . $this->get_committee_name() . ")");
+    } else {
+      $this->syslog(__FUNCTION__,__LINE__, 
+        $cursor
+        ? "(marker) No cursor match"
+        :  "(marker) Failed to match record using regex {$search_name}"
+      );
+    }
+    return $result;
+  }/*}}}*/
+
+  function fetch_by_committee_name($committee_name, $cursor = FALSE) {/*{{{*/
+
+    $debug_method = FALSE;
 
     $search_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
 
@@ -84,24 +135,8 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
       return FALSE;
     }
 
-    $this->fetch(array(
-      'committee_name' => "REGEXP '({$search_name})'"
-    ),'AND');
-    $result = $this->in_database();
-    if ( $result ) {
-      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,
-        "(marker) Found record " . $this->get_id() . " (" .
-        $this->get_committee_name() . ") using regex " .
-        $search_name
-      );
-    } else {
-      $this->syslog(__FUNCTION__,__LINE__,
-        "(marker) Failed to match record for '{$committee_name}'" .
-        " using regex " .
-        $search_name
-      );
-    }
-    return $result;
+    return $this->fetch_by_name_regex($search_name, $cursor);
+
   }/*}}}*/
 
 }

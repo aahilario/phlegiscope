@@ -32,6 +32,7 @@ class CongressGovPh extends SeekAction {
 
     // http://www.congress.gov.ph/members 
 		$document_parser = new CongressMemberBioParseUtility();
+    $document_parser->update_existing = $parser->update_existing;
 		$document_parser->representative_bio_parser($parser,$pagecontent,$urlmodel);
 		$document_parser = NULL;
 		unset($document_parser);
@@ -364,92 +365,176 @@ EOH;
 
   }/*}}}*/
 
-  function seek_postparse_d_billstext_preprocess(& $urlmodel) {/*{{{*/
+  function seek_postparse_d_billstext_preprocess(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $debug_method = FALSE;
+    // Obtain pre-cached JSON document, if available
+    $metaorigin   = UrlModel::get_url_hash($urlmodel->get_url());
+    $shadow_url   = new UrlModel($urlmodel->get_url(),FALSE);
+    $congress_tag = NULL;
+
+    if ( !is_null($metalink = $this->filter_post('metalink')) ) {/*{{{*/
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Current content hash: " . $urlmodel->get_content_hash());
+      $faux_url = GenericParseUtility::get_faux_url_s($shadow_url, $metalink);
+      $metaorigin = UrlModel::get_url_hash($faux_url);
+      $congress_tag = nonempty_array_element($metalink,'congress');
+      if ( $debug_method ) {/*{{{*/
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Fake URL, real content: " . $urlmodel->get_url());
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Target congress: {$congress_tag} <- (" . gettype($metalink) . "){$metalink}" );
+      }/*}}}*/
+    }/*}}}*/
+
+    $shadow_url->add_query_element('metaorigin', $metaorigin);
+    $have_parsed_data = $shadow_url->set_url($shadow_url->get_url(),TRUE);
+
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Meta-URL: " . $shadow_url->get_url() );
 
     $hb_listparser = new CongressHbListParseUtility();
-    $hb_listparser->debug_tags = FALSE;
-    $hb_listparser->
-      enable_filtered_doc(FALSE)-> // Conserve memory, do not store filtered doc.
-      set_parent_url($urlmodel->get_url())->
-      parse_html(
-        $urlmodel->get_pagecontent(),
-        $urlmodel->get_response_header()
+    $hb_listparser->debug_tags   = FALSE;
+
+    $hb_listparser->start_offset = $this->filter_post('parse_offset',0);
+    $hb_listparser->parse_limit  = $this->filter_post('parse_limit',20);
+
+    if ( !$have_parsed_data || $parser->update_existing ) {/*{{{*/
+
+      if ( $debug_method ) {/*{{{*/
+        $state = $have_parsed_data ? "existing" : "de novo";
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Regenerating {$state}: " . $shadow_url->get_url() );
+      }/*}}}*/
+
+      if ( !$have_parsed_date ) {
+        $hb_listparser->start_offset = NULL;
+        $hb_listparser->parse_limit  = NULL;
+      }
+
+      // Parse content stored in shadow_url
+      $hb_listparser->
+        enable_filtered_doc(FALSE)-> // Conserve memory, do not store filtered doc.
+        set_parent_url($urlmodel->get_url())->
+        initialize_bill_parser($urlmodel)-> 
+        parse_html(
+          $urlmodel->get_pagecontent(),
+          $urlmodel->get_response_header()
+        );
+
+      // Clear content from memory
+      $urlmodel->
+        set_content(NULL)->
+        set_id(NULL);
+
+      if ( $debug_method ) {/*{{{*/
+        if ( !is_null($hb_listparser->parse_limit) ) {
+          $this->recursive_dump($hb_listparser->parsed_bills,"(marker) -- F --");
+        }
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) Containers: " . count($hb_listparser->containers_r()));
+      }/*}}}*/
+
+      $this->filter_nested_array($hb_listparser->containers_r(),
+        'children,attrs[tagname*=form][id*=form1]',0
+      );
+      $form_data = nonempty_array_element($hb_listparser->containers_r(),0);
+
+      if ( $debug_method ) {/*{{{*/
+        $this->recursive_dump($form_data,"(marker) -- C --");
+      }/*}}}*/
+
+      $hb_listparser->parsed_bills = array_reverse($hb_listparser->parsed_bills);
+
+      $this->container_buffer = array(
+        'partition_width' => $hb_listparser->bill_set_size,
+        'entries'         => $hb_listparser->bill_head_entries,
+        'parsed_bills'    => $hb_listparser->parsed_bills,
+        'congress_tag'    => $congress_tag,
+      ); 
+
+      $this->container_buffer['form'] = array_merge(
+        array('action' => array_element(nonempty_array_element($form_data,'attrs'),'ACTION')),
+        $hb_listparser->extract_form_controls(nonempty_array_element($form_data,'children'))
       );
 
-    $hb_listparser->reset(TRUE,FALSE); // Eliminate XML parser, do not clear containers
+      if ( $debug_method ) {/*{{{*/
+        $this->recursive_dump($this->container_buffer['form'],"(marker) -- L --");
+      }/*}}}*/
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) About to destroy list parser: " . count($hb_listparser->containers_r()) . ". Memory load: " . memory_get_usage(TRUE) );
-    $this->container_buffer = json_encode($hb_listparser->containers_r());
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Serialized parse result. Memory load: " . memory_get_usage(TRUE) );
+      $id = $shadow_url->
+        set_pagecontent_c(json_encode($this->container_buffer))->
+        stow();
 
+      $error = $shadow_url->error();
+      if ( !empty($error) || $debug_method ) {/*{{{*/
+        $state = !empty($error) ? "Error {$error} stowing" : ($have_parsed_data ? "Reparsed" : "Stored");
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) {$state} {$hb_listparser->bill_head_entries} entries: " . $shadow_url->get_url() );
+      }/*}}}*/
+
+    }/*}}}*/
+
+    $offset = $hb_listparser->start_offset; // Ordinal index (resolves to a single bill as though the partitions are unrolled) 
+    $span   = $hb_listparser->parse_limit; // Elements (bills) to return
+
+    $hb_listparser->reset(TRUE,TRUE); // Eliminate XML parser, clear containers
     $hb_listparser = NULL;
-    gc_collect_cycles();
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Destroyed parser. Memory load: " . memory_get_usage(TRUE) );
-    // Clear content from memory
-    $urlmodel->
-      set_content(NULL)->
-      set_id(NULL);
+    $this->container_buffer = json_decode($shadow_url->get_pagecontent(),TRUE);
 
-    gc_collect_cycles();
-  }/*}}}*/
+    $partition_width  = nonempty_array_element($this->container_buffer,'partition_width');
+    $entries          = nonempty_array_element($this->container_buffer,'entries');
 
-  function seek_postparse_d_billstext_worker(& $urlmodel, & $congress_tag, $bill_count, $batch_size) {/*{{{*/
+    if ( is_null($congress_tag) ) $congress_tag = nonempty_array_element($this->container_buffer,'congress_tag');
+    // $this->container_buffer['parsed_bills'] = array_reverse($this->container_buffer['parsed_bills']);
 
-    if ( is_array($this->container_buffer) ) {
-      $s = json_encode($this->container_buffer);
-      $this->container_buffer = NULL;
-      gc_collect_cycles();
-      $this->container_buffer = $s;
-      $s = NULL;
-    }
-    $hb_listparser = new CongressHbListParseUtility();
-    $hb_listparser->debug_tags = FALSE;
-    $hb_listparser->
-      enable_filtered_doc(FALSE)-> // Conserve memory, do not store filtered doc.
-      set_parent_url($urlmodel->get_url())->
-      assign_containers(json_decode($this->container_buffer,TRUE));
+    $partitions       = count($this->container_buffer['parsed_bills']);
+    $partition_start  = floor($offset / $partition_width);
+    $partition_offset = $offset % $partition_width;
+    $partition_end    = floor(($offset + $span) / $partition_width);
 
-    $this->container_buffer = NULL;
-    gc_collect_cycles();
+    if ( $debug_method )
+    $this->syslog(__FUNCTION__,__LINE__,
+      "(marker) Getting n = {$span} from {$partition_start}.{$partition_offset} - {$partition_end}");
 
-    // If we get this far, there is enough memory to iteratively pop
-    // elements off the stack; we'll assume that there is not enough 
-    // to keep the original parsed data and still generate markup.
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Elements: " . count($hb_listparser->containers_r()) . ". Memory load: " . memory_get_usage(TRUE) );
+    $final_list = array();
+    $i = $partition_start;
+    do {/*{{{*/
+      $index = min($i,$partitions-1);
+      foreach ( array_reverse($this->container_buffer['parsed_bills'][$index]) as $entry ) {/*{{{*/
+        if ( $partition_offset > 0 ) {/*{{{*/
+          if ( $i + 4 > $partitions )
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$i}/{$partitions} SKIP");
+          $partition_offset--;
+          continue;
+        }/*}}}*/
+        $entry['description'] = ucfirst(strtolower($entry['description']));
+        $final_list[] = $entry;
+        if ( $i + 4 > $partitions )
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$i}/{$partitions}");
+        if ( count($final_list) >= $span ) break;
+      }/*}}}*/
+      $partition_offset = 0;
+      $i++;
+    }/*}}}*/
+    while ((count($final_list) < $span) && ($i < $partitions));
 
-    if ( $bill_count == 0 ) {
+    $this->container_buffer['parsed_bills'] = $final_list; 
 
-      $hb_listparser->reduce_bill_listing_structure();
-      $congress_tag = $hb_listparser->obtain_congress_number_from_listing();
+    $parser->json_reply['state'] = ( $partition_end >= $partitions ) ? '0' : '1';
 
-    }
-
-    $hb_listparser->convert_containers_to_splstack();
-
-    $hb_listparser->initialize_bill_parser($urlmodel);
-
-    // Parse markup stream, pop clusters of tags from stack
-    $bill_count += $hb_listparser->parse_bill_registry($congress_tag, $batch_size);
-
-    $this->container_buffer = $hb_listparser->
-      convert_splstack_to_containers()->
-      get_containers();
-
-    $hb_listparser->clear_containers();
-
-    unset($hb_listparser);
-    gc_collect_cycles();
-
-    return $bill_count;
+    return $congress_tag;
 
   }/*}}}*/
 
   function seek_postparse_d_billstext(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
     // House Bills
+    // Partition large list into multiple processable chunks, transmit
+    // these in bulk to the client browser as JSON fragments.
+
     $debug_method = FALSE;
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() . ". Length: " . $urlmodel->get_content_length() . ". Memory load: " . memory_get_usage(TRUE) );
+    $own_url      = $urlmodel->get_url();
+
+    if ( $debug_method ) {/*{{{*/
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() . ". Length: " . $urlmodel->get_content_length() . ". Memory load: " . memory_get_usage(TRUE) );
+      $this->recursive_dump($_POST,"(marker) --");
+    }/*}}}*/
 
     $urlmodel->ensure_custom_parse();
 
@@ -457,41 +542,222 @@ EOH;
 
     $pagecontent = NULL;
 
-    $this->seek_postparse_d_billstext_preprocess($urlmodel);
+    // Perform actual parse operation
 
-    $bill_count   = 0;
-    $congress_tag = NULL;
-    $batch_size   = 500;
+    $congress_tag = $this->seek_postparse_d_billstext_preprocess($parser,$pagecontent,$urlmodel);
 
-    do {
+    $urlmodel->set_content(NULL)->set_id(NULL);
 
-      $bill_count = $this->seek_postparse_d_billstext_worker($urlmodel, $congress_tag, $bill_count, $batch_size);
-
-    } while ( 0 < count($this->container_buffer) );
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) - ! - Total bills processed: {$bill_count}");
-    if ( $debug_method ) {
-      $this->recursive_dump($current_bill, "(marker) - - - - - Sample Bill Record");
+    $debug_method = FALSE;
+    $house_bills = new HouseBillDocumentModel();
+    $cached = NULL;
+    if ( 'fetch' == $this->filter_post('catalog') ) {
+      $parser->json_reply['catalog'] = nonempty_array_element($this->container_buffer,'parsed_bills');
+      $house_bills->cache_parsed_housebill_records($this->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
+      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($this->container_buffer,'parsed_bills'),"(marker) --- A --");
+    } else {
+      $house_bills->cache_parsed_housebill_records($this->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
+      $cached = addslashes($this->safe_json_encode(nonempty_array_element($this->container_buffer,'parsed_bills'))); 
+      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($this->container_buffer,'parsed_bills'),"(marker) --- B --");
     }
+    $debug_method = FALSE;
+
+    // Store records not yet recorded in HouseBillDocumentModel backing store.
+
+    // Generate POST links
+
+    $actions        = nonempty_array_element($this->container_buffer,'form');
+    $action         = nonempty_array_element($actions,'action');
+    $trigger_pull   = NULL;
+    $emit_frame     = is_null($congress_tag);
+    $generated_link = array();
+
+    foreach ( nonempty_array_element($actions,'form_controls') as $k => $v ) {/*{{{*/
+      foreach ( $v as $val ) {
+        $link_class_selector = array('fauxpost');
+        $link_class_selector = join(' ', $link_class_selector);
+        $control_set = array(
+          '_' => 'SKIPGET',
+          $k => $val
+        );
+        extract( UrlModel::create_metalink("{$val}", $action, $control_set, $link_class_selector, TRUE) );
+        $generated_link[$hash] = $metalink;
+        if ( is_null($congress_tag) ) $congress_tag = $val;
+        if ( $congress_tag == $val ) $trigger_pull = "switch-{$hash}";
+      }
+    }/*}}}*/
+
+    krsort($generated_link);
+    $generated_link = join('&nbsp;', $generated_link);
+    $entries        = array_element($this->container_buffer,'entries');
+    $bills          = NULL;
+    $system_stats   = NULL;
+    $parse_offset   = intval($this->filter_post('parse_offset',0));
+    $parse_limit    = intval($this->filter_post('parse_limit',20));
+
+    $parser->json_reply['parse_offset'] = $parse_offset + $parse_limit;
+
+    $emit_frame     = $emit_frame || ($parse_offset == 0);
+
+    // FIXME:  Use per-method session store
+    $last_fetch     = $this->filter_post('last_fetch', $parser->from_network ? time() : 'null');
+
+    if ( $debug_method || $emit_frame ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Offset: {$parse_offset}. " . ($emit_frame ? "Emitting" : "Not emitting") . " frame");
+
+    // Send markup container and script 
+    if ( $emit_frame ) $pagecontent = <<<EOH
+
+<div class="float-left half-container" id="system-stats">
+  <span>House Bills Page Loader (Congress {$congress_tag}): {$entries} {$generated_link}</span>
+  <input class="reset-cached-links" type="button" value="Clear"> 
+  <input class="reset-cached-links" type="button" value="Reset"> 
+  {$system_stats}
+</div>
+
+<div class="float-left half-container alternate-original" id="parsed-content">
+{$bills}
+</div>
+
+<script type="text/javascript">
+
+var parse_offset = 0;
+var parse_limit = 11;
+var cached = jQuery.parseJSON("{$cached}");
+
+function emit_bill_entries(entries) {
+  for ( var p in entries ) {
+    var entry = entries[p];
+    var links = entry.links;
+    var representative = entry && entry.representative ? entry.representative : null;
+    var committee = entry && entry.committee ? entry.committee : null;
+    if ( representative ) jQuery('#currenturl').html(representative.url);
+    jQuery('#parsed-content').append(
+      jQuery(document.createElement('DIV'))
+        .addClass('bill-container')
+        .addClass('clear-both')
+        .attr('id',entry.sn)
+        .append(
+          jQuery(document.createElement('HR'))
+        )
+        .append(
+          jQuery(document.createElement('SPAN'))
+            .addClass('republic-act-heading')
+            .addClass('clear-both')
+            .append(links.filed
+              ? jQuery(document.createElement('A'))
+                .attr('href',links.filed)
+                .addClass('legiscope-remote')
+                .html(entry.sn)
+              : jQuery(document.createElement('B')).html(entry.sn)
+            )
+        )
+        .append(
+          jQuery(document.createElement('SPAN'))
+            .addClass('republic-act-desc')
+            .addClass('clear-both')
+            .html(entry.description)
+        )
+        .append(
+          jQuery(document.createElement('SPAN'))
+            .addClass('republic-act-meta')
+            .addClass('clear-both')
+            .append(jQuery(document.createElement('B')).html('Status: '))
+            .append(entry.meta && entry.meta.status ? entry.meta.status : '')
+        )
+        .append(committee
+          ? jQuery(document.createElement('SPAN'))
+            .addClass('republic-act-meta')
+            .addClass('clear-both')
+            .append(jQuery(document.createElement('B')).html('Committee: '))
+            .append(jQuery(document.createElement('A'))
+              .attr('href',committee.url)
+              .addClass('legiscope-remote')
+              .html(committee.committee_name)
+            )
+          : entry.meta 
+              ? jQuery(entry.meta).prop('main-committee') 
+              : ''
+        )
+        .append(
+          jQuery(document.createElement('SPAN'))
+            .addClass('republic-act-meta')
+            .addClass('clear-both')
+            .append(jQuery(document.createElement('B')).html('Principal Author: '))
+            .attr('title',(representative && representative.url) ? '' : 'Representative not recorded in database.')
+            .append( (representative && representative.url)
+              ? jQuery(document.createElement('A'))
+                .attr('href',representative.url)
+                .addClass('legiscope-remote')
+                .html(representative.fullname)
+              : ( entry.meta
+                  ? jQuery(entry.meta).prop('principal-author')
+                  : ''
+                )
+            )
+        )
+      );
+  }
+}
+
+function pull() {
+  var active = jQuery('#{$trigger_pull}').attr('id').replace(/^switch-/,'content-');
+  var linkurl = jQuery('#{$trigger_pull}').attr('href');
+  if ( !jQuery('#spider').prop('checked') ) {
+    emit_bill_entries(cached);
+    return; 
+  }
+  jQuery.ajax({
+    type     : 'POST',
+    url      : '/seek/',
+    data     : { url : linkurl, catalog : 'fetch', last_fetch : {$last_fetch}, parse_offset : parse_offset, parse_limit : parse_limit, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true, metalink : jQuery('#'+active).html() },
+    cache    : false,
+    dataType : 'json',
+    async    : true,
+    beforeSend : (function() {
+      display_wait_notification();
+    }),
+    complete : (function(jqueryXHR, textStatus) {
+      remove_wait_notification();
+    }),
+    success  : (function(data, httpstatus, jqueryXHR) {
+      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      if ( data && data.state ) {
+        if ( 0 == parseInt(data.state) ) {
+          jQuery('#spider').prop('checked',null);
+        }  
+      }
+      parse_offset = ( data && data.parse_offset ) ? data.parse_offset : 0;
+      if ( data && data.catalog ) {
+        emit_bill_entries(data.catalog);
+      }
+      jQuery('#seek').prop('checked',null);
+      if ( jQuery('#spider').prop('checked') ) {
+        setTimeout((function(){pull();}),500);
+      }
+    })
+  });
+}
+
+jQuery(document).ready(function(){
+  pull();
+});
+</script>
+
+EOH;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
 
   }/*}}}*/
-
-  function committee_information_page(& $stdparser, & $pagecontent, & $urlmodel) {/*{{{*/
-
-    $document_parser = new CongressionalCommitteeInfoParseUtility();
-		$document_parser->committee_information_page(& $stdparser, & $pagecontent, & $urlmodel);
-		$document_parser = NULL;
-		unset($document_parser);
-
-  }/*}}}*/
-
 
   /** Automatically matched parsers **/
 
   function seek_by_pathfragment_e4d1bcf92a20bcf057f690e18c95d159(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.congress.gov.ph/committees/search.php?congress=15&id=0501 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $this->committee_information_page($parser,$pagecontent,$urlmodel);
+    $document_parser = new CongressionalCommitteeInfoParseUtility();
+    $document_parser->update_existing = $parser->update_existing;
+		$document_parser->committee_information_page(& $parser, & $pagecontent, & $urlmodel);
+		$document_parser = NULL;
+		unset($document_parser);
   }/*}}}*/
 
   function seek_postparse_bypath_9f222d54cda33a330ffc7cd18e7ce27f(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -531,7 +797,6 @@ EOH;
   }/*}}}*/
 
   function seek_by_pathfragment_f2792e9d2ac91d20240ce308f106ecea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // 
     $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
 

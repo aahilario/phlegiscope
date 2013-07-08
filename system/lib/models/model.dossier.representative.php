@@ -16,7 +16,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
   var $surname_vc48 = NULL;
   var $namesuffix_vc8 = NULL;
   var $bio_url_vc1024 = NULL;
-	var $create_time_utx = NULL;
+  var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
   var $contact_json_vc2048 = NULL;
   var $member_uuid_vc64 = NULL; // Basically a hash of the URL and full name
@@ -24,7 +24,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
   var $avatar_url_vc1024 = NULL;
 
   var $committees_CongressionalCommitteeDocumentModel = NULL;
-	var $housebills_HouseBillDocumentModel = NULL;
+  var $housebills_HouseBillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -97,11 +97,11 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
   function & set_avatar_image($v) { $this->avatar_image_blob = $v; return $this; }
 
-	function get_avatar_image($v = NULL) {/*{{{*/
-		if (!is_null($v)) $this->set_avatar_image($v);
+  function get_avatar_image($v = NULL) {/*{{{*/
+    if (!is_null($v)) $this->set_avatar_image($v);
 
     if ( empty($this->avatar_image_blob) ) {/*{{{*/
-			$url = new UrlModel();
+      $url = new UrlModel();
       $url->fetch(UrlModel::get_url_hash($this->get_avatar_url()),'urlhash');
       if ( $url->in_database() ) {
         $image_content_type = $url->get_content_type();
@@ -115,8 +115,8 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
     if ( is_null($this->avatar_image_blob) || (strtoupper($this->avatar_image_blob) == 'NULL') ) $this->avatar_image_blob = '';
 
-		return $this->avatar_image_blob;
- 	}/*}}}*/
+    return $this->avatar_image_blob;
+   }/*}}}*/
 
   function parse_name($n) {/*{{{*/
     $cleanup = '@\((.*)\)$@i';
@@ -148,8 +148,10 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
   }/*}}}*/
 
-	function replace_legislator_names_hotlinks(& $name) {/*{{{*/
+  function replace_legislator_names_hotlinks(& $name) {/*{{{*/
     $nameparts = $this->parse_name($name);
+    if ( is_array($nameparts) ) $nameparts = array_filter($nameparts);
+    if ( !is_array($nameparts) || !(0 < count($nameparts)) ) return NULL;
     $original_name = $name;
     $matches = preg_replace('@[^A-Z]@i','(.*)',"{$nameparts['surname']},{$nameparts['given']}"); 
     $template = <<<EOH
@@ -166,9 +168,11 @@ EOH;
       $urlhash = UrlModel::get_url_hash(array_element($name,'bio_url'));
       $s = str_replace('{urlhash}',$urlhash, $s);
       $name['original'] = $original_name;
+      $name['parse'] = $nameparts;
+      $name['parse']['fullname'] = $name['fullname'];
     }
     return $s;
-	}/*}}}*/
+  }/*}}}*/
 
   function stow() {
     return parent::stow();

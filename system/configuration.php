@@ -10,6 +10,7 @@ define('CACHE_PATH', './cache');
 if (!defined('SYSTEM_BASE')) define('SYSTEM_BASE', './system');
 
 define('LEGISCOPE_BASE','contents');
+define('LEGISCOPE_JOURNAL_PDF_AUTOFETCH',TRUE);
 
 // Settings for CurlUtility
 define('LEGISCOPE_USER_AGENT', $_SERVER['HTTP_USER_AGENT']);
@@ -27,15 +28,16 @@ define('DEBUG_RawparseUtility', FALSE);
 define('DEBUG_MysqlDatabasePlugin', FALSE);
 define('DEBUG_UrlModel', FALSE);
 define('DEBUG_ALL', FALSE);
-// define('SLOW_DOWN_RECURSIVE_DUMP',FALSE);
+//define('SLOW_DOWN_RECURSIVE_DUMP',FALSE);
 define('SLOW_DOWN_RECURSIVE_DUMP',20000);
 define('DISABLE_AUTOMATIC_URL_EDGES',TRUE);
 
 define('SELENIUM_WEBDRIVER', 'http://127.0.0.8:4444/wd/hub');
 
 // Debug flags
-define('ENABLE_STRUCTURE_DUMP', FALSE);
+define('ENABLE_STRUCTURE_DUMP'        , FALSE);
 define('DEBUG_STACKTRACE_ON_SQL_ERROR', TRUE);
+define('LOG_DOCUMENT_UPDATE_DELTAS'   , TRUE);
 
 // Session handling
 define('LEGISCOPE_SESSION_NAME', 'LEGISCOPE');

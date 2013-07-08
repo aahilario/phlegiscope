@@ -30,9 +30,7 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
 
     $this->debug_operators = FALSE;
 
-    $this->recursive_dump($containers = $this->get_containers(
-      'children[tagname=div][id=main-ol]'
-    ),"(----) ++ All containers");
+    $containers = $this->get_containers('children[tagname=div][id=main-ol]');
 
     $target_congress = NULL;
     // We are able to extract names of committees and current chairperson.
@@ -71,12 +69,16 @@ EOH;
             $parsed_name = $m->parse_name( $name['original'] );
             $committees[$hash]['original'] = $parsed_name;
             $m->fetch($name['id'],'id');
+            $data = array(
+              'fullname'   => $name['original'],
+              'firstname'  => $parsed_name['given'],
+              'mi'         => $parsed_name['mi'],
+              'surname'    => $parsed_name['surname'],
+              'namesuffix' => $parsed_name['suffix'],
+            );
             $m->
-              set_fullname($name['original'])-> 
-              set_firstname($parsed_name['given'])->
-              set_mi($parsed_name['mi'])->
-              set_surname($parsed_name['surname'])->
-              set_namesuffix($parsed_name['suffix'])->
+              set_contents_from_array($data)->
+              fields(array_keys($data))->
               stow();
           }
           $pagecontent .= <<<EOH

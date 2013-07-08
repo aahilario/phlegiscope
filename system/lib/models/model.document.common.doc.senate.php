@@ -407,11 +407,11 @@ EOH;
 				$referral_mode = ($referral_mode == 'primary') ? "Primary" : "Secondary";
 
         $committee_referrals["{$referral_mode}{$committee_id}"] = <<<EOH
-<li><a href="/{$committee_url}">{$committee_name}</a> ({$referral_mode})</li>
+<li><a class="legiscope-remote" href="/{$committee_url}">{$committee_name}</a> ({$referral_mode})</li>
 
 EOH;
         if ( $referral_mode == 'Secondary' )
-          $secondary_committees["{$referral_mode}{$committee_id}"] = '<a href="/' . $committee_url . '">' . $committee_name . "</a>";
+          $secondary_committees["{$referral_mode}{$committee_id}"] = '<a class="legiscope-remote" href="/' . $committee_url . '">' . $committee_name . "</a>";
         else
           $pagecontent = preg_replace('@{main_referral_comm_url}@i', "/{$committee_url}", $pagecontent);
 			}

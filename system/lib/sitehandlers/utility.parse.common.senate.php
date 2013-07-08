@@ -159,5 +159,44 @@ class SenateCommonParseUtility extends LegislationCommonParseUtility {
 		$control_set['__EVENTARGUMENT'] = NULL;
 	}/*}}}*/
 
+	function jquery_seek_missing_journal_pdf() {
+		return <<<EOH
+
+<script type="text/javascript">
+
+jQuery(document).ready(function(){
+  jQuery('a[class*=journal-pdf]').each(function() {
+		if ( jQuery(this).hasClass('uncached') ) {
+			var self = jQuery(this);
+      var linkurl = jQuery(this).attr('href');
+			jQuery.ajax({
+				type     : 'POST',
+				url      : '/seek/',
+				data     : { url : linkurl, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true },
+				cache    : false,
+				dataType : 'json',
+				async    : false,
+				beforeSend : (function() {
+					display_wait_notification();
+				}),
+				complete : (function(jqueryXHR, textStatus) {
+					remove_wait_notification();
+				}),
+				success  : (function(data, httpstatus, jqueryXHR) {
+					jQuery(self).addClass('cached').removeClass('uncached');
+					if ( data && data.original ) replace_contentof('original',data.original);
+					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+				})
+			});
+		}
+  });
+});
+
+</script>
+
+EOH;
+
+
+	}
 }
 

@@ -126,16 +126,17 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 		$this->filter_nested_array($filing_date,'file-date[text*=Filed by|i]',0);
 		$filing_date = array_element($filing_date,0);
 
-		$date = DateTime::createFromFormat('F d, Y H:i:s', "{$filing_date} 00:00:00");
-		$date = FALSE === $date
-			? NULL
-			: $date->format(DateTime::ISO8601); 
-
 		$senator = new SenatorDossierModel();
 
-		if ( is_null($date) && $debug_method ) {
+		$date = new DateTime();
+		$filing_date = strtotime($filing_date);
+    if ( FALSE == $filing_date ) {
 			$senator->syslog(__FUNCTION__,__LINE__,"(warning) - - - Unable to parse date '{$filing_date_orig}'");
-		}
+      $filing_date = NULL;
+    } else {
+      $date->setTimestamp($filing_date);
+      $filing_date = $date->format(DateTime::ISO8601); 
+    }
 
 		if ( is_array($extended) ) foreach ( $extended as $index => $elements ) {/*{{{*/
 			if ( is_null(array_element($senate_bill_recordparts,"filing_date")) ) {
@@ -149,7 +150,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 				? $senator->get_id()
 				: NULL
 				;
-			$elements['filing_date'] = $date;
+			$elements['filing_date'] = $filing_date;
 			$elements['relationship'] = 'sponsor';
 
 			if ( is_null($elements['id']) ) {

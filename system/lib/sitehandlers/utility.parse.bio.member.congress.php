@@ -315,10 +315,10 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 		if ( !$m->in_database() ) {
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) Member {$urlmodel} not in DB" );
 		}
+
 		$member = $this->get_member_contact_details();
-		// $this->recursive_dump($member,__LINE__);
+
 		// Extract room, phone, chief of staff (2013-03-25)
-		// $this->recursive_dump($this->get_containers(),__LINE__);
 		$contact_regex = '@(((Chief of Staff|Phone):) (.*)|Rm. ([^,]*),)([^|]*)@i';
 		$contact_items = array();
 		if ( is_array($member) && array_key_exists('contact',$member) ) {
@@ -328,11 +328,11 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 				'room'     => $contact_items[0][5],
 				'phone'    => trim(preg_replace('@^([^:]*):@i','',trim($contact_items[0][6]))),
 				'cos'      => $contact_items[1][4],
-				'role'     => $member['extra'][0],
+				//'xrole'    => $member['extra'][0],
 				'term'     => preg_replace('@[^0-9]@','',$member['extra'][2]),
-				'district' => $member['extra'][1],
+				'role'     => $member['extra'][1],
 			);
-			// $this->recursive_dump($contact_items,__LINE__);
+			$this->recursive_dump($contact_items,"(marker) B CIs --- ");
 		}
 		// Determine whether the image for this representative is available in DB
 		$member_avatar_base64 = NULL;
@@ -342,9 +342,9 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 			$image_content_type   = $url->get_content_type();
 			$image_content        = base64_encode($url->get_pagecontent());
 			$member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-			// $this->syslog(__FUNCTION__,__LINE__, "{$member['fullname']} avatar: {$member_avatar_base64}");
 		}
-		$member_id = $m->set_fullname($member['fullname'])->
+		$member_id = $m->
+			set_fullname($member['fullname'])->
 			set_create_time(time())->
 			set_bio_url($urlmodel->get_url())->
 			set_last_fetch(time())->
@@ -571,6 +571,7 @@ EOH;
       $this->syslog( __FUNCTION__, __LINE__, "(marker) H ------------------------------ No bills received" );
     }
 		$legislation_links = array();
+		// $this->recursive_dump($bills,"(marker) -- fooie --");
     foreach ( $bills as $bill ) {/*{{{*/
       $bill_url_hash         = UrlModel::get_url_hash($bill['bill-url']);
       $bill_history          = array_element($bill,'history');
@@ -615,10 +616,10 @@ EOH
 				'seq'  => $bill['bill'],
 			  'link' => <<<EOH
 <div class="congress-doc-item">
-<span class="congress-doc-name">{$bill_title}</span>
-<span class="congress-doc-element indent-1">{$bill_longtitle}</span>
-<span class="congress-doc-element indent-1">Status: {$bill['status']} {$bill['ref']}</span>
-{$principal_author}
+	<span class="congress-doc-name">{$bill_title}</span>
+	<span class="congress-doc-element indent-1">{$bill_longtitle}</span>
+	<span class="congress-doc-element indent-1"><b>Status</b>: {$bill['status']} {$bill['ref']}</span>
+	{$principal_author}
 </div>
 EOH
 			);
@@ -628,7 +629,7 @@ EOH
 
 		while ( 0 < count($legislation_links) ) {/*{{{*/
 			$n = 0;
-			while ( $n++ < 20 ) {
+			while ( ($n++ < 20) && (0 < count($legislation_links)) ) {
 				$legislation_item = array_pop($legislation_links);
         if ( !is_null(array_element($legislation_item,'seq')) && !is_null(array_element($legislation_item,'url')) )
         $legislation_links_temp[$legislation_item['urlhash']] = $legislation_item; 
@@ -703,7 +704,7 @@ EOH
 
     $m->fetch($urlmodel->get_url(), 'bio_url');
 
-    if ( !$m->in_database() || $parser->from_network ) {/*{{{*/
+    if ( !$m->in_database() || $parser->from_network || $this->update_existing ) {/*{{{*/
 
       $this->stow_parsed_representative_info($m,$urlmodel);
 
@@ -721,7 +722,8 @@ EOH
 
     $membership_role   = $this->generate_committee_membership_markup($membership_role);
     $legislation_links = array();
-    $bills             = $this->generate_legislation_links_markup($m, $legislation_links, $bills);
+		$billsource        = $bills;
+    $bills             = $this->generate_legislation_links_markup($m, $legislation_links, $billsource);
     $legislation_links = join('',$legislation_links);
 
     // To trigger automated fetch, crawl this list after loading the entire dossier doc;

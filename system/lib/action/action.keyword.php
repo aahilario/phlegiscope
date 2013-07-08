@@ -108,7 +108,7 @@ class KeywordAction extends LegiscopeBase {
       $this->syslog( '----', __LINE__, "Senate Bills found: {$count}");
       /////////////////////////////////////////////////
 
-      foreach ( $records as $dummyindex => $record ) {
+      if (0) foreach ( $records as $dummyindex => $record ) {
         $referrers->fetch($record['url'],'url');
         $records[$dummyindex]['referrers'] = $referrers->referrers('url');
       }

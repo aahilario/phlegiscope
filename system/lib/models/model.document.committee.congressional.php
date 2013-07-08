@@ -19,7 +19,7 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
   var $office_address_vc4096 = NULL;
 
   var $representative_RepresentativeDossierModel = NULL; // Relationship between a committee and a representative (role, mainly: e.g. chairman, member)
-	var $master_document_links_UrlModel = NULL; // Note that this also supersedes the Committee URL
+  var $master_document_links_UrlModel = NULL; // Note that this also supersedes the Committee URL
 
   function __construct() {/*{{{*/
     parent::__construct();
@@ -61,14 +61,14 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
   function & set_url($v) { $this->url_vc4096 = $v; return $this; }
   function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
 
-	function & set_office_address($v) {
-		$this->office_address_vc4096 = is_array($v) ? json_encode($v) : $v;
-		return $this;
- 	}
-	function get_office_address($v = NULL) { 
-		if (!is_null($v)) $this->set_office_address($v);
-		return is_string($this->office_address_vc4096) ? json_decode($this->office_address_vc4096,TRUE) : $this->office_address_vc4096;
- 	}
+  function & set_office_address($v) {
+    $this->office_address_vc4096 = is_array($v) ? json_encode($v) : $v;
+    return $this;
+   }
+  function get_office_address($v = NULL) { 
+    if (!is_null($v)) $this->set_office_address($v);
+    return is_string($this->office_address_vc4096) ? json_decode($this->office_address_vc4096,TRUE) : $this->office_address_vc4096;
+   }
 
   function & set_contact_json($v) { $this->contact_json_vc4096 = $v; return $this; }
   function get_contact_json($v = NULL) { if (!is_null($v)) $this->set_contact_json($v); return $this->contact_json_vc4096; }
@@ -109,7 +109,7 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
       array_walk($committee_name_list,create_function(
         '& $a, $k, $s',
         // '$matches = array(); if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; $a["matches"] = $matches; }'
-        'if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; }'
+        'if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; $a["committee_name"] = $s["committee_name"]; $a["url"] = $s["url"]; }'
       ),$comm);
       $n++;
       $comm = NULL;
@@ -141,9 +141,12 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
         if ( !(array_element($entry,'id','UNMAPPED') == 'UNMAPPED') ) { 
           $fixed_mapping++;
           $committee_regex_lookup[$name]['id'] = $entry['id'];
+          $committee_regex_lookup[$name]['name'] = $entry['committee_name'];
+          $committee_regex_lookup[$name]['url'] = $entry['url'];
         }
       }
       ksort($committee_regex_lookup);
+      // $this->recursive_dump($unmapped_committee_entries,"(marker) Unmapped");
     }
 
     return $fixed_mapping;

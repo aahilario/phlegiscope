@@ -17,25 +17,25 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
   var $last_fetch_utx = NULL;
   var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
-	var $urlid_int11 = NULL;
-	var $doc_url_vc4096 = NULL;
-	var $doc_urlid_int11 = NULL;
+  var $urlid_int11 = NULL;
+  var $doc_url_vc4096 = NULL;
+  var $doc_urlid_int11 = NULL;
   var $content_blob = NULL;
-	var $date_filed_utx = 0;
+  var $date_filed_utx = 0;
 
   var $journal_SenateJournalDocumentModel = NULL;
-	var $committee_SenateCommitteeModel = NULL;
+  var $committee_SenateCommitteeModel = NULL;
   var $resolution_SenateResolutionDocumentModel = NULL;
-	var $bill_SenateBillDocumentModel = NULL;
-	var $housebill_SenateHousebillDocumentModel = NULL;
+  var $bill_SenateBillDocumentModel = NULL;
+  var $housebill_SenateHousebillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
     // $this->dump_accessor_defs_to_syslog();
-		// $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
+    // $this->recursive_dump($this->get_attrdefs(),'(marker) "Gippy"');
   }
 
-	function & set_id($v) { if ( 0 < intval($v) ) $this->id = $v; return $this; }
+  function & set_id($v) { if ( 0 < intval($v) ) $this->id = $v; return $this; }
 
   function & set_text($v) { return $this; }
   function get_text($v = NULL) { if (!is_null($v)) $this->set_text($v); return NULL; }
@@ -64,22 +64,23 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
   function & set_desc($v) { $this->description_vc4096 = $v; return $this; }
   function get_desc($v = NULL) { if (!is_null($v)) $this->set_desc($v); return $this->description_vc4096; }
 
-	function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
-	function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
+  function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
+  function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
 
-	function & set_doc_url($v) { $this->doc_url_vc4096 = $v; return $this; }
-	function get_doc_url($v = NULL) { if (!is_null($v)) $this->set_doc_url($v); return $this->doc_url_vc4096; }
+  function & set_doc_url($v) { $this->doc_url_vc4096 = $v; return $this; }
+  function get_doc_url($v = NULL) { if (!is_null($v)) $this->set_doc_url($v); return $this->doc_url_vc4096; }
 
-	function & set_doc_urlid($v) { $this->doc_urlid_int11 = $v; return $this; }
-	function get_doc_urlid($v = NULL) { if (!is_null($v)) $this->set_doc_urlid($v); return $this->doc_urlid_int11; }
+  function & set_doc_urlid($v) { $this->doc_urlid_int11 = $v; return $this; }
+  function get_doc_urlid($v = NULL) { if (!is_null($v)) $this->set_doc_urlid($v); return $this->doc_urlid_int11; }
 
-	function & set_date_filed($v) { $this->date_filed_utx = $v; return $this; }
-	function get_date_filed($v = NULL) { if (!is_null($v)) $this->set_date_filed($v); return $this->date_filed_utx; }
+  function & set_date_filed($v) { $this->date_filed_utx = $v; return $this; }
+  function get_date_filed($v = NULL) { if (!is_null($v)) $this->set_date_filed($v); return $this->date_filed_utx; }
 
   function store_uncached_reports(array & $committee_report_url_text, $journal_id = NULL, $debug_method = FALSE) {/*{{{*/
     
     // Accept an array( url => url, text => desc ) and store 
     if ($debug_method) $this->recursive_dump($committee_report_url_text,'(marker) Parsed reports F');
+
     while ( 0 < count($committee_report_url_text) ) {
       $n = 0;
       // Take a batch of n records
@@ -137,7 +138,7 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
             set_senate_committee_report($senate_committee_report_id)->
             set_senate_journal($journal_id)->
             stow(); 
-					if ( !(0 < intval($join_id)) || $debug_method )
+          if ( !(0 < intval($join_id)) || $debug_method )
           $this->syslog( __FUNCTION__, __LINE__, ( 0 < intval($join_id) )
             ? ("(marker) Created " . get_class($reportjournal) . " #{$join_id}")
             : ("(marker) Failed to create Join between CR DB#{$senate_committee_report_id} <-> Journal DB#{$journal_id}")
@@ -161,6 +162,49 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
           stow();
       }
     }
+  }/*}}}*/
+
+  function stow_activity_summary($committee_report) {/*{{{*/
+
+    // Invoked from SenateGovPh::canonical_committee_report_page_parser
+    // FIXME: Refactor further so that Join record writes are handled by the Model
+    $documents = $committee_report['__documents__'];
+    $committees = $committee_report['__committees__'];
+    unset($committee_report['__documents__']);
+    unset($committee_report['__committees__']);
+
+    $this->fetch(array(
+      'sn' => $committee_report['sn'],
+      'congress_tag' => $committee_report['congress_tag'],
+    ), 'AND');
+
+    if ( empty($committee_report['date_filed']) ) $committee_report['date_filed'] = 0;
+
+    $this->set_contents_from_array($committee_report);
+    $report_id = $this->stow();
+
+    if ( 0 < intval($report_id) ) {
+      // Create Committee Report - Committee Joins
+      $committees = array_keys($committees); // Reduce the committee list array to just the IDs (`id`) 
+      if ( intval($this->get_id()) != $report_id ) $this->set_id($report_id);
+      if ( $debug_method ) 
+      $this->syslog(__FUNCTION__,__LINE__, "(marker) --- -- - Stowing links to me {$report_id} #" . $this->get_id());
+      $this->create_joins('SenateCommitteeModel',$committees);
+
+      // Create Committee Report - Senate document Joins
+      foreach( $documents as $doctype => $doc ) {
+        $foreignkeys = array_keys($doc);
+        switch( $doctype ) {
+        case 'HBN': $this->create_joins( 'SenateHousebillDocumentModel', $foreignkeys ); break; 
+        case 'SBN': $this->create_joins( 'SenateBillDocumentModel', $foreignkeys ); break; 
+        case 'SRN': $this->create_joins( 'SenateResolutionDocumentModel', $foreignkeys ); break;
+        default: 
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) ---- --- -- - New document type '{$doctype}'");
+          $this->recursive_dump($doc,"(marker) ---");
+        }
+      }
+    }
+
   }/*}}}*/
 
 }

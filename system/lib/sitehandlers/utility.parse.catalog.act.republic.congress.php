@@ -78,22 +78,18 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
       $control_set = is_array($form_controls) ? $form_controls : array();
       $control_set[$select_name] = $select_option['value'];
       $control_set['Submit'] = 'submit';
-      $controlset_json_base64 = base64_encode(json_encode($control_set));
-      $controlset_hash = md5($controlset_json_base64);
+
       $faux_url = UrlModel::parse_url($urlmodel->get_url());
       $faux_url['query'] = "d=ra";
       $faux_url = UrlModel::recompose_url($faux_url,array(),FALSE);
+
       $link_class_selector = array("fauxpost");
       if ( $ra_linktext == $select_option['text'] ) {
         $link_class_selector[] = "selected";
       }
       $link_class_selector = join(' ', $link_class_selector);
-      $metalink_data[] = <<<EOH
-EOH;
-      $generated_link = <<<EOH
-<a href="{$faux_url}" class="{$link_class_selector}" id="switch-{$controlset_hash}">{$select_option['text']}</a>
-<span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
-EOH;
+
+			$generated_link = UrlModel::create_metalink($select_option['text'], $faux_url, $control_set, $link_class_selector);
       $replacement_content .= $generated_link;
     }/*}}}*/
 
@@ -205,9 +201,9 @@ EOH;
 
     $this->syslog(__FUNCTION__,__LINE__,'(marker) Elements ' . count($sorted_desc));
     $this->syslog(__FUNCTION__,__LINE__,'(marker) Stacked clusters ' . count($sn_stacks));
-    // $this->recursive_dump($sn_stacks, "(marker) SNs");
 
     $ra_template = <<<EOH
+
 <div class="republic-act-entry">
 <span class="republic-act-heading"><a href="{url}" class="legiscope-remote {cache_state}" id="{urlhash}">{sn}</a></span>
 <span class="republic-act-desc">{description}</span>
@@ -218,31 +214,31 @@ EOH;
 EOH;
 
     // Deplete the stack, generating markup for entries that exist
-    while ( 0 < count( $sn_stacks ) ) {/*{{{*/
-      $sn_stack = array_pop($sn_stacks); 
-      $ra = array();
-      $republic_act->where(array('AND' => array(
-        'sn' => $sn_stack
-      )))->recordfetch_setup(); 
-      // Now remove entries from $republic_acts
-      while ( $republic_act->recordfetch($ra,TRUE) ) {
-        $ra_number = $ra['sn'];
-        $republic_acts[$ra_number] = NULL;
-        $urlhash = $republic_acts[$ra_number]['__META__']['urlhash'];
-        // Generate markup for already-cached entries
-        $sorted_desc[$ra_number] = preg_replace(
-          array(
-            '@{urlhash}@i',
-            '@{cache_state}@i',
-          ),
-          array(
-            $urlhash,
-            'cached',
-          ),
-          $republic_act->substitute($ra_template)
-        );
-      }
-    }/*}}}*/
+		while ( 0 < count( $sn_stacks ) ) {/*{{{*/
+			$sn_stack = array_pop($sn_stacks); 
+			$ra = array();
+			$republic_act->where(array('AND' => array(
+				'sn' => $sn_stack
+			)))->recordfetch_setup(); 
+			// Now remove entries from $republic_acts
+			while ( $republic_act->recordfetch($ra,TRUE) ) {
+				$ra_number = $ra['sn'];
+				$republic_acts[$ra_number] = NULL;
+				$urlhash = $republic_acts[$ra_number]['__META__']['urlhash'];
+				// Generate markup for already-cached entries
+				$sorted_desc[$ra_number] = preg_replace(
+					array(
+						'@{urlhash}@i',
+						'@{cache_state}@i',
+					),
+					array(
+						$urlhash,
+						'cached',
+					),
+					$republic_act->substitute($ra_template)
+				);
+			}
+		}/*}}}*/
     $republic_acts = array_filter($republic_acts);
 
     $this->recursive_dump(array_keys($republic_acts),"(marker) -Remainder-");

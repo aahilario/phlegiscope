@@ -11,6 +11,7 @@ class LegiscopeBase extends SystemUtility {
   var $seek_cache_filename = NULL;
   var $enable_proxy = TRUE;
   var $debug_handler_names = FALSE;
+	var $debug_handle_model_action = FALSE;
 
   function __construct() {/*{{{*/
     parent::__construct();
@@ -171,7 +172,7 @@ class LegiscopeBase extends SystemUtility {
 
   final protected function handle_model_action() {/*{{{*/
 
-		$debug_method = FALSE;
+		$debug_method = $this->debug_handle_model_action;
 
     // Extract controller, action, and subject values from server context
     $this->handle_plugin_context();
@@ -188,10 +189,15 @@ class LegiscopeBase extends SystemUtility {
 
     if ( !is_null($host) && (0 < strlen($host)) ) {/*{{{*/
       $hostModel  = new HostModel($host);
-      if ( !$hostModel->in_database() ) {
+      if (!(0 < strlen($hostModel->get_hostname()))) {
+        $action = NULL;
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Nulling out action, process {$host} as Rootnode.");
+        $request_uri = explode('/',trim($host,'/'));
+      } else if ( !$hostModel->in_database() ) {
         $hostModel->stow();
+      } else {
+        $hostModel->increment_hits(TRUE);
       }
-      $hostModel->increment_hits(TRUE);
     }/*}}}*/
 
 		$action_hdl = ucfirst(strtolower($action)) . "Action";
@@ -231,7 +237,7 @@ class LegiscopeBase extends SystemUtility {
 
     }/*}}}*/
     else if (!is_null($request_uri) && (C('LEGISCOPE_BASE') == nonempty_array_element($request_uri,0,'--'))) {/*{{{*/
-
+      //
       // The request URI will contain path parts that lead to either
       // terminal leaves, or nodes. A uniform resource identifier such as
       //
@@ -261,16 +267,17 @@ class LegiscopeBase extends SystemUtility {
       // neighbor nodes are reachable via relative URIs. 
       //
       // See RFC 3986 https://tools.ietf.org/html/rfc3986
-      unset($request_uri[0]);
+      //
+      array_shift($request_uri);
       $request_uri = array_values($request_uri);
       $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Remap " . join('/',$request_uri));
 
       $action_hdl = ucfirst(strtolower(nonempty_array_element($request_uri,0))) . "Rootnode";
 
-      $uirn = new UnimplementedRootnode($request_uri);
-
       if ( class_exists($action_hdl) ) {
+        array_shift($request_uri);
         $a = new $action_hdl($request_uri);
+        $a->evaluate();
       }
 
     }/*}}}*/
@@ -288,37 +295,44 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
-    if ( get_class($this) == $class_match ) {/*{{{*/
-			$cache_force     = $this->filter_post('cache');
-			$pagecontent     = json_encode($json_reply);
+	function safe_json_encode($s) {/*{{{*/
+
+		$pagecontent     = json_encode($s);
+		$json_last_error = json_last_error();
+		switch ( $json_last_error ) {
+		case JSON_ERROR_NONE: break;
+		case JSON_ERROR_CTRL_CHAR:
+		case JSON_ERROR_UTF8:
+			// Reencode every string element of the JSON response array
+			array_walk($s,create_function(
+				'& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
+			));
+			$pagecontent = json_encode($s);
 			$json_last_error = json_last_error();
-		  switch ( $json_last_error ) {
-				case JSON_ERROR_NONE: break;
-				case JSON_ERROR_CTRL_CHAR:
-				case JSON_ERROR_UTF8:
-					// Reencode every string element of the JSON response array
-					array_walk($json_reply,create_function(
-						'& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
-					));
-					$pagecontent = json_encode($json_reply);
-					$json_last_error = json_last_error();
-					$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
-					break;
-				default:
-					$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
-					break;
-			}	
-      header('Content-Type: application/json');
-      header('Content-Length: ' . strlen($pagecontent));
-      $this->flush_output_buffer();
-      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-        file_put_contents($this->seek_cache_filename, $pagecontent);
-      }
-      echo $pagecontent;
-      exit(0);
-    }/*}}}*/
-  }/*}}}*/
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
+			break;
+		default:
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
+			break;
+		}	
+		return $pagecontent;
+
+	}/*}}}*/
+
+	function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
+		if ( get_class($this) == $class_match ) {/*{{{*/
+			$cache_force = $this->filter_post('cache');
+			$pagecontent = $this->safe_json_encode($json_reply);
+			header('Content-Type: application/json');
+			header('Content-Length: ' . strlen($pagecontent));
+			$this->flush_output_buffer();
+			if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
+				file_put_contents($this->seek_cache_filename, $pagecontent);
+			}
+			echo $pagecontent;
+			exit(0);
+		}/*}}}*/
+	}/*}}}*/
 
   function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
 
@@ -713,13 +727,13 @@ class LegiscopeBase extends SystemUtility {
 	 * information about the framework itself.
 	 */
 
-	protected function register_derived_class() {
+	protected function register_derived_class() {/*{{{*/
 
     $debug_method = FALSE;
 
 		if ($debug_method) $this->syslog(__FUNCTION__,__LINE__,"(marker)");
 
-	}
+	}/*}}}*/
 
   //////////////////////////////////////////////////////////////////////////
   /** WordPress Plugin adapter methods **/
@@ -878,14 +892,14 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  static function admin_post() {
+  static function admin_post() {/*{{{*/
     // No need to invoke image_, javascript_, or stylesheet_request,
     // as we'll let WordPress handle dispatch of those resources.
     syslog( LOG_INFO, __METHOD__ . ": " );
     static::model_action();
     $o = @ob_get_clean();
     exit(0);
-  }
+  }/*}}}*/
 
   static function wordpress_enqueue_admin_scripts() {/*{{{*/
 

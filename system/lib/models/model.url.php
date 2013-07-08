@@ -10,23 +10,25 @@ class UrlModel extends DatabaseUtility {
   
   // Model fields are used to generate typed fields. See DatabaseUtility::fetch_typemap()
   // BEGIN ModelFields
+	// var $parsedcontent_blob = NULL;
+  var $pagecontent_blob = NULL;
   var $urlhash_vc128uniq = 'md5';
-  var $url_vc4096 = NULL;
   var $urltext_vc4096 = NULL;
+  var $url_vc4096 = NULL;
+  var $response_header_vc32767 = NULL;
+  var $cache_filename_vc255 = NULL;
+  var $content_hash_vc128 = NULL; 
+  var $prior_content_hash_vc128 = NULL;
+  var $content_type_vc64 = NULL;
   var $content_length_int11 = NULL;
   var $create_time_utx = NULL;
   var $update_time_utx = NULL;
   var $last_fetch_utx = NULL;
   var $last_modified_utx = NULL;
-  var $content_type_vc64 = NULL;
-  var $cache_filename_vc255 = NULL;
-  var $pagecontent_blob = NULL;
-  var $response_header_vc32767 = NULL;
   var $hits_int11 = NULL;
   var $is_fake_bool = NULL;
   var $custom_parse_bool = NULL;
-  var $prior_content_hash_vc128 = NULL;///'sha1';
-  var $content_hash_vc128 = NULL; 
+	var $pregenerated_bool = NULL;
   // END ModelFields
 
   var $a_UrlModel = NULL;
@@ -320,7 +322,7 @@ class UrlModel extends DatabaseUtility {
 		// );
 		//
     // Accept cURL output
-    $content_length          = strlen($t);
+    $content_length          = mb_strlen($t);
     $header_regex            = '@^HTTP/1.@';
     $response_headers        = '';
     $parsed_headers          = array();
@@ -328,7 +330,7 @@ class UrlModel extends DatabaseUtility {
     $http_response_code      = NULL;
     $final_headers = array();
 
-    if ( 1 == preg_match($header_regex, $t) ) {
+    if ( 1 == preg_match($header_regex, $t) ) {/*{{{*/
 
       $matches       = array();
 
@@ -360,24 +362,12 @@ class UrlModel extends DatabaseUtility {
       } else {
         // FIXME: Deal with missing Content-Length key, or Transfer-Encoding: chunked 
       }
-    }
+    }/*}}}*/
     // FIXME: This goes away now that pagecontent is pagecontent_blob
-    $cache_filename = $this->get_cache_filename();
-    if (0) if ( 1 == preg_match('@(image/)@i', $this->get_content_type()) ) {
-      $result = @file_put_contents($cache_filename,$t); 
-      $this->syslog( __FUNCTION__, __LINE__, "Caching {$content_length} file {$cache_filename}: " . 
-        (FALSE == $result ? 'FAIL' : 'OK')  );
-      $this->set_cache_filename($cache_filename);
-    }
     $this->set_content_length($content_length);
     $this->set_urlhash(UrlModel::get_url_hash($this->get_url()));
-    // $this->syslog( __FUNCTION__, __LINE__, "Current content SHA1: " . sha1($t) );
-    // $this->pagecontent_blob = $content_length > C('CONTENT_SIZE_THRESHOLD') ? NULL : $t;
-    // $this->syslog( __FUNCTION__, __LINE__, "WARNING: Streaming {$content_length} file {$cache_filename}" );
-    // $this->pagecontent_blob = "file://{$cache_filename}"; // Test streaming
     $this->pagecontent_blob = $t;
     $this->set_content_hash(sha1($t));
-    $this->content_length_int11 = $content_length;
     $final_headers = $this->get_response_header();
     $result = 
       array(
@@ -602,7 +592,8 @@ class UrlModel extends DatabaseUtility {
   function & set_update_time($v) { $this->update_time_utx = $v; return $this; }
   function get_update_time($v = NULL) { if (!is_null($v)) $this->set_update_time($v); return $this->update_time_utx; }
 
-	static function create_metalink($linktext, $target_url, $control_set, $classname) {/*{{{*/
+	static function create_metalink($linktext, $target_url, $control_set, $classname, $with_hash = FALSE) {/*{{{*/
+		// Create a link A tag that results in a POST action to a target URL page.
 		ksort($control_set);
 		$controlset_json_base64 = base64_encode(json_encode($control_set));
 		$controlset_hash        = md5($controlset_json_base64);
@@ -610,7 +601,10 @@ class UrlModel extends DatabaseUtility {
 <a href="{$target_url}" class="{$classname}" id="switch-{$controlset_hash}">{$linktext}</a>
 <span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
 EOH;
-		return $generated_link;
+		return $with_hash
+			? array( 'metalink' => $generated_link, 'hash' => $controlset_hash )
+			:	$generated_link
+			;
 	}/*}}}*/
 
 }

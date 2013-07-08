@@ -33,9 +33,8 @@ class PreloadAction extends LegiscopeBase {
     // URLs which are presumed to always expire
     $lie_table = array(
       'http://www.gov.ph/(.*)/republic-act-no(.*)([/]*)',
-      'http://www.congress.gov.ph/download/(.*)',
-      'http://www.congress.gov.ph/committees/(.*)',
       'http://www.senate.gov.ph/(.*)',
+      'http://www.congress.gov.ph/(download|committees|photojournal)/(.*)',
       'http://www.gmanetwork.com/news/eleksyon2013/(.*)',
     );
 

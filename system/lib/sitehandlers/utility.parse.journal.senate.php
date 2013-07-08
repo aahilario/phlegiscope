@@ -127,7 +127,6 @@ EOH;
 Recorded: {recording_date}<br/>
 Approved: {approval_date}<br/>
 EOH;
-
             continue;
           }/*}}}*/
           if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
@@ -229,41 +228,7 @@ EOH;
 		}
 
 		// Append script to fetch missing PDFs
-		// if ( C('LEGISCOPE_JOURNAL_PDF_AUTOFETCH') )
-		$pagecontent .= <<<EOH
-
-<script type="text/javascript">
-
-jQuery(document).ready(function(){
-  jQuery('a[class*=journal-pdf]').each(function() {
-		if ( jQuery(this).hasClass('uncached') ) {
-			var self = jQuery(this);
-      var linkurl = jQuery(this).attr('href');
-			jQuery.ajax({
-				type     : 'POST',
-				url      : '/seek/',
-				data     : { url : linkurl, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true },
-				cache    : false,
-				dataType : 'json',
-				async    : false,
-				beforeSend : (function() {
-					display_wait_notification();
-				}),
-				complete : (function(jqueryXHR, textStatus) {
-					remove_wait_notification();
-				}),
-				success  : (function(data, httpstatus, jqueryXHR) {
-					jQuery(self).addClass('cached').removeClass('uncached');
-					if ( data && data.original ) replace_contentof('original',data.original);
-					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-				})
-			});
-		}
-  });
-});
-
-</script>
-EOH;
+		if ( C('LEGISCOPE_JOURNAL_PDF_AUTOFETCH') ) $pagecontent .= $this->jquery_seek_missing_journal_pdf();
 
     if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - end');
 
@@ -485,6 +450,216 @@ EOH;
   function ru_table_close(& $parser, $tag) {/*{{{*/
     $this->stack_to_containers();
     return TRUE;
+  }/*}}}*/
+
+  /** Higher-level page parsers **/
+
+  function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $debug_method   = FALSE;
+
+    $report         = new SenateCommitteeReportDocumentModel();
+    $journal        = new SenateJournalDocumentModel();
+    $housebill      = new SenateHousebillDocumentModel();
+
+    $hbilljournal   = new SenateHousebillSenateJournalJoin();
+    $billjournal    = new SenateBillSenateJournalJoin();
+    $bill           = new SenateBillDocumentModel();
+
+    $urlmodel->ensure_custom_parse();
+
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Invoking parser.");
+    $this->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
+
+    $congress_number  = $urlmodel->get_query_element('congress');
+    $congress_session = $urlmodel->get_query_element('session');
+
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Parsing activity summary.");
+    $journal_data = array();
+    $pagecontent = $this->parse_activity_summary($journal_data);
+
+    // Store this Journal
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Store/fetch journal data.");
+    $journal_id = $journal->store($journal_data, $urlmodel, $pagecontent);
+
+    // Get reading date
+    $journal_data_copy = $journal_data;
+    $journal_meta = $this->filter_nested_array($journal_data_copy,
+      'metadata[tag*=META]',0 // Return the zeroth element, there can only be one CR set 
+    );
+    $reading_date = $journal_meta['reading_dtm'];
+    if ( $debug_method ) $this->recursive_dump($journal_meta,"(marker) -- Journal Meta Info --");
+
+    $journal_entry_date = strtotime($journal_meta['date']); 
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Journal {$journal_entry_date} C. {$congress_number} Session {$congress_session}");
+
+    $journal_data_copy = $journal_data;
+    $journal_info = $this->filter_nested_array($journal_data_copy,
+      '#[tag*=HEAD]',0 // Return the zeroth element, there can only be one CR set 
+    );
+    if ( $debug_method ) $this->recursive_dump($journal_info,"(marker) -- Journal Info --");
+
+    // Extract committee report list from journal entry data
+    $this->debug_operators = FALSE;
+    $journal_data_copy = $journal_data;
+    $committee_reports = $this->filter_nested_array($journal_data_copy,
+      '#content[tag*=CR]',0 // Return the zeroth element, there can only be one CR set 
+    );
+
+    if ( !is_null($committee_reports) ) $report->store_uncached_reports($committee_reports, $journal_id, $debug_method);
+
+    // Extract Bills, Resolutions and Committee Reports
+    if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - prefilter');
+    $reading_state = array('R1','R2','R3');
+
+    $this->debug_operators = FALSE;
+
+    $self_join_propertyname = join('_', camelcase_to_array(str_replace('DocumentModel','',get_class($journal))));
+
+    foreach ( $reading_state as $state ) {
+      $journal_data_copy = $journal_data;
+      // Extract Senate Bills.  Create Joins between the document and this journal.
+      // If the reading state is one of R(1|2|3), store the reading date and reading state in the Join object. 
+      $at_state = $this->filter_nested_array($journal_data_copy,
+        "content[tag*={$state}]",0
+      );
+      if ( is_null($at_state) ) continue;
+      // Determine unique prefixes (SBN, SRN, SJR, etc.)
+      $distinct_prefixes = array();
+      foreach ( $at_state as $entry ) {
+        $distinct_prefixes[$entry['prefix']] = $entry['prefix'];
+      }
+      if ( $debug_method ) $this->recursive_dump($distinct_prefixes,"(marker) Prefixes");
+      // Obtain list of joins between this Journal (journal_id) and each 
+      // Senate document (bill, resolution, adopted resolutions, joint committee reports, etc.).
+      // TODO:  Allow fetching of referenced attributes
+      // TODO:  Allow specification of attributes to fetch 
+      // TODO:  Parameterize fetch(), etc. to return JOIN records 
+      
+      $document_typelist = array(
+        'SBN' => 'Bill',
+        'SRN' => 'Resolution',
+        'HBN' => 'Housebill',
+        'SCR' => 'Concurrentres',
+      );
+      $document_joins = array(
+        'SBN' => 'SenateBillSenateJournalJoin',
+        'SRN' => 'SenateJournalSenateResolutionJoin',
+        'HBN' => 'SenateHousebillSenateJournalJoin',
+        'SCR' => 'SenateConcurrentresSenateJournalJoin',
+      );
+      foreach ( $distinct_prefixes as $prefix ) {
+        $journal_data_copy = $journal_data;
+        $at_state = $this->filter_nested_array($journal_data_copy,
+          "#content[tag*={$state}]{#[prefix*={$prefix}]}",0
+        );
+        if ( is_null($at_state) ) continue;
+        $at_state = array_values($at_state);
+
+        $doctype  = array_element($document_typelist,$prefix);
+        if ( is_null($doctype) ) continue;
+        $document = "Senate{$doctype}DocumentModel";
+        $document_join = $document_joins[$prefix];
+        if ( is_null($document_join) || !class_exists($document_join) ) {
+          continue;
+        }
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$prefix} Join {$document_join} Doc {$document}");
+        if ( (0 < count($at_state)) || $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$prefix} At reading state {$state}, C. {$congress_number} Session {$congress_session}");
+          if ($debug_method) $this->recursive_dump($at_state,"(marker) {$state} {$prefix}");
+        }
+        $document              = new $document();
+        $document_join         = new $document_join();
+        $document_propertyname = join('_', camelcase_to_array(str_replace('DocumentModel','',get_class($document))));
+        if ( $debug_method ) $this->recursive_dump($document_join->get_attrdefs(),"(marker) {$state} {$prefix} Join ATTRDEFs {$document_propertyname}");
+        while ( 0 < count($at_state) ) {/*{{{*/
+          // Construct SQL REGEXP operand string
+          $n = 0;
+          $journal_items = array();
+          $sn_suffixes = array();
+          // Take ten journal entries at a time
+          while ( $n++ < 10 && 0 < count($at_state) ) {/*{{{*/
+            $journal_item = array_pop($at_state);
+            array_push($journal_items, $journal_item); 
+            $sn_suffixes[$journal_item['sn']] = "{$journal_item['sortkey']}";
+          } /*}}}*/
+
+          if (!(0 < count($sn_suffixes))) continue;
+          $sortkey = join('|',$sn_suffixes);
+          $document->where(array('AND' => array(
+            'sn' => "REGEXP '^{$prefix}-($sortkey)'",
+            'congress_tag' => $congress_number,
+          )))->recordfetch_setup();
+          $billentry = array();
+          // Null out suffixes, retaining keys
+          if ( $debug_method ) $this->recursive_dump($sn_suffixes,"(marker) -- - Listed bills");
+          if (0) array_walk($sn_suffixes,create_function(
+            '& $a, $k', '$a = NULL;'
+          ));
+          // Replace sn_suffixes entries with Senate Bill DB record IDs 
+          while ( $document->recordfetch($billentry) ) {/*{{{*/
+            if ( array_key_exists($billentry['sn'], $sn_suffixes) ) {
+              $sn_suffixes[$billentry['sn']] = $billentry['id'];
+            }
+            if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- - -- Bill {$billentry['sn']}.{$billentry['congress_tag']} = {$billentry['id']}" );
+          }/*}}}*/
+          // Filter nonexistent bills
+          $sn_suffixes = array_filter($sn_suffixes);  
+          // Retrieve Bill - Journal join records that already exist
+          if (0 < count($sn_suffixes)) {/*{{{*/
+            $query_params = array(
+              $document_propertyname => array_values($sn_suffixes),
+              $self_join_propertyname => $journal_id,
+              'reading' => $state, 
+            );
+            if ( $debug_method ) $this->recursive_dump($query_params,"(marker) -- - - - - SEEK");
+            $document_join->where(array('AND' => $query_params))->recordfetch_setup();
+            $join = array();
+            $sn_suffixes = array_flip($sn_suffixes); // { bill_id => sn }
+            // Clear entries that exist
+            if ( $debug_method ) $this->recursive_dump($sn_suffixes,"(marker) -- - Bills from markup");
+            while ( $document_join->recordfetch($join) ) {
+              if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- - -- Clearing {$join[$document_propertyname]}"); 
+              if ( array_key_exists($join[$document_propertyname], $sn_suffixes) ) {
+                $sn_suffixes[$join[$document_propertyname]] = NULL; 
+              }
+            } 
+            // If no records remain (all joins accounted for), skip to next iter
+            if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- + -- To store"); 
+            if ( $debug_method ) $this->recursive_dump($sn_suffixes,'(marker) -- + --');
+            $sn_suffixes = array_filter($sn_suffixes);
+            if (!(0 < count($sn_suffixes))) continue;
+            $sn_suffixes = array_values(array_flip($sn_suffixes));
+            if ( $debug_method ) $this->recursive_dump($sn_suffixes,'(marker) -- + -- Filtered');
+            $document_id_setter = "set_{$document_propertyname}";
+            foreach ( $sn_suffixes as $bill_id ) {
+
+              $document_join->fetch(array(
+                $document_propertyname => $bill_id,
+                $self_join_propertyname => $journal_id,
+                'reading' => $state, 
+              ), 'AND');
+              $document_join_id = $document_join->
+                $document_id_setter($bill_id)->
+                set_senate_journal($journal_id)->
+                set_reading($state)->
+                set_reading_date($reading_date)->
+                set_congress_tag($congress_number)->
+                stow();
+              $this->syslog(__FUNCTION__, __LINE__, "(marker) -- + -- Stored link #{$document_join_id} [J {$journal_id} -> $document_propertyname {$bill_id}]"); 
+            }
+          }/*}}}*/
+        }/*}}}*/
+      }
+    }
+
+    $parser->json_reply = array('retainoriginal' => TRUE);
+
   }/*}}}*/
 
 }

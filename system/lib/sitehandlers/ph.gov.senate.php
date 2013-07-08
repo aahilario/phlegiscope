@@ -12,22 +12,22 @@ class SenateGovPh extends SeekAction {
   function common_unhandled_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $common = new SenateCommonParseUtility();
-		$common->
-			set_parent_url($urlmodel->get_url())->
-			parse_html(
-				$urlmodel->get_pagecontent(),
-				$urlmodel->get_response_header()
-			);
+    $common->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
     $pagecontent = preg_replace(
       array(
         "@\&\#10;@",
         "@\n@",
-				"@\[BR\]@",
+        "@\[BR\]@",
       ),
       array(
         "",
         "",
-				"<br/>",
+        "<br/>",
       ),
       join('',$common->get_filtered_doc())
     );
@@ -47,212 +47,8 @@ class SenateGovPh extends SeekAction {
   /** Journal Entries **/
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-
-    $debug_method   = FALSE;
-
-    $report         = new SenateCommitteeReportDocumentModel();
-    $journal        = new SenateJournalDocumentModel();
-    $housebill      = new SenateHousebillDocumentModel();
-
     $journal_parser = new SenateJournalParseUtility();
-
-    $hbilljournal   = new SenateHousebillSenateJournalJoin();
-    $billjournal    = new SenateBillSenateJournalJoin();
-    $bill           = new SenateBillDocumentModel();
-
-		$urlmodel->ensure_custom_parse();
-
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Invoking parser.");
-    $journal_parser->
-      set_parent_url($urlmodel->get_url())->
-      parse_html(
-        $urlmodel->get_pagecontent(),
-        $urlmodel->get_response_header()
-      );
-
-    $congress_number  = $urlmodel->get_query_element('congress');
-    $congress_session = $urlmodel->get_query_element('session');
-
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Parsing activity summary.");
-    $journal_data = array();
-    $pagecontent = $journal_parser->parse_activity_summary($journal_data);
-
-    // Store this Journal
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Store/fetch journal data.");
-    $journal_id = $journal->store($journal_data, $urlmodel, $pagecontent);
-
-    // Get reading date
-    $journal_data_copy = $journal_data;
-    $journal_meta = $journal_parser->filter_nested_array($journal_data_copy,
-      'metadata[tag*=META]',0 // Return the zeroth element, there can only be one CR set 
-    );
-    $reading_date = $journal_meta['reading_dtm'];
-    if ( $debug_method ) $this->recursive_dump($journal_meta,"(marker) -- Journal Meta Info --");
-
-    $journal_entry_date = strtotime($journal_meta['date']); 
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Journal {$journal_entry_date} C. {$congress_number} Session {$congress_session}");
-
-    $journal_data_copy = $journal_data;
-    $journal_info = $journal_parser->filter_nested_array($journal_data_copy,
-      '#[tag*=HEAD]',0 // Return the zeroth element, there can only be one CR set 
-    );
-    if ( $debug_method ) $this->recursive_dump($journal_info,"(marker) -- Journal Info --");
-
-    // Extract committee report list from journal entry data
-    $journal_parser->debug_operators = FALSE;
-    $journal_data_copy = $journal_data;
-    $committee_reports = $journal_parser->filter_nested_array($journal_data_copy,
-      '#content[tag*=CR]',0 // Return the zeroth element, there can only be one CR set 
-    );
-
-    if ( !is_null($committee_reports) ) $report->store_uncached_reports($committee_reports, $journal_id, $debug_method);
-
-    // Extract Bills, Resolutions and Committee Reports
-    if ($debug_method) $this->recursive_dump($journal_data,'(marker) B - prefilter');
-    $reading_state = array('R1','R2','R3');
-
-    $journal_parser->debug_operators = FALSE;
-
-    $self_join_propertyname = join('_', camelcase_to_array(str_replace('DocumentModel','',get_class($journal))));
-
-    foreach ( $reading_state as $state ) {
-      $journal_data_copy = $journal_data;
-      // Extract Senate Bills.  Create Joins between the document and this journal.
-      // If the reading state is one of R(1|2|3), store the reading date and reading state in the Join object. 
-      $at_state = $journal_parser->filter_nested_array($journal_data_copy,
-        "content[tag*={$state}]",0
-      );
-      if ( is_null($at_state) ) continue;
-      // Determine unique prefixes (SBN, SRN, SJR, etc.)
-      $distinct_prefixes = array();
-      foreach ( $at_state as $entry ) {
-        $distinct_prefixes[$entry['prefix']] = $entry['prefix'];
-      }
-      if ( $debug_method ) $this->recursive_dump($distinct_prefixes,"(marker) Prefixes");
-      // Obtain list of joins between this Journal (journal_id) and each 
-      // Senate document (bill, resolution, adopted resolutions, joint committee reports, etc.).
-      // TODO:  Allow fetching of referenced attributes
-      // TODO:  Allow specification of attributes to fetch 
-      // TODO:  Parameterize fetch(), etc. to return JOIN records 
-      
-      $document_typelist = array(
-        'SBN' => 'Bill',
-        'SRN' => 'Resolution',
-        'HBN' => 'Housebill',
-				'SCR' => 'Concurrentres',
-      );
-      $document_joins = array(
-        'SBN' => 'SenateBillSenateJournalJoin',
-        'SRN' => 'SenateJournalSenateResolutionJoin',
-        'HBN' => 'SenateHousebillSenateJournalJoin',
-				'SCR' => 'SenateConcurrentresSenateJournalJoin',
-      );
-      foreach ( $distinct_prefixes as $prefix ) {
-        $journal_data_copy = $journal_data;
-        $at_state = $journal_parser->filter_nested_array($journal_data_copy,
-          "#content[tag*={$state}]{#[prefix*={$prefix}]}",0
-        );
-        if ( is_null($at_state) ) continue;
-        $at_state = array_values($at_state);
-
-        $doctype  = array_element($document_typelist,$prefix);
-        if ( is_null($doctype) ) continue;
-        $document = "Senate{$doctype}DocumentModel";
-        $document_join = $document_joins[$prefix];
-        if ( is_null($document_join) || !class_exists($document_join) ) {
-          continue;
-        }
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$prefix} Join {$document_join} Doc {$document}");
-        if ( (0 < count($at_state)) || $debug_method ) {
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$prefix} At reading state {$state}, C. {$congress_number} Session {$congress_session}");
-          if ($debug_method) $this->recursive_dump($at_state,"(marker) {$state} {$prefix}");
-        }
-        $document              = new $document();
-        $document_join         = new $document_join();
-        $document_propertyname = join('_', camelcase_to_array(str_replace('DocumentModel','',get_class($document))));
-        if ( $debug_method ) $this->recursive_dump($document_join->get_attrdefs(),"(marker) {$state} {$prefix} Join ATTRDEFs {$document_propertyname}");
-        while ( 0 < count($at_state) ) {/*{{{*/
-          // Construct SQL REGEXP operand string
-          $n = 0;
-          $journal_items = array();
-          $sn_suffixes = array();
-          // Take ten journal entries at a time
-          while ( $n++ < 10 && 0 < count($at_state) ) {/*{{{*/
-            $journal_item = array_pop($at_state);
-            array_push($journal_items, $journal_item); 
-            $sn_suffixes[$journal_item['sn']] = "{$journal_item['sortkey']}";
-          } /*}}}*/
-
-          if (!(0 < count($sn_suffixes))) continue;
-          $sortkey = join('|',$sn_suffixes);
-          $document->where(array('AND' => array(
-            'sn' => "REGEXP '^{$prefix}-($sortkey)'",
-            'congress_tag' => $congress_number,
-          )))->recordfetch_setup();
-          $billentry = array();
-          // Null out suffixes, retaining keys
-          if ( $debug_method ) $this->recursive_dump($sn_suffixes,"(marker) -- - Listed bills");
-          if (0) array_walk($sn_suffixes,create_function(
-            '& $a, $k', '$a = NULL;'
-          ));
-          // Replace sn_suffixes entries with Senate Bill DB record IDs 
-          while ( $document->recordfetch($billentry) ) {/*{{{*/
-            if ( array_key_exists($billentry['sn'], $sn_suffixes) ) {
-              $sn_suffixes[$billentry['sn']] = $billentry['id'];
-            }
-            if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- - -- Bill {$billentry['sn']}.{$billentry['congress_tag']} = {$billentry['id']}" );
-          }/*}}}*/
-          // Filter nonexistent bills
-          $sn_suffixes = array_filter($sn_suffixes);  
-          // Retrieve Bill - Journal join records that already exist
-          if (0 < count($sn_suffixes)) {/*{{{*/
-            $query_params = array(
-              $document_propertyname => array_values($sn_suffixes),
-              $self_join_propertyname => $journal_id,
-              'reading' => $state, 
-            );
-            if ( $debug_method ) $this->recursive_dump($query_params,"(marker) -- - - - - SEEK");
-            $document_join->where(array('AND' => $query_params))->recordfetch_setup();
-            $join = array();
-            $sn_suffixes = array_flip($sn_suffixes); // { bill_id => sn }
-            // Clear entries that exist
-            if ( $debug_method ) $this->recursive_dump($sn_suffixes,"(marker) -- - Bills from markup");
-            while ( $document_join->recordfetch($join) ) {
-              if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- - -- Clearing {$join[$document_propertyname]}"); 
-              if ( array_key_exists($join[$document_propertyname], $sn_suffixes) ) {
-                $sn_suffixes[$join[$document_propertyname]] = NULL; 
-              }
-            } 
-            // If no records remain (all joins accounted for), skip to next iter
-            if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- + -- To store"); 
-            if ( $debug_method ) $this->recursive_dump($sn_suffixes,'(marker) -- + --');
-            $sn_suffixes = array_filter($sn_suffixes);
-            if (!(0 < count($sn_suffixes))) continue;
-            $sn_suffixes = array_values(array_flip($sn_suffixes));
-            if ( $debug_method ) $this->recursive_dump($sn_suffixes,'(marker) -- + -- Filtered');
-            $document_id_setter = "set_{$document_propertyname}";
-            foreach ( $sn_suffixes as $bill_id ) {
-
-              $document_join->fetch(array(
-                $document_propertyname => $bill_id,
-                $self_join_propertyname => $journal_id,
-                'reading' => $state, 
-              ), 'AND');
-              $document_join_id = $document_join->
-                $document_id_setter($bill_id)->
-                set_senate_journal($journal_id)->
-                set_reading($state)->
-                set_reading_date($reading_date)->
-                set_congress_tag($congress_number)->
-                stow();
-              $this->syslog(__FUNCTION__, __LINE__, "(marker) -- + -- Stored link #{$document_join_id} [J {$journal_id} -> $document_propertyname {$bill_id}]"); 
-            }
-          }/*}}}*/
-        }/*}}}*/
-      }
-    }
-
-    $parser->json_reply = array('retainoriginal' => TRUE);
+		$journal_parser->canonical_journal_page_parser($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 
   function seek_postparse_386038c1a686fd0e6aeee9a105b9580d(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -285,25 +81,25 @@ class SenateGovPh extends SeekAction {
 
     $this->method_cache_emit($parser);
 
-		// FIXME: This code is similar to HouseJournalDocumentModel::fetch_session_item_source, consider using that method instead.
-		$child_collection = array();
-		$urls = new UrlModel();
-		$urls->where(array('AND' => array(
-			'url' => "REGEXP '({$batch_regex})'"
-		)))->recordfetch_setup();
-		$url = array();
-		while($urls->recordfetch($url)) {
-			$session  = UrlModel::query_element('session',$url['url']);
-			$congress = UrlModel::query_element('congress',$url['url']);
-			$q        = UrlModel::query_element('q',$url['url']);
-			$child_collection[$congress][$session][intval($q)] = array( 
+    // FIXME: This code is similar to HouseJournalDocumentModel::fetch_session_item_source, consider using that method instead.
+    $child_collection = array();
+    $urls = new UrlModel();
+    $urls->where(array('AND' => array(
+      'url' => "REGEXP '({$batch_regex})'"
+    )))->recordfetch_setup();
+    $url = array();
+    while($urls->recordfetch($url)) {
+      $session  = UrlModel::query_element('session',$url['url']);
+      $congress = UrlModel::query_element('congress',$url['url']);
+      $q        = UrlModel::query_element('q',$url['url']);
+      $child_collection[$congress][$session][intval($q)] = array( 
         'hash' => $url['urlhash'],
         'url'  => $url['url'],
         'text' => $url['urltext'],
       );
-		}
+    }
 
-		// $this->recursive_dump($child_collection,"(marker) - - - CC - -");
+    // $this->recursive_dump($child_collection,"(marker) - - - CC - -");
 
     // Iteratively generate sets of columns
 
@@ -325,8 +121,8 @@ class SenateGovPh extends SeekAction {
     $document_parser->cluster_urldefs = $document_parser->generate_linkset($urlmodel->get_url(),'cluster_urls');
 
     $session_select = $document_parser->extract_house_session_select($urlmodel, FALSE);
-		// $session_select[k]['active'] == 1 indicates the currently selected
-		// option on the page just retrieved and parsed.
+    // $session_select[k]['active'] == 1 indicates the currently selected
+    // option on the page just retrieved and parsed.
 
     $pagecontent = $document_parser->generate_congress_session_item_markup(
       $urlmodel,
@@ -351,7 +147,7 @@ EOH;
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
 
-		$congress_tag = $urlmodel->get_query_element('congress');
+    $congress_tag = $urlmodel->get_query_element('congress');
 
     return $this->non_sn_parser(
       __FUNCTION__, 
@@ -363,8 +159,8 @@ EOH;
   }/*}}}*/
 
   function seek_postparse_bypath_0930d15b5c0048e5e03af7b02f24769d(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $this->canonical_journal_page_parser($parser,$pagecontent,$urlmodel);
+    $journal_parser = new SenateJournalParseUtility();
+		$journal_parser->canonical_journal_page_parser($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 
 
@@ -372,635 +168,34 @@ EOH;
 
   function seek_postparse_bypathonly_582a1744b18910b951a5855e3479b6f2(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/senators/sen_bio/*
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) --------- SENATOR BIO PARSER Invoked for " . $urlmodel->get_url() );
-
-    ////////////////////////////////////////////////////////////////////
-    $membership  = new SenateCommitteeSenatorDossierJoin();
-    $senator     = new SenatorBioParseUtility();
-    $committee   = new SenateCommitteeModel();
-    $dossier     = new SenatorDossierModel();
-    $senator->
-      set_parent_url($urlmodel->get_url())->
-      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = join('',$senator->get_filtered_doc());
-    ////////////////////////////////////////////////////////////////////
-
-    $this->recursive_dump(($boundary_top = $senator->get_containers(
-    )),'All');
-
-    // Find the placeholder, and extract the target URL for the image.
-    // If the image (UrlModel) is cached locally, then replace the entire
-    // placeholder with the base-64 encoded image.  Otherwise, replace
-    // the placeholder with an empty string, and emit the markup below.
-    $avatar_match = array();
-    $dossier->fetch($urlmodel->get_url(), 'bio_url');
-    $member_uuid = $dossier->get_member_uuid(); 
-
-    $committee_membership_markup = ''; 
-
-    if ( $membership->fetch_committees($dossier,TRUE) ) {/*{{{*/
-      $committee_list = array();
-      $committee_item = array();
-      while ( $membership->recordfetch($committee_item) ) {
-        $committee_list[$committee_item['senate_committee']] = array(
-          'data' => $committee_item,
-          'name' => NULL
-        );
-      }
-      // TODO: Allow individual Model classes to maintain separate DB handles 
-      $committee->debug_method = FALSE;
-      foreach ( $committee_list as $committee_id => $c ) {
-        $result = $committee->fetch($committee_id,'id');
-        $committee_list[$committee_id] = $committee->get_committee_name();
-        $committee_membership_markup .= <<<EOH
-<li><a class="legiscope-remote" href="http://www.senate.gov.ph/committee/list.asp">{$committee_list[$committee_id]}</a></li>
-EOH;
-      }
-      $committee->debug_method = FALSE;
-      $this->recursive_dump($committee_list,'(marker) - C List');
-    }/*}}}*/
-
-    if ( 0 < strlen($committee_membership_markup) ) {/*{{{*/
-      $committee_membership_markup = <<<EOH
-<hr class="{$member_uuid}"/>
-<span class="section-title">Committee Memberships</span><br/>
-<ul class="committee_membership">
-{$committee_membership_markup}
-</ul>
-<hr/>
-
-EOH;
-    }/*}}}*/
-
-    if (1 == preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match)) {/*{{{*/
-
-      // $this->recursive_dump($avatar_match,'(marker) Avatar Placeholder');
-      $image_markup    = array();
-      preg_match('@<img(.*)fauxsrc="([^"]*)"([^>]*)>@mi',$pagecontent,$image_markup);
-      // $this->recursive_dump($image_markup,'(marker) Avatar Markup');
-      $bio_image_src   = new UrlModel($image_markup[2],TRUE);
-      $placeholder     = $avatar_match[0];
-      $avatar_uuid_url = explode(",",$avatar_match[1]);
-      $avatar_url      = new UrlModel($avatar_uuid_url[1],TRUE);
-      $fake_uuid       = $avatar_uuid_url[0];
-      $member_fullname = $dossier->get_fullname();
-      $image_base64enc = NULL;
-
-      if ( $avatar_url->in_database() ) {
-        // Fetch the image, stuff it in a base-64 encoded string, and pass
-        // it along to the user - if it exists.  Otherwise.
-        $image_contenttype = $avatar_url->get_content_type(TRUE);
-        $this->recursive_dump($image_contenttype,'(marker) Image properties');
-        $image_base64enc   = base64_encode($avatar_url->get_pagecontent());
-        $image_base64enc   = is_array($image_contenttype) && array_key_exists('content-type', $image_contenttype)
-          ? "data:{$image_contenttype['content-type']}:base64,{$image_base64enc}"
-          : NULL
-          ;
-      } else if ( $bio_image_src->in_database() ) {
-        $image_contenttype = $bio_image_src->get_content_type(TRUE);
-        $this->recursive_dump($image_contenttype,'(marker) Image properties');
-        $image_base64enc   = base64_encode($bio_image_src->get_pagecontent());
-        $image_base64enc   = is_array($image_contenttype) && array_key_exists('content-type', $image_contenttype)
-          ? "data:{$image_contenttype['content-type']}:base64,{$image_base64enc}"
-          : NULL
-          ;
-      }
-
-      // Cleanup placeholder, replace fake UUID with the Senator's real UUID.
-      // Also make it ready for use in preg_replace
-      $placeholder = preg_replace("@({$fake_uuid})@mi","{$member_uuid}",$placeholder);
-      $placeholder = str_replace(array('(',')',),array('\(','\)',),$placeholder);
-
-      // Ditto for markup
-      $pagecontent = preg_replace('@('.$fake_uuid.')@im', $member_uuid,$pagecontent);
-
-      // Replacement for the placeholder
-      $replacement = is_null($image_base64enc)
-        ? '' // Image hasn't yet been fetched.
-        : $image_base64enc // Image available, and can be inserted in markup.
-        ;
-        
-      // Remove fake content
-      // Insert committee membership in place of any extant <HR> tag
-      $pagecontent = preg_replace(
-        array(
-          "@({$placeholder})@im",
-          '@(fauxsrc="(.*)")@im',
-          '@(\<p (.*)class="h1_bold"([^>]*)\>)@i'),
-        array(
-          "{$replacement}",
-          "alt=\"{$member_fullname}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\"",
-          "{$committee_membership_markup}<table>",
-        ), 
-        $pagecontent
-      );
-
-      // Test for correct replacement
-      $avatar_match = array('0' => 'No Match');
-      preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match);
-      $this->recursive_dump($avatar_match,'(marker) After subst');
-
-      $committee_list_match = array('0' => 'No Match');
-      if (!(1 == preg_match('@\<hr class="'.$member_uuid.'"/\>@i',$pagecontent,$committee_list_match))) {
-        $pagecontent = $committee_membership_markup . $pagecontent;
-      }
-
-
-      // Only emit the image scraper trigger if the image was empty
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Avatar URL is {$avatar_url}");
-      if ( is_null($image_base64enc) ) $pagecontent .= <<<EOH
-
-<input type="hidden" class="no-replace" id="imagesrc-{$member_uuid}" value="{$avatar_url}" />
-<script type="text/javascript">
-jQuery(document).ready(function(){
-setTimeout((function(){
-  update_representatives_avatars();
-}),50);
-});
-</script>
-EOH;
-    }/*}}}*/
-    else {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) No placeholder found!" );
-    }
-		$pagecontent = str_replace('[BR]','<br/>', $pagecontent);
-    $parser->json_reply = array('retainoriginal' => TRUE);
+    $senator = new SenatorBioParseUtility();
+		$senator->parse_senators_sen_bio($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 
   function seek_postparse_7150c562d8623591da65174bd4b85eea(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/committee/list.asp ('List of Committees')
-
-    $debug_method      = FALSE;
     $committee_parser  = new SenateCommitteeListParseUtility();
-    $committee_senator = new SenateCommitteeSenatorDossierJoin();
-    $committee         = new SenateCommitteeModel();
-    $senator           = new SenatorDossierModel();
-    $url               = new UrlModel();
-    $target_congress   = 15; // FIXME: Detect current Congress Session
-
-    // $this->recursive_dump($urlmodel->get_response_header(TRUE),'(warning)');
-
-    $committee_parser->debug_tags = FALSE;
-    $committee_parser->
-      set_parent_url($urlmodel->get_url())->
-      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-
-    $containers     = $committee_parser->get_containers(
-      'children[attrs:CLASS*=SenTable]'
-    );
-    if ( $debug_method ) $this->recursive_dump($containers,"(marker) -- - -- Committees Page");
-
-    $senator_committees = array();
-
-    $pagecontent = '';
-    foreach ( $containers as $container ) {/*{{{*/
-      $committee_list  = array(array());
-      $committee_entry = NULL;
-      $unique_committee_names = array();
-      $unique_senator_names = array();
-      krsort($container);
-      while ( 0 < count($container) ) {/*{{{*/
-        $entry = array_pop($container);
-        $committee_entry = array_pop($committee_list);
-        if ( array_key_exists('url', $entry) ) {/*{{{*/// Senator bio URL
-          // Senator + bio URL
-          $senator_nametitle = $senator->cleanup_senator_name($entry['text']);
-          $senator_nameregex = LegislationCommonParseUtility::committee_name_regex($senator_nametitle);
-          if ( !array_key_exists('senators', $committee_entry) ) $committee_entry['senators'] = array();
-          $committee_entry['senators'][$senator_nameregex] = array(
-            'id'   => 0,
-            'fullname_db' => NULL,
-            'fullname' => $senator_nametitle, 
-            'name_regex' => $senator_nameregex,
-            'url' => $entry['url'],
-            'url_db' => NULL,
-          );
-          $unique_senator_names[$senator_nametitle] = array(
-            'nameregex' => $senator_nameregex,
-            'bio_url' => $entry['url'],
-          ); 
-        }/*}}}*/
-        else {/*{{{*/// Committee name
-          $committee_name = $entry['text']; 
-          $name_regex =  LegislationCommonParseUtility::committee_name_regex($committee_name);
-          array_push($committee_list, $committee_entry);
-          if ( FALSE == $name_regex ) continue;
-          unset($committee_entry);
-          $committee_entry = array(
-            'id'                   => 0,
-            'committee_name_db'    => NULL,
-            'committee_name'       => $committee_name,
-            'committee_name_regex' => $name_regex,
-            'jurisdiction'         => NULL,
-            'senators'             => array(),
-          );
-          $unique_committee_names[$committee_name] = $name_regex;
-        }/*}}}*/
-        array_push($committee_list, $committee_entry);
-      }/*}}}*/
-      // Make the committee name regex be the committee list array key
-      $committee_list = array_filter($committee_list);
-      $committee_list = array_combine(
-        array_map(create_function('$a', 'return $a["committee_name_regex"];'), $committee_list),
-        $committee_list
-      );
-      
-      krsort($unique_committee_names);
-      while ( 0 < count($unique_committee_names) ) {/*{{{*/// Match committee names to extant records
-        $distinct_names = array();
-        while ( count($distinct_names) < 15 && 0 < count($unique_committee_names) ) {
-          $distinct_names[] = array_pop($unique_committee_names);
-        }
-        if ( $debug_method ) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Batch of " . count($distinct_names)); 
-          $this->recursive_dump($distinct_names,"(marker) -- - --");
-        }/*}}}*/
-        $distinct_names = join('|', $distinct_names);
-        $committee->where(array('AND' => array(
-          'committee_name' => "REGEXP '^({$distinct_names})$'"
-        )))->recordfetch_setup();
-        $r = NULL;
-        while ( $committee->recordfetch($r) ) {
-          array_walk($committee_list, create_function(
-            '& $a, $k, $s', 'if ( 1 == preg_match( "@{$k}@i", $s["committee_name"] ) )  { $a["committee_name_db"] = $s["committee_name"]; $a["id"] = $s["id"]; $a["jurisdiction"] = $s["jurisdiction"]; }'
-          ),$r);
-        }
-      }/*}}}*/
-      
-      krsort($unique_senator_names);
-      while ( 0 < count($unique_senator_names) ) {/*{{{*/// Match senators to extant records
-        $distinct_names = array();
-        while ( count($distinct_names) < 15 && 0 < count($unique_senator_names) ) {
-          $distinct_names[] = array_pop($unique_senator_names);
-        }
-        if ( $debug_method ) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Batch of " . count($distinct_names)); 
-          $this->recursive_dump($distinct_names,"(marker) -- - --");
-        }/*}}}*/
-        // Cleanup the distinct_names array: Structure becomes [ regex ] => [ url ]
-        $distinct_names = array_combine(
-          array_map(create_function('$a','return $a["nameregex"];'),$distinct_names), // Regex as key
-          array_map(create_function('$a','return $a["bio_url"];'),$distinct_names)
-        );
-
-        // Match either the list of name regexes or list of CV / "bio" URLs
-        $senator->debug_method = FALSE;
-        $senator->debug_final_sql = FALSE;
-        $senator->where(array('OR' => array(
-          'fullname' => ("REGEXP '^(".join('|', array_keys($distinct_names)).")'"),
-          'bio_url' => $distinct_names
-        )))->
-        join(array(
-          //'committee[role*=.*|i]{[is_permanent=TRUE]}',
-          'committee[role*=chairperson|i][congress='.$target_congress.']{committee_name,short_code,jurisdiction[is_permanent=TRUE]}',
-          //'representative[relation_to_bill*=principal-author]',
-        ))->
-        // fields(array('bio_url','fullname'))->
-        recordfetch_setup();
-        $senator->debug_method = FALSE;
-
-        // Mark the transient list [ regex ] => { [ id ] => id, [ fullname ] => db_fullname } }
-        $r = NULL;
-        while ( $senator->recordfetch($r) ) {/*{{{*/
-          if ( $debug_method ) {
-            $this->syslog(__FUNCTION__,__LINE__,"(marker)  -- - - -- - --- - - Found ".get_class($senator)." record #{$r['id']}"); 
-            $this->recursive_dump($r,"(marker) -- - ->"); 
-            $this->syslog(__FUNCTION__,__LINE__,"(marker)  -- - - -- Distinct names"); 
-            $this->recursive_dump($distinct_names,"(marker) -- - ->"); 
-          }
-          array_walk($distinct_names, create_function(
-            '& $a, $k, $s', 'if ( (1 == preg_match( "@{$k}@i", array_element($s,"fullname") )) || (array_element($s,"bio_url") == $a) ) { $a = array("id" => $s["id"], "fullname" => array_element($s,"fullname"), "url_db" => array_element($s,"bio_url") ); }'
-          ),$r);
-        }/*}}}*/
-        if ( $debug_method ) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- - -- Distinct Names AFTER update"); 
-          $this->recursive_dump($distinct_names,"(marker) - - - - - -");
-        }/*}}}*/
-        // Use the transient list to update all entries
-        foreach ( $committee_list as $r => $commlist ) {
-          array_walk( $committee_list[$r]["senators"], create_function(
-            '& $a, $k, $s', 'if ( array_key_exists($k,$s) && is_array($s[$k]) && array_key_exists("id", $s[$k]) ) { $a["id"] = $s[$k]["id"]; $a["fullname_db"] = $s[$k]["fullname"]; $a["url_db"] = $s[$k]["url_db"]; }'
-          ),$distinct_names);
-        }
-
-        if ( $debug_method ) {/*{{{*/
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Patterns"); 
-          $this->recursive_dump($distinct_names,"(marker) - -- -");
-        }/*}}}*/
-      }/*}}}*/
-     
-      if ( $debug_method ) {/*{{{*/
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Parsed Content"); 
-        $this->recursive_dump($committee_list,"(marker) - -- -");
-      }/*}}}*/
-
-      if ( $debug_method ) $this->recursive_dump($committee_list,"(marker) - - - - - - -");
-
-      foreach ( $committee_list as $committee_name_regex => $c ) {/*{{{*/// Generate markup
-        $senator_entries = '';
-        if (!(0 < intval(array_element($c,'id')))) {
-          $id = $committee->
-            set_id(NULL)->
-            stow_committee($c['committee_name']);
-          $this->syslog(__FUNCTION__,__LINE__,"(marker)  Stowed {$c['committee_name']} #{$id}");
-          $committee_list[$committee_name_regex]['id'] = $id;
-          $c['id'] = $id;
-        }
-        foreach ( $c['senators'] as $senator_index => $senator_entry ) {/*{{{*/
-          $link_attribs = array('legiscope-remote');
-          if ( 0 < intval($senator_entry['id']) ) $link_attribs[] = 'cached';
-          $link_attribs = join(' ', $link_attribs);
-          $linktext = nonempty_array_element($senator_entry,'fullname_db',array_element($senator_entry,'fullname','...'));
-          if ( (0 == strlen(array_element($senator_entry,'url_db'))) || 
-            (0 == strlen(array_element($senator_entry,'fullname_db'))) ||
-            (!(1 == preg_match("@_old@i",$senator_entry['url'])) && !($senator_entry['url_db'] == $senator_entry['url'])) ||
-            (strlen($senator_entry['fullname_db']) < strlen($senator_entry['fullname'])) ) {/*{{{*/
-              if (!is_null(array_element($senator_entry,'id'))) $senator->fetch(array_element($senator_entry,'id'),'id');
-              $senator_id = $senator->
-                set_id(array_element($senator_entry,'id'))->
-                set_last_fetch(time())->
-                set_fullname($senator_entry['fullname'])->
-                set_bio_url($senator_entry['url'])->
-                fields(array('last_fetch','fullname','bio_url'))->
-                stow();
-              $committee_list[$committee_name_regex]['senators'][$senator_index]['id'] = $senator_id;
-              $senator_entry['id'] = $senator_id;
-              if ( $debug_method ) {/*{{{*/
-                $this->syslog(__FUNCTION__,__LINE__,"(marker) Updated/stored #{$senator_id} Senator {$senator_entry['fullname']}");
-                $this->syslog(__FUNCTION__,__LINE__,"(marker)    URL, parsed: " . $senator_entry['url']);
-                $this->syslog(__FUNCTION__,__LINE__,"(marker)      URL in DB: " . $senator_entry['url_db']);
-                $this->syslog(__FUNCTION__,__LINE__,"(marker)       Fullname: " . $senator_entry['fullname']);
-                $this->syslog(__FUNCTION__,__LINE__,"(marker) Fullname in DB: " . $senator_entry['fullname_db']);
-              }/*}}}*/
-          }/*}}}*/
-          $committee_senator->
-            set_id(NULL)->
-            fetch(array(
-              'senate_committee' => $c['id'],
-              'senator_dossier' => $senator_entry['id'],
-            ),'AND');
-          $committee_senator->
-            set_role('chairperson')->
-            set_senate_committee($c['id'])->
-            set_senator_dossier($senator_entry['id'])->
-            set_target_congress($target_congress)->
-            set_last_fetch(time())->
-            set_create_time(time())->
-            stow();
-
-          $senator_entries .= <<<EOH
-<a href="{$senator_entry['url_db']}" class="{$link_attribs}">{$linktext}</a><br/>
-
-EOH;
-        }/*}}}*/
-        $senator_entries = <<<EOH
-<span class="committee-senators">
-{$senator_entries}
-</span>
-EOH;
-        $committee_desc = 0 < intval($c['id'])
-          ? htmlspecialchars($c['jurisdiction'])
-          : '...'
-          ;
-        $committee_name_link = SenateCommitteeListParseUtility::get_committee_permalink_uri($c['committee_name']);
-				$committee_name_link = <<<EOH
-<a href="{$committee_name_link}" class="legiscope-remote">{$c['committee_name_db']}</a>
-EOH;
-        $replacement_content = <<<EOH
-<div class="committee-functions-leadership">
-  <div class="committee-name">{$committee_name_link}</div>
-  <div class="committee-leaders">
-  {$senator_entries}
-  </div>
-  <div class="committee-jurisdiction">{$committee_desc}</div>
-</div>
-
-EOH;
-        $pagecontent .= $replacement_content;
-      }/*}}}*/
-    }/*}}}*/
-    $pagecontent = $pagecontent;
-
+		$committee_parser->parse_committee_list($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 
   function seek_postparse_bypath_01826c0f1e0270f7d72cb025cdcdb2fc(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/committee/duties.asp
-
-    $this->syslog( __FUNCTION__, __LINE__, "Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
     $committee_parser = new SenateCommitteeListParseUtility();
-    $committee        = new SenateCommitteeModel();
-    $senator          = new SenatorDossierModel();
-
     $committee_parser->debug_tags = FALSE;
-    // Malformed document hacks (2013 March 5 - W3C validator failure.  Check http://validator.w3.org/check?uri=http%3A%2F%2Fwww.senate.gov.ph%2Fcommittee%2Fduties.asp&charset=%28detect+automatically%29&doctype=Inline&ss=1&group=0&verbose=1&st=1&user-agent=W3C_Validator%2F1.3+http%3A%2F%2Fvalidator.w3.org%2Fservices)
-    $content = preg_replace(
-      array(
-        '@(\<[/]*(o:p)\>)@im',
-        '@(\<[/]*(u1:p)\>)@im',
-        '@(\<[/]*(font)\>)@im',
-      ),
-      array(
-        '<br class="unidentified"/>',
-        '<br class="unidentified"/>',
-        '<br class="unidentified"/>',
-      ),
-      $urlmodel->get_pagecontent()
-    );
-    $pagecontent = $content;
-    $committee_parser->
-      set_parent_url($urlmodel->get_url())->
-      parse_html($content,$urlmodel->get_response_header());
-
-    // Container accessors are not used
-    $this->recursive_dump(($committee_info = $committee_parser->get_desc_stack(
-    )),'(------) Names');
-
-    $template = <<<EOH
-<div class="republic-act-entry">
-<span class="republic-act-heading"><a href="{url}" class="{cache_state}" id="{urlhash}">{committee_name}</a></span>
-<span class="republic-act-desc">{jurisdiction}</span>
-</div>
-
-EOH;
-    $replacement_content = '';
-
-    $this->syslog(__FUNCTION__,__LINE__, "Committee count: " . count($committee_info));
-
-    foreach ( $committee_info as $entry ) {
-      $committee_name = $committee->cleanup_committee_name(trim($entry['link'],'#'));
-      $short_code = preg_replace('@[^A-Z]@','',$committee_name);
-      $committee->fetch_by_committee_name($committee_name);
-      $committee->
-        set_committee_name($committee_name)->
-        set_short_code($short_code)->
-        set_jurisdiction($entry['description'])->
-        set_is_permanent('TRUE')->
-        set_create_time(time())->
-        set_last_fetch(time())->
-        fields('committee_name,short_code,jurisdiction,is_permanent,create_time,last_fetch')->
-        stow();
-      $replacement_content .= $committee->substitute($template);
-    }
-
-    $pagecontent = $replacement_content;
-
+		$committee_parser->parse_committee_duties($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 
 
   /** Senators **/
 
-  function seek_postparse_4b9020442160ba8dad72e46df9b19add(& $parser, & $pagecontent, & $urlmodel) {
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+  function seek_postparse_4b9020442160ba8dad72e46df9b19add(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
-	}
+  }/*}}}*/
 
   function seek_postparse_bypathonly_255b2edb0476630159f8a93cd5836b08(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.senate.gov.ph/senators/sen15th.asp
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    // $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
-
     $senator = new SenatorBioParseUtility();
-    $dossier = new SenatorDossierModel();
-    $url     = new UrlModel();
-
-    // $dossier->dump_accessor_defs_to_syslog();
-
-    $senator->
-      set_parent_url($urlmodel->get_url())->
-      parse_html(
-        $urlmodel->get_pagecontent(),
-        $urlmodel->get_response_header()
-      );
-
-    ////////////////////////////////////////////////////////////////////
-    //
-    // Extract the image URLs on this page and use them to construct a 
-    // minimal pager, by rewriting pairs of image + URL tags
-    //
-    ////////////////////////////////////////////////////////////////////
-
-    $image_url = array();
-    $filter_image_or_link = create_function('$a', 'return (array_key_exists("text",$a) || array_key_exists("image",$a) || ($a["tag"] == "A")) ? $a : NULL;'); 
-
-    $containerset = $senator->get_containers(); 
-
-    foreach ( $containerset as $container_id => $container ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Candidate structure {$container_id} - now at " . count($image_url));
-      // $this->recursive_dump($container,"(marker) {$container_id}");
-      if ( !("table" == $container['tagname']) ) continue;
-      $children = array_filter(array_map($filter_image_or_link,$container['children']));
-      // $this->recursive_dump($children,'(warning)');
-      foreach( $children as $candidate_node ) {
-        if (array_key_exists("image", $candidate_node)) {
-          $image = array(
-            "image" => $candidate_node['image'],
-            "fauxuuid" => $candidate_node['fauxuuid'],
-            "realsrc" => $candidate_node['realsrc'],
-            "link" => array( 
-              "url" => NULL,
-              "urlhash" => NULL,
-              "text" => NULL, 
-            )
-          );
-          array_push($image_url, $image);
-          continue;
-        }
-        if ( !(0 < count($image_url) ) ) continue;
-        $image = array_pop($image_url);
-        if ( is_null($image['link']['text']) && array_key_exists('text', $candidate_node) ) {
-          $image['link']['text'] = str_replace(array('[BR]',"\n"),array(''," "),$candidate_node['text']);
-          array_push($image_url, $image);
-          continue;
-        }
-        if ( is_null($image['link']['url']) && array_key_exists('tag', $candidate_node) && ('a' == strtolower($candidate_node['tag'])) ) {
-          $image['link']['url'] = $candidate_node['attrs']['HREF'];
-          $image['link']['urlhash'] = UrlModel::get_url_hash($candidate_node['attrs']['HREF']);
-          if ( array_key_exists('cdata', $candidate_node) ) {
-            $test_name = trim(preg_replace('@[^A-Z."ñ ]@i','',join('',$candidate_node['cdata'])));
-            if ( is_null($image['link']['text']) ) $image['link']['text'] = $test_name;
-          }
-          array_push($image_url, $image);
-          continue;
-        }
-        array_push($image_url, $image);
-      }
-    }/*}}}*/
-
-    $pagecontent = '';
-    $senator_dossier = '';
-
-    if ( 0 < count($image_url) ) { /*{{{*/
-      foreach ( $image_url as $brick ) {/*{{{*/
-        $bio_url = $brick['link']['url'];
-        $dossier->set_id(NULL)->fetch(array(
-          'bio_url' => $bio_url,
-          'fullname' => $dossier->cleanup_senator_name($brick['link']['text'])
-        ),'OR');
-        $member_fullname      = NULL; 
-        $member_uuid          = NULL; 
-        $member_avatar_base64 = NULL; 
-        $avatar_url           = NULL; 
-        if ( !$dossier->in_database() ) {/*{{{*/
-          $member_fullname = $dossier->cleanup_senator_name($brick['link']['text']);
-          if (empty($member_fullname)) continue;
-          $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - -- Treating {$member_fullname} {$bio_url}");
-          $this->recursive_dump($brick,'(warning)');
-          $member_uuid = sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member_fullname);
-          $avatar_url  = $brick['realsrc'];
-          $url->fetch(UrlModel::get_url_hash($avatar_url),'urlhash');
-          if ( $url->in_database() ) {
-            $image_content_type   = $url->get_content_type();
-            $image_content        = base64_encode($url->get_pagecontent());
-            $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-          } else $member_avatar_base64 = NULL;
-          $dossier->
-            set_member_uuid($member_uuid)->
-            set_fullname($member_fullname)->
-            set_bio_url($bio_url)->
-            set_create_time(time())->
-            set_last_fetch(time())->
-            set_avatar_url($avatar_url)->
-            set_avatar_image($member_avatar_base64)->
-            stow();
-        }/*}}}*/
-        else {/*{{{*/
-          $member_fullname      = $dossier->get_fullname();
-          $member_uuid          = $dossier->get_member_uuid();
-          $member_avatar_base64 = $dossier->get_avatar_image();
-          $avatar_url           = $dossier->get_avatar_url();
-          $this->syslog(__FUNCTION__,__LINE__, "- Loaded {$member_fullname} {$bio_url}");
-        }/*}}}*/
-
-        $senator_dossier .= <<<EOH
-<a href="{$bio_url}" class="human-element-dossier-trigger"><img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member_fullname}" /></a> 
-EOH;
-        if ( !(0 < strlen($member_avatar_base64)) ) $senator_dossier .= <<<EOH
-<input type="hidden" class="representative-avatar-source" name="image-ref" id="imagesrc-{$member_uuid}" value="{$avatar_url}" />
-EOH;
-      }/*}}}*/
-
-      $pagecontent = <<<EOH
-<div class="senator-dossier-pan-bar"><div class="dossier-strip">{$senator_dossier}</div></div>
-<div id="human-element-dossier-container" class="alternate-original half-container"></div>
-<script type="text/javascript">
-var total_image_width = 0;
-var total_image_count = 0;
-jQuery(document).ready(function(){
-  initialize_dossier_triggers();
-  jQuery("div[class=dossier-strip]").find("img[class*=representative-avatar]").each(function(){
-    total_image_width += jQuery(this).outerWidth();
-    total_image_count++;
-  });
-  if ( total_image_width < (total_image_count * 74) ) total_image_width = total_image_count * 74;
-  jQuery("div[class=dossier-strip]").width(total_image_width).css({'width' : total_image_width+'px !important'});
-  update_representatives_avatars();
-});
-</script>
-EOH
-      ;
-
-    }/*}}}*/
-
+		$senator->parse_senators_fifteenth_congress($parser, $pagecontent, $urlmodel);
   }/*}}}*/
 
   function seek_postparse_73c3022a45d05b832a96fb881f20d2c6(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -1072,108 +267,6 @@ EOH
 
   /** Republic acts **/
 
-  private function fetch_legislation_links(& $ra_parser, RepublicActDocumentModel & $republic_act) {/*{{{*/
-
-    // Extract table of legislation for this page
-
-    $test_url = new UrlModel();
-
-    $this->recursive_dump($sub_list = array_values($ra_parser->get_containers(
-      'children[tagname=div][class*=alight|i]'
-    )),0,'++ sublist');
-
-    // $this->recursive_dump($ra_parser->get_containers(),'(warning)');
-    // $this->recursive_dump($sub_list,'(warning)');
-    $empty_ra_def = array(
-      'link'     => array(), 
-      'desc'     => NULL, 
-      'linktext' => NULL,
-      'aux'      => array(),
-    );
-    $republic_acts = array($empty_ra_def);
-    $current_id = NULL;
-
-    if ( 1 == count($sub_list) ) foreach ( $sub_list[0] as $tag ) {/*{{{*/
-
-      if ( is_null($tag) ) continue;
-      if ( array_key_exists('image', $tag) ) continue; // Skip PDF icon link image; irrelevant
-
-      $ra = array_pop($republic_acts);
-
-      // if ( is_null($current_id) && array_key_exists('attrs', $tag) && array_key_exists('ID', $tag['attrs']) )
-      //  $current_id = $tag['attrs']['ID'];
-
-      $is_texttag = array_key_exists('text', $tag);
-      $is_linktag = array_key_exists('attrs', $tag) && array_key_exists('HREF', $tag['attrs']);
-      
-      if ( $is_texttag && !empty($ra['aux']) ) {/*{{{*/
-        // The current tag already has link text; push a new, empty def onto the stack
-        // $this->syslog(__FUNCTION__,__LINE__,"-- Skip to new entry.  Record now is currently for {$ra['linktext']}:");
-        array_push($republic_acts, $ra);
-        // $this->recursive_dump($ra,'(warning)');
-        array_push($republic_acts, $empty_ra_def);
-        $ra = array_pop($republic_acts);
-        // Try to find a republic act serial number in this line.
-        $matches = array();
-        preg_match('@(Republic Act No)*([^0-9]*)([0-9]*)(.*)@i',$tag['text'],$matches);
-        if ( is_numeric($matches[3]) ) {
-          $ra['linktext'] = 'RA' . str_pad(ltrim($matches[3],'0'),5,'0',STR_PAD_LEFT);
-          $ra['desc'] = trim($matches[4]);
-          $republic_act->fetch($ra['linktext'], 'sn');
-          $found = $republic_act->in_database();
-          $ra['cached_sn'] = $found ? $republic_act->get_id() : NULL;
-          if ( $found ) {
-            $ra['link'][] = $republic_act->get_url();
-            $ra['desc'] = $republic_act->get_description();
-          }
-        }
-      }/*}}}*/
-      // $ra['components'][] = $tag;
-      if ( $is_texttag ) {
-        // We're expecting metadata lines, specifically something resembling
-        // - Approved by ... [DATE]
-        $ra['aux'][] = $tag['text'];
-        array_push($republic_acts, $ra);
-        continue;
-      }
-
-      if ( $is_linktag ) {
-        // Extract parts of an A tag containing republic act links
-        $link = $tag['attrs']['HREF'];
-        $ra['desc'] = str_replace(array('[BR]',"\n"),array(''," "),join('',$tag['cdata']));
-        $test_url->fetch($link, 'url');
-        $id = $test_url->in_database() ? $test_url->get_id() : NULL;
-        $ra['link'][$id] = $link; 
-        $matches = array();
-        preg_match('@(Republic Act No)*([^0-9]*)([0-9]*)(.*)@i',$ra['desc'],$matches);
-        $ra['linktext'] = 'RA' . str_pad(ltrim($matches[3],'0'),5,'0',STR_PAD_LEFT);
-        $ra['desc'] = trim($matches[4]);
-
-        $republic_act->fetch($ra['linktext'], 'sn');
-        $found = $republic_act->in_database();
-        $ra['cached_sn'] = $found ? $republic_act->get_id() : NULL;
-        $id = NULL;
-        if ( $found ) {
-          $test_url->fetch($republic_act->get_url(), 'url');
-          $found = $test_url->in_database();
-          $id = $test_url->get_id();
-        }
-        $ra['link'][$id] = $republic_act->get_url();
-        array_push($republic_acts, $ra);
-        continue;
-      }
-      array_push($republic_acts, $ra);
-    }/*}}}*/
-
-    // Make the RA serial number be the resultset array key
-    $republic_acts = array_combine(
-      array_map(create_function('$a', 'return $a["linktext"];'),$republic_acts),
-      $republic_acts
-    );
-
-    return $republic_acts;
-  }/*}}}*/
-
   function seek_postparse_bypathonly_47fcf9913bde652d1ecee59501b11c59(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     /** Router **/ 
@@ -1194,7 +287,7 @@ EOH
     }
   }/*}}}*/
 
-  function leg_sys_republic_act(& $parser, & $pagecontent, & $urlmodel) {
+  function leg_sys_republic_act(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $common_model = new SenateDocCommonDocumentModel();
 
@@ -1216,134 +309,14 @@ EOH
       TRUE
     );
  
-  }
+  }/*}}}*/
 
   function pdf_sys_republic_act(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
-
     // http://www.senate.gov.ph/lis/pdf_sys.aspx?congress=15&type=republic_act 
-    // Iterate through pager URLs to load 
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for {$urlmodel} ---------------------------------------" );
-
-    $republic_act  = new RepublicActDocumentModel();
-    $ra_parser     = new RepublicActParseUtility();
-    $ra_parser_alt = new SenateRaListParseUtility();
-    $test_url      = new UrlModel();
-
-    $republic_act->dump_accessor_defs_to_syslog();
-
-    $ra_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
-
-    $pagetitle    = 'Republic Acts'; 
-    $pagecontent  = ''; // join('',$ra_parser->get_filtered_doc());
-
-    // Extract pager
-
-    $pages = array();
-    $pager_links = $ra_parser->extract_pager_links(
-      $pages,
-      $parser->cluster_urldefs,
-      '1cb903bd644be9596931e7c368676982');
-
-    $pagecontent .= join('', $pager_links);
-
-    // Extract Congress selector
-
-    $extracted_links = array();
-    $congress_switcher = $ra_parser->extract_pager_links(
-      $extracted_links,
-      $parser->cluster_urldefs,
-      '9f35fc4cce1f01b32697e7c34b397a99');
-
-    $pagecontent .= "&nbsp;&nbsp;Congress: " . join('',$congress_switcher) . '<br/><br/>';
-
-    $pages = array_flip(array_values(array_merge(
-      array($urlmodel->get_url()),
-      $pages
-    )));
-
-    $on_this_page = $this->fetch_legislation_links($ra_parser, $republic_act); 
-
-    $dumped = FALSE;
-
-    $linkset = array(); 
-    foreach ( $pages as $page_url => $d ) {/*{{{*/
-      $test_url->fetch($page_url,'url');
-      if ( $test_url->in_database() ) {
-        $url_id = $test_url->get_id();
-        $this->syslog(__FUNCTION__,__LINE__, "(marker) ? Testing URL #{$url_id} {$page_url}");
-        $pages[$page_url] = $urlmodel->get_id() != $url_id
-          ? $url_id
-          : NULL // We want to skip this page
-          ;
-        if ( is_null($pages[$page_url]) ) {
-          $this->syslog(__FUNCTION__,__LINE__, "(marker) - Skipping URL #{$url_id} {$page_url}");
-          $republic_acts = $on_this_page;
-        } else {
-          $content_length = $test_url->get_content_length();
-          $this->syslog(__FUNCTION__,__LINE__, "(marker) * Loading URL #{$url_id} {$content_length} octets {$page_url}:");
-          $ra_parser->
-            reset()->
-            set_parent_url($urlmodel->get_url())->
-            parse_html($test_url->get_pagecontent(),$test_url->get_response_header());
-          $republic_acts = $this->fetch_legislation_links($ra_parser, $republic_act); 
-        }
-      }
-      krsort($republic_acts);
-      if ( !$dumped ) {
-        $dumped = TRUE;
-        // $this->recursive_dump($republic_acts,'(marker) -');
-      }
-      foreach ( $republic_acts as $ra_number => $ra ) {
-        // RA10174 =>
-        //   link =>
-        //      0 => http://www.senate.gov.ph/republic_acts/ra%2010174.pdf
-        //      1 => http://www.congress.gov.ph/download/ra_15/RA10174.pdf
-        //   desc => An Act Establishing the Peoples Survival Fund to Provide Long-Term Finance Streams to Enable the Government to Effectively Address the Problem of Climate Change
-        //   linktext => RA10174
-        //   aux =>
-        //      0 => Approved by the President on August 16, 2012
-        //   cached_url => 663
-        //   cached_sn => 3501
-        $links = array();
-        foreach ($ra['link'] as $url_id => $url) {
-          $host = UrlModel::parse_url($url,PHP_URL_HOST);
-          $linktext = (0 == count($links)) ?  $ra['linktext'] : $host;
-          $cached = 0 < intval($url_id) ? ' cached' : ' uncached';
-          $urlhash = UrlModel::get_url_hash($url);
-          $actual_link = <<<EOH
-<a id="{$urlhash}" class="legiscope-remote{$cached}" href="{$url}">{$linktext}</a>
-EOH;
- 
-          $links[] .= (0 == count($links))
-            ? $actual_link
-            : <<<EOH
-Alternate {$actual_link}
-EOH
-            ;
-
-        }
-        if ( 0 < count($links) ) $linkset[$ra_number] .= '<li>' . join('&nbsp;',$links) . '</li>';
-      }
-      $republic_acts = array();
-    }/*}}}*/
-    krsort($linkset);
-    $linkset = join("\n",$linkset);
-    $linkset = <<<EOH
-<ul class="link-cluster">
-{$linkset}
-</ul>
-EOH;
-
-    $pagecontent .= <<<EOH
-
-{$linkset}
-
-<script type="text/javascript">
-jQuery(document).ready(function(){ jQuery('#doctitle').html('{$pagetitle}');});
-</script>
-EOH;
-
+    $ra_parser = new RepublicActParseUtility();
+		$ra_parser->parse_pdf_sys_republic_act($parser, $pagecontent, $urlmodel);
+		$ra_parser = NULL;
+		unset($ra_parser);
   }/*}}}*/
 
   function seek_postparse_edd4db85190acf2176ca125df8fe269a(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -1356,26 +329,26 @@ EOH;
 
   function leg_sys_bill(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-		$listing_mode_change = $this->filter_post('metalink');
+    $listing_mode_change = $this->filter_post('metalink');
 
-		GenericParseUtility::decode_metalink_post($listing_mode_change);
+    GenericParseUtility::decode_metalink_post($listing_mode_change);
 
-		if ( !is_array($listing_mode_change) ) {
-			$this->recursive_dump($_POST,"(marker)  NO MODE CHANGE");
-		} else if ( is_null(($dlBillType = array_element($listing_mode_change,'dlBillType')))) { 
-			$this->recursive_dump($listing_mode_change,"(marker)  MODE CHANGE ?");
-		} else {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker)  Switch mode to {$dlBillType}");
-			$this->recursive_dump($_SESSION,"(marker) - - - -");
-			$_SESSION[__FUNCTION__] = $dlBillType;
-			$this->recursive_dump($_SESSION,"(marker) - -+- -");
-		}
+    if ( !is_array($listing_mode_change) ) {
+      $this->recursive_dump($_POST,"(marker)  NO MODE CHANGE");
+    } else if ( is_null(($dlBillType = array_element($listing_mode_change,'dlBillType')))) { 
+      $this->recursive_dump($listing_mode_change,"(marker)  MODE CHANGE ?");
+    } else {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)  Switch mode to {$dlBillType}");
+      $this->recursive_dump($_SESSION,"(marker) - - - -");
+      $_SESSION[__FUNCTION__] = $dlBillType;
+      $this->recursive_dump($_SESSION,"(marker) - -+- -");
+    }
 
-		$listing_prefix = nonempty_array_element($_SESSION,__FUNCTION__,'SBN');
+    $listing_prefix = nonempty_array_element($_SESSION,__FUNCTION__,'SBN');
 
-		$this->append_filtered_doc = FALSE;
+    $this->append_filtered_doc = FALSE;
 
-		$this->stateful_child_pager_links = TRUE;
+    $this->stateful_child_pager_links = TRUE;
 
     $this->non_session_linked_document(
       ($listing_prefix == 'HBN') ? 'leg_sys_housebill' : __FUNCTION__,
@@ -1396,28 +369,28 @@ EOH;
 
   function leg_sys_resolution(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-		$listing_mode_change = $this->filter_post('metalink');
+    $listing_mode_change = $this->filter_post('metalink');
 
-		GenericParseUtility::decode_metalink_post($listing_mode_change);
+    GenericParseUtility::decode_metalink_post($listing_mode_change);
 
-		if ( !is_array($listing_mode_change) ) {
-			$this->recursive_dump($_POST,"(marker)  NO MODE CHANGE");
-		} else if ( is_null(($dlBillType = array_element($listing_mode_change,'dlBillType')))) { 
-			$this->recursive_dump($listing_mode_change,"(marker)  MODE CHANGE ?");
-		} else {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker)  Switch mode to {$dlBillType}");
-			$this->recursive_dump($_SESSION,"(marker) - - - -");
-			$_SESSION[__FUNCTION__] = $dlBillType;
-			$this->recursive_dump($_SESSION,"(marker) - -+- -");
-		}
+    if ( !is_array($listing_mode_change) ) {
+      $this->recursive_dump($_POST,"(marker)  NO MODE CHANGE");
+    } else if ( is_null(($dlBillType = array_element($listing_mode_change,'dlBillType')))) { 
+      $this->recursive_dump($listing_mode_change,"(marker)  MODE CHANGE ?");
+    } else {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)  Switch mode to {$dlBillType}");
+      $this->recursive_dump($_SESSION,"(marker) - - - -");
+      $_SESSION[__FUNCTION__] = $dlBillType;
+      $this->recursive_dump($_SESSION,"(marker) - -+- -");
+    }
 
-		$listing_prefix = nonempty_array_element($_SESSION,__FUNCTION__,'SRN');
+    $listing_prefix = nonempty_array_element($_SESSION,__FUNCTION__,'SRN');
 
-		$this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = TRUE;
 
-		$this->stateful_child_pager_links = TRUE;
+    $this->stateful_child_pager_links = TRUE;
 
-		$listing_prefix = 'SRN';
+    $listing_prefix = 'SRN';
 
     return $this->non_session_linked_document(
       __FUNCTION__,
@@ -1460,7 +433,7 @@ EOH;
       }
     }
     $pagecontent = join('<br/>', $items);
-		$pagecontent .= join('',$common->get_filtered_doc());
+    $pagecontent .= join('',$common->get_filtered_doc());
 
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
@@ -1469,49 +442,47 @@ EOH;
     $this->seek_postparse_4c2e9f440b8f89e94f6de126ef0e38c4($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
-  function get_after_post() {
+  function get_after_post() {/*{{{*/
     return array_key_exists(
       intval(CurlUtility::$last_transfer_info['http_code']),
       array_flip(array(100,302,301,504))
     ) ? FALSE : TRUE;
-  }
+  }/*}}}*/
 
-	function invalidate_record(& $senate_document, & $urlmodel) {/*{{{*/
-		$target_congress = $urlmodel->get_query_element('congress');
-		$target_sn       = $urlmodel->get_query_element('q');
-		$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - Unable to parse content for {$target_sn}.{$target_congress} from " . $urlmodel->get_url());
+  function invalidate_record(& $senate_document, & $urlmodel) {/*{{{*/
+    $target_congress = $urlmodel->get_query_element('congress');
+    $target_sn       = $urlmodel->get_query_element('q');
+    $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - Unable to parse content for {$target_sn}.{$target_congress} from " . $urlmodel->get_url());
 
-		if ( !empty($target_congress) && !empty($target_sn) && method_exists($senate_document,'set_invalidated') ) {/*{{{*/
-			// FIXME: Remove this hack.  Unsafe update of document property
-			$data = array(
-				'sn' => $target_sn,
-				'congress_tag' => $target_congress, 
-			);
-			$senate_document->fetch($data,'AND');
-			$action = 'Invalidating';
-			if ( !$senate_document->in_database() ) {
-				$data['invalidated'] = TRUE;
-				$data['create_time'] = time();
-				$data['last_fetch'] = time(); 
-				$data['url'] = $urlmodel->get_url();
-				$invalidated_rec = $senate_document->set_contents_from_array($data)->stow();
-				$action = "Created invalidated";
-			} else {
-				$invalidated_rec = $senate_document->
-					set_invalidated(TRUE)->
-					fields(array('invalidated'))->
-					stow();
-				$action = "Invalidated";
-			}
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - {$action} " . get_class($senate_document) . " #{$invalidated_rec} {$target_sn}.{$target_congress}");
-		}/*}}}*/
-	}/*}}}*/
+    if ( !empty($target_congress) && !empty($target_sn) && method_exists($senate_document,'set_invalidated') ) {/*{{{*/
+      // FIXME: Remove this hack.  Unsafe update of document property
+      $data = array(
+        'sn' => $target_sn,
+        'congress_tag' => $target_congress, 
+      );
+      $senate_document->fetch($data,'AND');
+      $action = 'Invalidating';
+      if ( !$senate_document->in_database() ) {
+        $data['invalidated'] = TRUE;
+        $data['create_time'] = time();
+        $data['last_fetch'] = time(); 
+        $data['url'] = $urlmodel->get_url();
+        $invalidated_rec = $senate_document->set_contents_from_array($data)->stow();
+        $action = "Created invalidated";
+      } else {
+        $invalidated_rec = $senate_document->
+          set_invalidated(TRUE)->
+          fields(array('invalidated'))->
+          stow();
+        $action = "Invalidated";
+      }
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - {$action} " . get_class($senate_document) . " #{$invalidated_rec} {$target_sn}.{$target_congress}");
+    }/*}}}*/
+  }/*}}}*/
 
   function non_session_linked_content_parser_worker($documents, $document_parser, $senatedoc, $prefix, & $parser, & $pagecontent, & $urlmodel ) {/*{{{*/
 
-    $debug_method = FALSE;
-
-		$this->append_filtered_doc = TRUE;
+    $debug_method = FALSE || (property_exists($this,'debug_method') && $this->debug_method);
 
     $parser->json_reply = array('retainoriginal' => TRUE);
 
@@ -1533,30 +504,22 @@ EOH;
     
     $traversal_resultarray = $this->execute_document_form_traversal($prefix, $senate_document_parser, $parser, $pagecontent, $urlmodel, $action_url, $faux_url, $debug_method ); 
 
-		if ( FALSE == $traversal_resultarray ) {
-			$this->invalidate_record($senate_document, $urlmodel);
-			$pagecontent = <<<EOH
+    if ( FALSE == $traversal_resultarray ) {
+      $this->invalidate_record($senate_document, $urlmodel);
+      $pagecontent = <<<EOH
 <span>No Content Retrieved</span>
 EOH;
-		 	return FALSE;
-		}
+       return FALSE;
+    }
+
     if ( is_null($faux_url) ) return FALSE;
 
-    $this->recursive_dump(
-      $senate_document_parser->get_containers(), 
-      "(------) All containers"
-    );
+    $this->recursive_dump($senate_document_parser->get_containers(),"(------) All containers");
+    $this->recursive_dump(array_keys($traversal_resultarray),"(------) Extract");
 
-    $this->recursive_dump(
-      array_keys($traversal_resultarray),
-      "(------) Extract"
-    );
     extract($traversal_resultarray);
 
-    $this->recursive_dump(
-      ($joins = $senate_document->get_joins()),
-      '(-----) Join attrs for ' . get_class($senate_document)
-    );
+    ////////////////////////////////////////////////////////////////////////////////////////////
 
     if ( !(0 < count($document_contents)) ) {/*{{{*/
       $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- NONEMPTY DOCUMENT CONTENT ARRAY" );
@@ -1577,11 +540,11 @@ EOH;
       );
       $document_contents['comm_report_info'] = array_element(array_element($document_contents,'comm_report_url',array()),'text');
       $document_contents['comm_report_url']  = array_element(array_element($document_contents,'comm_report_url',array()),'url');
-			// FIXME: Remove this, it forces an update. Better to do an array diff.
+      // FIXME: Remove this, it forces an update. Better to do an array diff.
       // $parser->from_network = TRUE;
     }/*}}}*/
     else {/*{{{*/
-			if ( $debug_method ) $this->recursive_dump($document_contents,"(marker) ------- --- - ----- ---- -- NZD");
+      if ( $debug_method ) $this->recursive_dump($document_contents,"(marker) ------- --- - ----- ---- -- NZD");
       if ( array_key_exists('comm_report_url', $document_contents) ) { $u = array('url' => $document_contents['comm_report_url']); $l = UrlModel::parse_url($action_url->get_url()); $document_contents['comm_report_url'] = UrlModel::normalize_url($l, $u); }
       if ( array_key_exists('doc_url', $document_contents) )         { $u = array('url' => $document_contents['doc_url'])        ; $l = UrlModel::parse_url($action_url->get_url()); $document_contents['doc_url'] = UrlModel::normalize_url($l, $u); }
     }/*}}}*/
@@ -1597,39 +560,39 @@ EOH;
       'congress_tag' => $target_congress, 
     ),'AND');
 
-		$document_contents['sn']           = $sbn_regex_result;
-		$document_contents['congress_tag'] = $target_congress;
+    $document_contents['sn']           = $sbn_regex_result;
+    $document_contents['congress_tag'] = $target_congress;
 
-		if ( !is_array($document_fetched) ) $document_fetched = array();
+    if ( !is_array($document_fetched) ) $document_fetched = array();
 
-		$intersection = array_intersect_key( $document_contents, $document_fetched );
-		$difference   = array_diff( $intersection, $document_fetched );
+    $intersection = array_intersect_key( $document_contents, $document_fetched );
+    $difference   = array_diff( $intersection, $document_fetched );
+		$intersection = array_intersect_key($document_fetched,$difference);
 
-		// Stow flat document (Join record updates/stow will need to be handled by the *DocumentModel)
-    if ( !$senate_document->in_database() || $parser->from_network || $parser->update_existing ) {/*{{{*/
+    // Stow flat document (Join record updates/stow will need to be handled by the *DocumentModel)
+    if ( !$senate_document->in_database() || $parser->from_network || ($parser->update_existing && (0 < count($difference))) ) {/*{{{*/
 
-			if ( ((0 < count($difference)) && C('LOG_DOCUMENT_UPDATE_DELTAS')) || $debug_method ) {
-				$this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Filter --- --- --- ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress}" );
-				$this->recursive_dump($intersection,"(marker) - -+- -");
-				$this->recursive_dump($difference,"(marker) - --- -");
-			}
+      if ( ((0 < count($difference)) && C('LOG_DOCUMENT_UPDATE_DELTAS')) || $debug_method ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - RuFilter --- --- --- ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress}" );
+        $this->recursive_dump($intersection, "(marker) - - DB - -");
+        $this->recursive_dump($difference  , "(marker) - - HT - -");
+      }
 
-			$document_contents['url']   = $action_url->get_url();
-			$document_contents['urlid'] = $action_url->get_id();
+      $document_contents['url']   = $action_url->get_url();
       krsort($document_contents);
-			
-			$document_contents = array_filter($document_contents);
+      
+      $document_contents = array_filter($document_contents);
       $senate_document->fetch(array(
         'sn' => $sbn_regex_result,
         'congress_tag' => $target_congress, 
       ),'AND');
 
-			$id = method_exists($senate_document,'stow_parsed_content')
-				? $senate_document->stow_parsed_content($document_contents)
-				: $senate_document->set_contents_from_array($document_contents)->stow()
-				;
+      $id = method_exists($senate_document,'stow_parsed_content')
+        ? $senate_document->stow_parsed_content($document_contents)
+        : $senate_document->set_contents_from_array($document_contents)->stow()
+        ;
 
-      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
+      if ( $debug_method || (0 < count($difference)) ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
 
     }/*}}}*/
 
@@ -1646,36 +609,37 @@ EOH;
 
     if ( $senate_document->in_database() ) {/*{{{*/
 
-			// Join this document to the Senator dossiers
-			array_walk(array_element($document_contents,'senator',array()),create_function(
-				'& $a, $k, $s', '$s->senate_document_senator_dossier_join($a);'
-			),$senate_document);
+      // Join this document to the Senator dossiers
+      array_walk(array_element($document_contents,'senator',array()),create_function(
+        '& $a, $k, $s', '$s->senate_document_senator_dossier_join($a);'
+      ),$senate_document);
 
-			// This method belongs in Senate_DocumentModel
-			$markup_generator = 'generate_non_session_linked_markup';
+      // This method belongs in Senate_DocumentModel
+      $markup_generator = 'generate_non_session_linked_markup';
 
-			if ( method_exists($senate_document,$markup_generator) ) {
+      if ( method_exists($senate_document,$markup_generator) ) {/*{{{*/
 
-				$pagecontent = $senate_document->$markup_generator();
-				if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc ) {
-					$pagecontent .= join('',$senate_document_parser->get_filtered_doc());
-					$pagecontent = str_replace('[BR]','<br/>', $pagecontent);
-				}
+        $pagecontent = $senate_document->$markup_generator();
+        if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc ) {
+          $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+          $pagecontent = str_replace('[BR]','<br/>', $pagecontent);
+        }
 
-			} else {
+			}/*}}}*/
+		 	else {/*{{{*/
 
-				$this->syslog( __FUNCTION__, __LINE__, "(marker) ---  - - -  --- WARNING: No markup generator " . get_class($senate_document) . "::{$markup_generator}()" );
-				$this->syslog( __FUNCTION__, __LINE__, "(marker) ---  - - -  --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) ---  - - -  --- WARNING: No markup generator " . get_class($senate_document) . "::{$markup_generator}()" );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) ---  - - -  --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
 
-				$total_bills_in_system = $senate_document->count();
+        $total_bills_in_system = $senate_document->count();
 
-				$doc_url_attrs = array('legiscope-remote');
-				$faux_url_hash = UrlModel::get_url_hash($senate_document->get_url()); 
-				$faux_url->fetch($faux_url_hash,'urlhash');
-				if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
-				$doc_url_attrs = join(' ', $doc_url_attrs);
+        $doc_url_attrs = array('legiscope-remote');
+        $faux_url_hash = UrlModel::get_url_hash($senate_document->get_url()); 
+        $faux_url->fetch($faux_url_hash,'urlhash');
+        if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
+        $doc_url_attrs = join(' ', $doc_url_attrs);
 
-				$pagecontent = $senate_document->substitute(<<<EOH
+        $pagecontent = $senate_document->substitute(<<<EOH
 Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>
 <span class="sb-match-item sb-match-subjects">{subjects}</span>
@@ -1686,11 +650,12 @@ Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 EOH
-				);
-				$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
-				if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
-				$pagecontent .= join('',$senate_document_parser->get_filtered_doc());
-			}
+        );
+        $pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+        if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
+        $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+      }/*}}}*/
+
     }/*}}}*/
 
     ///////////////////////////////////////////
@@ -1704,7 +669,7 @@ EOH
 
   function non_session_linked_content_parser($caller, $prefix, & $parser, & $pagecontent, & $urlmodel ) {/*{{{*/
 
-		$debug_method = FALSE;
+    $debug_method = FALSE;
 
     $method_infix = '@^senate_(.*)_content_parser$@i';
     $senatedoc = ucfirst(strtolower(preg_replace($method_infix,'$1', $caller)));
@@ -1765,13 +730,13 @@ EOH
         return FALSE;
       }
     } else if ( is_array($uncached_documents) ) { 
-			array_walk($uncached_documents, create_function(
-				'& $a, $k', 
-				'$desc = explode("[BR]",trim($a["text"])); $a["title"] = trim($desc[0]); $a["desc"] = trim(array_element($desc,1,"")) ; $a["text"] = UrlModel::query_element("q", array_element($a,"url")); $a["sn_suffix"] = preg_replace("@[^0-9]@i","",array_element($a,"text")); $a["sn"] = array_element($a,"text"); $alt_title = array_element($a,"title"); if ( empty($alt_title) ) $a["title"] = array_element($a,"text"); $a["create_time"] = time();'
-			));
-		} else {
-			$uncached_documents = array();
-		}
+      array_walk($uncached_documents, create_function(
+        '& $a, $k', 
+        '$desc = explode("[BR]",trim($a["text"])); $a["title"] = trim($desc[0]); $a["desc"] = trim(array_element($desc,1,"")) ; $a["text"] = UrlModel::query_element("q", array_element($a,"url")); $a["sn_suffix"] = preg_replace("@[^0-9]@i","",array_element($a,"text")); $a["sn"] = array_element($a,"text"); $alt_title = array_element($a,"title"); if ( empty($alt_title) ) $a["title"] = array_element($a,"text"); $a["create_time"] = time();'
+      ));
+    } else {
+      $uncached_documents = array();
+    }
 
     // Reconstruct description data so that document SN suffix becomes the array key
     if ( is_array($uncached_documents) && 0 < count($uncached_documents) ) {
@@ -1780,7 +745,7 @@ EOH
         array_map(create_function('$a', 'unset($a["sn_suffix"]); return array_key_exists("url",$a) ? $a : NULL;'), $uncached_documents)
       ));
       if ( $debug_method ) $this->recursive_dump($uncached_documents,"(marker) -- Uncached");
-			krsort($uncached_documents, SORT_NUMERIC);
+      krsort($uncached_documents, SORT_NUMERIC);
     }
 
     // Determine which records are already present in the database
@@ -1796,11 +761,11 @@ EOH
 
     unset($text_entries_only);
 
-		if ( $debug_method ) $this->recursive_dump($markup_tabulation,"(marker) -- Blitter");
+    if ( $debug_method ) $this->recursive_dump($markup_tabulation,"(marker) -- Blitter");
 
     $url_checker = new UrlModel();
 
-		// Key-value pairs { SN => URL hash }
+    // Key-value pairs { SN => URL hash }
     $urls_only = array_map(create_function('$a', 'return UrlModel::get_url_hash($a["url"]);'), $uncached_documents);
     $markup_tabulation_urls = (is_array($urls_only) && (count($uncached_documents) == count($urls_only)) && (0 < count($urls_only))) 
       ? array_combine(
@@ -1810,7 +775,7 @@ EOH
       : array();
     unset($urls_only);
 
-		if (is_array($markup_tabulation) && (0 < count(array_filter(array_values($markup_tabulation))))) {/*{{{*/
+    if (is_array($markup_tabulation) && (0 < count(array_filter(array_values($markup_tabulation))))) {/*{{{*/
       
       $scanresult = $documents->where(array("AND" => array(
         'congress_tag' => "{$target_congress}",
@@ -1822,13 +787,13 @@ EOH
 
       $document = NULL;
       // Remove extant elements from the tabulation obtained from markup
-			$matches = 0;
+      $matches = 0;
       while ( $documents->recordfetch($document) ) {
         if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Omitting {$document['sn']}");
         $uncached_documents[$markup_tabulation[$document['sn']]] = NULL;
-				$matches++;
+        $matches++;
       }
-			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Omitted {$matches}");
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Omitted {$matches}");
       $uncached_documents = array_filter($uncached_documents);
     }/*}}}*/
 
@@ -1853,14 +818,14 @@ EOH
 
     if ( $debug_method ) $this->recursive_dump($uncached_documents,"(marker) -- Documents to store");
 
-		if ( !property_exists($this,'stateful_child_pager_links') ) {
-			// Cache documents that aren't already in DB store IFF we aren't dealing with stateful pages
-			while ( 0 < count($uncached_documents) ) {/*{{{*/
-				$document = array_pop($uncached_documents);
-				$document['congress_tag'] = $target_congress;
-				$documents->non_session_linked_document_stow($document);
-			}/*}}}*/
-		}
+    if ( !property_exists($this,'stateful_child_pager_links') ) {
+      // Cache documents that aren't already in DB store IFF we aren't dealing with stateful pages
+      while ( 0 < count($uncached_documents) ) {/*{{{*/
+        $document = array_pop($uncached_documents);
+        $document['congress_tag'] = $target_congress;
+        $documents->non_session_linked_document_stow($document);
+      }/*}}}*/
+    }
 
     //////////////////////////////////////////////////
     // GENERATE LISTS OF DOCUMENTS FROM DATABASE CONTENT
@@ -1875,11 +840,11 @@ EOH
       return;
     }/*}}}*/
 
-		$child_collection = $document_parser->generate_links_and_bounds(
-			$documents, $url_fetch_regex, $link_regex 
-		);
+    $child_collection = $document_parser->generate_links_and_bounds(
+      $documents, $url_fetch_regex, $link_regex 
+    );
 
-		extract($child_collection);
+    extract($child_collection);
 
     $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Senate {$senatedoc}: {$total_records}");
     if ( $debug_method ) {
@@ -1888,73 +853,73 @@ EOH
 
     $this->syslog(__FUNCTION__, __LINE__, "(marker) --- -- --- Span: {$missing_links}");
 
-		$paginator = '';
+    $paginator = '';
 
-		if ( !property_exists($this,'stateful_child_pager_links') ) {/*{{{*/
+    if ( !property_exists($this,'stateful_child_pager_links') ) {/*{{{*/
 
-			///////////////////////////////////////////////////////////////////////////////////////////////////
-			// Generate pager markup
-			// We're interested only in the congress tag and page number
-			//
-			// Obtain pager URLs, filling in intermediate, missing URLs from the 
-			// lower and upper bounds of available pager numbers.
-			$pagers = array();
-			$datum_regex = $pager_regex; 
-			$url_checker->where(array('AND' => array(
-				'url' => "REGEXP '{$datum_regex}'"
-			)))->recordfetch_setup();
+      ///////////////////////////////////////////////////////////////////////////////////////////////////
+      // Generate pager markup
+      // We're interested only in the congress tag and page number
+      //
+      // Obtain pager URLs, filling in intermediate, missing URLs from the 
+      // lower and upper bounds of available pager numbers.
+      $pagers = array();
+      $datum_regex = $pager_regex; 
+      $url_checker->where(array('AND' => array(
+        'url' => "REGEXP '{$datum_regex}'"
+      )))->recordfetch_setup();
 
-			$url = NULL;
-			$datum_regex = "@{$datum_regex}@i";
-			// Generate pager content table 
-			while ( $url_checker->recordfetch($url) ) {/*{{{*/
-				if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - {$url['url']}");
-				$datum_parts = array();
-				$url = $url['url'];
-				preg_match($datum_regex, $url, $datum_parts);
-				$congress = $datum_parts[1];
-				$page = intval($datum_parts[2]);
-				if ( !array_key_exists($congress, $pagers) ) $pagers[$congress] = array('min' => NULL, 'max' => 0, 'pages' => array());
-				// Obtain extrema, and a lookup table of pages that are present
-				$pagers[$congress]['min'] = min(is_null($pagers[$congress]['min']) ? $page : $pagers[$congress]['min'], $page);
-				$pagers[$congress]['max'] = max($pagers[$congress]['max'], $page);
-				$pagers[$congress]['pages'][$page] = NULL;
-			}/*}}}*/
-			// Replace placeholder tags with displayable values 
-			foreach ( $pagers as $congress_tag => $pageinfo ) {/*{{{*/
-				$pagers[$congress_tag]['total_pages'] = count($pagers[$congress_tag]['pages']);
-				$pagers[$congress_tag]['total_entries'] = $bounds[$congress_tag]['count'];
-				for ( $p = $pageinfo['min'] ; $p <= $pageinfo['max'] ; $p++ ) {
-					$link_class = array('legiscope-remote','suppress-reorder');
-					$link_class[] = array_key_exists($p, $pageinfo['pages']) ? 'cached' : 'uncached';
-					$link_class = join(' ', $link_class);
-					$url = str_replace(
-						array(
-							'{congress_tag}',
-							'{page}',
-						),
-						array(
-							$congress_tag,
-							$p,
-						),
-						$pager_template_url
-					);
-					$urlhash = UrlModel::get_url_hash($url);
-					$pagers[$congress_tag]['pages'][$p] = <<<EOH
+      $url = NULL;
+      $datum_regex = "@{$datum_regex}@i";
+      // Generate pager content table 
+      while ( $url_checker->recordfetch($url) ) {/*{{{*/
+        if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - {$url['url']}");
+        $datum_parts = array();
+        $url = $url['url'];
+        preg_match($datum_regex, $url, $datum_parts);
+        $congress = $datum_parts[1];
+        $page = intval($datum_parts[2]);
+        if ( !array_key_exists($congress, $pagers) ) $pagers[$congress] = array('min' => NULL, 'max' => 0, 'pages' => array());
+        // Obtain extrema, and a lookup table of pages that are present
+        $pagers[$congress]['min'] = min(is_null($pagers[$congress]['min']) ? $page : $pagers[$congress]['min'], $page);
+        $pagers[$congress]['max'] = max($pagers[$congress]['max'], $page);
+        $pagers[$congress]['pages'][$page] = NULL;
+      }/*}}}*/
+      // Replace placeholder tags with displayable values 
+      foreach ( $pagers as $congress_tag => $pageinfo ) {/*{{{*/
+        $pagers[$congress_tag]['total_pages'] = count($pagers[$congress_tag]['pages']);
+        $pagers[$congress_tag]['total_entries'] = $bounds[$congress_tag]['count'];
+        for ( $p = $pageinfo['min'] ; $p <= $pageinfo['max'] ; $p++ ) {
+          $link_class = array('legiscope-remote','suppress-reorder');
+          $link_class[] = array_key_exists($p, $pageinfo['pages']) ? 'cached' : 'uncached';
+          $link_class = join(' ', $link_class);
+          $url = str_replace(
+            array(
+              '{congress_tag}',
+              '{page}',
+            ),
+            array(
+              $congress_tag,
+              $p,
+            ),
+            $pager_template_url
+          );
+          $urlhash = UrlModel::get_url_hash($url);
+          $pagers[$congress_tag]['pages'][$p] = <<<EOH
 <span><a id="{$urlhash}" href="{$url}" class="{$link_class}">{$p} </a></span>
 EOH;
-				}
-				krsort($pagers[$congress_tag]['pages']);
-				$pagers[$congress_tag]['pages'] = join('<span class="wrap-content"> </span>', $pagers[$congress_tag]['pages']);
-			}/*}}}*/
+        }
+        krsort($pagers[$congress_tag]['pages']);
+        $pagers[$congress_tag]['pages'] = join('<span class="wrap-content"> </span>', $pagers[$congress_tag]['pages']);
+      }/*}}}*/
 
-			if ( $debug_method ) $this->recursive_dump($pagers,"(marker) -- - -- Pagers");
+      if ( $debug_method ) $this->recursive_dump($pagers,"(marker) -- - -- Pagers");
 
-			$paginator = <<<EOH
+      $paginator = <<<EOH
 <div id="senate-document-pager" class="wrap-content">{$pagers[$target_congress]['pages']}</div>
 EOH;
 
-		}/*}}}*/
+    }/*}}}*/
 
     $document_parser->cluster_urldefs = $document_parser->generate_linkset($urlmodel->get_url(),'cluster_urls');
 
@@ -1972,16 +937,16 @@ EOH;
       is_array($url_fetch_regex) ? NULL : ('\&q=' . $url_fetch_regex)
     );
 
-		$modify_congress_session_item_markup = 'modify_congress_session_item_markup';
+    $modify_congress_session_item_markup = 'modify_congress_session_item_markup';
 
-		if ( method_exists($document_parser,$modify_congress_session_item_markup) ) {
-			$document_parser->$modify_congress_session_item_markup($pagecontent, $session_select);
-		}
+    if ( method_exists($document_parser,$modify_congress_session_item_markup) ) {
+      $document_parser->$modify_congress_session_item_markup($pagecontent, $session_select);
+    }
 
-		// Replace pager placeholders 
-		foreach ( array_keys($pagers) as $congress_tag ) {
-			$pagecontent = str_replace("[PAGER{$congress_tag}]", $bounds[$congress_tag]['count'], $pagecontent);
-		}
+    // Replace pager placeholders 
+    foreach ( array_keys($pagers) as $congress_tag ) {
+      $pagecontent = str_replace("[PAGER{$congress_tag}]", $bounds[$congress_tag]['count'], $pagecontent);
+    }
 
     // Insert the stripped, unparsed document
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Inserting '{$urlmodel}'");
@@ -1992,34 +957,34 @@ EOH;
       "#[url*=.*|i]",0
     );
     $this->recursive_dump($links,"(marker) --- - ---- --");
-		$links = array_filter($links);
+    $links = array_filter($links);
 
     $alternate_content = array();
 
-		if ( is_array($links) && (0 < count($links)) ) {/*{{{*/
-			foreach ( $links as $link ) {/*{{{*/
-				$url_checker->set_url($link['url'],FALSE);
-				$sbn = $url_checker->get_query_element('q');
-				$urlhash = UrlModel::get_url_hash($link['url']);
-				$linktext = array_filter(explode('[BR]',$link['text']));
-				if ( empty($sbn) ) {
-					$sbn = $linktext[0];
-					$linktext = $linktext[1];
-				} else {
-					$linktext = join(' ', $linktext);
-				}
-				$alternate_content[] = <<<EOH
+    if ( is_array($links) && (0 < count($links)) ) {/*{{{*/
+      foreach ( $links as $link ) {/*{{{*/
+        $url_checker->set_url($link['url'],FALSE);
+        $sbn = $url_checker->get_query_element('q');
+        $urlhash = UrlModel::get_url_hash($link['url']);
+        $linktext = array_filter(explode('[BR]',$link['text']));
+        if ( empty($sbn) ) {
+          $sbn = $linktext[0];
+          $linktext = $linktext[1];
+        } else {
+          $linktext = join(' ', $linktext);
+        }
+        $alternate_content[] = <<<EOH
 <p><a id="{$urlhash}" href="{$link['url']}" class="legiscope-remote">{$sbn}</a>: {$linktext}</p>
 EOH;
-			}/*}}}*/
-		}/*}}}*/
+      }/*}}}*/
+    }/*}}}*/
 
-		$append_filtered_doc = ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc );
+    $append_filtered_doc = ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc );
 
-		$inserted_content = 0 < count($alternate_content)
-			? join("\n", $alternate_content) . ($append_filtered_doc ? join('',$document_parser->get_filtered_doc()) : '')
-			: join('',$document_parser->get_filtered_doc())
-			;
+    $inserted_content = 0 < count($alternate_content)
+      ? join("\n", $alternate_content) . ($append_filtered_doc ? join('',$document_parser->get_filtered_doc()) : '')
+      : join('',$document_parser->get_filtered_doc())
+      ;
 
     $pagecontent .= <<<EOH
 <div class="alternate-original alternate-content" id="senate-journal-block">
@@ -2075,7 +1040,7 @@ function document_pager_initialize() {
           replace_contentof('original',data.original);
           jQuery(self).addClass('cached');
           setTimeout((function() {
-						document_pager_initialize();
+            document_pager_initialize();
             jQuery('div[id=senate-document-pager]')
               .find('a[class*=uncached]')
               .first()
@@ -2126,7 +1091,7 @@ EOH;
     $documents = "Senate{$senatedoc}DocumentModel";
     $document_parser = "Senate{$senatedoc}ParseUtility";
 
-		if ( $debug_method ) 
+    if ( $debug_method ) 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$document_parser}, {$documents}" );
 
     $parser->json_reply = array('retainoriginal' => TRUE);
@@ -2148,13 +1113,13 @@ EOH;
     $senate_document_parser->from_network = $parser->from_network;
     $traversal_resultarray = $this->execute_document_form_traversal($prefix, $senate_document_parser, $senate_document_parser, $pagecontent, $urlmodel, $action_url, $faux_url, $debug_method); 
 
-		if ( FALSE == $traversal_resultarray ) {
-			$this->invalidate_record($senate_document, $urlmodel);
-			$pagecontent = <<<EOH
+    if ( FALSE == $traversal_resultarray ) {
+      $this->invalidate_record($senate_document, $urlmodel);
+      $pagecontent = <<<EOH
 <span>No Content Retrieved</span>
 EOH;
-		 	return FALSE;
-		}
+       return FALSE;
+    }
 
     if ( $debug_method ) $this->recursive_dump($traversal_resultarray,"(marker) " . __METHOD__ . "::" . __LINE__ );
 
@@ -2200,36 +1165,36 @@ EOH;
       'congress_tag' => $target_congress,
     ),'AND');
 
-		$document_contents['congress_tag'] = $target_congress;
-		$document_contents['sn']           = $sbn_regex_result;
+    $document_contents['congress_tag'] = $target_congress;
+    $document_contents['sn']           = $sbn_regex_result;
 
-		if ( !is_array($document_fetched) ) $document_fetched = array();
+    if ( !is_array($document_fetched) ) $document_fetched = array();
 
-		$intersection = array_intersect_key( $document_contents, $document_fetched );
-		$difference   = array_diff( $intersection, $document_fetched );
+    $intersection = array_intersect_key( $document_contents, $document_fetched );
+    $difference   = array_diff( $intersection, $document_fetched );
 
-		if ( !$senate_document->in_database() || $parser->from_network || $parser->update_existing /*|| (0 < count($difference))*/ ) {/*{{{*/
+    if ( !$senate_document->in_database() || $parser->from_network || $parser->update_existing /*|| (0 < count($difference))*/ ) {/*{{{*/
 
-			if ( ((0 < count($difference)) && C('LOG_DOCUMENT_UPDATE_DELTAS')) || $debug_method ) {
-				$this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Filter --- --- --- ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress}" );
-				$this->recursive_dump($intersection,"(marker) - -+- -");
-				$this->recursive_dump($difference,"(marker) - --- -");
-			}
+      if ( ((0 < count($difference)) && C('LOG_DOCUMENT_UPDATE_DELTAS')) || $debug_method ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - GeFilter --- --- --- ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress}" );
+        $this->recursive_dump($document_contents,"(marker) - -*- -");
+        $this->recursive_dump($intersection,"(marker) - -+- -");
+        $this->recursive_dump($difference,"(marker) - --- -");
+      }
 
-			$document_contents['url']   = $action_url->get_url();
-			$document_contents['urlid'] = $action_url->get_id();
+      $document_contents['url']   = $action_url->get_url();
       krsort($document_contents);
-			
-			$document_contents = array_filter($document_contents);
+      
+      $document_contents = array_filter($document_contents);
       $senate_document->fetch(array(
         'sn' => $sbn_regex_result,
         'congress_tag' => $target_congress, 
       ),'AND');
 
-			$id = method_exists($senate_document,'stow_parsed_content')
-				? $senate_document->stow_parsed_content($document_contents)
-				: $senate_document->set_contents_from_array($document_contents)->stow()
-				;
+      $id = method_exists($senate_document,'stow_parsed_content')
+        ? $senate_document->stow_parsed_content($document_contents)
+        : $senate_document->set_contents_from_array($document_contents)->stow()
+        ;
 
       if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
 
@@ -2248,31 +1213,31 @@ EOH;
 
     if ( $senate_document->in_database() ) {/*{{{*/
 
-			// This method belongs in Senate_DocumentModel
-			$markup_generator = 'generate_non_session_linked_markup';
+      // This method belongs in Senate_DocumentModel
+      $markup_generator = 'generate_non_session_linked_markup';
 
-			$valid_entry = (0 < strlen($senate_document->get_sn())) && (0 < strlen($senate_document->get_description()));
+      $valid_entry = (0 < strlen($senate_document->get_sn())) && (0 < strlen($senate_document->get_description()));
 
-			if ( method_exists($senate_document,$markup_generator) ) {
+      if ( method_exists($senate_document,$markup_generator) ) {
 
-				$pagecontent = $senate_document->$markup_generator();
-				if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
-				$pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+        $pagecontent = $senate_document->$markup_generator();
+        if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
+        $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
 
-			} else {/*{{{*/
+      } else {/*{{{*/
 
-				if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) . " {$sbn_regex_result}|" . (method_exists($senate_document,'get_sn') ? $senate_document->get_sn() : "" ) );
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) . " {$sbn_regex_result}|" . (method_exists($senate_document,'get_sn') ? $senate_document->get_sn() : "" ) );
 
-				$total_bills_in_system = $senate_document->count();
+        $total_bills_in_system = $senate_document->count();
 
-				$doc_url_attrs = array('legiscope-remote');
-				$faux_url_hash = UrlModel::get_url_hash($senate_document->get_url());
-				$faux_url->fetch($faux_url_hash,'urlhash');
-				if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
-				$doc_url_attrs = join(' ', $doc_url_attrs);
+        $doc_url_attrs = array('legiscope-remote');
+        $faux_url_hash = UrlModel::get_url_hash($senate_document->get_url());
+        $faux_url->fetch($faux_url_hash,'urlhash');
+        if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
+        $doc_url_attrs = join(' ', $doc_url_attrs);
 
-				$pagecontent = $valid_entry 
-					?	$senate_document->substitute(<<<EOH
+        $pagecontent = $valid_entry 
+          ?  $senate_document->substitute(<<<EOH
 
 Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>
@@ -2286,36 +1251,36 @@ Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item sb-match-main-referral-comm"><b>Secondary Committee</b>: {secondary_committee}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 EOH
-				)
-					: <<<EOH
+        )
+          : <<<EOH
 <span>No Content Recorded</span>
 EOH;
-				$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
-				if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
-					$pagecontent .= join('',$senate_document_parser->get_filtered_doc());
-			}/*}}}*/
+        $pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+        if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
+          $pagecontent .= join('',$senate_document_parser->get_filtered_doc());
+      }/*}}}*/
 
-			if ( !$valid_entry ) {/*{{{*/
-				$senate_document_id = $senate_document->get_id();
-				$can_invalidate = method_exists($senate_document,'set_invalidated');
-				$invalidation_action = $can_invalidate ? "Invalidating" : "Removing";
-				$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - !!!!   {$invalidation_action} entry #{$senate_document_id} " . get_class($senate_document));
+      if ( !$valid_entry ) {/*{{{*/
+        $senate_document_id = $senate_document->get_id();
+        $can_invalidate = method_exists($senate_document,'set_invalidated');
+        $invalidation_action = $can_invalidate ? "Invalidating" : "Removing";
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - !!!!   {$invalidation_action} entry #{$senate_document_id} " . get_class($senate_document));
         if ( $can_invalidate ) 
-					$senate_document->
-						set_invalidated(TRUE)->
-						set_last_fetch(time())->
-						fields(array('invalidated','last_fetch'))->
-						stow();
-				else
-					$senate_document->remove();
-			}/*}}}*/
-			else {
-				$senate_document->
-					set_invalidated(0)->
-					set_last_fetch(time())->
-					fields(array('invalidated','last_fetch'))->
-					stow();
-			}
+          $senate_document->
+            set_invalidated(TRUE)->
+            set_last_fetch(time())->
+            fields(array('invalidated','last_fetch'))->
+            stow();
+        else
+          $senate_document->remove();
+      }/*}}}*/
+      else {
+        $senate_document->
+          set_invalidated(0)->
+          set_last_fetch(time())->
+          fields(array('invalidated','last_fetch'))->
+          stow();
+      }
     }/*}}}*/
 
     ///////////////////////////////////////////
@@ -2364,7 +1329,7 @@ EOH;
 
     $debug_method = FALSE;
 
-		if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Level 2 Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Level 2 Pagecontent by-path parser invocation for " . $urlmodel->get_url() );
 
     $target_document = $urlmodel->get_query_element('q');
 
@@ -2401,7 +1366,7 @@ EOH;
 
   function senate_housebill_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-		$this->append_filtered_doc = FALSE;
+    $this->append_filtered_doc = FALSE;
 
     $this->session_linked_content_parser(__FUNCTION__, 'HBN', $parser, $pagecontent, $urlmodel );
 
@@ -2409,7 +1374,7 @@ EOH;
 
   function senate_concurrentres_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-		$this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = TRUE;
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SCR', $parser, $pagecontent, $urlmodel );
 
@@ -2417,7 +1382,7 @@ EOH;
 
   function senate_resolution_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-		$this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = FALSE;
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SRN', $parser, $pagecontent, $urlmodel );
 
@@ -2425,6 +1390,8 @@ EOH;
 
   function senate_bill_content_parser(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
 
+    $this->append_filtered_doc = FALSE;
+		$this->debug_method = FALSE;
     $urlmodel->ensure_custom_parse();
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SBN', $parser, $pagecontent, $urlmodel );
@@ -2444,16 +1411,16 @@ EOH;
     // Prevent parsing this particular URL in the parent
     $urlmodel->ensure_custom_parse();
 
-		$resolution = new SenateAdoptedresDocumentModel();
+    $resolution = new SenateAdoptedresDocumentModel();
     $resolution_parser = new SenateAdoptedresParseUtility();
 
     $resolution_parser->
       reset()->
       set_parent_url($urlmodel->get_url())->
-			parse_html(
-				$urlmodel->get_pagecontent(),
-				$urlmodel->get_response_header()
-			);
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
     $inserted_content = join('',$resolution_parser->get_filtered_doc());
 
     // Insert the stripped, unparsed document
@@ -2477,232 +1444,36 @@ EOH;
 
     $debug_method = FALSE;
 
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - Invoking parser.");
+
     $commreport_parser = new SenateCommitteeReportParseUtility();
     $commreport_parser->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
 
-    $this->recursive_dump(($committee_report_data = array_filter($commreport_parser->activity_summary)
-    ),'(-----) A');
+    $committee_report = array_filter($commreport_parser->activity_summary);
 
-    $pagecontent = '';
+    if ( $debug_method ) $this->recursive_dump($committee_report,'(-----) A');
 
-    $test_url = new UrlModel();
+    $pagecontent = $commreport_parser->parse_activity_summary($committee_report);
 
-    // TODO:  Deal with this redundancy later.
-    $committee_report = array(
-      'url' => $urlmodel->get_url(),
-      'urlid' => $urlmodel->get_id(),
-      'content' => json_encode($committee_report_data),
-      'date_filed' => 0,
-      '__committees__' => array(),
-      '__documents__' => array(),
+    $committee_report = array_merge(
+      array(
+        'url'            => $urlmodel->get_url(),
+      ),
+      $committee_report
     );
-
-    $section_name = NULL;
-    $committee = new SenateCommitteeModel();
-
-    foreach ( $committee_report_data as $n => $e ) {/*{{{*/
-      if ( array_key_exists('metadata',$e) ) {/*{{{*/
-
-        $e = $e['metadata'];
-        $pagecontent .= <<<EOH
-<br/>
-<div>
-{$e['congress']} Congress Committee Report #{$e['report']}<br/>
-Filed: {$e['filed']}<br/>
-</div>
-EOH;
-        $committee_report['congress_tag'] = preg_replace('@[^0-9]@i','', $e['congress']);
-        $committee_report['sn'] = $e['report'];
-        $committee_report['date_filed'] = empty($e['n_filed']) ? 0 : $e['n_filed'];
-
-        continue;
-      }/*}}}*/
-      if ( intval($n) == 0 ) {/*{{{*/
-        if ( is_array(array_element($e,'content')) ) foreach ($e['content'] as $entry) {/*{{{*/
-          if ( array_key_exists('url',$entry) ) {/*{{{*/
-            $properties = array('legiscope-remote');
-            $url = array_element($entry,'url');
-            $document_is_cached = $test_url->is_cached($url);
-            $properties[] = $document_is_cached ? 'cached' : 'uncached';
-            $properties = join(' ', $properties);
-            $urlhash = UrlModel::get_url_hash($url);
-            $pagecontent .= <<<EOH
-<b>{$e['section']}</b>  (<a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">PDF</a>)<br/>
-EOH;
-            $committee_report['doc_url'] = $entry['url'];
-            $committee_report['doc_urlid'] = $document_is_cached ? $test_url->get_id() : NULL;
-            continue;
-          }/*}}}*/
-          if ( !(FALSE == strtotime($entry['text']) ) ) {/*{{{*/
-            $pagecontent .= <<<EOH
-Published {$entry['text']}<br/><br/>
-EOH;
-            continue;
-          }/*}}}*/
-        }/*}}}*/
-        continue;
-      }/*}}}*/
-      $section_name = $e['section'];
-      $pagecontent .= <<<EOH
-<br/>
-<b>{$e['section']}</b>
-<br/>
-EOH;
-      if ( 1 == preg_match('@remark@i', $e['section'])) {/*{{{*/
-        // Reporting committees
-        $lines = array();
-        foreach ( $e['content'] as $line ) {
-            $lines[] = <<<EOH
-<li>{$line}</li><br/>
-
-EOH;
-        }
-        $lines = join(' ',$lines);
-        $pagecontent .= <<<EOH
-<ul>{$lines}</ul>
-EOH;
-        continue;
-      }/*}}}*/
-      // Reporting committees
-      if ( 1 == preg_match('@reporting committee@i', $e['section'])) {/*{{{*/
-        $lines = array();
-        foreach ( $e['content'] as $committee_name ) {
-          $committee->fetch_by_committee_name($committee_name);
-          $properties = array('legiscope-remote');
-          if ( $committee->in_database() ) {
-            $committee_url = $committee->get_url();
-            $committee_name = $committee->get_committee_name();
-            $committee_report['__committees__'][$committee->get_id()] = array(
-              'id'             => $committee->get_id(),
-              'committee_name' => $committee_name,
-            );
-            $properties[] = 'cached';
-            $properties = join(' ', $properties);
-            $urlhash = UrlModel::get_url_hash($entry['url']);
-            $lines[] = <<<EOH
-<li><a id="{$urlhash}" class="{$properties}" href="{$committee_url}">{$committee_name}</a></li>
-
-EOH;
-          } else {
-            $properties = join(' ', $properties);
-            $lines[] = <<<EOH
-<li>{$committee_name}</li>
-
-EOH;
-          }
-        }
-        $lines = join(' ',$lines);
-        $pagecontent .= <<<EOH
-<ul>{$lines}</ul>
-
-EOH;
-        continue;
-      }/*}}}*/
-      $lines = array();
-      $sorttype = NULL;
-      $sn_regex = '@^(.*)-([0-9]*)@i';
-      if ( is_array($e['content'])) foreach ($e['content'] as $entry) {/*{{{*/
-        $properties = array('legiscope-remote','suppress-reorder');
-        $matches = array();
-        $title = $entry['text'];
-        $pattern = '@^([^:]*)(:| - )(.*)@i';
-        // Generate markup and tabulate document links (by document type),
-        // the latter being used to create Joins to this Committee Report
-        if ( 1 == preg_match($pattern, $title, $matches) ) {
-          $title = $matches[1];
-          $desc = $matches[3];
-          $is_cached = $test_url->is_cached($entry['url']);
-          $properties[] = $is_cached ? 'cached' : 'uncached';
-          $properties = join(' ', $properties);
-          $urlhash = UrlModel::get_url_hash($entry['url']);
-          $sortkey = preg_replace('@[^0-9]@','',$title);
-          if ( is_null($sorttype) )
-            $sorttype = 0 < intval($sortkey) ? SORT_NUMERIC : SORT_REGULAR;
-          $sortkey = 0 < intval($sortkey) ? intval($sortkey) : $title;
-          $lines[$sortkey] = <<<EOH
-<li><a id="{$urlhash}" class="{$properties}" href="{$entry['url']}">{$title}</a>: {$desc}</li>
-
-EOH;
-          // Because Senate documents are parsed here, we also store links between
-          // this Committee report and those documents here.
-          if ( $is_cached && ( 1 == preg_match('@^matters reported@i', $section_name ) ) ) {
-            $sn_components = array();
-            $q_component  = $test_url->get_query_element('q');
-            $congress_tag = $test_url->get_query_element('congress');
-            if ( 1 == preg_match($sn_regex, $q_component, $sn_components) ) {
-              // Construct a nested array, committees may deliberate more than
-              // one type of document in proceedings recorded in a report.
-              if ( !array_key_exists($sn_components[1], $committee_report['__documents__']) ) $committee_report['__documents__'][$sn_components[1]] = array();
-              $committee_report['__documents__'][$sn_components[1]][$sn_components[2]] = array(
-                'congress_tag' => $congress_tag,
-                'doctype' => $sn_components[1],
-                'sn_suffix' => $sn_components[2], 
-              );
-            }
-          } else {
-            // Trigger a fetch event on this URL, either by
-            // a)  Enabling a 'click' event on the link, identified by the hash value of it's target URL; or
-            // b)  Executing a series of server side POST requests 
-          }
-        }
-      }/*}}}*/
-      ksort($lines,$sorttype);
-      $lines = join(' ',$lines);
-      $pagecontent .= <<<EOH
-<ul>{$lines}</ul>
-EOH;
-
-    }/*}}}*/
-
-    $pagecontent .= <<<EOH
-<br/>
-<hr/>
-EOH;
-
-    if ( $debug_method ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Final committable report data");
-      $this->recursive_dump($committee_report,'(marker) Report');
-    }
-
-    $documents = $committee_report['__documents__'];
-    $committees = $committee_report['__committees__'];
-    unset($committee_report['__documents__']);
-    unset($committee_report['__committees__']);
 
     // Commit report as needed
     $report = new SenateCommitteeReportDocumentModel();
-    $report->fetch(array(
-      'sn' => $committee_report['sn'],
-      'congress_tag' => $committee_report['congress_tag'],
-    ), 'AND');
-    if ( empty($committee_report['date_filed']) ) $committee_report['date_filed'] = 0;
-    $report->set_contents_from_array($committee_report);
+
     if ( empty($committee_report['sn']) ) {
       $pagecontent = join('',$commreport_parser->get_filtered_doc());
-		}
-	 	else {
-      $report_id = $report->stow();
-      if ( 0 < intval($report_id) ) {
-        // Create Committee Report - Committee Joins
-        $committees = array_keys($committees); // Reduce the committee list array to just the IDs (`id`) 
-        if ( intval($report->get_id()) != $report_id ) $report->set_id($report_id);
-				if ( $debug_method ) 
-        $this->syslog(__FUNCTION__,__LINE__, "(marker) --- -- - Stowing links to me {$report_id} #" . $report->get_id());
-        $report->create_joins('SenateCommitteeModel',$committees);
-        // Create Committee Report - Senate document Joins
-        foreach( $documents as $doctype => $doc ) {
-          $foreignkeys = array_keys($doc);
-          switch( $doctype ) {
-          case 'HBN': $report->create_joins( 'SenateHousebillDocumentModel', $foreignkeys ); break; 
-          case 'SBN': $report->create_joins( 'SenateBillDocumentModel', $foreignkeys ); break; 
-          case 'SRN': $report->create_joins( 'SenateResolutionDocumentModel', $foreignkeys ); break;
-          default: 
-            $this->syslog(__FUNCTION__,__LINE__, "(marker) ---- --- -- - New document type '{$doctype}'");
-            $this->recursive_dump($doc,"(marker) ---");
-          }
-        }
-      }
+    } else {
+      $report->stow_activity_summary($committee_report);
     }
+
+
+    // Append script to fetch missing PDFs
+    if ( C('LEGISCOPE_JOURNAL_PDF_AUTOFETCH') )  $pagecontent .= $commreport_parser->jquery_seek_missing_journal_pdf();
 
     $parser->json_reply = array('retainoriginal' => TRUE);
 
@@ -2734,8 +1505,8 @@ EOH;
   }/*}}}*/
 
   function seek_postparse_bypath_44f799b5135aac003bf23fabbe947941(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-		$debug_method = FALSE;
-		if ( $debug_method )
+    $debug_method = FALSE;
+    if ( $debug_method )
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->canonical_committee_report_page_parser($parser,$pagecontent,$urlmodel);
     $parser->json_reply = array('retainoriginal' => TRUE);
@@ -2837,28 +1608,28 @@ EOH;
     // The form action URL is assumed to be the parent URL of all relative URLs on the page
     $target_action_url      = nonempty_array_element($form_attributes,'action');
 
-		if ( empty($target_action_url) ) {
-			//if ( $debug_method )
-			 	$this->syslog(__FUNCTION__,__LINE__,"(marker) - - No FORM action extracted from document. faux_url = '{$faux_url}', action_url = '{$action_url}', invoked for " . (is_a($urlmodel,'UrlModel') ? $urlmodel->get_url() : '<Unknown URL>')  );
+    if ( empty($target_action_url) ) {
+      //if ( $debug_method )
+         $this->syslog(__FUNCTION__,__LINE__,"(marker) - - No FORM action extracted from document. faux_url = '{$faux_url}', action_url = '{$action_url}', invoked for " . (is_a($urlmodel,'UrlModel') ? $urlmodel->get_url() : '<Unknown URL>')  );
       return FALSE;
- 		}
+     }
 
     $target_action          = UrlModel::parse_url($target_action_url);
 
-		if ( !(1 == preg_match('@(.*)' . $prefix . '-([0-9]*)(.*)@', $target_action['query'])) ) {
+    if ( !(1 == preg_match('@(.*)' . $prefix . '-([0-9]*)(.*)@', $target_action['query'])) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to comprehend query part '{$target_action['query']}' of URL '" . (is_a($action_url,'UrlModel') ? $action_url->get_url() : '<Unknown URL>') . "'");
       $this->recursive_dump($target_action,"(marker) -- - --");
       return FALSE;
     }
 
     $action_url             = new UrlModel();
-		$action_url->fetch(UrlModel::get_url_hash($target_action_url),'urlhash');
-		if ( !$action_url->in_database() ) $action_url->set_url($target_action_url,FALSE);
+    $action_url->fetch(UrlModel::get_url_hash($target_action_url),'urlhash');
+    if ( !$action_url->in_database() ) $action_url->set_url($target_action_url,FALSE);
 
     $target_congress        = $urlmodel->get_query_element('congress');
 
-		if ( $debug_method )
-		$this->syslog(__FUNCTION__,__LINE__,"(marker) Normal parse");
+    if ( $debug_method )
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) Normal parse");
 
     $sbn_regex_result       = preg_replace('@(.*)' . $prefix . '-([0-9]*)(.*)@', $prefix . '-$2',$target_action['query']);
 

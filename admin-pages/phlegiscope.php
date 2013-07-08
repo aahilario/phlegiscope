@@ -6,10 +6,11 @@ echo <<<EOH
   <h2 class="legiscope">{$menu_title} Curator's Page</h2>
   <div class="access-bar">
     <span class="access-bar-container">Search <input id="keywords" type="text"/></span>
-    <span class="access-bar-container">&nbsp;&nbsp;Cache <input id="cache" type="checkbox" value="1" /></span>
-    <span class="access-bar-container">&nbsp;&nbsp;Seek <input id="seek" type="checkbox" value="1" /></span>
-    <span class="access-bar-container">&nbsp;&nbsp;Spider <input id="spider" type="checkbox" value="1" /></span>
     <span class="access-bar-container">&nbsp;&nbsp;Proxy <input id="proxy" type="checkbox" value="1" /></span>
+    <span class="access-bar-container">&nbsp;&nbsp;Cache <input id="cache" type="checkbox" value="1" /></span>
+    <span class="access-bar-container">&nbsp;&nbsp;Pull <input id="seek" type="checkbox" value="1" /></span>
+    <span class="access-bar-container">&nbsp;&nbsp;Spider <input id="spider" type="checkbox" value="1" /></span>
+    <span class="access-bar-container">&nbsp;&nbsp;Preload <input id="preload" type="checkbox" value="1" /></span>
     <span class="access-bar-container">&nbsp;&nbsp;Update <input id="update" type="checkbox" value="1" /></span>
     <span class="access-bar-container" id="search-wait"></span>
     <span class="access-bar-container" id="time-delta"></span>

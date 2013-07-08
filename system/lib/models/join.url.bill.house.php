@@ -16,8 +16,8 @@ class HouseBillUrlJoin extends ModelJoin {
 
   function __construct() {
     parent::__construct();
-    $this->dump_accessor_defs_to_syslog();
-    $this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
+    //$this->dump_accessor_defs_to_syslog();
+    //$this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
   }
 
   function & set_house_bill($v) { $this->house_bill_HouseBillDocumentModel = $v; return $this; }

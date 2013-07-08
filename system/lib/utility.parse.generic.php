@@ -355,7 +355,7 @@ class GenericParseUtility extends RawparseUtility {
         if ( !is_null($M) && class_exists("{$M}DocumentModel") ) {
           $M = "{$M}DocumentModel"; 
           $M = new $M();
-					$M->debug_final_sql = TRUE;
+					$M->debug_final_sql = FALSE;
           $M->where(array('AND' => array(
             'sn' => "REGEXP '({$prefix})([0]*)({$suffix})'",
 						'url' => "LIKE CONCAT('%',sn,'%')",

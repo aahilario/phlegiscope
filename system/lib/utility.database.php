@@ -1624,7 +1624,7 @@ EOS;
 							}
 							// We must do this after each call to query(),
 							// otherwise $join_value_cache is cleared before we complete
-							// our iterations
+							// iterating through it.
 							$this->supppress_reinitialize = TRUE;
 						}/*}}}*/
 					}/*}}}*/

@@ -59,9 +59,9 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     unset($this->url_history_vc4096);
     unset($this->url_engrossed_vc4096);
     unset($this->status_vc1024);
-    unset($this->date_read_utx);
-    unset($this->house_approval_date_utx);
-    unset($this->significance_vc16);
+    //unset($this->date_read_utx);
+    //unset($this->house_approval_date_utx);
+    //unset($this->significance_vc16);
     unset($this->housebill_HouseBillDocumentModel);
     unset($this->republic_act_RepublicActDocumentModel);
     unset($this->representative_RepresentativeDossierModel);
@@ -69,7 +69,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     unset($this->committee_CongressionalCommitteeDocumentModel);
   }/*}}}*/
 
-	function & set_id($v) { $this->id = $v; return $this; }
+  function & set_id($v) { $this->id = $v; return $this; }
 
   function & set_status($meta) {/*{{{*/
     $this->status_vc1024 = is_array($meta)
@@ -94,7 +94,6 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
       $parsed = $as_array ? @json_decode($this->status_vc1024,TRUE) : $this->status_vc1024;
       if ( FALSE === $parsed ) {
         $parsed = $as_array ? array() : NULL;
-      } else {
       }
     }
     return $parsed;
@@ -130,7 +129,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
   // function & set_significance($v) { $this->significance_vc16 = $v; return $this; }
   // function get_significance($v = NULL) { if (!is_null($v)) $this->set_significance($v); return $this->significance_vc16; }
 
-	///////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////
 
   function final_cleanup_parsed_housebill_cache(& $a, $k) {/*{{{*/
 
@@ -139,11 +138,11 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     $links = array_element($a,"links",array());
     $meta  = array_element($a,"meta",array());
 
-    $a["url"] = array_element($links,"filed");
+    $a["url"]           = array_element($links,"filed");
     $a["url_engrossed"] = array_element($links,"engrossed");
-    $a["url_history"] = array_element($links,"url_history");
-    $a["status"] = array_element($meta,"status");
-    $a["create_time"] = time();
+    $a["url_history"]   = array_element($links,"url_history");
+    $a["status"]        = array_element($meta,"status");
+    $a["create_time"]   = time();
 
     // Obtain principal author record ID
     if ( !is_null(($principal_author = array_element($meta,'principal-author'))) ) {/*{{{*/
@@ -227,11 +226,11 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     $a["meta"]["main-committee"]["mapped"] = intval(array_element($map_entry,"id"));
     if (0 == $a["meta"]["main-committee"]["mapped"]) {
       unset($a["committee"]);
-		}
-		else {
-			$a["meta"]["main-committee"]["url"]            = $map_entry['url'];
-			$a["meta"]["main-committee"]["committee_name"] = $map_entry['committee_name'];
-		} 
+    }
+    else {
+      $a["meta"]["main-committee"]["url"]            = $map_entry['url'];
+      $a["meta"]["main-committee"]["committee_name"] = $map_entry['committee_name'];
+    } 
   }/*}}}*/
 
   function cache_parsed_housebill_records(& $bill_cache_source, $congress_tag, $from_network) {/*{{{*/
@@ -291,10 +290,10 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 
     // Cleanup extant records
 
-		if ( $debug_method )
-		$this->syslog(__FUNCTION__,__LINE__,"(marker) Searching for matches to Congress {$congress_tag} " . join(',',$bill_sns));
+    if ( $debug_method )
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) Searching for matches to Congress {$congress_tag} " . join(',',$bill_sns));
 
-		$this->debug_final_sql = FALSE;
+    $this->debug_final_sql = FALSE;
     $this->
       join_all()->
       //join(array(
@@ -306,73 +305,73 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
         '`a`.`sn`' => $bill_sns
       )))->
       recordfetch_setup();
-		$this->debug_final_sql = FALSE;
+    $this->debug_final_sql = FALSE;
     $hb = array();
-		$debug_checker = FALSE;
-		$join_exclusions = $this->get_joins();
-		if ( $debug_checker) $this->recursive_dump($join_exclusions,"(marker) -- JOINS --");
+    $debug_checker = FALSE;
+    $join_exclusions = $this->get_joins();
+    if ( $debug_checker) $this->recursive_dump($join_exclusions,"(marker) -- JOINS --");
     while ( $this->recordfetch($hb,TRUE) ) {/*{{{*/
-			
+      
       // TODO: If an extant Join matches what has been passed in, then remove both
       // TODO: If no data has been modified, remove the bill_cache entry
       $sn = array_element($hb,'sn');
-			if ( $debug_checker ) {/*{{{*/
-				$this->syslog(__FUNCTION__,__LINE__,"(marker) --- - --- For {$hb['sn']} --- - ---");
-				// $this->recursive_dump($hb,"(marker) --- DB ---");
-			}/*}}}*/
+      if ( $debug_checker ) {/*{{{*/
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) --- - --- For {$hb['sn']} --- - ---");
+        // $this->recursive_dump($hb,"(marker) --- DB ---");
+      }/*}}}*/
       if ( array_key_exists($sn,$bill_cache) ) {
         unset($bill_cache[$sn]['links']);
         unset($bill_cache[$sn]['meta']);
         $bill_cache[$sn]['id'] = $hb['id'];
         unset($bill_cache[$sn]['create_time']);
-				ksort($bill_cache[$sn]);
+        ksort($bill_cache[$sn]);
 
-				// Clear empty Join attributes in the DB record
-			  array_walk($hb,create_function(
-					'& $a, $k, $s', 'if ( array_key_exists($k, $s) ) { $a = array_filter($a); if ( empty($a) ) $a = NULL; }'
-				), $join_exclusions);	
+        // Clear empty Join attributes in the DB record
+        array_walk($hb,create_function(
+          '& $a, $k, $s', 'if ( array_key_exists($k, $s) ) { $a = array_filter($a); if ( empty($a) ) $a = NULL; }'
+        ), $join_exclusions);  
 
-				// Set missing congress_tag attribute in the DB Join records
-			  array_walk($bill_cache[$sn],create_function(
-					'& $a, $k, $s', 'if ( array_key_exists($k, $s["j"]) && is_null(array_element($a,"congress_tag"))) $a["congress_tag"] = $s["c"];'
-				), array('j' => $join_exclusions, 'c' => intval($congress_tag)));	
+        // Set missing congress_tag attribute in the DB Join records
+        array_walk($bill_cache[$sn],create_function(
+          '& $a, $k, $s', 'if ( array_key_exists($k, $s["j"]) && is_null(array_element($a,"congress_tag"))) $a["congress_tag"] = $s["c"];'
+        ), array('j' => $join_exclusions, 'c' => intval($congress_tag)));  
 
-				$hb = array_filter($hb);
+        $hb = array_filter($hb);
 
-				// Get keys common to structure and parsed content
-				$intersection = array_intersect_key(
+        // Get keys common to structure and parsed content
+        $intersection = array_intersect_key(
           $hb,
           $bill_cache[$sn]
-				);
+        );
 
-				if ( $debug_checker ) $this->recursive_dump($hb,"(marker) -- intersect - {$sn}.{$hb['congress']} #{$hb['id']} - --");
-				ksort($intersection);
+        if ( $debug_checker ) $this->recursive_dump($hb,"(marker) -- intersect - {$sn}.{$hb['congress']} #{$hb['id']} - --");
+        ksort($intersection);
 
-				// Get difference between parsed record and existing DB record
+        // Get difference between parsed record and existing DB record
         $delta = array_diff(
           $bill_cache[$sn],
           $intersection
         );
         if ( 0 < count($delta) ) {
           if ( $debug_method ) {/*{{{*/
-						$this->syslog(__FUNCTION__,__LINE__,"(marker) --- - --- For {$hb['sn']} --- - ---");
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) --- - --- For {$hb['sn']} --- - ---");
             $this->recursive_dump($bill_cache[$sn],"(marker) -- parse - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
             $this->recursive_dump($hb,"(marker) -- inter - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
             $this->recursive_dump($delta,"(marker) -- delta - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
           }/*}}}*/
-				}
-			 	else {
-					if ( $debug_checker ) $this->recursive_dump($bill_cache[$sn],"(marker) -- skip - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
+        }
+         else {
+          if ( $debug_checker ) $this->recursive_dump($bill_cache[$sn],"(marker) -- skip - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
           unset($bill_cache[$sn]);
         }
       }
-			else {
+      else {
         $bill_cache[$sn]['create_time'] = time();
-				$this->syslog(__FUNCTION__,__LINE__,"(marker) --!!! No match for {$hb['sn']}");
-			}
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) --!!! No match for {$hb['sn']}");
+      }
     }/*}}}*/
 
-		if ( $debug_checker ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Matches: " . count($bill_cache));
+    if ( $debug_checker ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Matches: " . count($bill_cache));
 
     $bill_cache = array_filter($bill_cache);
     // Stow Joins between each bill and main committee
@@ -384,7 +383,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 
     // Store records not found in DB or that are updated
 
-    while ( 0 < count($bill_cache) ) {
+    while ( 0 < count($bill_cache) ) {/*{{{*/
 
       $cache_entry = array_filter(array_pop($bill_cache)); 
 
@@ -417,14 +416,14 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
         stow();
 
       if ( 0 < intval($bill_id) ) {
-				$error = $this->error();
+        $error = $this->error();
         if ($debug_method || !empty($error)) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Stored {$bill_id} {$cache_entry['sn']}.{$cache_entry['congress_tag']}");
       } else {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) -- FAILED TO STORE/UPDATE {$cache_entry['sn']}.{$cache_entry['congress_tag']}");
       }
       $cache_entry = NULL;
-    }
-    $bill_cache = array();
+    }/*}}}*/
+
   }/*}}}*/
-  	
+    
 }

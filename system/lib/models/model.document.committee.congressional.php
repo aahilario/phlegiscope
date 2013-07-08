@@ -146,7 +146,6 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
         }
       }
       ksort($committee_regex_lookup);
-      // $this->recursive_dump($unmapped_committee_entries,"(marker) Unmapped");
     }
 
     return $fixed_mapping;

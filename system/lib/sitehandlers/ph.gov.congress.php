@@ -31,11 +31,11 @@ class CongressGovPh extends SeekAction {
   function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     // http://www.congress.gov.ph/members 
-		$document_parser = new CongressMemberBioParseUtility();
+    $document_parser = new CongressMemberBioParseUtility();
     $document_parser->update_existing = $parser->update_existing;
-		$document_parser->representative_bio_parser($parser,$pagecontent,$urlmodel);
-		$document_parser = NULL;
-		unset($document_parser);
+    $document_parser->representative_bio_parser($parser,$pagecontent,$urlmodel);
+    $document_parser = NULL;
+    unset($document_parser);
 
   }/*}}}*/
 
@@ -64,10 +64,10 @@ class CongressGovPh extends SeekAction {
   function seek_congress_memberlist(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     // http://www.congress.gov.ph/members 
-		$document_parser = new CongressMemberListParseUtility();
-		$document_parser->seek_congress_memberlist($parser,$pagecontent,$urlmodel);
-		$document_parser = NULL;
-		unset($document_parser);
+    $document_parser = new CongressMemberListParseUtility();
+    $document_parser->seek_congress_memberlist($parser,$pagecontent,$urlmodel);
+    $document_parser = NULL;
+    unset($document_parser);
 
   }/*}}}*/
 
@@ -82,11 +82,11 @@ class CongressGovPh extends SeekAction {
           return $this->seek_postparse_jnl($parser,$pagecontent,$urlmodel);
         case 'ra' :
           return $this->seek_postparse_ra($parser,$pagecontent,$urlmodel);
-				case 'congrecords' :
+        case 'congrecords' :
           return $this->seek_postparse_congrecords($parser,$pagecontent,$urlmodel);
         default: 
           $this->syslog( __FUNCTION__, __LINE__, "(warning) Unhandled URL #" . $urlmodel->get_id() . " {$match_urlpart[1]} {$urlmodel}" );
-					return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+          return $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
       }
     }
 
@@ -97,21 +97,21 @@ class CongressGovPh extends SeekAction {
 
     $document_parser = new CongressJournalCatalogParseUtility();
 
-		$document_parser->seek_postparse_jnl($parser,$pagecontent,$urlmodel);
+    $document_parser->seek_postparse_jnl($parser,$pagecontent,$urlmodel);
 
-		$document_parser = NULL;
-		unset($document_parser);
+    $document_parser = NULL;
+    unset($document_parser);
 
   }/*}}}*/
 
   function seek_postparse_ra(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-		$document_parser = new CongressRepublicActCatalogParseUtility();
+    $document_parser = new CongressRepublicActCatalogParseUtility();
 
-		$document_parser->seek_postparse_ra($parser,$pagecontent,$urlmodel);
+    $document_parser->seek_postparse_ra($parser,$pagecontent,$urlmodel);
 
-		$document_parser = NULL;
-		unset($document_parser);
+    $document_parser = NULL;
+    unset($document_parser);
 
   }/*}}}*/
 
@@ -365,162 +365,6 @@ EOH;
 
   }/*}}}*/
 
-  function seek_postparse_d_billstext_preprocess(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-
-    $debug_method = FALSE;
-    // Obtain pre-cached JSON document, if available
-    $metaorigin   = UrlModel::get_url_hash($urlmodel->get_url());
-    $shadow_url   = new UrlModel($urlmodel->get_url(),FALSE);
-    $congress_tag = NULL;
-
-    if ( !is_null($metalink = $this->filter_post('metalink')) ) {/*{{{*/
-      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Current content hash: " . $urlmodel->get_content_hash());
-      $faux_url = GenericParseUtility::get_faux_url_s($shadow_url, $metalink);
-      $metaorigin = UrlModel::get_url_hash($faux_url);
-      $congress_tag = nonempty_array_element($metalink,'congress');
-      if ( $debug_method ) {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Fake URL, real content: " . $urlmodel->get_url());
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Target congress: {$congress_tag} <- (" . gettype($metalink) . "){$metalink}" );
-      }/*}}}*/
-    }/*}}}*/
-
-    $shadow_url->add_query_element('metaorigin', $metaorigin);
-    $have_parsed_data = $shadow_url->set_url($shadow_url->get_url(),TRUE);
-
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Meta-URL: " . $shadow_url->get_url() );
-
-    $hb_listparser = new CongressHbListParseUtility();
-    $hb_listparser->debug_tags   = FALSE;
-
-    $hb_listparser->start_offset = $this->filter_post('parse_offset',0);
-    $hb_listparser->parse_limit  = $this->filter_post('parse_limit',20);
-
-    if ( !$have_parsed_data || $parser->update_existing ) {/*{{{*/
-
-      if ( $debug_method ) {/*{{{*/
-        $state = $have_parsed_data ? "existing" : "de novo";
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Regenerating {$state}: " . $shadow_url->get_url() );
-      }/*}}}*/
-
-      if ( !$have_parsed_date ) {
-        $hb_listparser->start_offset = NULL;
-        $hb_listparser->parse_limit  = NULL;
-      }
-
-      // Parse content stored in shadow_url
-      $hb_listparser->
-        enable_filtered_doc(FALSE)-> // Conserve memory, do not store filtered doc.
-        set_parent_url($urlmodel->get_url())->
-        initialize_bill_parser($urlmodel)-> 
-        parse_html(
-          $urlmodel->get_pagecontent(),
-          $urlmodel->get_response_header()
-        );
-
-      // Clear content from memory
-      $urlmodel->
-        set_content(NULL)->
-        set_id(NULL);
-
-      if ( $debug_method ) {/*{{{*/
-        if ( !is_null($hb_listparser->parse_limit) ) {
-          $this->recursive_dump($hb_listparser->parsed_bills,"(marker) -- F --");
-        }
-        $this->syslog(__FUNCTION__, __LINE__, "(marker) Containers: " . count($hb_listparser->containers_r()));
-      }/*}}}*/
-
-      $this->filter_nested_array($hb_listparser->containers_r(),
-        'children,attrs[tagname*=form][id*=form1]',0
-      );
-      $form_data = nonempty_array_element($hb_listparser->containers_r(),0);
-
-      if ( $debug_method ) {/*{{{*/
-        $this->recursive_dump($form_data,"(marker) -- C --");
-      }/*}}}*/
-
-      $hb_listparser->parsed_bills = array_reverse($hb_listparser->parsed_bills);
-
-      $this->container_buffer = array(
-        'partition_width' => $hb_listparser->bill_set_size,
-        'entries'         => $hb_listparser->bill_head_entries,
-        'parsed_bills'    => $hb_listparser->parsed_bills,
-        'congress_tag'    => $congress_tag,
-      ); 
-
-      $this->container_buffer['form'] = array_merge(
-        array('action' => array_element(nonempty_array_element($form_data,'attrs'),'ACTION')),
-        $hb_listparser->extract_form_controls(nonempty_array_element($form_data,'children'))
-      );
-
-      if ( $debug_method ) {/*{{{*/
-        $this->recursive_dump($this->container_buffer['form'],"(marker) -- L --");
-      }/*}}}*/
-
-      $id = $shadow_url->
-        set_pagecontent_c(json_encode($this->container_buffer))->
-        stow();
-
-      $error = $shadow_url->error();
-      if ( !empty($error) || $debug_method ) {/*{{{*/
-        $state = !empty($error) ? "Error {$error} stowing" : ($have_parsed_data ? "Reparsed" : "Stored");
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) {$state} {$hb_listparser->bill_head_entries} entries: " . $shadow_url->get_url() );
-      }/*}}}*/
-
-    }/*}}}*/
-
-    $offset = $hb_listparser->start_offset; // Ordinal index (resolves to a single bill as though the partitions are unrolled) 
-    $span   = $hb_listparser->parse_limit; // Elements (bills) to return
-
-    $hb_listparser->reset(TRUE,TRUE); // Eliminate XML parser, clear containers
-    $hb_listparser = NULL;
-
-    $this->container_buffer = json_decode($shadow_url->get_pagecontent(),TRUE);
-
-    $partition_width  = nonempty_array_element($this->container_buffer,'partition_width');
-    $entries          = nonempty_array_element($this->container_buffer,'entries');
-
-    if ( is_null($congress_tag) ) $congress_tag = nonempty_array_element($this->container_buffer,'congress_tag');
-    // $this->container_buffer['parsed_bills'] = array_reverse($this->container_buffer['parsed_bills']);
-
-    $partitions       = count($this->container_buffer['parsed_bills']);
-    $partition_start  = floor($offset / $partition_width);
-    $partition_offset = $offset % $partition_width;
-    $partition_end    = floor(($offset + $span) / $partition_width);
-
-    if ( $debug_method )
-    $this->syslog(__FUNCTION__,__LINE__,
-      "(marker) Getting n = {$span} from {$partition_start}.{$partition_offset} - {$partition_end}");
-
-    $final_list = array();
-    $i = $partition_start;
-    do {/*{{{*/
-      $index = min($i,$partitions-1);
-      foreach ( array_reverse($this->container_buffer['parsed_bills'][$index]) as $entry ) {/*{{{*/
-        if ( $partition_offset > 0 ) {/*{{{*/
-          if ( $i + 4 > $partitions )
-            $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$i}/{$partitions} SKIP");
-          $partition_offset--;
-          continue;
-        }/*}}}*/
-        $entry['description'] = ucfirst(strtolower($entry['description']));
-        $final_list[] = $entry;
-        if ( $i + 4 > $partitions )
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$i}/{$partitions}");
-        if ( count($final_list) >= $span ) break;
-      }/*}}}*/
-      $partition_offset = 0;
-      $i++;
-    }/*}}}*/
-    while ((count($final_list) < $span) && ($i < $partitions));
-
-    $this->container_buffer['parsed_bills'] = $final_list; 
-
-    $parser->json_reply['state'] = ( $partition_end >= $partitions ) ? '0' : '1';
-
-    return $congress_tag;
-
-  }/*}}}*/
-
   function seek_postparse_d_billstext(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     // House Bills
@@ -544,7 +388,9 @@ EOH;
 
     // Perform actual parse operation
 
-    $congress_tag = $this->seek_postparse_d_billstext_preprocess($parser,$pagecontent,$urlmodel);
+    $hb_listparser = new CongressHbListParseUtility();
+
+    $congress_tag = $hb_listparser->seek_postparse_d_billstext_preprocess($parser,$pagecontent,$urlmodel);
 
     $urlmodel->set_content(NULL)->set_id(NULL);
 
@@ -552,13 +398,13 @@ EOH;
     $house_bills = new HouseBillDocumentModel();
     $cached = NULL;
     if ( 'fetch' == $this->filter_post('catalog') ) {
-      $parser->json_reply['catalog'] = nonempty_array_element($this->container_buffer,'parsed_bills');
-      $house_bills->cache_parsed_housebill_records($this->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
-      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($this->container_buffer,'parsed_bills'),"(marker) --- A --");
+      $house_bills->cache_parsed_housebill_records($hb_listparser->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
+      $parser->json_reply['catalog'] = nonempty_array_element($hb_listparser->container_buffer,'parsed_bills');
+      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'),"(marker) --- A --");
     } else {
-      $house_bills->cache_parsed_housebill_records($this->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
-      $cached = addslashes($this->safe_json_encode(nonempty_array_element($this->container_buffer,'parsed_bills'))); 
-      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($this->container_buffer,'parsed_bills'),"(marker) --- B --");
+      $house_bills->cache_parsed_housebill_records($hb_listparser->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
+      $cached = addslashes($this->safe_json_encode(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'))); 
+      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'),"(marker) --- B --");
     }
     $debug_method = FALSE;
 
@@ -566,7 +412,7 @@ EOH;
 
     // Generate POST links
 
-    $actions        = nonempty_array_element($this->container_buffer,'form');
+    $actions        = nonempty_array_element($hb_listparser->container_buffer,'form');
     $action         = nonempty_array_element($actions,'action');
     $trigger_pull   = NULL;
     $emit_frame     = is_null($congress_tag);
@@ -589,7 +435,7 @@ EOH;
 
     krsort($generated_link);
     $generated_link = join('&nbsp;', $generated_link);
-    $entries        = array_element($this->container_buffer,'entries');
+    $entries        = array_element($hb_listparser->container_buffer,'entries');
     $bills          = NULL;
     $system_stats   = NULL;
     $parse_offset   = intval($this->filter_post('parse_offset',0));
@@ -630,7 +476,6 @@ function emit_bill_entries(entries) {
     var links = entry.links;
     var representative = entry && entry.representative ? entry.representative : null;
     var committee = entry && entry.committee ? entry.committee : null;
-    if ( representative ) jQuery('#currenturl').html(representative.url);
     jQuery('#parsed-content').append(
       jQuery(document.createElement('DIV'))
         .addClass('bill-container')
@@ -755,9 +600,9 @@ EOH;
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $document_parser = new CongressionalCommitteeInfoParseUtility();
     $document_parser->update_existing = $parser->update_existing;
-		$document_parser->committee_information_page(& $parser, & $pagecontent, & $urlmodel);
-		$document_parser = NULL;
-		unset($document_parser);
+    $document_parser->committee_information_page(& $parser, & $pagecontent, & $urlmodel);
+    $document_parser = NULL;
+    unset($document_parser);
   }/*}}}*/
 
   function seek_postparse_bypath_9f222d54cda33a330ffc7cd18e7ce27f(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -817,11 +662,10 @@ EOH;
 
   function congress_committee_listing(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/committees/search.php?congress=15&id=A505
-
     $p = new CongressCommitteeListParseUtility();
-		$p->congress_committee_listing($parser,$pagecontent,$urlmodel);
-		$p = NULL;
-		unset($p);
+    $p->congress_committee_listing($parser,$pagecontent,$urlmodel);
+    $p = NULL;
+    unset($p);
 
   }/*}}}*/
 

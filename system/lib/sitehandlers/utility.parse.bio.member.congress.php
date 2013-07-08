@@ -637,7 +637,7 @@ EOH
 			$u->where(array('AND' => array(
 				'urlhash' => array_keys($legislation_links_temp)
 			)))->recordfetch_setup();
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) L ---------- Remaining: " . count($legislation_links) );
+      if ( $debug_method) $this->syslog( __FUNCTION__, __LINE__, "(marker) L ---------- Remaining: " . count($legislation_links) );
 			while ( $u->recordfetch($url) ) {
 				$urlhash = UrlModel::get_url_hash($url['url']);
           $legislation_links_temp[$urlhash]["link"] = preg_replace(

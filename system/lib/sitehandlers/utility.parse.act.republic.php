@@ -42,7 +42,8 @@ class RepublicActParseUtility extends SenateCommonParseUtility {
 
   function non_session_linked_document_prepare_content(& $uncached_document_content) {/*{{{*/
     // Method called from non_session_linked_content_parser
-    $this->syslog(__FUNCTION__,__LINE__, "(marker) Preparing markup" ); 
+		$debug_method = FALSE;
+		if ($debug_method) $this->syslog(__FUNCTION__,__LINE__, "(marker) Preparing markup" ); 
     // $this->recursive_dump($uncached_document_content,"(marker) - - -");
     // The Republic Act document pager returns a minimal amount of information.
     // - Republic Act No.
@@ -79,7 +80,7 @@ class RepublicActParseUtility extends SenateCommonParseUtility {
       if ( array_key_exists('url', $markup) ) {
         $url_regexmatch = array();
         $url = urldecode($markup['url']);
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) URL: {$url}");
+        if ($debug_method) $this->syslog(__FUNCTION__,__LINE__,"(marker) URL: {$url}");
         $altered_record['url'] = $url;
         if ( 1 == preg_match("@{$senate_ra_url_regex}@i", $url, $url_regexmatch) ) {
           $text = explode('[BR]',$markup['text']);
@@ -103,7 +104,7 @@ class RepublicActParseUtility extends SenateCommonParseUtility {
       $uncached_document_content[$seq] = NULL;
     }
     $uncached_document_content = array_filter($uncached_document_content);
-    $this->recursive_dump($uncached_document_content,"(marker) - - -");
+    if ($debug_method) $this->recursive_dump($uncached_document_content,"(marker) - - -");
     return TRUE;
   }/*}}}*/
 
@@ -331,5 +332,6 @@ EOH;
 
 
   }/*}}}*/
+
 }
 

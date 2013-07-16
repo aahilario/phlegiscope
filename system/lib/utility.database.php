@@ -24,8 +24,8 @@ class DatabaseUtility extends ReflectionClass {
   protected $attrlist            = NULL;
   protected $debug_operators     = FALSE;
   protected $debug_method        = FALSE;
-	protected $suppress_reinitialize = FALSE; // One-shot flag: Causes calls to init_query_prereqs() and clear_query_prereqs() to be suppressed
-	var $debug_final_sql             = FALSE;
+  protected $suppress_reinitialize = FALSE; // One-shot flag: Causes calls to init_query_prereqs() and clear_query_prereqs() to be suppressed
+  var $debug_final_sql             = FALSE;
 
   protected $disable_logging = array(
     '-RawparseUtility'
@@ -106,6 +106,8 @@ class DatabaseUtility extends ReflectionClass {
 
   function substitute($str) {/*{{{*/
     // Replace contents of string with this object's fields
+    // {property:joinproperty} to refer to ModelJoin properties, and
+    // {property.objproperty}  to refer to foreign table properties.
     $debug_method = FALSE;
     $regex_match = array();
     $regex_replace = array();
@@ -339,7 +341,7 @@ EOS;
       if ( class_exists($join_attrdefs['type']) ) {
         $ft_propername = join('_',camelcase_to_array($join_attrdefs['propername']));
         $typemap['properties'] = <<<EOS
-INT(11) NOT NULL REFERENCES `{$ft_propername}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT
+INT(11) NOT NULL REFERENCES `{$ft_propername}` (`id`) ON UPDATE CASCADE ON DELETE CASCADE 
 EOS;
         $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
       }
@@ -606,9 +608,9 @@ EOH;
 
   function create_joins( $modelname_or_attrname, & $foreign_keys, $allow_update = FALSE ) {/*{{{*/
 
-		// Accept a list of foreign keys having either of the forms:
-		// Array ( fk0, fk1, ... , fkn )
-		// Array ( fk0 => Array(<join attributes>), fk1 => Array(...), ... , fkn => Array(...) )
+    // Accept a list of foreign keys having either of the forms:
+    // Array ( fk0, fk1, ... , fkn )
+    // Array ( fk0 => Array(<join attributes>), fk1 => Array(...), ... , fkn => Array(...) )
     $debug_method = FALSE;
 
     $join_table = $this->get_joins();
@@ -713,12 +715,12 @@ EOH;
     self::$dbhandle->set_alias_map($this->alias_map);
     self::$dbhandle->query($sql, $bindparams);
     // Clear JOIN parameters, cached JOIN assignment values, etc.
-		if ( $this->suppress_reinitialize ) {
-			$this->suppress_reinitialize = FALSE;
-		} else {
-			$this->clear_query_prereqs();
-			$this->init_query_prereqs();
-		}
+    if ( $this->suppress_reinitialize ) {
+      $this->suppress_reinitialize = FALSE;
+    } else {
+      $this->clear_query_prereqs();
+      $this->init_query_prereqs();
+    }
     return $this;
   }/*}}}*/
 
@@ -908,16 +910,16 @@ UPDATE `{$this->tablename}` SET {$attrval} WHERE `id` = {$this->id}
 EOS;
     if ($debug_method) {
       $this->syslog(__FUNCTION__, __LINE__, "(marker) Will update record #{$this->id}: {$sql}" );
-			$this->recursive_dump(array_combine(
-				array_keys($attrlist),
-				array_map(create_function('$a','return $a["value"];'), $attrlist)
-			),'(marker) Exclude UNIQUE attrs');
+      $this->recursive_dump(array_combine(
+        array_keys($attrlist),
+        array_map(create_function('$a','return $a["value"];'), $attrlist)
+      ),'(marker) Exclude UNIQUE attrs');
     }
     $this->insert_update_common($sql, $boundattrs, $attrlist);
     if ( !empty(self::$dbhandle->error) ) {
       $this->syslog( __FUNCTION__, __LINE__, "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");
       $this->syslog(__FUNCTION__, __LINE__, "Record #{$this->id}: {$sql}" );
-		}
+    }
     return $this->id;
   }/*}}}*/
 
@@ -983,7 +985,7 @@ EOS;
       // foreign table attributes.  If any attributes of the Join subject
       // are specified, these must be aliased.
       $joins               = $this->get_joins();
-      $ft_aliases          = array('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k'); // Alias 'a' is always the join parent
+      $ft_aliases          = array('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n'); // Alias 'a' is always the join parent
       $ft_aliasmap         = array();
       $join_instance_table = array();
 
@@ -1343,14 +1345,16 @@ EOS;
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Returning attribute list:");
       $this->recursive_dump($attrlist,"(marker) - - -- Attrlist -- - -");
     }/*}}}*/
+
     return $attrlist;
+
   }/*}}}*/
 
   function result_to_model(array $result) {/*{{{*/
     if ( is_array($result) && (0 < count($result)) && array_key_exists('attrnames', $result)) {
       unset($this->query_result);
       $this->query_result  = array();
-      $assignment_failures = FALSE;
+      $assignment_failures = array();
       foreach ( $result['attrnames'] as $resattridx => $rescol ) {
 
         $match_aliased = array_key_exists("`a`.`{$rescol}`", $this->attrlist);
@@ -1379,22 +1383,14 @@ EOS;
           ;
         if ( ('___' == $attrname) || ('_' == $attrname) ) {
           $this->syslog(__FUNCTION__,__LINE__,"(warning) - -- - Failed to assign value for [{$rescol}], plain_attrname = '{$plain_attrname}', attrname = '{$attrname}'");
-          $assignment_failures |= TRUE;
+          $assignment_failures[] = $rescol;
         } else {
           $setter = "set_{$plain_attrname}";
           $getter = "get_{$plain_attrname}";
           $value = $result['values'][0][$resattridx]; // A single-record fetch reduces nest depth by 1
 
           if ( !empty($plain_attrname) ) { 
-
             $this->$attrname = $value; 
-            /*
-            if ( method_exists($this,$setter) )
-              $this->$setter($value);
-            else
-              $this->$attrname = $value; 
-            */
-
             $this->query_result[$plain_attrname] = ( method_exists($this,$getter) ) 
               ? $this->$getter()
               : $value 
@@ -1408,9 +1404,9 @@ EOS;
           if ( strlen($this->$attrname) < 500 ) $this->syslog( __FUNCTION__, __LINE__, "> {$attrname} <- [{$this->$attrname}|{$value}]");
         }
       }
-      if ( $assignment_failures ) {
+      if ( 0 < count($assignment_failures) ) {
         $this->syslog(__FUNCTION__,__LINE__,"(warning) - -- - Some attributes could not be matched to attribute list.");
-        $this->recursive_dump($this->attrlist,"(warning) - ->");
+        $this->recursive_dump($assignment_failures,"(warning) - ->");
       }
     } else {
       $this->syslog(__FUNCTION__,__LINE__,'(warning) - model load failure ' . join('|', $result));
@@ -1570,77 +1566,87 @@ EOS;
         }
       }/*}}}*/
       // $this->recursive_dump($bindable_attrs,__LINE__);
+      if ( 0 < count($this->join_value_cache) ) $this->suppress_reinitialize = TRUE;
       $result = $this->query($sql, $bindable_attrs);
+      if ( empty(self::$dbhandle->error) ) {/*{{{*/
+        $this->update_joincache_attrs();
+      }/*}}}*/
       $bindable_attrs = NULL;
       return $result;
     }
 
-		if ( 0 < count($this->join_value_cache) ) { /*{{{*/
-			$this->suppress_reinitialize = TRUE;
-			$query_result = $this->query($sql);
-			if ( empty(self::$dbhandle->error) ) {/*{{{*/
-				// Only perform Join updates if the insert or update operation succeeds
-				if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Updated record #{$this->id}: {$sql}" );
-				if ( 0 < count($this->join_value_cache) ) {
-					if ( $debug_method )
-					$this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Updating joins for record #{$this->id}" );
-					foreach ( $this->join_value_cache as $attr => $data_src ) {/*{{{*/
-						// Suppress attributes in data_src that are NOT in the actual
-						// model structure, by obtaining the intersection of the full property list
-						if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  For {$attr}");
-						$joinprops = $this->get_join_instance($attr)->fetch_combined_property_list();
-						foreach ( $data_src as $fkey => $data ) {/*{{{*/
-							$intersect = array_intersect_key(
-								$data,
-								$joinprops
-							);
-							if ($debug_method) {/*{{{*/
-								$this->syslog(__FUNCTION__,__LINE__,"(marker)  Record {$fkey} - - - - - - -");
-								$this->recursive_dump($intersect,"(marker) -#- --");
-								$this->recursive_dump($data,"(marker) -- -#-");
-							}/*}}}*/
-							$data = $intersect;
+    if ( 0 < count($this->join_value_cache) ) { /*{{{*/
+      $this->suppress_reinitialize = TRUE;
+      $query_result = $this->query($sql);
+      if ( empty(self::$dbhandle->error) ) {/*{{{*/
+        $this->update_joincache_attrs();
+      }/*}}}*/
+      // Execute suppressed reinitialization calls.
+      $this->clear_query_prereqs();
+      $this->init_query_prereqs();
+      return $query_result;
+    }/*}}}*/
 
-							$joinattrs = $this->get_join_object($attr,'join','set');
-							unset($data['fkey']);
-							$data[$joinattrs['self']] = $this->id;
-							$data[$joinattrs['fkey']] = $fkey;
-							if ( $fkey == 'UNCACHED' ) continue;
-							if ( $fkey == 'UNMAPPED' ) continue;
-							$this->get_join_instance($attr)->fetch($data,'AND');
-							$this->supppress_reinitialize = TRUE;
-							if ( $debug_method ) $this->recursive_dump($data,"(marker) - - J - -");
-							if ( !$this->get_join_instance($attr)->in_database() ) {
-								$data['create_time'] = time();
-								$join_id = $this->get_join_instance($attr)->set_contents_from_array($data)->stow();
-								if (empty(self::$dbhandle->error)) {
-									if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Added join {$attr}[{$join_id}]: " . join(',',$data) );
-								} else {
-									$this->syslog(__FUNCTION__, __LINE__, "(error) - - - - Failed to add join {$attr}[{$join_id}]: " . join(',',$data) );
-								}
-							} else {
-								$join_id = $this->get_join_instance($attr)->get_id();
-								if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Found join {$attr}[{$join_id}]: " . join(',',$data) );
-							}
-							// We must do this after each call to query(),
-							// otherwise $join_value_cache is cleared before we complete
-							// iterating through it.
-							$this->supppress_reinitialize = TRUE;
-						}/*}}}*/
-					}/*}}}*/
-
-					$this->suppress_reinitialize = FALSE;
-				}
-			}/*}}}*/
-			// Execute suppressed reinitialization calls.
-			$this->clear_query_prereqs();
-			$this->init_query_prereqs();
-			return $query_result;
-		}/*}}}*/
-
-		$this->suppress_reinitialize = FALSE;
+    $this->suppress_reinitialize = FALSE;
     return $this->query($sql);
 
+  }/*}}}*/
+
+  private function update_joincache_attrs() {/*{{{*/
+    $debug_method = FALSE;//get_class($this) == 'RepublicActDocumentModel';
+    // Only perform Join updates if the insert or update operation succeeds
+    if ( 0 < count($this->join_value_cache) ) {
+      if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Updating joins for record #{$this->id}" );
+      foreach ( $this->join_value_cache as $attr => $data_src ) {/*{{{*/
+        // Suppress attributes in data_src that are NOT in the actual
+        // model structure, by obtaining the intersection of the full property list
+        if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  For {$attr}");
+        $joinprops = $this->get_join_instance($attr)->fetch_combined_property_list();
+        foreach ( $data_src as $fkey => $data ) {/*{{{*/
+          if ( !is_array($data) ) continue;
+          $intersect = array_intersect_key(
+            $data,
+            $joinprops
+          );
+          if ($debug_method) {/*{{{*/
+            $this->syslog(__FUNCTION__,__LINE__,"(marker)  Record {$fkey} - - - - - - -");
+            $this->recursive_dump($intersect,"(marker) -#- --");
+            $this->recursive_dump($data,"(marker) -- -#-");
+          }/*}}}*/
+          $data = $intersect;
+
+          $joinattrs = $this->get_join_object($attr,'join','set');
+          unset($data['fkey']);
+          if ( $debug_method ) $this->recursive_dump($joinattrs,"(marker) - - JA - -");
+          $data[$joinattrs['self']] = $this->id;
+          $data[$joinattrs['fkey']] = $fkey;
+          if ( empty($this->id) ) continue;
+          if ( $fkey == 'UNCACHED' ) continue;
+          if ( $fkey == 'UNMAPPED' ) continue;
+          $this->get_join_instance($attr)->fetch($data,'AND');
+          $this->supppress_reinitialize = TRUE;
+          if ( $debug_method ) $this->recursive_dump($data,"(marker) - - J - -");
+          if ( !$this->get_join_instance($attr)->in_database() ) {
+            $data['create_time'] = time();
+            $join_id = $this->get_join_instance($attr)->set_contents_from_array($data)->stow();
+            if (empty(self::$dbhandle->error)) {
+              if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Added join {$attr}[{$join_id}]: " . join(',',$data) );
+            } else {
+              $this->syslog(__FUNCTION__, __LINE__, "(error) - - - - Failed to add join {$attr}[{$join_id}]: " . join(',',$data) );
+            }
+          } else {
+            $join_id = $this->get_join_instance($attr)->get_id();
+            if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Found join {$attr}[{$join_id}]: " . join(',',$data) );
+          }
+          // We must do this after each call to query(),
+          // otherwise $join_value_cache is cleared before we complete
+          // iterating through it.
+          $this->supppress_reinitialize = TRUE;
+        }/*}}}*/
+      }/*}}}*/
+
+      $this->suppress_reinitialize = FALSE;
+    }
   }/*}}}*/
 
   function insert() {/*{{{*/
@@ -1828,18 +1834,17 @@ EOS;
     return $property_list;
   }/*}}}*/
 
-  function & set_contents_from_array($document_contents, $execute = TRUE) {/*{{{*/
-    $debug_method = FALSE;//get_class($this) == 'HouseBillDocumentModel';//FALSE;
+  function & set_contents_from_array($document_contents, $execute_setters = TRUE) {/*{{{*/
+    $debug_method = FALSE; //get_class($this) == 'HouseBillDocumentModel';//FALSE;
     $property_list = $this->fetch_combined_property_list();
     $joins = $this->get_joins();
     if ( !(0 < count($property_list)) ) return $this;
-		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  - - - - - - - BULAGA! {$document_contents['sn']}- - - - - - - ");
     foreach ( $document_contents as $name => $value ) {
       $setter = "set_{$name}";
       if ( method_exists($this, $setter) ) {
-        if ( $execute ) $this->$setter($value);
+        if ( $execute_setters ) $this->$setter($value);
       } else if ( array_key_exists($name, $joins) ) {
-				// Attribute [$name] is a Join attribute
+        // Attribute [$name] is a Join attribute
         $marker = $debug_method ? 'marker' : '-----';
         if ( $debug_method ) {
           $this->syslog(__FUNCTION__, __LINE__, <<<EOP
@@ -1847,18 +1852,18 @@ EOS;
 EOP
           );
         }
-        if ( !array_key_exists($name,$this->join_value_cache) ) {
-          $this->join_value_cache[$name] = array();
-        }
-        $fkey = array_element($value,'fkey');
-        if ( is_null($fkey) ) {
-          $this->join_value_cache[$name]['UNCACHED'] = $value;
-        } else {
-          $this->join_value_cache[$name][$fkey] = $value;
-        }
-        if ( $debug_method ) $this->recursive_dump($this->join_value_cache,"({$marker}) - -"); 
+				if ( !array_key_exists($name,$this->join_value_cache) ) {
+					$this->join_value_cache[$name] = array();
+				}
+				$fkey = array_element($value,'fkey');
+				if ( is_null($fkey) ) {
+					$this->join_value_cache[$name]['UNCACHED'] = $value;
+				} else {
+					$this->join_value_cache[$name][$fkey] = $value;
+				}
+
       } else {
-				// Attribute [$name] is an atomic attribute 
+        // Attribute [$name] is an atomic attribute 
         $type = array_key_exists($name, $property_list) ? $property_list[$name] : NULL;
         $marker = TRUE || $debug_method ? 'marker' : '-----';
         $this->syslog(__FUNCTION__, __LINE__, <<<EOP
@@ -1870,6 +1875,12 @@ EOP
         );
       }
     }
+
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)  - - - - - - - BULAGA! {$this->id} - - - - - - - ");
+      $this->recursive_dump($this->join_value_cache,"({$marker}) - -"); 
+    }
+
     return $this;
   }/*}}}*/
 
@@ -2004,14 +2015,37 @@ EOP
           )
         );
         // Get names of Join attributes, to enable us to find the names of
-        // a Join's 'left' and 'right' members
+        // a Join's 'left' (self) and 'right' (foreign table) members
         $joinattrs = $this->join_instance_cache[$join_desc_key]['join']['obj']->fetch_combined_property_list();
         $attrnames = array_keys($joinattrs);
         $attrtypes = array_flip(array_values($joinattrs));
-        $this->join_instance_cache[$join_desc_key]['join']['set'] = array(
-          'self' => array_element($attrnames,array_element($attrtypes,get_class($this))),
-          'fkey' => array_element($attrnames,array_element($attrtypes,$join_desc['propername'])),
-        ); 
+        if ( get_class($this) == $join_desc['propername'] ) {
+          $map = $joinattrs;
+          array_walk($map,create_function(
+            '& $a, $k, $s', '$a = (1 == preg_match("@^(left|right)_@i",$k)) && ($a == $s) ? preg_replace(array("@^((left_).*)@i","@^((right_).*)@i"),array("self","fkey"),$k) : NULL;'
+          ), get_class($this));
+          $map = array_flip(array_filter($map));
+          if ( $debug_method ) {/*{{{*/
+            $this->recursive_dump($map      , "(marker) --- -M- ---");
+            $this->recursive_dump($joinattrs, "(marker) --- --- J-J");
+            $this->recursive_dump($attrnames, "(marker) --- J-J ---");
+            $this->recursive_dump($attrtypes, "(marker) J-J --- ---");
+          }/*}}}*/
+          $this->join_instance_cache[$join_desc_key]['join']['set'] = $map; 
+          if ( $debug_method )  $this->recursive_dump($this->join_instance_cache[$join_desc_key]['join']['set'],"(marker) --- --- ---");
+        } else {
+          if ( $debug_method ) {/*{{{*/
+            $this->recursive_dump($map      , "(marker) --- -M- ---");
+            $this->recursive_dump($joinattrs, "(marker) --- --- J-J");
+            $this->recursive_dump($attrnames, "(marker) --- J-J ---");
+            $this->recursive_dump($attrtypes, "(marker) J-J --- ---");
+          }/*}}}*/
+          $this->join_instance_cache[$join_desc_key]['join']['set'] = array(
+            'self' => array_element($attrnames,array_element($attrtypes,get_class($this))),
+            'fkey' => array_element($attrnames,array_element($attrtypes,$join_desc['propername'])),
+          ); 
+          if ( $debug_method )  $this->recursive_dump($this->join_instance_cache[$join_desc_key]['join']['set'],"(marker) --- --- ---");
+        }
         if ( $debug_method ) $this->recursive_dump($this->join_instance_cache[$join_desc_key]['join']['set'],"(marker) - - - - JD({$property})");
       }
     } catch ( Exception $e ) {
@@ -2029,4 +2063,57 @@ EOP
     return $this->get_join_object($property,'join');
   }/*}}}*/
 
+  function get_all_properties() {/*{{{*/
+    $debug_method = FALSE;
+    $d = array();
+    foreach ( $this->full_property_list() as $attr => $props ) {
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Get {$attr}");
+      $getter = "get_{$attr}";
+      if ( method_exists($this,$getter) ) {
+        $d[$attr] = $this->$getter();
+      } else if ( property_exists($this,$attr) ) {
+        $d[$attr] = $this->$attr;
+      }
+    }
+    // This only works if a getter method is defined for the Join attribute 
+    foreach ( $this->get_joins() as $attr => $props ) {
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Get {$attr}");
+      $getter = "get_{$attr}";
+      if ( method_exists($this,$getter) ) {
+        $d[$attr] = $this->$getter();
+      } else if ( property_exists($this,$attr) ) {
+        $d[$attr] = $this->$attr;
+      }
+    }
+    return $d;
+  }/*}}}*/
+
+  function get_stuffed_join($join_attrname) {/*{{{*/
+		$debug_method = FALSE;
+    // Return an object representing the 'far end' of a Join attribute
+    if ( !is_null($joined_document = array_element($this->get_all_properties(),$join_attrname))) {
+      if ( !is_null($data = array_element($joined_document,'data')) ) {/*{{{*/
+        $this->
+          get_foreign_obj_instance($join_attrname)->
+          join_all()->
+          set_contents_from_array($data,TRUE)->
+          where(array('AND' => array(
+            '`a`.`id`' => $data['id'],
+          )))->
+          recordfetch_setup();
+				$joined_document = array();
+				if ( $this->get_foreign_obj_instance($join_attrname)->recordfetch($joined_document,TRUE) ) {
+					if ( $debug_method ) {
+						$this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - - J {$join_attrname} - - - -");
+						$this->recursive_dump($joined_document,"(marker) -- - - -");
+					}
+					$setter = "set_data_{$join_attrname}";
+					if ( method_exists($this,$setter) ) $this->$setter($joined_document);
+					return $joined_document;
+				}	
+      }/*}}}*/
+    }
+		return NULL;
+  }/*}}}*/
+    
 }

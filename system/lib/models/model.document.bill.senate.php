@@ -35,6 +35,8 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $journal_SenateJournalDocumentModel = NULL; // Referring journals
   var $committee_SenateCommitteeModel = NULL;
 	var $senator_SenatorDossierModel = NULL;
+	var $housebill_HouseBillDocumentModel = NULL;
+	var $republic_act_RepublicActDocumentModel = NULL;
   var $bill_info_SenateBillDocumentModel = NULL;
 
   function __construct() {

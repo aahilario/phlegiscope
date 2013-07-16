@@ -16,6 +16,7 @@ class HouseBillHouseBillJoin extends ModelJoin {
 
   var $content_blob = NULL;
   var $content_type_vc64 = NULL;
+  var $congress_tag_vc8 = NULL;
   var $update_time_utx = NULL;
   var $create_time_utx = NULL;
   var $revision_int11 = NULL;
@@ -50,5 +51,10 @@ class HouseBillHouseBillJoin extends ModelJoin {
 
   function & set_content($v) { $this->content_blob = $v; return $this; }
   function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
+
+  function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
+  function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
+
+  /** **/
 }
 

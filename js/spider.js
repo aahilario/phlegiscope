@@ -29,6 +29,7 @@ function remove_wait_notification() {
 
 function preload_worker() {
   if ( typeof preload_a != 'null' && preload_n < preload_a.length ) {
+
     var hashpair   = preload_a[preload_n++];
     var hash       = hashpair.hash;
     var live       = jQuery('#seek').prop('checked') ? jQuery('#seek').prop('checked') : hashpair.live;
@@ -53,8 +54,8 @@ function preload_worker() {
       success  : (function(data, httpstatus, jqueryXHR) {
         jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
         if ( data && data.original ) replace_contentof('original',data.original);
-				if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-        preload_worker();
+        if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+				if ( jQuery('#spider').prop('checked') ) preload_worker();
       })
     });
   } 
@@ -86,7 +87,7 @@ function preload_worker_unconditional() {
       jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
       if ( data && data.original ) replace_contentof('original',data.original);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-      setTimeout((function(){preload_unconditional();}),100);
+      setTimeout((function(){preload_worker_unconditional();}),100);
     })
   });
 }
@@ -110,7 +111,7 @@ function preload(components) {
     success  : (function(data, httpstatus, jqueryXHR) {
       var uncached_entries = data.count ? data.count : 0;
       var uncached_list = data.uncached ? data.uncached : [];
-			if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
       preload_a = new Array(uncached_entries);
       preload_n = 0;
       for (var n in uncached_list) {
@@ -130,50 +131,19 @@ function initialize_linkset_clickevents(linkset,childtag) {
     return false;
   }).click(function(e){
 
-		var self = jQuery(this);
-
     e.stopPropagation();
     e.preventDefault();
 
-    if ( jQuery(this).prop && jQuery(this).prop('coordinates') ) {
-			if ( jQuery(this).hasClass('upper-section') || jQuery(this).hasClass('lower-section') ) {
-				var coordinates = jQuery(this).prop('coordinates');
-				jQuery.ajax({
-					type     : 'POST',
-					url      : '/reorder/',
-					data     : { clusterid : jQuery(this).attr('id'), proxy : jQuery('#proxy').prop('checked'), move : jQuery(this).hasClass('upper-section') ? -1 : 1 },
-					cache    : false,
-					dataType : 'json',
-					async    : true,
-					beforeSend : (function() {
-						display_wait_notification();
-					}),
-					complete : (function(jqueryXHR, textStatus) {
-						remove_wait_notification();
-					}),
-					success  : (function(data, httpstatus, jqueryXHR) {
-
-						var linkset = data.linkset;
-
-						if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-
-						if ( linkset && linkset.length > 0 ) {
-							replace_contentof('linkset', linkset);
-							initialize_linkset_clickevents(self,child_tags);
-							setTimeout(function(){ initialize_remote_links(); },1);
-						}
-					})
-				});
-				return;
-			}
-		}
-
+    if (!jQuery('#spider').prop('checked')) {
+      window.alert("Enable 'Spider' option to trigger preload");
+      return;
+    }
     var components = new Array(jQuery(this).children(child_tags).length);
     var component_index = 0;
     jQuery(this).children(child_tags).find('a').each(function(){
+      if ( jQuery(this).hasClass('cached') && !jQuery('#spider').prop('checked') ) return;
       if ( component_index > 300 ) return;
       var linkset_child = jQuery(this).attr('id');
-      if ( jQuery(this).hasClass('cached') && !jQuery('#spider').prop('checked') ) return;
       components[component_index] = linkset_child; 
       component_index++;
     });
@@ -195,30 +165,30 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 
   if (typeof data == 'null') return;
 
-	var response = data && data.error ? data.message : data.linkset;
-	var markup = data.markup;
-	var responseheader = data.responseheader;
-	var referrer = data.referrer;
-	var url = data.url;
-	var contenttype = data.contenttype ? data.contenttype : '';
-	var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
+  var response = data && data.error ? data.message : data.linkset;
+  var markup = data.markup;
+  var responseheader = data.responseheader;
+  var referrer = data.referrer;
+  var url = data.url;
+  var contenttype = data.contenttype ? data.contenttype : '';
+  var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
   var targetframe = data.targetframe ? data.targetframe : '[class*=alternate-original]'; 
 
-	if ( data && data.clicked ) {
-	 	jQuery('a').removeClass('clicked');
-	 	jQuery('a[id='+data.clicked+']').addClass('clicked');
-	}
+  if ( data && data.clicked ) {
+     jQuery('a').removeClass('clicked');
+     jQuery('a[id='+data.clicked+']').addClass('clicked');
+  }
 
-	jQuery('div[class*=contentwindow]').each(function(){
-		if (jQuery(this).attr('id') == 'issues') return;
-		if (retainoriginal)
-		if (jQuery(this).attr('id') == 'original') return;
-		jQuery(this).children().remove();
-	});
+  jQuery('div[class*=contentwindow]').each(function(){
+    if (jQuery(this).attr('id') == 'issues') return;
+    if (retainoriginal)
+    if (jQuery(this).attr('id') == 'original') return;
+    jQuery(this).children().remove();
+  });
 
-	if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+  if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
 
-	if ( /^application\/pdf/.test(contenttype) ) {
+  if ( /^application\/pdf/.test(contenttype) ) {
     if ( !(jQuery('#spider').prop('checked')) ) {
       var target_container = jQuery(retainoriginal ? ('#'+jQuery(targetframe).first().attr('id')) : '#original');
       display_wait_notification();
@@ -252,57 +222,57 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
         remove_wait_notification();
       });
     }
-	} else {
-		replace_contentof('original',data.original);
-		if ( /^text\/html/.test(contenttype) ) {
-			if ( response && response.length > 0 ) {
-				replace_contentof('linkset', response);
-				initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
-			}
-		}
-		jQuery('#siteURL').val(referrer);
-		replace_contentof('markup',markup);
-		replace_contentof('responseheader',responseheader);
-		replace_contentof('referrer',jQuery(document.createElement('A'))
-			.addClass('legiscope-remote')
-			.attr('href', referrer)
-			.html('Back')
-		);
-		replace_contentof('currenturl',
-			jQuery(document.createElement('A'))
-			.attr('href', data.url)
-			.attr('target','blank')
-			.append(data.url)
-		);
-		initialize_authentication_inputs();
-		jQuery('#tab_'+data.defaulttab).click();
-	}
-	setTimeout(function(){ 
-		initialize_remote_links(); 
-		var seek_enabled    = jQuery('#seek').prop('checked');
-		if ( !seek_enabled ) return;
-		var component_count = jQuery("span[class*=search-match-searchlisting]").length || jQuery("div[id=original]").find('a[class*=legiscope-remote]').length;
-		var component_index = 0;
-		if ( 0 == component_count ) {
-			jQuery("div[id=original]").children('a').each(function(){
-				component_count++;
-			});
-		}
-		jQuery('#doctitle').html("Seek: +"+component_count);
-		if ( 0 == component_count ) return;
-		if ( components > 300 ) components = 300;
-		var components = new Array(component_count);
-		jQuery("div[id=original]").find('a[class*=legiscope-remote]').each(function(){
-			if ( component_index > 300 ) return;
-			var linkset_child = jQuery(this).attr('id');
-			if ( jQuery(this).hasClass('cached') ) return;
-			components[component_index] = linkset_child; 
-			component_index++;
-		});
-		preload(components);
-		jQuery('a[class*=pull-in]').first().click(); 
-		return true; 
-	},1);
+  } else {
+    replace_contentof('original',data.original);
+    if ( /^text\/html/.test(contenttype) ) {
+      if ( response && response.length > 0 ) {
+        replace_contentof('linkset', response);
+        initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
+      }
+    }
+    jQuery('#siteURL').val(referrer);
+    replace_contentof('markup',markup);
+    replace_contentof('responseheader',responseheader);
+    replace_contentof('referrer',jQuery(document.createElement('A'))
+      .addClass('legiscope-remote')
+      .attr('href', referrer)
+      .html('Back')
+    );
+    replace_contentof('currenturl',
+      jQuery(document.createElement('A'))
+      .attr('href', data.url)
+      .attr('target','blank')
+      .append(data.url)
+    );
+    initialize_authentication_inputs();
+    jQuery('#tab_'+data.defaulttab).click();
+  }
+  setTimeout(function(){ 
+    initialize_remote_links(); 
+    var seek_enabled    = jQuery('#seek').prop('checked');
+    if ( !seek_enabled ) return;
+    var component_count = jQuery("span[class*=search-match-searchlisting]").length || jQuery("div[id=original]").find('a[class*=legiscope-remote]').length;
+    var component_index = 0;
+    if ( 0 == component_count ) {
+      jQuery("div[id=original]").children('a').each(function(){
+        component_count++;
+      });
+    }
+    jQuery('#doctitle').html("Seek: +"+component_count);
+    if ( 0 == component_count ) return;
+    if ( components > 300 ) components = 300;
+    var components = new Array(component_count);
+    jQuery("div[id=original]").find('a[class*=legiscope-remote]').each(function(){
+      if ( component_index > 300 ) return;
+      var linkset_child = jQuery(this).attr('id');
+      if ( jQuery(this).hasClass('cached') ) return;
+      components[component_index] = linkset_child; 
+      component_index++;
+    });
+    preload(components);
+    jQuery('a[class*=pull-in]').first().click(); 
+    return true; 
+  },1);
 }
 
 function load_content_window(a,ck,obj,data,handlers) {
@@ -311,7 +281,7 @@ function load_content_window(a,ck,obj,data,handlers) {
     ? { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text, metalink : jQuery('#metalink').html() } 
     : { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text }
     ;
-  var async = (data && data.async) ? data.async : false;
+  var async = (data && data.async) ? data.async : true;
   if ( typeof data != "undefined" && typeof data != "null" ) {
     for ( var i in data ) {
       var element = data[i];
@@ -382,28 +352,6 @@ function initialize_remote_links() {
     });
   });
 
-  jQuery('[class*=link-cluster]')
-    .unbind('mouseenter')
-    .unbind('mouseleave')
-    .unbind('mousemove');
-
-  jQuery('[class*=link-cluster]').mouseenter(function(e){
-		if ( jQuery(this).hasClass('suppress-reorder') ) return;
-    jQuery(this).prop('linkset-location', jQuery(this).offset());
-  }).mouseleave(function(e){
-		if ( jQuery(this).hasClass('suppress-reorder') ) return;
-    jQuery(this).removeClass('upper-section').removeClass('lower-section');
-    jQuery('#doctitle').html('Legiscope');
-  }).mousemove(function(e){
-		if ( jQuery(this).hasClass('suppress-reorder') ) return;
-    if ( !jQuery(this).prop || !jQuery(this).prop('linkset-location') ) return;
-    var y = (jQuery(this).innerHeight() / 2) - (e.pageY - jQuery(this).prop('linkset-location').top);
-    var x = (e.pageX - jQuery(this).prop('linkset-location').left) - (jQuery(this).innerWidth() / 2);
-    jQuery(this).removeClass('upper-section').removeClass('lower-section');
-    jQuery(this).prop('coordinates',{ x : x, y : y });
-    if ( x > 0 ) return;
-    jQuery(this).addClass( y >= 0 ? 'upper-section' : 'lower-section' );
-  });
   return true;
 }
 
@@ -445,12 +393,12 @@ function enable_proxied_links(classname,handlers) {
   jQuery('a[class*='+classname+']').click(function(e){
     e.stopPropagation();
     load_content_window(
-			jQuery(this).attr('href'),
-		 	jQuery(e).attr('metaKey'),
-		 	jQuery(this),
-		 	{ async : true },
-		 	handler
-		);
+      jQuery(this).attr('href'),
+       jQuery(e).attr('metaKey'),
+       jQuery(this),
+       { async : true },
+       handler
+    );
     return false;
   });
 }
@@ -474,6 +422,7 @@ function initialize_hot_search() {
         data     : { fragment : jQuery('#keywords').val(), proxy : jQuery('#proxy').prop('checked') },
         cache    : false,
         dataType : 'json',
+        async    : true,
         beforeSend : (function() {
           display_wait_notification();
         }),
@@ -485,7 +434,7 @@ function initialize_hot_search() {
           var records = data.records ? data.records : [];
           var returns = data.count ? data.count : 0;
           var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
-					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+          if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           jQuery('#currenturl').html("Matches: "+returns);
           jQuery('div[class*=contentwindow]').each(function(){
             if (jQuery(this).attr('id') == 'issues') return;
@@ -493,7 +442,7 @@ function initialize_hot_search() {
             if (jQuery(this).attr('id') == 'original') return;
             jQuery(this).children().remove();
           });
-					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+          if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           if ( !(0 < returns) ) return;
           replace_contentof('original',jQuery(document.createElement('UL')).attr('id','searchresults'));
           for ( var r in records ) {

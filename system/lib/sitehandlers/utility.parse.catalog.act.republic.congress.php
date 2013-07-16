@@ -16,17 +16,21 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
 
   function seek_postparse_ra(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method    = FALSE;
     $restore_url     = NULL;
     $content_changed = FALSE;
 
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Pagecontent postparser invocation for " . $urlmodel->get_url() );
+
+    $urlmodel->ensure_custom_parse();
+
     if ( !is_null($parser->metalink_url) ) {
       $restore_url = $urlmodel->get_urlhash();
-      $urlmodel->fetch($parser->metalink_url,'url');
-      $this->syslog( __FUNCTION__, __LINE__, "(warning) Switching metalink URL #" . $urlmodel->get_id() . " {$parser->metalink_url} <- {$urlmodel}" );
+      $url_hash = UrlModel::get_url_hash($parser->metalink_url);
+      $urlmodel->fetch($url_hash,'urlhash');
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Switching metalink URL #" . $urlmodel->get_id() . " {$parser->metalink_url} <- " . $urlmodel->get_url() );
       $pagecontent = $urlmodel->get_pagecontent();
     }
-
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Pagecontent postparser invocation for " . $urlmodel->get_url() );
 
     $cache_filename = md5(__FUNCTION__ . $parser->trigger_linktext);
     $cache_filename = "./cache/{$this->subject_host_hash}-{$cache_filename}.generated";
@@ -45,7 +49,12 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
 
     $ra_linktext = $parser->trigger_linktext;
 
-    $this->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    $this->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
 
     $this->recursive_dump(($target_form = array_values($this->get_containers(
       'children[attrs:ACTION*=index.php\?d=ra$]'
@@ -62,35 +71,38 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
     $target_form = $target_form[0]; 
 
     $this->recursive_dump(($target_form = $this->extract_form_controls($target_form)),
-      'Target form components');
+      $debug_method ? '(marker) Target form components' : '' );
 
     // $this->recursive_dump($target_form,__LINE__);
-    extract($target_form);
-    $this->recursive_dump($select_options,'SELECT values');
+    extract($target_form); // $target_form --> userset, select_name => n, n => <select opts>, form_controls => 
+    $this->recursive_dump($select_options, $debug_method ? '(marker) SELECT values' : '');
 
     $metalink_data = array();
 
     // Extract Congress selector for use as FORM submit action content
     $replacement_content = '';
+
+    $action = UrlModel::parse_url($urlmodel->get_url());
+    $action['query'] = "d=ra";
+    $action = UrlModel::recompose_url($action,array(),FALSE);
+
+    if ( $debug_method ) $this->recursive_dump($select_options,"(marker) -- SELECT OPTIONS - --");
+
     foreach ( $select_options as $select_option ) {/*{{{*/
       // Take a copy of the rest of the form controls
       if ( empty($select_option['value']) ) continue;
-      $control_set = is_array($form_controls) ? $form_controls : array();
-      $control_set[$select_name] = $select_option['value'];
-      $control_set['Submit'] = 'submit';
-
-      $faux_url = UrlModel::parse_url($urlmodel->get_url());
-      $faux_url['query'] = "d=ra";
-      $faux_url = UrlModel::recompose_url($faux_url,array(),FALSE);
 
       $link_class_selector = array("fauxpost");
-      if ( $ra_linktext == $select_option['text'] ) {
-        $link_class_selector[] = "selected";
-      }
+      if (1 == intval(array_element($select_option,'selected'))) $link_class_selector[] = "selected";
       $link_class_selector = join(' ', $link_class_selector);
 
-			$generated_link = UrlModel::create_metalink($select_option['text'], $faux_url, $control_set, $link_class_selector);
-      $replacement_content .= $generated_link;
+      $control_set = is_array($form_controls) ? $form_controls : array();
+      $control_set['_']          = 'SKIPGET';
+      $control_set[$select_name] = $select_option['value'];
+      $control_set['Submit']     = 'submit';
+
+      extract( UrlModel::create_metalink($select_option['text'], $action, $control_set, $link_class_selector, TRUE) );
+      $replacement_content .= $metalink;
     }/*}}}*/
 
     // ----------------------------------------------------------------------
@@ -101,21 +113,23 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
     $test_url     = new UrlModel();
 
     $pagecontent = "{$replacement_content}<br/><hr/>";
-    $urlmodel->increment_hits()->stow();
+    $urlmodel->increment_hits(TRUE);
 
     $test_url->fetch($parent_url,'url');
     $page = $urlmodel->get_pagecontent();
     $test_url->set_pagecontent($page);
     $test_url->set_response_header($urlmodel->get_response_header())->increment_hits()->stow();
+    $test_url->ensure_custom_parse();
 
     $ra_listparser = new CongressRaListParseUtility();
     $ra_listparser->debug_tags = FALSE;
     $ra_listparser->set_parent_url($urlmodel->get_url())->parse_html($page,$urlmodel->get_response_header());
+    $ra_listparser->debug_tags = FALSE;
     $ra_listparser->debug_operators = FALSE;
 
     $this->recursive_dump(($ra_list = $ra_listparser->get_containers(
       '*[item=RA][bill-head=*]'
-    )),"Extracted content");
+    )),$debug_method ? "(marker) Extracted content" : "");
 
     $replacement_content = '';
 
@@ -124,14 +138,17 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
     $parent_url    = UrlModel::parse_url($parent_url);
     $republic_act  = new RepublicActDocumentModel();
     $republic_acts = array();
-    $sn_stacks     = array(0 => array());
+    $sn_stacks     = array();
     $stacked_count = 0;
 
-    foreach ( $ra_list as $ra ) {/*{{{*/
+    $target_congress = preg_replace("@[^0-9]*@","",$parser->trigger_linktext);
 
+    while ( 0 < count($ra_list) ) {/*{{{*/
+
+      $ra            = array_pop($ra_list);
       $url           = UrlModel::normalize_url($parent_url, $ra);
       $urlhash       = UrlModel::get_url_hash($url);
-      $ra_number     = join(' ',$ra['bill-head']);
+      $ra_number     = $ra['bill-head'];
       $approval_date = NULL;
       $origin        = NULL;
 
@@ -140,7 +157,7 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
         continue;
       }/*}}}*/
 
-      $ra_meta = join('', $ra['meta']);
+      $ra_meta = $ra['meta'];
       $ra_meta = preg_replace(
         array(
           "@Origin:@iU",
@@ -172,35 +189,28 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
       if ( 0 < strlen($ra_number) ) {/*{{{*/// Stow the Republic Act record
 
         $now_time        = time();
-        $target_congress = preg_replace("@[^0-9]*@","",$parser->trigger_linktext);
 
         $republic_acts[$ra_number] = array(
           'congress_tag'  => $target_congress,
           'sn'            => $ra_number,
           'origin'        => $origin,
-          'description'   => join(' ',$ra['desc']),
+          'description'   => $ra['desc'],
           'url'           => $url,
           'approval_date' => $approval_date,
-          'searchable'    => FALSE, // $searchable,$test_url->fetch($urlhash,'urlhash'); $searchable = $test_url->in_database() ? 1 : 0;
+          //'searchable'    => 'FALSE', // $searchable,$test_url->fetch($urlhash,'urlhash'); $searchable = $test_url->in_database() ? 1 : 0;
           'last_fetch'    => $now_time,
           '__META__' => array(
             'urlhash' => $urlhash,
           ),
         );
-        $sn_stacks[$stacked_count][] = $ra_number;
-        if ( 20 <= count($sn_stacks[$stacked_count]) ) {
-          $stacked_count++;
-          $sn_stacks[$stacked_count] = array();
-        }
-        //$sorted_desc[$ra_number] = $republic_act->get_standard_listing_markup($ra_number,'sn');
+        $sn_stacks[] = $ra_number;
       }/*}}}*/
 
     }/*}}}*/
 
     $sorted_desc = array();
 
-    $this->syslog(__FUNCTION__,__LINE__,'(marker) Elements ' . count($sorted_desc));
-    $this->syslog(__FUNCTION__,__LINE__,'(marker) Stacked clusters ' . count($sn_stacks));
+    ksort($republic_acts);
 
     $ra_template = <<<EOH
 
@@ -214,34 +224,85 @@ class CongressRepublicActCatalogParseUtility extends CongressCommonParseUtility 
 EOH;
 
     // Deplete the stack, generating markup for entries that exist
-		while ( 0 < count( $sn_stacks ) ) {/*{{{*/
-			$sn_stack = array_pop($sn_stacks); 
-			$ra = array();
-			$republic_act->where(array('AND' => array(
-				'sn' => $sn_stack
-			)))->recordfetch_setup(); 
-			// Now remove entries from $republic_acts
-			while ( $republic_act->recordfetch($ra,TRUE) ) {
-				$ra_number = $ra['sn'];
-				$republic_acts[$ra_number] = NULL;
-				$urlhash = $republic_acts[$ra_number]['__META__']['urlhash'];
-				// Generate markup for already-cached entries
-				$sorted_desc[$ra_number] = preg_replace(
-					array(
-						'@{urlhash}@i',
-						'@{cache_state}@i',
-					),
-					array(
-						$urlhash,
-						'cached',
-					),
-					$republic_act->substitute($ra_template)
-				);
-			}
-		}/*}}}*/
-    $republic_acts = array_filter($republic_acts);
+    while ( 0 < count( $sn_stacks ) ) {/*{{{*/
+      $sn_stack = array();
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) ---------- mark " . count($sn_stacks) . " -----------");
+      while ( (count($sn_stack) < 20) && (0 < count($sn_stacks)) ) {
+				$sn = array_pop($sn_stacks);
+				$sn_stack[$sn] = $sn; 
+      }  
+      krsort($sn_stack);
 
-    $this->recursive_dump(array_keys($republic_acts),"(marker) -Remainder-");
+			if ( !empty($target_congress) ) {/*{{{*/
+				$republic_act->where(array('AND' => array(
+					'congress_tag' => $target_congress,
+					'sn' => array_keys($sn_stack)
+				)))->recordfetch_setup(); 
+				// Remove entries from $republic_acts 
+				$ra = array();
+				while ( $republic_act->recordfetch($ra,TRUE) ) {/*{{{*/
+					$ra_number = $ra['sn'];
+					$urlhash = $republic_acts[$ra_number]['__META__']['urlhash'];
+					// Generate markup for already-cached entries
+					$sorted_desc[$ra_number] = preg_replace(
+						array(
+							'@{urlhash}@i',
+							'@{cache_state}@i',
+						),
+						array(
+							$urlhash,
+							'cached',
+						),
+						$republic_act->substitute($ra_template)
+					);
+					unset($sn_stack[$ra_number]);
+					unset($republic_acts[$ra_number]);
+					if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Extant {$ra_number}");
+					$ra = array();
+				}/*}}}*/
+				krsort($sn_stack);
+				if ( 0 == count($sn_stack) ) continue;
+				// The entries enumerated in sn_stack are NOT yet in the database, so we shove them in. 
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) -- stowables: " . count($sn_stack));
+				$this->recursive_dump($sn_stack,"(marker) -- to stow --");
+			}/*}}}*/
+      $sn_stack = array_flip($sn_stack);
+      while ( 0 < count($sn_stack) ) {/*{{{*/
+        $sn = array_pop($sn_stack);
+        if ( array_key_exists($sn,$republic_acts) ) {
+          unset($republic_acts[$sn]['__META__']);
+					$id = $republic_act->
+						set_id(NULL)->
+						// Execute setters, to allow us to execute substitute()
+						set_contents_from_array($republic_acts[$sn],TRUE);
+					if ( !empty($target_congress) ) {
+						$id = $republic_act->stow();
+					}
+          $sorted_desc[$sn] = preg_replace(
+            array(
+              '@{urlhash}@i',
+              '@{cache_state}@i',
+            ),
+            array(
+              $urlhash,
+              0 < intval($id) ? 'cached' : 'uncached',
+            ),
+            $republic_act->substitute($ra_template)
+          );
+          if ( 0 < intval($id) ) {
+						unset($republic_acts[$sn]);
+						if ( !empty($target_congress) )
+						$this->syslog(__FUNCTION__,__LINE__,"(marker) -- Stowed #{$id} {$sn}.{$target_congress}");
+          } else {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Failed to stow {$sn}.{$target_congress}");
+          }
+        } else {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Cannot find {$sn}.{$target_congress}");
+        }
+      }/*}}}*/
+    }/*}}}*/
+
+    $this->recursive_dump($republic_acts,"(marker) -Remainder Uncommitted-");
 
     krsort($sorted_desc,SORT_STRING);
 
@@ -258,7 +319,7 @@ EOH;
     $this->syslog(__FUNCTION__,__LINE__,'---------- DONE ----------- ' . strlen($pagecontent));
 
 
-	}/*}}}*/
+  }/*}}}*/
 
 }
 

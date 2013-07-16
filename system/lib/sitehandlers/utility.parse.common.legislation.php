@@ -10,7 +10,7 @@
 
 class LegislationCommonParseUtility extends GenericParseUtility {
   
-	var $restrict_length = NULL;
+  var $restrict_length = NULL;
 
   function __construct() {
     parent::__construct();
@@ -31,17 +31,17 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 
     $per_congress_pager = '[---]';
     // Obtain matching session record
-		$session_data = method_exists($this,'session_select_to_session_data')
-			? $this->session_select_to_session_data($session_select, $session)
-			: array_filter(array_map(create_function(
-					'$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? $a["metalink"] : NULL;'
-				), $session_select));
+    $session_data = method_exists($this,'session_select_to_session_data')
+      ? $this->session_select_to_session_data($session_select, $session)
+      : array_filter(array_map(create_function(
+          '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? $a["metalink"] : NULL;'
+        ), $session_select));
 
     $linktext = method_exists($this,'session_select_to_linktext')
-			? $this->session_select_to_linktext($session_select, $session)
-			: array_filter(array_map(create_function(
-					'$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? str_replace($a["linktext"],$a["optval"],$a["markup"]) : NULL;'
-				), $session_select));
+      ? $this->session_select_to_linktext($session_select, $session)
+      : array_filter(array_map(create_function(
+          '$a', 'return $a["metalink_source"]["dlBillType"] == "'.$session.'" ? str_replace($a["linktext"],$a["optval"],$a["markup"]) : NULL;'
+        ), $session_select));
 
     $active = $session_select;
     $this->filter_nested_array($active,"optval[active=1]",0);
@@ -158,11 +158,15 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     return $per_congress_pager;
   }/*}}}*/
 
-	function generate_links_and_bounds(& $documents, $url_fetch_regex, $link_regex) {/*{{{*/
+  function generate_links_and_bounds(& $documents, $url_fetch_regex, $link_regex) {/*{{{*/
 
     $debug_method = FALSE;
     // Now let's update the child links collection, using the database 
     if ( is_array($url_fetch_regex) ) {
+      if ( $debug_method ) {
+         $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - URL Match regex array:");
+        $this->recursive_dump($url_fetch_regex,"(marker) - - - -");
+      }
       $documents->
         where(array('AND' => $url_fetch_regex))->
         recordfetch_setup();
@@ -176,11 +180,11 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     $child_collection = array();
     $document         = NULL;
     $bounds           = array();
-		$pagers           = array();
+    $pagers           = array();
     $total_records    = 0;
     // Construct the nested array, compute span of serial numbers.
     // Pager links ('[PAGERx]') must be replaced 
-		$can_invalidate = method_exists($documents,'get_invalidated');
+    $can_invalidate = method_exists($documents,'get_invalidated');
     $have_inv = 0;
     while ( $documents->recordfetch($document) ) {/*{{{*/
       $datum_parts = array();
@@ -213,22 +217,22 @@ class LegislationCommonParseUtility extends GenericParseUtility {
       $bounds[$congress]['max'] = max($bounds[$congress]['max'], $srn);
       $bounds[$congress]['d']   = $bounds[$congress]['max'] - $bounds[$congress]['min'];
       $bounds[$congress]['count']++;
-			$pagers[$congress] = NULL;
+      $pagers[$congress] = NULL;
 
       // Store URL regex patterns for documents within each congress. 
       if ( !array_key_exists($congress, $child_collection) ) $child_collection[$congress] = array();
       if ( !array_key_exists('ALLSESSIONS', $child_collection[$congress]) ) $child_collection[$congress]['ALLSESSIONS'] = array();
 
-			// $include_this = !$can_invalidate || !$documents->get_invalidated();	if ( $include_this ) 
+      // $include_this = !$can_invalidate || !$documents->get_invalidated();  if ( $include_this ) 
       $invalidated = intval(nonempty_array_element($document,'invalidated',0)) == 1;
 
       if ( 0 < strlen($url_orig) )
-			$child_collection[$congress]['ALLSESSIONS'][$srn] = array(
+      $child_collection[$congress]['ALLSESSIONS'][$srn] = array(
         'url'    => $url_orig,
         'text'   => $text,
         'cached' => TRUE,
-				// This is used by generate_congress_session_column_markup()
-				'inv'    => $invalidated ? 1 : 0,
+        // This is used by generate_congress_session_column_markup()
+        'inv'    => $invalidated ? 1 : 0,
       );
       $total_records++;
     }/*}}}*/
@@ -273,7 +277,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
           ),
           $url_template
         );
-				// if ( !array_key_exists($p,$child_collection[intval($congress_tag)]['ALLSESSIONS']) && (0 < strlen($url)) )
+        // if ( !array_key_exists($p,$child_collection[intval($congress_tag)]['ALLSESSIONS']) && (0 < strlen($url)) )
         if ( 0 < strlen($url) )
         $child_collection[intval($congress_tag)]['ALLSESSIONS'][$p] = array(
           'url'       => $url,
@@ -309,41 +313,41 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 
 
     //////////////////////////////////////////////////////////////////////
-		return array(
-			'child_collection' => $child_collection,
-			'bounds' => $bounds,
-			'pagers' => $pagers,
+    return array(
+      'child_collection' => $child_collection,
+      'bounds' => $bounds,
+      'pagers' => $pagers,
       'total_records' => $total_records,
       'missing_links' => $missing_links,
-		);
-	}/*}}}*/
+    );
+  }/*}}}*/
 
-	function generate_congress_session_column_markup(& $q, $query_regex) {/*{{{*/
-		$pagecontent = '';
-		$nq = 0;
-		krsort($q);
-		foreach ( $q as $child_link ) {/*{{{*/
-			$linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
-			$child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
-			$child_link['url'] = str_replace(' ','%20', $child_link['url']);
-			// Typical links will have URL query components; this is assumed when
-			// the caller provides a non-null regex in $query_fragment_filter.
-			// If that parameter is given as NULL, then it is not possible to extract link text
-			// from the URL, and we must then use the plain URL+text pair to construct child links.
-			if ( !is_null($query_regex) && ($linktext == $child_link['url']) ) {
-				$url_query_components = array();
-				$url_query_parts      = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
-				preg_match_all($query_regex, $url_query_parts, $url_query_components);
-				$url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
-				$linktext = "No. {$url_query_parts['q']}";
-			}
-			$link_class = array('legiscope-remote','suppress-reorder','indent-3');
-		  $link_class[] = ( array_element($child_link,'cached') == TRUE ) ? "cached" : "uncached";
+  function generate_congress_session_column_markup(& $q, $query_regex) {/*{{{*/
+    $pagecontent = '';
+    $nq = 0;
+    krsort($q);
+    foreach ( $q as $child_link ) {/*{{{*/
+      $linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
+      $child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
+      $child_link['url'] = str_replace(' ','%20', $child_link['url']);
+      // Typical links will have URL query components; this is assumed when
+      // the caller provides a non-null regex in $query_fragment_filter.
+      // If that parameter is given as NULL, then it is not possible to extract link text
+      // from the URL, and we must then use the plain URL+text pair to construct child links.
+      if ( !is_null($query_regex) && ($linktext == $child_link['url']) ) {
+        $url_query_components = array();
+        $url_query_parts      = UrlModel::parse_url($child_link['url'], PHP_URL_QUERY);
+        preg_match_all($query_regex, $url_query_parts, $url_query_components);
+        $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
+        $linktext = "No. {$url_query_parts['q']}";
+      }
+      $link_class = array('legiscope-remote','suppress-reorder','indent-3');
+      $link_class[] = ( array_element($child_link,'cached') == TRUE ) ? "cached" : "uncached";
       $li_class = array('no-bullets');
       $invalidated = 1 == nonempty_array_element($child_link,'inv',0);
       if ( $invalidated ) $li_class[] = 'invalidated';
       $title = join(' ', array_keys($child_link));
-			$link_class = join(' ', $link_class);
+      $link_class = join(' ', $link_class);
       $li_class = join(' ',$li_class);
       $pagecontent .= $invalidated
         ? <<<EOH
@@ -354,50 +358,50 @@ EOH
 <li class="no-bullets"><a title="{$title}" class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
 EOH;
-			if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
-		}/*}}}*/
-		return $pagecontent;
-	}/*}}}*/
+      if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
+    }/*}}}*/
+    return $pagecontent;
+  }/*}}}*/
 
-	function construct_congress_change_link($pager_regex_uid) {/*{{{*/
-		$congress_change_link = array();
-		if ( is_string($pager_regex_uid) ) {
-			// Extract Congress selector (15th, 14th, 13th [as of 2013 April 9])
-			$extracted_links = array();
-			$congress_change_link = $this->extract_pager_links(
-				$extracted_links,
-				$this->cluster_urldefs, // Structure as below
-				$pager_regex_uid 
-			);
-		} else if ( is_array($pager_regex_uid) ) {
-			$congress_change_link = $pager_regex_uid;
-		}
-		if ( $debug_method ) $this->recursive_dump($congress_change_link,'(marker) Congress Change Link');
-		$congress_change_link = join('', $congress_change_link);
-		/*{{{*/
-		// Pager regex UIDs are taken from the parameterized URLs in $this->cluster_urldefs, as below:
-		//  9f35fc4cce1f01b32697e7c34b397a99 =>
-		//    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
-		//    query_template => type=journal&congress=({PARAMS})
-		//    query_components =>
-		//       361d558f79a9d15a277468b313f49528 => 15|14|13
-		//    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?type=journal&congress=({PARAMS})
-		//  1cb903bd644be9596931e7c368676982 =>
-		//    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
-		//    query_template => congress=15&type=journal&p=({PARAMS})
-		//    query_components =>
-		//       0cd3e2b45d2ebc55ca85d461abb6880c => 2|3|4|5
-		//    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=journal&p=({PARAMS})
-		//  acafee00836e5fbce173f8f4b22d13e1 =>
-		//    query_base_url => http://www.senate.gov.ph/lis/journal.aspx
-		//    query_template => congress=15&session=1R&q=({PARAMS})
-		//    query_components =>
-		//       40b2fa87aab9d7dfd8be00197298b532 => 94|93|92|91|90|89|88|87|86|85|84
-		//       c64b23d94c86d9370fb246769579776d => 83|82|81|80|79|78|77|76|75|74|73
-		//    whole_url => http://www.senate.gov.ph/lis/journal.aspx?congress=15&session=1R&q=({PARAMS})
-		/*}}}*/
-		return $congress_change_link;
-	}/*}}}*/
+  function construct_congress_change_link($pager_regex_uid) {/*{{{*/
+    $congress_change_link = array();
+    if ( is_string($pager_regex_uid) ) {
+      // Extract Congress selector (15th, 14th, 13th [as of 2013 April 9])
+      $extracted_links = array();
+      $congress_change_link = $this->extract_pager_links(
+        $extracted_links,
+        $this->cluster_urldefs, // Structure as below
+        $pager_regex_uid 
+      );
+    } else if ( is_array($pager_regex_uid) ) {
+      $congress_change_link = $pager_regex_uid;
+    }
+    if ( $debug_method ) $this->recursive_dump($congress_change_link,'(marker) Congress Change Link');
+    $congress_change_link = join('', $congress_change_link);
+    /*{{{*/
+    // Pager regex UIDs are taken from the parameterized URLs in $this->cluster_urldefs, as below:
+    //  9f35fc4cce1f01b32697e7c34b397a99 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
+    //    query_template => type=journal&congress=({PARAMS})
+    //    query_components =>
+    //       361d558f79a9d15a277468b313f49528 => 15|14|13
+    //    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?type=journal&congress=({PARAMS})
+    //  1cb903bd644be9596931e7c368676982 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/leg_sys.aspx
+    //    query_template => congress=15&type=journal&p=({PARAMS})
+    //    query_components =>
+    //       0cd3e2b45d2ebc55ca85d461abb6880c => 2|3|4|5
+    //    whole_url => http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=journal&p=({PARAMS})
+    //  acafee00836e5fbce173f8f4b22d13e1 =>
+    //    query_base_url => http://www.senate.gov.ph/lis/journal.aspx
+    //    query_template => congress=15&session=1R&q=({PARAMS})
+    //    query_components =>
+    //       40b2fa87aab9d7dfd8be00197298b532 => 94|93|92|91|90|89|88|87|86|85|84
+    //       c64b23d94c86d9370fb246769579776d => 83|82|81|80|79|78|77|76|75|74|73
+    //    whole_url => http://www.senate.gov.ph/lis/journal.aspx?congress=15&session=1R&q=({PARAMS})
+    /*}}}*/
+    return $congress_change_link;
+  }/*}}}*/
 
   function generate_congress_session_item_markup(UrlModel & $urlmodel, array & $child_collection, $session_select, $query_fragment_filter = '\&q=([0-9]*)', $pager_regex_uid = '9f35fc4cce1f01b32697e7c34b397a99' ) {/*{{{*/
 
@@ -414,7 +418,7 @@ EOH;
      *  from page to page, we will need to relegate processing of the state to parser callbacks rather than
      *  perform the mapping in the general-purpose markup generator.
      */
-		$debug_method = FALSE;
+    $debug_method = FALSE;
 
     if ( !isset($this->cluster_urldefs) ) throw new Exception("Missing cluster_urldefs");
 
@@ -424,7 +428,7 @@ EOH;
 
     if ( $debug_method ) $this->recursive_dump($session_select,'(marker) parameter session_select - -- -');
 
-		$congress_change_link = $this->construct_congress_change_link($pager_regex_uid);
+    $congress_change_link = $this->construct_congress_change_link($pager_regex_uid);
 
     $pagecontent = <<<EOH
 
@@ -437,9 +441,9 @@ EOH;
     if ( $debug_method )
       $this->recursive_dump($child_collection,'(marker) Session and item src');
 
-		$dump_all_congress_entries = FALSE;
-		$level_0_rendered = FALSE;
-		$depth_2_label = 'Session';
+    $dump_all_congress_entries = FALSE;
+    $level_0_rendered = FALSE;
+    $depth_2_label = 'Session';
 
     $active = $session_select;
     $this->filter_nested_array($active,"optval[active=1]",0);
@@ -449,18 +453,18 @@ EOH;
 
     foreach ( $child_collection as $congress => $session_q ) {/*{{{*/
 
-			// Detect Senate Resolutions. 
-			if ( !$dump_all_congress_entries && is_array($session_q) && 1 == count($session_q) ) {/*{{{*/
-				// Test whether the document entries have a Regular/Special session partition.
-				// Some documents (resolutions) are not clustered by session, and 
-				// instead contain the single key 'ALLSESSIONS'.
-				if ( array_element(array_keys($session_q),0) == 'ALLSESSIONS' ) {
-					$this->syslog(__FUNCTION__, __LINE__, "(marker) Two-level array");
-					$dump_all_congress_entries = TRUE;
-				}
-			}/*}}}*/
+      // Detect Senate Resolutions. 
+      if ( !$dump_all_congress_entries && is_array($session_q) && 1 == count($session_q) ) {/*{{{*/
+        // Test whether the document entries have a Regular/Special session partition.
+        // Some documents (resolutions) are not clustered by session, and 
+        // instead contain the single key 'ALLSESSIONS'.
+        if ( array_element(array_keys($session_q),0) == 'ALLSESSIONS' ) {
+          $this->syslog(__FUNCTION__, __LINE__, "(marker) Two-level array");
+          $dump_all_congress_entries = TRUE;
+        }
+      }/*}}}*/
 
-			if ( $dump_all_congress_entries ) {/*{{{*/
+      if ( $dump_all_congress_entries ) {/*{{{*/
         if ( !$level_0_rendered ) { 
           $pagecontent .= <<<EOH
 
@@ -483,7 +487,7 @@ EOH;
         $child_collection = array();
       }/*}}}*/
       else {/*{{{*/
-				if ( !$level_0_rendered ) { 
+        if ( !$level_0_rendered ) { 
           $pagecontent .= <<<EOH
 
 <span class="indent-1">Congress {$congress} {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
@@ -496,7 +500,7 @@ EOH;
           continue;
         }
 
-				// Insert missing regular session links
+        // Insert missing regular session links
         if ( 0 < count($session_select) ) {
           $sessions_extracted = $session_select; 
           $sessions_extracted = $this->filter_nested_array($sessions_extracted,'optval[linktext*=Regular Session|i]');
@@ -505,31 +509,31 @@ EOH;
             if ( !array_key_exists($session, $session_q) ) $session_q[$session] = array();
           }
         }
-			}/*}}}*/
+      }/*}}}*/
 
       krsort($session_q);
 
-      $this->recursive_dump(array_keys($session_q),"(marker) - - - - - Session keys: ");
+      if ($debug_method) $this->recursive_dump(array_keys($session_q),"(marker) - - - - - Session keys: ");
 
       foreach ( $session_q as $session => $q ) {/*{{{*/
 
-				krsort($q);
+        krsort($q);
 
-				// $this->recursive_dump($q,"(marker) {$session} --- ");
+        // $this->recursive_dump($q,"(marker) {$session} --- ");
 
-				if ( empty($session) ) continue;
+        if ( empty($session) ) continue;
 
-				$session_fragment = empty($session)
-					? NULL
-					: "{$depth_2_label} {$session}";
+        $session_fragment = empty($session)
+          ? NULL
+          : "{$depth_2_label} {$session}";
 
-				$per_congress_pager = ( $dump_all_congress_entries )
-					? "[PAGER{$session}]"
-					: $this->get_per_congress_pager($urlmodel, $session, $q, $session_select);
+        $per_congress_pager = ( $dump_all_congress_entries )
+          ? "[PAGER{$session}]"
+          : $this->get_per_congress_pager($urlmodel, $session, $q, $session_select);
 
-				$per_congress_pager = empty($per_congress_pager)
-					? NULL
-					: <<<EOH
+        $per_congress_pager = empty($per_congress_pager)
+          ? NULL
+          : <<<EOH
 <span class="link-faux-menuitem">{$per_congress_pager}</span><br/>
 EOH;
 
@@ -540,7 +544,7 @@ EOH;
         }
 
         $query_regex = '@([^&=]*)=([^&]*)@';
-				$column_entries = $this->generate_congress_session_column_markup($q, is_null($query_fragment_filter) ? NULL : $query_regex);
+        $column_entries = $this->generate_congress_session_column_markup($q, is_null($query_fragment_filter) ? NULL : $query_regex);
 
         $pagecontent .= <<<EOH
 
@@ -554,7 +558,7 @@ EOH;
 EOH;
       }/*}}}*/
 
-			$pagecontent .= <<<EOH
+      $pagecontent .= <<<EOH
 </span>
 EOH;
     }/*}}}*/
@@ -615,9 +619,9 @@ EOH;
       // Take a copy of the rest of the form controls
       $control_set               = $form_controls; // Hidden input controls
       $control_set[$select_name] = $select_option['value']; // Assign ONE select value
-			if ( method_exists($this, 'session_select_option_assignments') ) {
-				$this->session_select_option_assignments($control_set, $select_option, $select_name);
-			}
+      if ( method_exists($this, 'session_select_option_assignments') ) {
+        $this->session_select_option_assignments($control_set, $select_option, $select_name);
+      }
       $generated_link = UrlModel::create_metalink(
         $select_option['text'],
         $urlmodel->get_url(),
@@ -663,14 +667,14 @@ EOH;
         "@[^&;'A-Z0-9ñ ]@i",
         "@[']@i",
         "@[“”]@",
-				'@\&([a-z]*);@i',
-				'@&@i',
+        '@\&([a-z]*);@i',
+        '@&@i',
       ),
       array(
         '',
         "\'",
         '"',
-				' ',
+        ' ',
         ' ',
       ),
       $committee_name)
@@ -686,15 +690,15 @@ EOH;
     return $search_name;
   }/*}}}*/
 
-	static function permalinkify_name($name) {
-		// Manipulate name to allow it's use as a URL component
-		$name = preg_replace(array('@[^a-zñ ]@i','@ñ@i'), array('','n'),strtolower($name));
-		$name = explode(' ', $name);
-		array_walk($name,create_function(
-			'& $a, $k', '$a = 3 < strlen($a) ? strtolower($a) : NULL;'
-		));
-		$name = array_filter($name);
-		return join('-', $name); 
-	}
+  static function permalinkify_name($name) {
+    // Manipulate name to allow it's use as a URL component
+    $name = preg_replace(array('@[^a-zñ ]@i','@ñ@i'), array('','n'),strtolower($name));
+    $name = explode(' ', $name);
+    array_walk($name,create_function(
+      '& $a, $k', '$a = 3 < strlen($a) ? strtolower($a) : NULL;'
+    ));
+    $name = array_filter($name);
+    return join('-', $name); 
+  }
 
 }

@@ -306,7 +306,7 @@ EOH;
 
 		$full_length  = mb_strlen($dom->saveXML());
 		$chunk_length = 16384;
-    $this->syslog(__FUNCTION__,__LINE__, "(marker) --------------------------- mb_strlen " . $full_length );
+    if ($debug_method) $this->syslog(__FUNCTION__,__LINE__, "(marker) --------------------------- mb_strlen " . $full_length );
 		for ( $offset = 0 ; $offset < $full_length ; $offset += $chunk_length ) {
 			$is_final = ($offset + $chunk_length) >= $full_length;
 			xml_parse($this->parser, mb_substr($dom->saveXML(), $offset, $chunk_length), $is_final);

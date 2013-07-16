@@ -384,7 +384,11 @@ a.listing-committee-name {
   text-align: right;
   vertical-align: top;
 }
-
+div.committee-leader-box {
+  display: block;
+  width: 100%;
+  clear: both;
+}
 span.listing-committee-representative {
   display: inline-block;
   width: auto;
@@ -460,3 +464,28 @@ a.clicked {
 	background-color: #AAF;
 	color: white !important;
 }
+
+/** POST links **/
+.fauxpost {
+  display: inline; 
+  padding: 5px;
+  margin-bottom: 5px;
+  color: #D00;
+}
+.fauxpost.selected {
+  background-color: #111;
+  font-weight: bold;
+  color: #F77 !important;
+}
+.full-width {
+  width: 100%;
+}
+
+/*
+.matched {
+  background-color: #DDF;
+}
+.unmatched {
+  background-color: #FDD;
+}
+*/

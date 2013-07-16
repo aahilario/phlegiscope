@@ -34,14 +34,15 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
 
     $target_congress = NULL;
     // We are able to extract names of committees and current chairperson.
+		$committee_leader_boxes = array();
     if ( 0 < count($containers) ) {/*{{{*/
       $committees  = array();
       $pagecontent = '';
       $containers  = array_values($containers);
       krsort($containers,SORT_NUMERIC);
-      $containers  = array_values($containers);
+      $containers = array_values($containers);
+			$committee_count = 0;
       while ( 0 < count( $containers ) ) {/*{{{*/
-        $pagecontent .= "<div>";
         $container = array_values(array_pop($containers));
         krsort($container);
         $container = array_values($container);
@@ -49,10 +50,13 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
           $tag = array_pop($container);
           if ( array_key_exists('url', $tag) ) {
             $hash = UrlModel::get_url_hash($tag['url']);
-            $congress_tag = 
-            $pagecontent .= <<<EOH
-<a href="{$tag['url']}" id="{$hash}" class="legiscope-remote listing-committee-name">{$tag['text']}</a>
-EOH;
+						$committee_count++;
+						$committee_leader_boxes[$committee_count] = array(
+							'hash' => $hash,
+							'text' => <<<EOH
+<a href="{$tag['url']}" id="{$hash}" class="matchable legiscope-remote listing-committee-name">{$tag['text']}</a>
+EOH
+						);
             $committees[$hash] = array(
               'url'            => $tag['url'],
               'committee_name' => $tag['text'],
@@ -81,11 +85,10 @@ EOH;
               fields(array_keys($data))->
               stow();
           }
-          $pagecontent .= <<<EOH
-<span class="representative-name listing-committee-representative">{$tag['text']}</span><br/>
+					$committee_leader_boxes[$committee_count]['text'] .= <<<EOH
+<span id="name-span-{$hash}" class="matchable representative-name listing-committee-representative">{$tag['text']}</span><br/>
 EOH;
         }/*}}}*/
-        $pagecontent .= "</div>";
       }/*}}}*/
       // At this point, the $containers stack has been depleted of entries,
       // basically being transformed into the $committees stack
@@ -94,6 +97,20 @@ EOH;
     else {/*{{{*/
       $pagecontent = join('', $this->get_filtered_doc());
     }/*}}}*/
+
+		$pagecontent = '';
+		while ( 0 < count($committee_leader_boxes) ) {
+			$cl = array_shift($committee_leader_boxes);
+			$pagecontent .= <<<EOH
+<div class="committee-leader-box" id="line-{$cl['hash']}">
+{$cl['text']}
+</div>
+
+EOH;
+		}
+		$pagecontent = <<<EOH
+<div>{$pagecontent}</div>
+EOH;
 
     $committee = array();
     $updated = 0;
@@ -123,11 +140,51 @@ EOH;
     if ( $updated == 0 ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - All {$committees_found} committee names stowed");
 
     $pagecontent = <<<EOH
-<div class="congresista-dossier-list link-cluster suppress-reorder" id="committee-listing"><div>{$pagecontent}</div></div>
+<div class="congresista-dossier-list link-cluster suppress-reorder" id="committee-listing">
+  <div><h2><input type="text" class="full-width" id="filter-committees" /></h2>{$pagecontent}</div>
+</div>
 <div id="committee-details-container" class="alternate-original half-container"></div>
 <script type="text/javascript">
+var match_timeout = null;
 jQuery(document).ready(function(){
   initialize_linkset_clickevents(jQuery('div[id*=committee-listing]'),'div');
+	jQuery('#filter-committees').unbind('clock').click(function(e){
+    e.stopPropagation();
+    e.preventDefault();
+    return false;
+  });
+  jQuery('#filter-committees').keyup(function(e){
+    if ( typeof match_timeout != 'null' ) {
+      clearTimeout(match_timeout);
+      match_timeout = null;
+    }
+    var empty_match = jQuery(this).val().length == 0;
+    var current_re = new RegExp(jQuery(this).val(),'gi');
+    jQuery('div[id=committee-listing]').find('[class*=matchable]').each(function(){
+      jQuery(this).removeClass('unmatched').removeClass('matched');
+      if (empty_match || current_re.test(jQuery(this).text().replace(/ñ/gi,'n')) || current_re.test(jQuery(this).find('a').text().replace(/ñ/gi,'n'))) {
+        jQuery(this).addClass('matched');
+      } else {
+        jQuery(this).addClass('unmatched');
+      }
+    });
+    match_timeout = setTimeout((function(){
+      jQuery('div[id=committee-listing]').find('[class*=matchable]').each(function(){ 
+        if ( jQuery(this).hasClass('matched') || jQuery(this).hasClass('unmatched') ) {
+
+          var selfid = jQuery(this).attr('id');
+          var peer = /^name-span-.*/g.test(selfid) ? selfid.replace(/^name-span-/,'') : selfid;
+					if ( jQuery('[id='+selfid+']').hasClass('unmatched') && jQuery('[id='+peer+']').hasClass('unmatched') ) {
+            jQuery('[id=line-'+selfid.replace(/^name-span-/,'')+']').slideUp();
+          } else 
+					if ( jQuery('[id='+selfid+']').hasClass('matched') | jQuery('[id='+peer+']').hasClass('matched') ) {
+            jQuery('[id=line-'+selfid.replace(/^name-span-/,'')+']').slideDown();
+          }
+
+        }
+      });
+    }),700);
+  });
 });
 </script>
 

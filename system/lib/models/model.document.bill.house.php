@@ -131,8 +131,64 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 
   ///////////////////////////////////////////////////////////////////////
 
+  function resolve_housebill_status_referents(& $bill_cache) {/*{{{*/
+    $substitutions = array_filter(array_map(create_function('$a','return is_array(nonempty_array_element($a["meta"],"status")) ? $a["meta"]["status"] : NULL;'),$bill_cache));
+    $suffixes      = array();
+    // Get substitution SN parts (whole, prefix, pad zeroes, and )
+    $this->filter_nested_array($substitutions,"sn[referent*=substituted-by]");
+    foreach ( $substitutions as $bill_cache_key => $sn_parts ) {
+      $suffix = array_element($sn_parts,3);
+      $bill_cache[$bill_cache_key]['meta']['status'] = nonempty_array_element($bill_cache[$bill_cache_key]['meta']['status'],'original','---');
+      if ( empty($suffix) ) continue;
+      if ( !array_key_exists($suffix, $suffixes) ) {
+        $suffixes[$suffix] = array(
+          'id' => NULL,
+          'bills' => array()
+        );
+      }
+      // Record the distinct SNs affected by this ID assignment
+      $suffixes[$suffix]['bills'][] = $bill_cache_key;
+    }
+    ksort($suffixes);
+
+    // Find House Bill record matching SNs of the substitutes, keep 
+    // their record IDs in $suffixes[$suffix]['id']
+    $regex    = join('|', array_keys($suffixes));
+    $regex    = "^([A-Z]*)([0]*)({$regex})";
+    $this->where(array('AND' => array('sn' => "REGEXP '{$regex}'")))->recordfetch_setup();
+    $document = array();
+    $regex    = "^([A-Z]*)([0]*)([0-9]*)";
+    while ( $this->recordfetch($document) ) {
+      $matches = array();
+      $sn      = array_element($document,'sn');
+      if ( empty($sn) ) continue;
+      if (!(1 == preg_match("@{$regex}@i", $sn, $matches))) continue;
+      $suffix = array_element($matches,3);
+      if ( empty($suffix) ) continue;
+      if ( array_key_exists($suffix, $suffixes) ) {
+         $suffixes[$suffix]['id'] = $document['id'];
+      }
+    }
+
+    // Create Join record specifying foreign table ID in fkey, e.g.
+    // Array ( 'fkey' => < ID of substitute HB record >, <HouseBillHouseBillJoin attrs> )
+    foreach ( $suffixes as $suffix => $map ) {
+      if ( is_null($bill_id  = array_element($map,'id')) ) continue;
+      $bill_sns = array_element($map,'bills');
+      foreach ( $bill_sns as $sn ) {
+        $bill_cache[$sn]['housebill'] = array(
+          'fkey' => $bill_id,
+          'congress_tag' => array_element($bill_cache[$sn],'congress_tag'),
+          'jointype' => 'substituted-by'
+        );
+        // $this->recursive_dump($bill_cache[$sn],"(marker) -- {$sn} --");
+      }
+    }
+  }/*}}}*/
+
   function final_cleanup_parsed_housebill_cache(& $a, $k) {/*{{{*/
 
+    $debug_method = FALSE;
     // Move nested array elements into place, to allow use of 
     // set_contents_from_array()
     $links = array_element($a,"links",array());
@@ -208,7 +264,9 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
         );
       }/*}}}*/
       else {
-        // Assign an existing ID
+        // Assign an existing ID. This branch is executed when
+        // the committee name regexes are updated before each call
+        // to this iterator.
         $mapped = array_element($this->committee_regex_lookup[$name],'id');
       }
       $a['meta']['main-committee'] = array(
@@ -217,20 +275,96 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
       );
     }/*}}}*/
 
-    return TRUE;
-  }/*}}}*/
+    // Parse 'Status' field.  This is messy, and relies on fixed regex matches
+    // on mutable input.
+    if ( !is_null(($status = array_element($meta,'status'))) ) {/*{{{*/
 
-  function cache_parsed_housebill_records_commupdate(& $a, $k) {/*{{{*/
-    $committee_name = $a["meta"]["main-committee"]["raw"];
-    $map_entry      = array_element($this->committee_regex_lookup,$committee_name,array());
-    $a["meta"]["main-committee"]["mapped"] = intval(array_element($map_entry,"id"));
-    if (0 == $a["meta"]["main-committee"]["mapped"]) {
-      unset($a["committee"]);
-    }
-    else {
-      $a["meta"]["main-committee"]["url"]            = $map_entry['url'];
-      $a["meta"]["main-committee"]["committee_name"] = $map_entry['committee_name'];
-    } 
+      // FIXME: Contrive to transfer this code to CongressHbListParseUtility.
+      // Generate Join elements in [housebill] or [republic_act], depending
+      // on the result of parsing this single [status] string.
+      $status_map_regex = array(
+        '^approved by the committee (on .* )?on ([-0-9]*)'                                                         => 'approved-by-committee|$2',
+        '^approved by the house on ([-0-9]*), transmitted to on ([-0-9]*) and received by the Senate on ([-0-9]*)' => 'transmitted-to-senate|$1|$2|$3',
+        '^Approved by the House on ([-0-9]*) and transmitted to the Senate on ([-0-9]*)'                           => 'transmitted-to-senate|$1|$2|',
+        '^pending with the committee on (.*) since ([-0-9]*)'                                                      => 'pending-with-committee|$1|$2',
+        '^bill pending with (.*) \(.*\)'                                                                           => 'pending-with-committee|$1|$2',
+        '^vetoed by the president on([-0-9 ]*)'                                                                    => 'vetoed|$1',
+        '^Under deliberation by (.*) on ([-0-9]*)'                                                                 => 'under-deliberation|$2',
+        '^transm.*itted to the committee on (.*) on ([-0-9]*)'                                                     => 'transmitted-to-committee|$1|$2',
+        '^substituted by ([A-Z0-9]*)'                                                                              => 'substituted-by|$1',
+        '^consolidated into ([A-Z0-9]*)'                                                                           => 'consolidated-into|$1',
+        '^republic act \(?([A-Z0-9]*)\)? (enacted on ([-0-9]*))*'                                                  => 'republic-act|$1|$3',
+        '^adopted resolution \(pending with the committee on (.*) since ([-0-9]*)\)'                               => 'adopted-pending|$1|$2',
+        '^passed by the senate (with amendments )* on ([-0-9]*)'                                                   => 'passed-by-senate|$2',
+        '^printed copies distributed .* on ([-0-9]*)'                                                              => 'distributed|$1',
+        '^unfinished business \(period of (.*)\)'                                                                  => 'unfinished-biz|$1',
+        '^change of committee referral requested on ([-0-9]*)'                                                     => 'referral-change|$1',
+        '^referred to stakeholders on ([-0-9]*)'                                                                   => 'to-stakeholders|$1',
+        '^passed by the senate .* on ([-0-9]*)'                                                                    => 'passed-senate|$1',
+        '^Under study by .*TWG.* on ([-0-9]*)'                                                                     => 'under-twg-study|$1',
+      );
+
+      $status_remapped = preg_replace(
+        array_map(create_function('$a','return "@{$a}@i";'), array_keys($status_map_regex)),
+        array_values($status_map_regex),
+        $status
+      );
+
+      $state        = explode('|', $status_remapped);
+      $referent     = array_element($state,0);
+      switch( $referent ) {
+        case 'pending-with-committee':
+          // Uninteresting, unless the committee isn't the primary referral destination.
+          $committee_name = nonempty_array_element($state,1);
+          if ($debug_method) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) ------- {$state} {$a['sn']}: {$status_remapped} ---- {$status}");
+            $this->recursive_dump($a,"(marker) --");
+          }
+          break;
+        case 'substituted-by':
+          $substitution_sb = nonempty_array_element($state,1);
+          $subst_sn_parts = array();
+          $subst_sn_regex = '@^([A-Z]*)([0]*)([0-9]*)@i';
+          if ( 1 == preg_match($subst_sn_regex,$substitution_sb,$subst_sn_parts) ) {
+            $a['meta']['status'] = array(
+              'original'     => $status,
+              'subst_prefix' => array_element($subst_sn_parts,1),
+              'referent'     => $referent,
+              'sn'           => $subst_sn_parts, // Element 0 should contain the original
+              'mapped'       => NULL
+            );
+            if ($debug_method) {
+              $this->syslog(__FUNCTION__,__LINE__,"(marker) ------- {$state} {$a['sn']}: {$status_remapped} ---- {$status}");
+              $this->recursive_dump($a['meta']['substituted-by'],"(marker) --");
+            }
+          }
+          break;
+        case 'republic-act':
+          $republic_act = nonempty_array_element($state,1);
+          $enactment_date = nonempty_array_element($state,2);
+          $a['meta']['status'] = array(
+            'original'     => $status,
+            'referent'     => $referent,
+            'sn'           => $republic_act,
+            'enactment'    => $enactment_date,
+            'mapped'       => NULL,
+          );
+          if (TRUE||$debug_method) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) ------- {$state} {$a['sn']}: {$status_remapped} ---- {$status}");
+            $this->recursive_dump($a['meta']['substituted-by'],"(marker) --");
+          }
+          break;
+        default:
+          $state = ( $status_remapped == $status ) ? "UNMAPPED" : "Status";
+          if ($debug_method) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) ------- {$state} {$a['sn']}: {$status_remapped} ---- {$status}");
+          }
+          break;
+      }
+
+    }/*}}}*/
+
+    return TRUE;
   }/*}}}*/
 
   function cache_parsed_housebill_records(& $bill_cache_source, $congress_tag, $from_network) {/*{{{*/
@@ -243,6 +377,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
       array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source),
       $bill_cache_source
     );
+
     // Transform [meta] records, by moving their content into appropriate
     // Join property containers.
     //
@@ -261,27 +396,27 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     //    so we can only move nested array members around here, to allow us
     //    to call set_contents_from_array($record) later.
 
+    // Add last_fetch and congress_tag attributes
+    array_walk($bill_cache,create_function(
+      '& $a, $k, $s', 'if ( $s["n"] ) $a["last_fetch"] = time(); if ( is_null(array_element($a,"congress_tag"))) $a["congress_tag"] = $s["c"];'
+    ),array('n' => $from_network, 'c' => intval($congress_tag)));
+
     // Cleanup before omitting preexisting records
-    // Populate the committee name lookup table during cleanup
+    // - Also, populate the committee name lookup table
     array_walk($bill_cache,create_function(
       '& $a, $k, $s', '$s->final_cleanup_parsed_housebill_cache($a,$k);'
     ), $this);
 
     // Update the lookup table
-    $this->get_foreign_obj_instance('committee')->update_committee_name_regex_lookup($this->committee_regex_lookup);
+    $this->get_foreign_obj_instance('committee')->update_committee_name_regex_lookup($bill_cache,$this->committee_regex_lookup);
 
-    // Update bill cache with committee names, IDs, and URLs.
-    array_walk($bill_cache,create_function(
-      '& $a, $k, $s', '$s->cache_parsed_housebill_records_commupdate($a,$k);'
-    ),$this);
-
-    array_walk($bill_cache,create_function(
-      '& $a, $k, $s', 'if ( $s["n"] ) $a["last_fetch"] = time(); if ( is_null(array_element($a,"congress_tag"))) $a["congress_tag"] = $s["c"];'
-    ),array('n' => $from_network, 'c' => intval($congress_tag)));
-
+    // Update status (create Joins with appropriate attributes)
+    $this->resolve_housebill_status_referents($bill_cache);
+    $this->get_foreign_obj_instance('republic_act')->resolve_republic_act_consequents($bill_cache,'republic_act');
     $this->get_join_instance('committee')->prepare_cached_records($bill_cache);
     $this->get_join_instance('representative')->prepare_cached_records($bill_cache);
-    
+   
+    if ( $debug_method ) $this->recursive_dump($bill_cache,"(marker) -- Return to caller --");
     $bill_cache_source = $bill_cache;
 
     gc_collect_cycles();
@@ -290,16 +425,11 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 
     // Cleanup extant records
 
-    if ( $debug_method )
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) Searching for matches to Congress {$congress_tag} " . join(',',$bill_sns));
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Searching for matches to Congress {$congress_tag} " . join(',',$bill_sns));
 
     $this->debug_final_sql = FALSE;
     $this->
       join_all()->
-      //join(array(
-      //  'committee[jointype*=main-committee]',
-      //  'representative[relation_to_bill=principal-author]',
-      //))->
       where(array('AND' => array(
         '`a`.`congress_tag`' => intval($congress_tag),
         '`a`.`sn`' => $bill_sns
@@ -309,7 +439,9 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     $hb = array();
     $debug_checker = FALSE;
     $join_exclusions = $this->get_joins();
+
     if ( $debug_checker) $this->recursive_dump($join_exclusions,"(marker) -- JOINS --");
+
     while ( $this->recordfetch($hb,TRUE) ) {/*{{{*/
       
       // TODO: If an extant Join matches what has been passed in, then remove both
@@ -360,7 +492,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
             $this->recursive_dump($delta,"(marker) -- delta - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
           }/*}}}*/
         }
-         else {
+        else {
           if ( $debug_checker ) $this->recursive_dump($bill_cache[$sn],"(marker) -- skip - {$sn}.{$hb['congress_tag']} #{$hb['id']} - --");
           unset($bill_cache[$sn]);
         }
@@ -374,12 +506,13 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     if ( $debug_checker ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Matches: " . count($bill_cache));
 
     $bill_cache = array_filter($bill_cache);
+
     // Stow Joins between each bill and main committee
 
-    if ( $debug_method ) {
+    if ( $debug_method ) {/*{{{*/
       $this->recursive_dump($this->fetch_combined_property_list(), "(marker) P  - - - - -");
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Storing " . join(', ', array_keys($bill_cache)));
-    }
+    }/*}}}*/
 
     // Store records not found in DB or that are updated
 
@@ -389,9 +522,10 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 
       unset($cache_entry['links']);
       unset($cache_entry['meta']);
-      // unset($cache_entry['status']['mapped']);
 
-      if ((is_null(array_element($cache_entry,'url')) || empty($cache_entry['url']) ) && 
+      if (!is_null(array_element($cache_entry,'republic_act'))) {
+      }
+      else if ((is_null(array_element($cache_entry,'url')) || empty($cache_entry['url']) ) && 
         (is_null(array_element($cache_entry,'url_history')) || empty($cache_entry['url_history']) ) &&
         (is_null(array_element($cache_entry,'url_engrossed')) || empty($cache_entry['url_engrossed']) )
       ) {
@@ -410,8 +544,35 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
         $this->recursive_dump($cache_entry, "(marker) E {$cache_entry['sn']}:{$cache_entry['id']} - - - - -");
       }
 
+      // Ensure that existing records are loaded before update. 
+      $bill_id      = array_element($cache_entry,'id');
+      $sn           = array_element($cache_entry,'sn');
+      $congress_tag = array_element($cache_entry,'congress_tag');
+
+      if (!is_null($congress_tag) && !is_null($sn)) {
+        $this->
+          set_id(NULL)->
+          where(array('AND' => array(
+            'sn' => $sn,
+            'congress_tag' => $congress_tag,
+          )))->recordfetch_setup();
+        $bill_id = NULL;
+        while ( $this->recordfetch($record,TRUE) ) {
+          // Additional records that result from left joins are simply discarded.
+          if ( is_null($bill_id) ) {
+             $bill_id = $record['id'];
+            if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- -- Matched record {$record['sn']}.{$record['congress_tag']} #{$record['id']}");
+          }
+        }
+        if ( is_null($bill_id) ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- -- New record {$record['sn']}.{$record['congress_tag']}");
+        }
+      } else {
+        $bill_id = NULL;
+      }
+
       $bill_id = $this->
-        set_id(NULL)->
+        set_id($bill_id)->
         set_contents_from_array($cache_entry,TRUE)->
         stow();
 
@@ -420,6 +581,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
         if ($debug_method || !empty($error)) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Stored {$bill_id} {$cache_entry['sn']}.{$cache_entry['congress_tag']}");
       } else {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) -- FAILED TO STORE/UPDATE {$cache_entry['sn']}.{$cache_entry['congress_tag']}");
+        $this->recursive_dump($cache_entry,"(marker) - - -");
       }
       $cache_entry = NULL;
     }/*}}}*/

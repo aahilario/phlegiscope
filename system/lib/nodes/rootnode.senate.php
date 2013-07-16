@@ -29,13 +29,14 @@ class SenateRootnode extends GlobalRootnode {
     array_walk($n,create_function('& $a, $k', '$a = array("primary" => array(), "secondary" => array());'));
 
     $markup = <<<EOH
-<h1>{committee_name}</h1>
+<h2>{committee_name}</h2>
+<hr/>
 <p>{jurisdiction}</p>
-<h2>Leadership</h2>
-<p>{{senator:role}}</p> <a class="legiscope-remote" href="{senator.bio_url}">{senator.fullname}</a>
-<h2>Legislation</h2>
-<h3>Primary</h3>
-<h3>Secondary</h3>
+<h3>Leadership</h3>
+<p><a class="legiscope-remote" href="{senator.bio_url}">{senator.fullname}</a> ({senator:role})</p> 
+<h3>Legislation</h3>
+<h4>Primary</h4>
+<h4>Secondary</h4>
 EOH;
 
     $element = $leading;

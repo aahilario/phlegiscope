@@ -248,12 +248,8 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
   function get_parsed_housebill_template( $hb_number, $congress_tag = NULL ) {/*{{{*/
     return array(
       'sn'            => $hb_number,
-      //'last_fetch'    => time(),
       'description'   => NULL,
       'congress_tag'  => $congress_tag,
-      // 'url_history'   => NULL, // Document activity history
-      // 'url_engrossed' => NULL, // "Text as engrossed ..." URL.
-      // 'url'           => NULL,
       'meta'         => array(
         'main-committee'   => array('mapped' => NULL),
         'principal-author' => array('mapped' => NULL),
@@ -279,6 +275,7 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
       if ( $debug_method ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Fake URL, real content: " . $urlmodel->get_url());
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Target congress: {$congress_tag} <- (" . gettype($metalink) . "){$metalink}" );
+				$this->recursive_dump($metalink,"(marker) -");
       }/*}}}*/
     }/*}}}*/
 
@@ -292,17 +289,15 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     $this->start_offset = $this->filter_post('parse_offset',0);
     $this->parse_limit  = $this->filter_post('parse_limit',20);
 
-    if ( !$have_parsed_data || $parser->update_existing ) {/*{{{*/
+    if ( !$have_parsed_data || $parser->update_existing ) {/*{{{*/// Stow raw parsed data 
 
       if ( $debug_method ) {/*{{{*/
         $state = $have_parsed_data ? "existing" : "de novo";
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Regenerating {$state}: " . $shadow_url->get_url() );
       }/*}}}*/
 
-      if ( !$have_parsed_data ) {
-        $this->start_offset = NULL;
-        $this->parse_limit  = NULL;
-      }
+			$this->start_offset = NULL;
+			$this->parse_limit  = NULL;
 
       // Parse content stored in shadow_url
       $this->
@@ -358,6 +353,7 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
         stow();
 
       $error = $shadow_url->error();
+
       if ( !empty($error) || $debug_method ) {/*{{{*/
         $state = !empty($error) ? "Error {$error} stowing" : ($have_parsed_data ? "Reparsed" : "Stored");
         $this->syslog( __FUNCTION__, __LINE__, "(marker) {$state} {$this->bill_head_entries} entries: " . $shadow_url->get_url() );
@@ -376,7 +372,6 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     $entries          = nonempty_array_element($this->container_buffer,'entries');
 
     if ( is_null($congress_tag) ) $congress_tag = nonempty_array_element($this->container_buffer,'congress_tag');
-    // $this->container_buffer['parsed_bills'] = array_reverse($this->container_buffer['parsed_bills']);
 
     $partitions       = count($this->container_buffer['parsed_bills']);
     $partition_start  = floor($offset / $partition_width);
@@ -384,8 +379,7 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     $partition_end    = floor(($offset + $span) / $partition_width);
 
     if ( $debug_method )
-    $this->syslog(__FUNCTION__,__LINE__,
-      "(marker) Getting n = {$span} from {$partition_start}.{$partition_offset} - {$partition_end}");
+    $this->syslog(__FUNCTION__,__LINE__, "(marker) Getting n = {$span} from {$partition_start}.{$partition_offset} - {$partition_end}");
 
     $final_list = array();
     $i = $partition_start;
@@ -408,6 +402,10 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
       $i++;
     }/*}}}*/
     while ((count($final_list) < $span) && ($i < $partitions));
+
+    if ( $debug_method )
+    $this->syslog(__FUNCTION__,__LINE__, "(marker) Returning " . count($final_list) . " entries from source with " . count($this->container_buffer['parsed_bills']) . " partitions");
+
 
     $this->container_buffer['parsed_bills'] = $final_list; 
 

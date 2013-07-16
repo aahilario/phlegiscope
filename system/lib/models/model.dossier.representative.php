@@ -144,14 +144,15 @@ class RepresentativeDossierModel extends DatabaseUtility {
       $nameparts['given']  = str_replace($match,'',$nameparts['given']);
       $nameparts['suffix'] = array_element($match,0);
     }
+    if ( is_array($nameparts) ) $nameparts = array_filter($nameparts);
+    if ( !is_array($nameparts) || !(0 < count($nameparts)) ) return NULL;
     return $nameparts;
 
   }/*}}}*/
 
   function replace_legislator_names_hotlinks(& $name) {/*{{{*/
     $nameparts = $this->parse_name($name);
-    if ( is_array($nameparts) ) $nameparts = array_filter($nameparts);
-    if ( !is_array($nameparts) || !(0 < count($nameparts)) ) return NULL;
+    if ( is_null($nameparts) ) return NULL;
     $original_name = $name;
     $matches = preg_replace('@[^A-Z]@i','(.*)',"{$nameparts['surname']},{$nameparts['given']}"); 
     $template = <<<EOH

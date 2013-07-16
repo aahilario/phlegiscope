@@ -108,7 +108,6 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
       // walk through the result set
       array_walk($committee_name_list,create_function(
         '& $a, $k, $s',
-        // '$matches = array(); if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; $a["matches"] = $matches; }'
         'if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; $a["committee_name"] = $s["committee_name"]; $a["url"] = $s["url"]; }'
       ),$comm);
       $n++;
@@ -123,7 +122,20 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
     return $n;
   }/*}}}*/
 
-  function update_committee_name_regex_lookup(& $committee_regex_lookup) {/*{{{*/
+  function cache_parsed_housebill_records_commupdate(& $a, $k) {/*{{{*/
+    $committee_name = $a["meta"]["main-committee"]["raw"];
+    $map_entry      = array_element($this->committee_regex_lookup,$committee_name,array());
+    $a["meta"]["main-committee"]["mapped"] = intval(array_element($map_entry,"id"));
+    if (0 == $a["meta"]["main-committee"]["mapped"]) {
+      unset($a["committee"]);
+    }
+    else {
+      $a["meta"]["main-committee"]["url"]            = $map_entry['url'];
+      $a["meta"]["main-committee"]["committee_name"] = $map_entry['committee_name'];
+    } 
+  }/*}}}*/
+
+  function update_committee_name_regex_lookup(& $bill_cache, & $committee_regex_lookup) {/*{{{*/
 
     $unmapped_committee_entries = array_filter(array_map(create_function(
       '$a', 'return "UNMAPPED" == array_element($a,"id") ? $a : NULL;'
@@ -146,6 +158,13 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
         }
       }
       ksort($committee_regex_lookup);
+
+			$this->committee_regex_lookup = $committee_regex_lookup;
+      // Update bill cache with committee names, IDs, and URLs.
+      array_walk($bill_cache,create_function(
+        '& $a, $k, $s', '$s->cache_parsed_housebill_records_commupdate($a,$k);'
+      ),$this);
+			$this->committee_regex_lookup = NULL; 
     }
 
     return $fixed_mapping;

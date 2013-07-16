@@ -45,7 +45,6 @@ class GazetteCommonParseUtility extends GenericParseUtility {
     return TRUE;
   }/*}}}*/
 
-
   function ru_div_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->push_container_def($tag, $attrs);
     return TRUE;
@@ -101,10 +100,10 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
   function ru_script_close(& $parser, $tag) {/*{{{*/
 		$this->current_tag();
-		$this->recursive_dump($this->current_tag['cdata'], 
+		if ( C('DEBUG_GAZETTE_SOURCE_JAVASCRIPT') ) $this->recursive_dump($this->current_tag['cdata'], 
 			"(marker) Scr");
     $this->add_to_container_stack($this->current_tag);
-    return TRUE;
+    return FALSE;
   }/*}}}*/
 
   function ru_style_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -183,7 +182,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
 
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
     return parent::ru_p_open($parser,$attrs,$tag);
-  }  /*}}}*/
+  }/*}}}*/
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
     if ( 1 == preg_match('@(nginx)@i', $cdata) ) {
       $this->pop_tagstack();
@@ -194,9 +193,7 @@ class GazetteCommonParseUtility extends GenericParseUtility {
   }/*}}}*/
   function ru_p_close(& $parser, $tag) {/*{{{*/
 		$this->current_tag();
-		if (is_array($this->current_tag) &&
-			array_key_exists('discard',$this->current_tag) &&
-	    ($this->current_tag['discard'] === TRUE)) {
+		if (is_array($this->current_tag) && array_key_exists('discard',$this->current_tag) && ($this->current_tag['discard'] === TRUE)) {
       $this->pop_tagstack();
       $this->current_tag['cdata'] = array();
       $this->push_tagstack();

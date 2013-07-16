@@ -31,7 +31,7 @@ echo <<<EOH
 			<input id="siteURL" type="text" />
 			<div id="permalinks" class="linkset">
 				<ul class="link-cluster">
-					<li><a class="legiscope-remote" href="http://www.gov.ph/section/legis/">Official Gazette</a></li>
+					<li><a class="legiscope-remote" href="http://www.gov.ph/section/legis/republic-acts/page/1">Official Gazette</a></li>
 					<li><a class="legiscope-remote" href="http://www.gov.ph/the-philippine-constitutions/">O.G. - Constitutions</a></li>
 					<li><a class="legiscope-remote" href="http://www.senate.gov.ph">Senate</a></li>
 					<li><a class="legiscope-remote" href="http://www.congress.gov.ph">Congress</a></li> 

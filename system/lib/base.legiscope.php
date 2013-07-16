@@ -572,7 +572,11 @@ class LegiscopeBase extends SystemUtility {
         ? CurlUtility::head($url_copy, $curl_options)
         : CurlUtility::get($url_copy, $curl_options)
         ;
-      if ( $debug_dump || !array_key_exists('http_code',CurlUtility::$last_transfer_info) || !(200 == intval(CurlUtility::$last_transfer_info['http_code'])) ) $this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) GET/HEAD");
+			if ( $debug_dump ||
+				!array_key_exists('http_code',CurlUtility::$last_transfer_info) ||
+				!(200 == intval(CurlUtility::$last_transfer_info['http_code'])) ) {
+				 	$this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) GET/HEAD " . __LINE__ );
+				}
       $successful_fetch = CurlUtility::$last_error_number == 0;
     }/*}}}*/
 

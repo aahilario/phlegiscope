@@ -42,7 +42,7 @@ class CongressGovPh extends SeekAction {
   function seek_by_pathfragment_f0923b5f3bb0f191dedd93e16d3658ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // Handler for metadata path
     // http://www.congress.gov.ph/legis/search/hist_show.php?save=1&journal=J069&switch=0&bill_no=HB03933&congress=15
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+
     $common      = new CongressCommonParseUtility();
     $common->
       set_parent_url($urlmodel->get_url())->
@@ -52,7 +52,7 @@ class CongressGovPh extends SeekAction {
 
     $this->recursive_dump(($meta = $common->get_containers(
       'children[tagname*=body]{[text]}',0
-    )), "(marker) --- -- --- --");
+    )), "(barker) --- -- --- --");
 
     $pagecontent = str_replace('[BR]','<br/>',join('<br/>',array_element($meta,0,array())));
 
@@ -367,6 +367,7 @@ EOH;
 
   function seek_postparse_d_billstext(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     // House Bills
     // Partition large list into multiple processable chunks, transmit
     // these in bulk to the client browser as JSON fragments.
@@ -418,6 +419,8 @@ EOH;
     $emit_frame     = is_null($congress_tag);
     $generated_link = array();
 
+    if ( $debug_method ) $this->recursive_dump(nonempty_array_element($actions,'form_controls'),"(marker) -- - --");
+
     foreach ( nonempty_array_element($actions,'form_controls') as $k => $v ) {/*{{{*/
       foreach ( $v as $val ) {
         $link_class_selector = array('fauxpost');
@@ -445,10 +448,10 @@ EOH;
 
     $emit_frame     = $emit_frame || ($parse_offset == 0);
 
-    // FIXME:  Use per-method session store
+    // FIXME: Use per-method session store
     $last_fetch     = $this->filter_post('last_fetch', $parser->from_network ? time() : 'null');
 
-    if ( $debug_method || $emit_frame ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Offset: {$parse_offset}. " . ($emit_frame ? "Emitting" : "Not emitting") . " frame");
+    if ( $debug_method /*|| $emit_frame*/ ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Offset: {$parse_offset}. " . ($emit_frame ? "Emitting" : "Not emitting") . " frame");
 
     // Send markup container and script 
     if ( $emit_frame ) $pagecontent = <<<EOH
@@ -473,7 +476,7 @@ var cached = jQuery.parseJSON("{$cached}");
 function emit_bill_entries(entries) {
   for ( var p in entries ) {
     var entry = entries[p];
-    var links = entry.links;
+    var links = entry && entry.links ? entry.links : null;
     var representative = entry && entry.representative ? entry.representative : null;
     var committee = entry && entry.committee ? entry.committee : null;
     jQuery('#parsed-content').append(
@@ -488,7 +491,7 @@ function emit_bill_entries(entries) {
           jQuery(document.createElement('SPAN'))
             .addClass('republic-act-heading')
             .addClass('clear-both')
-            .append(links.filed
+            .append(links && links.filed
               ? jQuery(document.createElement('A'))
                 .attr('href',links.filed)
                 .addClass('legiscope-remote')
@@ -507,7 +510,13 @@ function emit_bill_entries(entries) {
             .addClass('republic-act-meta')
             .addClass('clear-both')
             .append(jQuery(document.createElement('B')).html('Status: '))
-            .append(entry.meta && entry.meta.status ? entry.meta.status : '')
+            .append(
+              entry.meta && entry.meta.status
+              ? entry.meta.status.original 
+                ? entry.meta.status.original
+                : entry.meta.status
+              : ''
+            )
         )
         .append(committee
           ? jQuery(document.createElement('SPAN'))
@@ -595,6 +604,20 @@ EOH;
   }/*}}}*/
 
   /** Automatically matched parsers **/
+
+  function seek_by_pathfragment_6e242fdc8fb6d6f9eacd5ac9869f3015(& $parser, & $pagecontent, & $urlmodel) {
+		$this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
+	}
+
+  function seek_by_pathfragment_d89f6d777c7c648792580db32d8867b1(& $parser, & $pagecontent, & $urlmodel) {
+		$this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
+	}
+
+   function seek_by_pathfragment_38ba6300f99b9aff7f316d454326f418(& $parser, & $pagecontent, & $urlmodel) {
+		$this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
+	}
+
+  
 
   function seek_by_pathfragment_e4d1bcf92a20bcf057f690e18c95d159(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
@@ -769,6 +792,9 @@ EOH;
 
   function must_custom_parse(UrlModel & $url) {/*{{{*/
     return ( 
+      // PDF links intercepted by the parser class
+      1 == preg_match('@http://www.congress.gov.ph/download/(.*)/(.*).pdf@i', $url->get_url()) ||
+			// Normal markup pages on congress.gov.ph
       1 == preg_match('@http://www.congress.gov.ph/download/index.php\?d=billstext@i', $url->get_url()) ||
       1 == preg_match('@http://www.congress.gov.ph/members(([/]*)(.*))*@i', $url->get_url()) ||
       1 == preg_match('@http://www.congress.gov.ph/download/index.php\?d=journals(.*)@i', $url->get_url()) ||

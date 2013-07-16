@@ -10,12 +10,13 @@
 
 class SeekAction extends LegiscopeBase {
   
-  var $debug_memory_usage_delta = FALSE;
+  var $debug_memory_usage_delta = TRUE;
   var $update_existing = FALSE;
 
   function __construct() {
     parent::__construct();
     $this->register_derived_class();
+    $this->debug_handler_names = TRUE;
   }
 
   function seek() {/*{{{*/
@@ -25,7 +26,7 @@ class SeekAction extends LegiscopeBase {
 
     $debug_method = FALSE;
 
-    $json_reply      = array();
+    $json_reply   = array();
     $this->update_existing = $this->filter_post('update') == 'true'; 
     $modifier        = $this->filter_post('modifier');
     $metalink        = $this->filter_post('metalink');
@@ -41,7 +42,7 @@ class SeekAction extends LegiscopeBase {
     $target_url_hash = UrlModel::get_url_hash($target_url); 
 
     if ( $debug_method ) {
-			$this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
+      $this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
       $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
     }
 
@@ -82,7 +83,7 @@ class SeekAction extends LegiscopeBase {
 
     if ( $network_fetch ) {/*{{{*/
 
-      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method || TRUE );
+      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method );
 
       $action = $retrieved
         ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
@@ -103,13 +104,13 @@ class SeekAction extends LegiscopeBase {
 
     }/*}}}*/
 
-		if ( ( $debug_method ) /*|| !is_null($faux_url)*/ ) {/*{{{*/
+    if ( $debug_method /*|| !is_null($faux_url)*/ ) {/*{{{*/
 
       $cached_before_retrieval = $retrieved ? "existing" : "uncached";
       $this->syslog( __FUNCTION__, __LINE__, "(marker) " . ($network_fetch ? "Network Fetch" : "Parse") . " {$cached_before_retrieval} link, invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
       $in_db = $retrieved ? 'in DB' : 'uncached';
-			$faux_url_type = gettype($faux_url);
+      $faux_url_type = gettype($faux_url);
 
       $this->syslog(__FUNCTION__,__LINE__, "(marker)  Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url}" );
       $this->syslog(__FUNCTION__,__LINE__, "(marker)   Mapped real URL {$target_url} -> faux URL {$faux_url}" );
@@ -127,13 +128,12 @@ class SeekAction extends LegiscopeBase {
     $headers        = $url->get_response_header(TRUE);
     $curl_error_no  = CurlUtility::$last_error_number;
     $curl_error_msg = CurlUtility::$last_error_message;
-		$parser         = $this;
+    $parser         = $this;
     $body_content   = NULL;
 
     $headers['legiscope-regular-markup'] = 0;
 
-    if ( ( array_key_exists('http_code', $headers) && (504 == intval($headers['http_code']) ) ) || 
-      (array_key_exists('http-response-code', $headers) && ($headers['http-response-code'] == 504) ) ) {/*{{{*/
+    if ( 504 == array_element($headers,'http_code') || 504 == array_element($headers,'http-response-code') ) {/*{{{*/
       $response_kind = empty($headers['http_code']) ? "Empty response code (#{$curl_error_no}, '{$curl_error_msg}')" : "Bad response code [{$headers['http_code']}]";
       $this->recursive_dump($headers,"(marker) H --");
       $this->syslog( __FUNCTION__, __LINE__, "(marker) -- -- -- - - - -- -- -- {$response_kind}, NF " . ($network_fetch ? 'OK' : 'NO') . ", successful " . ($retrieved ? 'YES' : 'NO'));
@@ -163,7 +163,7 @@ class SeekAction extends LegiscopeBase {
 
       $json_reply  = array(); // May be overridden by per-site handler, see below
 
-			$contenttype = array_element($headers,'content-type','unspecified');
+      $contenttype = array_element($headers,'content-type','unspecified');
       $subject_url = is_null($faux_url) ? $target_url : $faux_url;
 
       if ( $debug_method || ( $network_fetch && !$retrieved ) ) {/*{{{*/
@@ -191,23 +191,40 @@ class SeekAction extends LegiscopeBase {
 
         if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker)  - - - - Content-Type: {$headers['content-type']}");
 
-        // Parsers only handle HTML content
-        if ( 1 == preg_match('@^text/html@i', $headers['content-type']) ) {/*{{{*/
+        // Parsers only handle HTML content; PDF content may be intercepted
+        // by parsers, as in the case of Republic Act documents, where the PDF
+        // documents are of secondary importance to end-users. 
 
-          $headers['legiscope-regular-markup'] = 1;
-
-          // Speed up parsing by skipping generic parser
-          if ( method_exists($this, 'must_custom_parse') ) {
-            if ( !$url->is_custom_parse() && $this->must_custom_parse($url) ) {
-              $url->ensure_custom_parse();
-            }
+        // Speed up parsing by skipping generic parser
+        if ( method_exists($this, 'must_custom_parse') ) {
+          if ( !$url->is_custom_parse() && $this->must_custom_parse($url) ) {
+            $url->ensure_custom_parse();
           }
+        }
 
-          $is_custom_parse = $url->is_custom_parse();
+        $is_custom_parse = $url->is_custom_parse();
+
+        // Handle PDF and HTML content.  See interaction between these
+        // content types with the is_custom_parse flag.
+        $is_pdf  = (1 == preg_match('@^application/pdf@i', $headers['content-type']));
+        $is_html = (1 == preg_match('@^text/html@i', $headers['content-type']));
+
+        if ( $is_pdf && !$is_custom_parse ) {/*{{{*/
+          $body_content = 'PDF';
+          $body_content_length = $url->get_content_length();
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) PDF fetch {$body_content_length} from " . $url->get_url());
+          $headers['legiscope-regular-markup'] = 0;
+          // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
+          $json_reply = array('retainoriginal' => 'true');
+          if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
+        }/*}}}*/
+        else if ( $is_html || ($is_pdf && $is_custom_parse) ) {/*{{{*/
+
+          $headers['legiscope-regular-markup'] = $is_html;
 
           if ( $is_custom_parse && $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) Custom parse" );
 
-					$parser = new GenericParseUtility();
+          $parser = new GenericParseUtility();
 
           // Defer parsing by setting the URL custom_parse flag in DB
           $structure = $is_custom_parse
@@ -216,10 +233,10 @@ class SeekAction extends LegiscopeBase {
             ;
 
           // Only process <body> tag content
-					$body_content = $is_custom_parse
-						? NULL
-						:	$parser->fetch_body_generic_cleanup($pagecontent)
-						;
+          $body_content = $is_custom_parse
+            ? NULL
+            :  $parser->fetch_body_generic_cleanup($pagecontent)
+            ;
 
           // Custom-parsed page handlers must generate navigation links
           $linkset = $is_custom_parse
@@ -292,15 +309,7 @@ class SeekAction extends LegiscopeBase {
           }
 
         }/*}}}*/
-        else if ( 1 == preg_match('@^application/pdf@i', $headers['content-type']) ) {/*{{{*/
-          $body_content = 'PDF';
-          $body_content_length = $url->get_content_length();
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) PDF fetch {$body_content_length} from " . $url->get_url());
-          $headers['legiscope-regular-markup'] = 0;
-          // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
-          $json_reply = array('retainoriginal' => 'true');
-          if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
-        }/*}}}*/
+
       }/*}}}*/
 
       if ( is_null($freeze_referrer) ) {/*{{{*/
@@ -400,5 +409,93 @@ class SeekAction extends LegiscopeBase {
     // $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
-}
 
+  /** Republic Act PDF intercept **/
+  // FIXME: Consider adding an intermediate inheritance hierarchy successor node
+
+  function republic_act_pdf_intercept(& $parser, & $pagecontent, & $urlmodel) {
+
+    $linktext    = $parser->trigger_linktext;
+    $pagecontent = "Republic Act Meta Information Page [{$linktext}]";
+
+    // TODO: Create separate View container classes
+    $republic_act = new RepublicActDocumentModel();
+    $republic_act->
+      join_all()->
+      where(array('AND' => array('sn' => $linktext)))->
+      recordfetch_setup();
+
+    if ( $republic_act->recordfetch($ra,TRUE) ) {
+
+      $legislation_precursors = array();
+      do {/*{{{*/
+        // Only generate precursor entries if at least one of
+        // - hb_precursors
+        // - sb_precursors
+        // is NULL, and the [origin] attribute names valid precursor docs.
+        if (is_array($precursors = $republic_act->find_unresolved_origin_joins($ra))) {
+          $legislation_precursors[$ra['id']] = $precursors;
+        }
+      }/*}}}*/
+      while ( $republic_act->recordfetch($ra,TRUE) );
+
+      if ( 0 < ($republic_act->fix_unresolved_origin_joins($legislation_precursors))) {
+
+      } else {
+      }
+
+      $recorded_time = gmdate('Y/m/d H:i:s',$republic_act->get_create_time());
+
+			$republic_act->get_stuffed_join('sb_precursors');
+			$republic_act->get_stuffed_join('hb_precursors');
+
+			if ( !is_null($content = $republic_act->get_content()) ) {
+				$content = json_decode($content,TRUE);
+				if ( !is_null($content) && is_array($content) ) {
+					array_walk($content,create_function(
+						'& $a, $k', '$a = array_key_exists("url",$a) ? "<a href=\"{$a["url"]}\" class=\"legiscope-remote\">{$a["text"]}</a>" : "<p>" . str_replace("[BR]","<br/>",$a["text"]) . "</p>";'
+					));
+					if ( 0 < count($content) ) {
+						$content = join("\n", $content);
+						$republic_act->set_content($content);
+					}
+					$content = NULL;
+				} else {
+					$republic_act->set_content('');
+				}
+			}
+
+			$this->recursive_dump($republic_act->get_all_properties(),"(marker) -- GAP --");
+ 
+      $template = <<<EOH
+<h1>{sn}</h1>
+<p>{description}</p>
+<p><b>Origin</b>: <a class="legiscope-remote" href="{sb_precursors.url}">{sb_precursors.sn}</a> &nbsp; <a class="legiscope-remote" href="{hb_precursors.url}">{hb_precursors.sn}</a></p>
+<hr/>
+<span><b>Recorded</b>: {$recorded_time}</span><br/>
+<span><b>Source</b>: <a href="{url}" target="_legiscope">{url}</a></span><br/>
+{content}
+<hr/>
+<span>Republic Act Meta Information Page [{sn}]</span><br/>
+<script type="text/javascript">
+jQuery(document).ready(function(){
+  jQuery('title').html('{$linktext}');
+});
+</script>
+
+
+EOH;
+      $pagecontent = $republic_act->substitute($template);
+    } else {
+      $pagecontent = 'PDF';
+    }
+
+    // Mandatory content type override
+    $parser->json_reply = array(
+      'retainoriginal' => TRUE,
+      'contenttype' => 'text/html'
+    );
+  }
+
+
+}

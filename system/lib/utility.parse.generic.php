@@ -556,12 +556,10 @@ EOH;
 
 		if ( !$parent_page->in_database() ) return $return_value;
 
-    $cluster = new UrlClusterModel();
-
 		$containers = $this->get_containers();
 
     $link_generator = create_function('$a', <<<EOH
-return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a><span class="reload-texticon legiscope-refresh {refresh-' . \$a["urlhash"] . '}" id="refresh-' . \$a["urlhash"] . '">reload</span></li>';
+return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a></li>';
 EOH
     );
     $hash_extractor = create_function('$a', <<<EOH
@@ -579,12 +577,7 @@ EOH
     $parent_page_urlhash = $parent_page->get_urlhash();
 		$subject_host_hash   = UrlModel::get_url_hash($parent_page->get_url(),PHP_URL_HOST);
 
-    $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
-
 		if ( is_array($containers) ) foreach ( $containers as $container ) {/*{{{*/
-
-      // $this->syslog( __FUNCTION__, __LINE__, "Container #{$container_counter}");
-      // $this->recursive_dump($container, __LINE__);
 
       if ( $container['tagname'] == 'head' ) continue;
 
@@ -712,11 +705,15 @@ EOH
       $linkset_class  = join(' ', $linkset_class);
       $linkset_id     = "{$subject_host_hash}-{$parent_page_urlhash}-{$contained_url_set_hash}";
       $linklist       = "<ul class=\"{$linkset_class}\" id=\"{$linkset_id}\" title=\"Cluster {$contained_url_set_hash}\">{$linklist}</ul>";
-      // Reorder URLs by imposing an ordinal key on this array $linkset
-      if ( !array_key_exists($contained_url_set_hash, $pager_clusters) ) {
-         $linkset[$contained_url_set_hash] = "{$linklist}<hr/>";
-      }
-      $pager_clusters[$contained_url_set_hash] = array_key_exists($contained_url_set_hash,$cluster_list) ? $cluster_list[$contained_url_set_hash]['id'] : NULL;
+			if ( !array_key_exists($contained_url_set_hash, $pager_clusters) ) {
+				$linkset[$contained_url_set_hash] = "{$linklist}<hr/>";
+			}
+
+			if ( is_array($cluster_list) ) {/*{{{*/// DELETE THIS
+				// Reorder URLs by imposing an ordinal key on this array $linkset
+				$pager_clusters[$contained_url_set_hash] = array_key_exists($contained_url_set_hash,$cluster_list) ? $cluster_list[$contained_url_set_hash]['id'] : NULL;
+			}/*}}}*/
+
       $url_hashes     = array_filter(array_map($hash_extractor, $normalized_links));
       if ( !(0 < count($url_hashes) ) ) continue;
       foreach ( $url_hashes as $url_hash_pairs ) {
@@ -725,50 +722,10 @@ EOH
       $container_counter++;
     }/*}}}*/
 
-    // Now add clusters missing from the database
-    $not_in_clusterlist = array_filter(array_map(create_function(
-      '$a', 'return is_null($a) ? 1 : NULL;'
-    ), $pager_clusters));
-
-    if ( 0 < count($not_in_clusterlist) ) {/*{{{*/
-      foreach ( $not_in_clusterlist as $clusterid => $nonce ) {
-        $cluster->fetch($parent_page, $clusterid);
-        $cluster->
-          set_clusterid($clusterid)->
-          set_parent_page($parent_page->get_urlhash())->
-          set_position(100)->
-          set_host($subject_host_hash)->
-          stow();
-      }
-      // At this point, the list order is updated by fetching the cluster list
-      $cluster_list = $cluster->fetch_clusters($parent_page,TRUE);
-    }/*}}}*/
-
-    // Now use the cluster list to obtain list position
-    ksort($cluster_list);
-    // Reduce the cluster list to elements that are also in the linkset on this page.
-    array_walk($cluster_list,create_function(
-      '& $a, $k, $s', '$a = array_key_exists($k,$s) ? $a : NULL;'),
-      $linkset);
-    $cluster_list = array_filter($cluster_list);
-    $cluster_list = array_map(create_function('$a','return $a["position"];'),$cluster_list);
-    if ( is_array($cluster_list) && is_array($linkset) && (0 < count($cluster_list)) && count($cluster_list) == count($linkset) ) {
-      ksort($linkset);
-      $linkset = array_combine(
-        $cluster_list,
-        $linkset
-      );
-      ksort($linkset);
-    } else {
-      $this->syslog( __FUNCTION__, __LINE__, "(warning) Mismatch between link and cluster link tables" );
-      $this->syslog( __FUNCTION__, __LINE__, "(warning)  Linkset: " . count($linkset) );
-      $this->syslog( __FUNCTION__, __LINE__, "(warning) Clusters: " . count($cluster_list) );
-    }
+		ksort($linkset);
     ksort($urlhashes);
 
     if ( 0 < count($cluster_urls) ) {/*{{{*/
-      // $this->syslog(__FUNCTION__, __LINE__, "- Found pager query parameters" );
-      // $this->recursive_dump($cluster_urls,__LINE__);
       // Normalize pager query URLs
       foreach( $cluster_urls as $cluster_url_uid => $pager_def ) {
         $urlparts = UrlModel::parse_url($pager_def['query_base_url']);
@@ -786,11 +743,11 @@ EOH
     // query statements with short lists, without additional code complexity.
 		// Partition the list of hashes
 
-		$partitioned_list = $this->partition_array( $urlhashes, 10 );
+		$partitioned_list   = $this->partition_array( $urlhashes, 10 );
 
-    $url_cache_iterator = new UrlModel();
-    $idlist             = array();
-    $linkset            = join("\n", $linkset);
+		$url_cache_iterator = new UrlModel();
+		$idlist             = array();
+		$linkset            = join("\n", $linkset);
 
 		if ( $debug_method ) {
 			$this->recursive_dump($partitioned_list,"(marker)");
@@ -813,16 +770,14 @@ EOH
       $hashlist = join('|', $hashlist);
       // Add 'cached' and 'refresh' class to selectors
       $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
-      // TODO: Implement link aging
-      $linkset = preg_replace('@\{refresh-('.$hashlist.')\}@','refresh', $linkset);
 			if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/
 
     $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
 
     $return_value = array(
-      'linkset' => $linkset,
-      'urlhashes' => $urlhashes,
+      'linkset'      => $linkset,
+      'urlhashes'    => $urlhashes,
       'cluster_urls' => $cluster_urls,
     );
 

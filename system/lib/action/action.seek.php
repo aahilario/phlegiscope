@@ -16,7 +16,7 @@ class SeekAction extends LegiscopeBase {
   function __construct() {
     parent::__construct();
     $this->register_derived_class();
-    $this->debug_handler_names = TRUE;
+    $this->debug_handler_names = FALSE;
   }
 
   function seek() {/*{{{*/

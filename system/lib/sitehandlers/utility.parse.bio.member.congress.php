@@ -93,7 +93,7 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       }
       $skip = TRUE;
     }
-    else if ( ( array_element($this->current_tag['attrs'],'CLASS') == 'silver_hdr' ) && (1 == preg_match('@(member for the|chairperson)@i',$text)) ) {
+    else if ( ( array_element($this->current_tag['attrs'],'CLASS') == 'silver_hdr' ) && (1 == preg_match('@(member for the|member|chairperson|majority leader|minority leader)@i',$text)) ) {
       $this->current_member_classification = $text;
       $skip = FALSE;
       $is_container = FALSE;

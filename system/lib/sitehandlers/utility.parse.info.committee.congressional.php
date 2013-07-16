@@ -677,7 +677,7 @@ EOH;
 
   function dump_member_list(& $pagecontent, UrlModel & $urlmodel, CongressionalCommitteeDocumentModel & $committee) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     $doc_parser = new CongressMemberBioParseUtility();
     $doc_parser->
@@ -691,7 +691,7 @@ EOH;
 
     extract($doc_parser->extract_committee_membership_and_bills('children[tagname=div][id=main-ol]'));
 
-    if ( $debug_method ) $this->recursive_dump($membership_role, "(marker) - - - Raw");
+    if ( $debug_method ) $this->recursive_dump($membership_role, "(marker) -+-+- Raw");
     // Partition the membership/role list
     $pagecontent = '';
     foreach ($membership_role as $classification => $membership_list) {

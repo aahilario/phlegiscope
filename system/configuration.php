@@ -12,6 +12,9 @@ if (!defined('SYSTEM_BASE')) define('SYSTEM_BASE', './system');
 define('LEGISCOPE_BASE','contents');
 define('LEGISCOPE_JOURNAL_PDF_AUTOFETCH',TRUE);
 
+// Congressional Session constants
+define('LEGISCOPE_DEFAULT_CONGRESS',16);
+
 // Settings for CurlUtility
 define('LEGISCOPE_USER_AGENT', $_SERVER['HTTP_USER_AGENT']);
 define('LEGISCOPE_CURLOPT_CONNECTTIMEOUT', 60);
@@ -45,6 +48,7 @@ define('LEGISCOPE_SESSION_NAME', 'LEGISCOPE');
 // Flow control
 define('DISPLAY_ORIGINAL', TRUE);
 define('LEGISCOPE_SENATE_DOC_SN_UBOUND', 10700);
+define('SUPPRESS_MALFORMED_DOC_INVALIDATION', TRUE);
 
 // Caching
 define('CONTENT_SIZE_THRESHOLD', 65535);
@@ -61,4 +65,5 @@ define('DBPASS', 'suvorov');
 define('DBNAME', 'legiscope');
 
 // Model handling
+define('DISABLE_CLASS_AUTOGENERATE',FALSE);
 define('LS_SYNCHRONIZE_MODEL_STRUCTURE', TRUE); // Set to FALSE to prevent synchronizing on-disk structure with Model object structure

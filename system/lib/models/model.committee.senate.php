@@ -58,17 +58,17 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
 
   function & set_id($v) { $this->id = $v; return $this; }
 
-  function stow_committee( $committee_name ) {/*{{{*/
+  function stow_committee( $committee_name, $is_permanent = FALSE ) {/*{{{*/
     $committee_name = $this->cleanup_committee_name($committee_name);
     $this->fetch_by_committee_name($committee_name);
     $short_code = trim(preg_replace('@[^A-Z]@','',$committee_name));
     $id = $this->in_database()
       ? $this->get_id()
-      :  $this->
+      : $this->
         set_committee_name($committee_name)->
         set_short_code($short_code)->
         set_jurisdiction(NULL)->
-        set_is_permanent('FALSE')->
+        set_is_permanent($is_permanent)->
         set_create_time(time())->
         set_last_fetch(time())->
         stow()
@@ -90,7 +90,7 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
 
   function fetch_by_name_regex(& $search_name, $cursor = FALSE) {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     if ( !$cursor ) {
       // The limit() call is necessary and reasonable since large resultsets
@@ -118,7 +118,7 @@ class SenateCommitteeModel extends SenateDocCommonDocumentModel {
       $this->syslog(__FUNCTION__,__LINE__, 
         $cursor
         ? "(marker) No cursor match"
-        :  "(marker) Failed to match record using regex {$search_name}"
+        : "(marker) Failed to match record using regex {$search_name}"
       );
     }
     return $result;

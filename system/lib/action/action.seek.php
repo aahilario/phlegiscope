@@ -15,7 +15,6 @@ class SeekAction extends LegiscopeBase {
 
   function __construct() {
     parent::__construct();
-    $this->register_derived_class();
     $this->debug_handler_names = FALSE;
   }
 
@@ -23,6 +22,8 @@ class SeekAction extends LegiscopeBase {
 
     // Perform an HTTP GET
     ob_start();
+
+    $invocation_delta = microtime(TRUE);
 
     $debug_method = FALSE;
 
@@ -37,14 +38,14 @@ class SeekAction extends LegiscopeBase {
     $referrer        = $this->filter_session('referrer');
     $url             = new UrlModel();
 
-    if ( !empty($target_url) ) $url->fetch(UrlModel::get_url_hash($target_url),'urlhash');
-
-    $target_url_hash = UrlModel::get_url_hash($target_url); 
-
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
       $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
     }
+
+    $target_url_hash = UrlModel::get_url_hash($target_url); 
+
+    if ( 0 < strlen($target_url) ) $url->fetch($target_url_hash,'urlhash');
 
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
 
@@ -62,8 +63,8 @@ class SeekAction extends LegiscopeBase {
       'responseheader' => '',
       'httpcode'       => '400',
       'retainoriginal' => TRUE,
-      'original'       => "<pre>NO CONTENT RETRIEVED\nURL {$target_url}</pre>",
-      'defaulttab'     => 'original',
+      'subcontent'     => "<pre>NO CONTENT RETRIEVED\nURL {$target_url}</pre>",
+      'defaulttab'     => 'content',
       'referrer'       => $referrer,
       'contenttype'    => 'unknown',
     );
@@ -73,7 +74,7 @@ class SeekAction extends LegiscopeBase {
     $faux_url       = GenericParseUtility::get_faux_url_s($url, $metalink);
 
     $urlhash        = $url->get_urlhash();
-    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || !$url->in_database();
+    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || ((0 < strlen($target_url)) && !$url->in_database());
     $content_length = $url->get_content_length();
     $retrieved      = $url->in_database();
     $action         = $retrieved && !$network_fetch
@@ -83,7 +84,10 @@ class SeekAction extends LegiscopeBase {
 
     if ( $network_fetch ) {/*{{{*/
 
-      $retrieved = $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $metalink, $debug_method );
+			$retrieved = $this->perform_network_fetch( 
+				$url     , $referrer, $target_url  ,
+				$faux_url, $metalink, $debug_method
+		 	);
 
       $action = $retrieved
         ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
@@ -95,7 +99,7 @@ class SeekAction extends LegiscopeBase {
         $json_reply['error']          = CurlUtility::$last_error_number;
         $json_reply['message']        = CurlUtility::$last_error_message;
         $json_reply['responseheader'] = CurlUtility::$last_transfer_info;
-        $json_reply['defaulttab']     = 'original';
+        $json_reply['defaulttab']     = 'content';
         $json_reply['retainoriginal'] = TRUE;
         $this->syslog( __FUNCTION__, __LINE__, "WARNING: Failed to retrieve {$target_url}" );
         $this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
@@ -252,7 +256,10 @@ class SeekAction extends LegiscopeBase {
 
           $matched = FALSE;
 
-          $invocation_delta = microtime(TRUE);
+          //Moved up in the execution foc
+          //$invocation_delta = microtime(TRUE);
+
+            $this->recursive_dump($linkset,"(marker) -- Lnks --");
 
           foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
             // Break on first match
@@ -273,7 +280,7 @@ class SeekAction extends LegiscopeBase {
               $parser->urlhashes        = $urlhashes;
 
               if ( $this->debug_memory_usage_delta ) {
-                $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name} - Memory usage " . memory_get_usage(TRUE) );
+                $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name} - Memory usage " . memory_get_usage(TRUE) . ' for ' . $url->get_url() );
               }
               $this->$method_name($parser, $body_content, $url);
 
@@ -294,7 +301,6 @@ class SeekAction extends LegiscopeBase {
 
           if ( !$matched ) {
             $this->syslog( __FUNCTION__, __LINE__, "No custom handler for path " . $url->get_url());
-            $this->recursive_dump($handler_list,__LINE__);
           }
 
           $handler_list = NULL;
@@ -357,22 +363,32 @@ class SeekAction extends LegiscopeBase {
 
       $defaulttab = strtolower(array_element($headers,'content-type','')) == 'text/html' && strtolower(array_element($headers,'transfer-encoding','')) == 'chunked';
       $defaulttab = $defaulttab || array_key_exists(array_element($headers,'http-response-code',0),array_flip(array(100,200,302,301)))
-        ? 'original'
+        ? 'processed'
         : 'responseheader'
         ;
       $json_reply = array_merge(
         array(
           'url'            => $displayed_target_url,
-          'contenthash'    => $url->get_content_hash(),
           'referrer'       => $referrer,
+          'httpcode'       => $headers['http-response-code'], 
+          'responseheader' => $responseheader,
+          'contenthash'    => $url->get_content_hash(),
           'contenttype'    => $url->get_content_type(),
           'linkset'        => $linkset,
-          'markup'         => $headers['legiscope-regular-markup'] == 1 ? $final_content : '[OBSCURED CONTENT]',
-          'responseheader' => $responseheader,
-          'httpcode'       => $headers['http-response-code'], 
-          'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
           'defaulttab'     => $defaulttab, 
           'clicked'        => $target_url_hash,
+          'markup'         => $headers['legiscope-regular-markup'] == 1 ? $final_content : '[OBSCURED CONTENT]',
+          'content'        => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
+          'hoststats'      => $this->get_hostmodel()->substitute(<<<EOH
+
+<ul class="link-cluster">
+<li><b>Host</b>: {hostname}</li>
+<li><b>Hits</b>: {hits}</li>
+<li><b>Last Update</b>: {update}</li>
+</ul>
+
+EOH
+          )
         ),
         $json_reply
       );
@@ -393,7 +409,6 @@ class SeekAction extends LegiscopeBase {
       $this->recursive_dump($output_buffer,__LINE__);
     }/*}}}*/
 
-
     $this->exit_cache_json_reply($json_reply,get_class($this));
 
   }/*}}}*/
@@ -411,9 +426,10 @@ class SeekAction extends LegiscopeBase {
 
 
   /** Republic Act PDF intercept **/
+
   // FIXME: Consider adding an intermediate inheritance hierarchy successor node
 
-  function republic_act_pdf_intercept(& $parser, & $pagecontent, & $urlmodel) {
+  function republic_act_pdf_intercept(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $linktext    = $parser->trigger_linktext;
     $pagecontent = "Republic Act Meta Information Page [{$linktext}]";
@@ -440,33 +456,44 @@ class SeekAction extends LegiscopeBase {
       while ( $republic_act->recordfetch($ra,TRUE) );
 
       if ( 0 < ($republic_act->fix_unresolved_origin_joins($legislation_precursors))) {
-
-      } else {
+        // Some entries in the precursor list have been stowed to DB.
       }
 
       $recorded_time = gmdate('Y/m/d H:i:s',$republic_act->get_create_time());
 
-			$republic_act->get_stuffed_join('sb_precursors');
-			$republic_act->get_stuffed_join('hb_precursors');
+      $republic_act->get_stuffed_join('sb_precursors');
+      $republic_act->get_stuffed_join('hb_precursors');
 
-			if ( !is_null($content = $republic_act->get_content()) ) {
-				$content = json_decode($content,TRUE);
-				if ( !is_null($content) && is_array($content) ) {
-					array_walk($content,create_function(
-						'& $a, $k', '$a = array_key_exists("url",$a) ? "<a href=\"{$a["url"]}\" class=\"legiscope-remote\">{$a["text"]}</a>" : "<p>" . str_replace("[BR]","<br/>",$a["text"]) . "</p>";'
-					));
-					if ( 0 < count($content) ) {
-						$content = join("\n", $content);
-						$republic_act->set_content($content);
-					}
-					$content = NULL;
-				} else {
-					$republic_act->set_content('');
-				}
-			}
+      $republic_act->set_id(NULL);
 
-			$this->recursive_dump($republic_act->get_all_properties(),"(marker) -- GAP --");
+      if ( !is_null($content = $republic_act->get_content()) ) {
+        $content = json_decode($content,TRUE);
+        if ( !is_null($content) && is_array($content) ) {
+          array_walk($content,create_function(
+            '& $a, $k', '$a = array_key_exists("url",$a) ? "<a href=\"{$a["url"]}\" class=\"legiscope-remote\">{$a["text"]}</a>" : "<p>" . str_replace("[BR]","<br/>",$a["text"]) . "</p>";'
+          ));
+          if ( 0 < count($content) ) {
+            $content = join("\n", $content);
+            $republic_act->set_content($content);
+          }
+          $content = NULL;
+        } else {
+          // Null out content just before calling $republic_act->substitute()
+          $republic_act->set_content('');
+        }
+      }
+
+      // FIXME: Consider implementing lock-on-substitute Model semantics, 
+      // FIXME: to require a programmer to explicitly enable  
+      // FIXME: autocommit after contents of the model are modified.
+      // FIXME: Behavior would be to throw a (catchable) "SubstituteLocked" exception 
+      // FIXME: when an attempt is made to execute either update() or insert().
+      // WARNING: Do NOT attempt to update the R.A. record after this point.
+      // Modifications have been made to the record to make it suitable for
+      // markup substitution.
+      $this->recursive_dump($republic_act->get_all_properties(),"(marker) -- GAP --");
  
+      // This template uses Join attributes in e.g. sb_precursors.url
       $template = <<<EOH
 <h1>{sn}</h1>
 <p>{description}</p>
@@ -495,7 +522,7 @@ EOH;
       'retainoriginal' => TRUE,
       'contenttype' => 'text/html'
     );
-  }
+  }/*}}}*/
 
 
 }

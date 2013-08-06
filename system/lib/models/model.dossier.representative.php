@@ -22,16 +22,23 @@ class RepresentativeDossierModel extends DatabaseUtility {
   var $member_uuid_vc64 = NULL; // Basically a hash of the URL and full name
   var $avatar_image_blob = NULL; // Avatar image base64-encoded
   var $avatar_url_vc1024 = NULL;
+  var $bailiwick_vc64 = NULL;
 
   var $committees_CongressionalCommitteeDocumentModel = NULL;
   var $housebills_HouseBillDocumentModel = NULL;
+  var $congress_tag_CongressDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
+    if (0) {
+      $this->dump_accessor_defs_to_syslog();
+      $this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
+    }
   }
 
   function __destruct() {/*{{{*/
     unset($this->fullname_vc128uniq);
+    unset($this->bailiwick_vc64);
     unset($this->firstname_vc64);
     unset($this->mi_vc8);
     unset($this->surname_vc48);
@@ -52,6 +59,9 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
   function & set_housebills($v) { $this->housebills_HouseBillDocumentModel = $v; return $this; }
   function get_housebills($v = NULL) { return is_null($v) ? $this->housebills_HouseBillDocumentModel : array_element($this->housebills_HouseBillDocumentModel,$v); }
+
+  function & set_bailiwick($v) { $this->bailiwick_vc64 = $v; return $this; }
+  function get_bailiwick($v = NULL) { if (!is_null($v)) $this->set_bailiwick($v); return $this->bailiwick_vc64; }
 
   function & set_fullname($v) { $this->fullname_vc128uniq = $v; return $this; }
   function get_fullname($v = NULL) { if (!is_null($v)) $this->set_fullname($v); return $this->fullname_vc128uniq; }
@@ -102,14 +112,18 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
     if ( empty($this->avatar_image_blob) ) {/*{{{*/
       $url = new UrlModel();
-      $url->fetch(UrlModel::get_url_hash($this->get_avatar_url()),'urlhash');
+      $avatar_url = $this->get_avatar_url();
+      // If the avatar image is empty, use a [pre-cached] placeholder instead.
+      if ( !(0 < strlen($avatar_url)) ) $avatar_url = 'http://www.congress.gov.ph/images/unknown.profile.png';
+      $url->fetch(UrlModel::get_url_hash($avatar_url),'urlhash');
       if ( $url->in_database() ) {
         $image_content_type = $url->get_content_type();
         $this->avatar_image_blob = base64_encode($url->get_pagecontent());
         $this->avatar_image_blob = "data:{$image_content_type};base64,{$this->avatar_image_blob}";
-        $this->stow();
-        $this->fetch($member_uuid, 'member_uuid');
-        $this->syslog(__FUNCTION__,__LINE__, "(marker) Stowed {$member['fullname']} avatar {$this->avatar_image_blob}");
+				if ( $this->in_database() ) {
+					$this->fields(array('avatar_image'))->stow();
+					$this->syslog(__FUNCTION__,__LINE__, "(marker) Stowed {$member['fullname']} avatar {$this->avatar_image_blob}");
+				}
       }
     }/*}}}*/
 
@@ -118,52 +132,112 @@ class RepresentativeDossierModel extends DatabaseUtility {
     return $this->avatar_image_blob;
    }/*}}}*/
 
-  function parse_name($n) {/*{{{*/
-    $cleanup = '@\((.*)\)$@i';
-    $n = preg_replace($cleanup,'',$n); // Remove trailing parenthesized characters
-    $namepattern = '@^(.*),(.*)@iu';
-    $misuffix     = '@(.*) (Jr\.|Sr\.|III|II|IV|VII|VI|V)*([ ]?[A-Z]\.)*(.*)*$@i';
-    $match = array();
-    preg_match($namepattern, $n,$match);
-    $nameparts = array(
-      'surname' => array_element($match,1),
-      'given' => trim(array_element($match,2)),
-    );
-    $match = array();
-    preg_match($misuffix, $nameparts['given'], $match);
-    $nameparts['mi']     = trim(array_element($match,3));
-    $nameparts['suffix'] = trim(array_element($match,2));
-    $nameparts['given']  = trim(array_element($match,1));
-    $match[0] = NULL;
-    $match[1] = NULL;
-    $match = array_filter($match);
-    $suffix = '@ (Jr\.|Sr\.|III|II|IV|VII|VI|V)*@i';
-    if ( empty($nameparts['suffix']) && !empty($nameparts['given']) && 1 == preg_match($suffix,$nameparts['given'], $match) ) {
-      $match[0] = NULL;
-      $match = array_values(array_filter($match));
-      $nameparts['given']  = str_replace($match,'',$nameparts['given']);
-      $nameparts['suffix'] = array_element($match,0);
+  function fetch_by_fullname($fullname) {/*{{{*/
+    $debug_method = TRUE;
+    $parsed_name = $this->parse_name($fullname);
+    if ( !is_array($parsed_name) ||
+      !array_key_exists('given', $parsed_name) ||
+      !array_key_exists('surname', $parsed_name) ) return NULL;
+    $given = array_element($parsed_name,'given');
+    if ( !is_string($given) || !(0 < strlen($given)) ) return NULL;
+    $given = preg_replace('@[^-A-Z0-9ñ,. ]@i','',$given);
+    $given = explode(' ', $given);
+    $given = array_shift($given);
+    $name_regex = array_filter(array(
+      array_element($parsed_name, 'surname'),
+      $given
+    ));
+    if ( !(2 == count($name_regex)) ) return NULL;
+    $name_regex = join('(.*)', $name_regex);
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) - {$name_regex}");
+    $representative_record = $this->
+      fetch(array(
+        'fullname' => "REGEXP '({$name_regex})'"
+      ),'AND');
+    if ( !is_array($representative_record) ) {
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) - No match");
+      return NULL;
     }
-    if ( is_array($nameparts) ) $nameparts = array_filter($nameparts);
+    if ( $debug_method ) {/*{{{*/
+      $this->recursive_dump($representative_record, "(marker) - -- - -- RR --- - - - ---- -");
+    }/*}}}*/
+    return $representative_record;
+  }/*}}}*/
+
+  function parse_name($n) {/*{{{*/
+		// Remove trailing parenthesized characters
+    $cleanup      = '@\((.*)\)$@i';
+    $n            = preg_replace($cleanup,'',$n);
+		// Remove nickname text enclosed in quotes
+    $nickname_r   = '@["\']([-A-Zñ. ]*)["\']@i';
+    $nickname     = NULL;
+    $match = array();
+    if ( 1 == preg_match($nickname_r, $n, $match) ) {
+      $nickname = $match[1];
+      $n = preg_replace($nickname_r,'', $n);
+    }
+		// Break up name into surname, firstname parts
+    $namepattern  = '@^([-A-Zñ ]*),(.*)@i';
+    $match = array();
+    preg_match($namepattern,$n,$match);
+
+		// $this->syslog(__FUNCTION__,__LINE__, "(marker) Name '{$n}' match parts: " . count($match));
+		// $this->recursive_dump($match,"(marker) =");
+
+    $surname = trim(array_element($match,1));
+    $given   = trim(array_element($match,2));
+
+		// Extract suffix and given part of name
+    $namesuffix   = NULL;
+    $namesuffix_r = '@[ ]?(Jr\.|Sr\.|IV |VII |VI |V |III |II )@';
+    $match = array();
+    if ( 1 == preg_match($namesuffix_r, "{$given} ", $match) ) {
+      $namesuffix = $match[1];
+      $given = preg_replace($namesuffix_r,' ', "{$given} ");
+    }
+
+    $nameparts = array(
+      'surname'  => $surname,
+      'given'    => $given,
+      'suffix'   => $namesuffix,
+      'nickname' => $nickname,
+    );
+
+    $match    = array();
+    $misuffix = '@([A-Zñ" ]*)( ([A-Z]\.)*(.*))*$@i';
+    if ( 1 == preg_match($misuffix, $nameparts['given'], $match) ) {
+      $nameparts['mi']     = trim(nonempty_array_element($match,3));
+      $nameparts['given']  = trim(nonempty_array_element($match,1));
+    }
+		if ( is_array($nameparts) ) {
+			array_walk($nameparts,create_function('& $a, $k', '$a = trim($a);'));
+			$nameparts = array_filter($nameparts);
+		}
     if ( !is_array($nameparts) || !(0 < count($nameparts)) ) return NULL;
     return $nameparts;
 
   }/*}}}*/
 
   function replace_legislator_names_hotlinks(& $name) {/*{{{*/
-    $nameparts = $this->parse_name($name);
-    if ( is_null($nameparts) ) return NULL;
+		$name = trim(preg_replace('@[^-A-Zñ"., ]@i','',$name));
+		if ( empty($name) || is_null($nameparts = $this->parse_name($name)) ) {
+			if ( !empty($name) ) $this->syslog(__FUNCTION__,__LINE__,"(warning) Unparsed name '{$name}'");
+		 	return NULL;
+		}
     $original_name = $name;
-    $matches = preg_replace('@[^A-Z]@i','(.*)',"{$nameparts['surname']},{$nameparts['given']}"); 
+		$given_name = explode(' ',$nameparts['given']);
+		$given_name = array_shift($given_name);
+    $matches = preg_replace('@[^A-Z]@i','(.*)',"{$nameparts['surname']},{$given_name}"); 
     $template = <<<EOH
 <a class="legiscope-remote legislator-name-hotlink" href="{bio_url}" id="{urlhash}">{fullname}</a>
 EOH;
     $s = NULL;
     $name = array();
-    $this->where(array('AND' => array('fullname' => "REGEXP '^{$matches}'")))->recordfetch_setup();
+    $this->where(array('AND' => array('fullname' => "REGEXP '({$matches})'")))->recordfetch_setup();
     if ( $this->recordfetch($name) ) {
       $s = $template;
-      foreach ( $name as $k => $v ) {
+			$this->substitute($s);
+			foreach ( $name as $k => $v ) {
         $s = str_replace("{{$k}}", "{$v}", $s);
       }
       $urlhash = UrlModel::get_url_hash(array_element($name,'bio_url'));
@@ -171,7 +245,10 @@ EOH;
       $name['original'] = $original_name;
       $name['parse'] = $nameparts;
       $name['parse']['fullname'] = $name['fullname'];
-    }
+		} else {
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) Unmatched name '{$original_name}' using regex {$matches}");
+			$this->recursive_dump($nameparts,"(marker) ???");
+		}
     return $s;
   }/*}}}*/
 

@@ -7,8 +7,8 @@ class SessionException extends Exception {
   }
 }
 
-function C($constant_name) {
-  return defined($constant_name) ? constant($constant_name) : FALSE;
+function C($constant_name, $if_unset = FALSE ) {
+  return defined($constant_name) ? constant($constant_name) : $if_unset;
 }
 
 function filter_post($v, $if_unset = NULL) {
@@ -28,7 +28,7 @@ class SystemUtility extends DatabaseUtility {
   function __construct() {
   }
 
-  function & get_selenium_session($selenium_session_url = NULL) {
+  function & get_selenium_session($selenium_session_url = NULL) {/*{{{*/
 
 		$preload_session = $this->filter_session($this->subject_host_hash,array());
 
@@ -71,27 +71,27 @@ class SystemUtility extends DatabaseUtility {
     }
 
     return self::$selenium_session;
-  }
+  }/*}}}*/
 
-  function & get_selenium_webdriver() {
+  function & get_selenium_webdriver() {/*{{{*/
     $this->get_selenium_session();
     return self::$selenium_webdriver;
-  }
+  }/*}}}*/
 
-  function & SeF() {
+  function & SeF() {/*{{{*/
     // Selenium flouride:  Get the WebDriver itself
     return $this->get_selenium_webdriver();
-  }
+  }/*}}}*/
 
-  function & Se($selenium_session_url = NULL) {
+  function & Se($selenium_session_url = NULL) {/*{{{*/
     return $this->get_selenium_session($selenium_session_url);
-  }
+  }/*}}}*/
 
-  function & se_send_keys($attr, $attrval, $value) {
+  function & se_send_keys($attr, $attrval, $value) {/*{{{*/
     return $this->Se()->element($attr, $attrval)->value(array(
       "value" => preg_split("//u", $value, PREG_SPLIT_NO_EMPTY)
     ));
-  }
+  }/*}}}*/
 
   final protected function session_start_wrapper() {/*{{{*/
     session_name(LEGISCOPE_SESSION_NAME);
@@ -135,6 +135,14 @@ class SystemUtility extends DatabaseUtility {
 			$target[] = array_pop($source);
 		}
 		return $n;
+	}/*}}}*/
+
+	function iconv($s) {/*{{{*/
+		return iconv( strtoupper($this->content_type), 'UTF-8//TRANSLIT', $s );
+	}/*}}}*/
+
+	function reverse_iconv($s) {/*{{{*/
+		return iconv( 'UTF-8', strtoupper($this->content_type), $s );
 	}/*}}}*/
 
 }

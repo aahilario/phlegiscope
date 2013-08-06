@@ -24,5 +24,11 @@ class ModelJoin extends DatabaseUtility {
     return $this;
   }
 
+	function & set_referral_date($v) { return $this->set_dtm_attr($v,'referral_date'); }
+	function get_referral_date() { return $this->get_dtm_attr('referral_date'); }
+
+	function & set_reading_date($v) { return $this->set_dtm_attr($v,'reading_date'); }
+	function get_reading_date() { return $this->get_dtm_attr('reading_date'); }
+
 }
 

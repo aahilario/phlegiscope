@@ -24,7 +24,10 @@ class GlobalRootnode extends SeekAction {
 	function evaluate() {
 		// Evaluate the path URI assigned in constructor to $this->node_uri
 		// 1. Find a method name matching the leading component
-		if ( method_exists($this, ($method = nonempty_array_element($this->node_uri,0,'index'))) ) {
+    $method = nonempty_array_element($this->node_uri,0,'index');
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) --- {$method}");
+		if ( method_exists($this, $method) ) {
+      // Remove zeroth element
 			array_shift($this->node_uri);
 			return $this->$method($this->node_uri);
 		}

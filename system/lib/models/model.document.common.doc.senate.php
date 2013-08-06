@@ -29,14 +29,14 @@ class SenateDocCommonDocumentModel extends UrlModel {
     if ( is_null($this->senate_bill) ) $this->senate_bill = new SenateBillDocumentModel(); 
     if ( is_null($this->house_bill) ) $this->house_bill = new HouseBillDocumentModel(); 
 
-		$ra = array(
-			'url'           => $this->get_url(),
-			'desc'          => $this->get_description(),
-			'bill-head'     => $this->get_sn(),
-			'origin'        => $this->get_origin(),
-			'approval_date' => $this->get_approval_date(),
-			'congress_tag'  => $this->get_congress_tag(),
-		);
+    $ra = array(
+      'url'           => $this->get_url(),
+      'desc'          => $this->get_description(),
+      'bill-head'     => $this->get_sn(),
+      'origin'        => $this->get_origin(),
+      'approval_date' => $this->get_approval_date(),
+      'congress_tag'  => $this->get_congress_tag(),
+    );
 
     $cache_state = array('legiscope-remote');
 
@@ -101,8 +101,8 @@ EOH;
     }/*}}}*/
 
     $cache_state = join(' ', $cache_state);
-		
-		$urlhash = UrlModel::get_url_hash($ra['url']);
+    
+    $urlhash = UrlModel::get_url_hash($ra['url']);
     if ( is_null($house_bill_meta) ) {
       $house_bill_meta = <<<EOH
 <span class="republic-act-meta">Origin of legislation: {$ra['origin']}</span>
@@ -122,7 +122,7 @@ EOH
 
   }/*}}}*/
         
-  function non_session_linked_document_stow(array & $document) {/*{{{*/
+  function non_session_linked_document_stow(array & $document, $allow_update = FALSE) {/*{{{*/
     // Flush ID causes overwrite
     if ( !array_key_exists('url', $document) ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Missing URL");
@@ -139,15 +139,18 @@ EOH
     if ( !is_null(array_element($document,'desc')) && is_null(array_element($document,'description')) ) {
       $document['description'] = $document['desc'];
     }
-    $document_id = $this->
-      set_contents_from_array($document)->
-      stow();
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowed {$document['text']} (#{$document_id})");
-    $this->recursive_dump($document,"(marker) --- -- ---");
+		$action = $this->in_database() ? ($allow_update ? "Updated" : "Skip updating") : "Stowed";
+		if ( !$this->in_database() || $allow_update ) {
+			$document_id = $this->
+				set_contents_from_array($document)->
+				stow();
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) Stowed {$document['text']} (#{$document_id})");
+			$this->recursive_dump($document,"(marker) --- -- ---");
+		}
     return $document_id;
   }/*}}}*/
 
-  function senate_document_senator_dossier_join(& $senator) {/*{{{*/
+  function senate_document_senator_dossier_join(& $senator, $allow_update = FALSE, $full_match = TRUE ) {/*{{{*/
 
     $debug_method = FALSE;
 
@@ -159,14 +162,14 @@ EOH
         'relationship' => array_element($senator,'relationship'),
         'relationship_date' => array_element($senator,'filing_date'),
         'create_time' => time()
-      ));	
+      ));  
 
       $join_type = get_class($this);
       if ( $debug_method ) {
         $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Join type '{$join_type}'");
         $this->recursive_dump($join_info, '(marker) -- - --');
       }
-      $this->create_joins('SenatorDossierModel', $join_info);
+      $this->create_joins('SenatorDossierModel', $join_info, $allow_update, $full_match);
       return TRUE;
     }/*}}}*/
 
@@ -179,9 +182,9 @@ EOH
     //////////////////////////////////////////////////////////////////////////////////////
     // Hack to transform committee name fields to Join references 
     // Load matched committee IDs
-		// Invoked from
-		// - SenateBillDocumentModel::stow_parsed_content()
-		// - SenateHousebillDocumentModel::stow_parsed_content()
+    // Invoked from
+    // - SenateBillDocumentModel::stow_parsed_content()
+    // - SenateHousebillDocumentModel::stow_parsed_content()
     $committee_match = new SenateCommitteeModel();
 
     $main_referral_comm  = array_element($document_contents,'main_referral_comm',$this->get_main_referral_comm());
@@ -284,24 +287,24 @@ EOH
     }/*}}}*/
   }/*}}}*/
 
-	function generate_non_session_linked_markup() {/*{{{*/
+  function generate_non_session_linked_markup() {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = FALSE || (property_exists($this,'debug_method') && $this->debug_method);
 
-		$faux_url = new UrlModel();
+    $faux_url = new UrlModel();
 
-		$senatedoc = get_class($this);
+    $senatedoc = get_class($this);
 
-		if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $this->get_id() . " " . get_class($this) );
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $this->get_id() . " " . get_class($this) );
 
-		$total_bills_in_system = $this->count();
+    $total_bills_in_system = $this->count();
 
-		$doc_url_attrs = array('legiscope-remote');
-		$faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
-		if( $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ) {
-			$doc_url_attrs[] = 'cached';
-		}
-		$doc_url_attrs = join(' ', $doc_url_attrs);
+    $doc_url_attrs = array('legiscope-remote');
+    $faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
+    if( $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ) {
+      $doc_url_attrs[] = 'cached';
+    }
+    $doc_url_attrs = join(' ', $doc_url_attrs);
 
     if ( method_exists($this,'single_record_markup_template_a') ) {
       $template = $this->single_record_markup_template_a();
@@ -328,55 +331,55 @@ EOH
     $pagecontent    = $this->substitute($template);
     $congress_tag   = $this->get_congress_tag();
 
-		//////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
     $sb_sn          = $this->get_sn();
     $committee_name = $this->get_main_referral_comm();
 
-		if ( 0 < strlen($committee_name) ) {
+    if ( 0 < strlen($committee_name) ) {
 
-			$committee_model = new SenateCommitteeModel();
-			$name_regex      = LegislationCommonParseUtility::committee_name_regex($committee_name);
-			$committee_name  = array();
+      $committee_model = new SenateCommitteeModel();
+      $name_regex      = LegislationCommonParseUtility::committee_name_regex($committee_name);
+      $committee_name  = array();
 
-			$committee_model->where(array('AND' => array(
-				'committee_name' => "REGEXP '({$name_regex})'"
-			)))->recordfetch_setup();
+      $committee_model->where(array('AND' => array(
+        'committee_name' => "REGEXP '({$name_regex})'"
+      )))->recordfetch_setup();
 
-			while ( $committee_model->recordfetch($committee_name) ) {
-				// $this->recursive_dump($committee_name,"(marker) - SB {$sb_sn}.{$congress_tag}");
-			}
-		}
-		//////////////////////////////////////////////////////////////////
+      while ( $committee_model->recordfetch($committee_name) ) {
+        // $this->recursive_dump($committee_name,"(marker) - SB {$sb_sn}.{$congress_tag}");
+      }
+    }
+    //////////////////////////////////////////////////////////////////
 
-		$this->debug_final_sql = FALSE;
-		$this->
-			join_all()->
-			where(array('AND' => array(
-				'`a`.`id`' => $this->get_id(),
+    $this->debug_final_sql = FALSE;
+    $this->
+      join_all()->
+      where(array('AND' => array(
+        '`a`.`id`' => $this->get_id(),
         //'{journal}.`congress_tag`' => $congress_tag,
         //'{journal_senate_journal_document_model}.`congress_tag`' => $congress_tag
 
-			)))->
-			recordfetch_setup();
-		$sb = array();
-		$this->debug_final_sql = FALSE;
+      )))->
+      recordfetch_setup();
+    $sb = array();
+    $this->debug_final_sql = FALSE;
 
-		$committee_referrals = array();
-		$reading_state = array();
+    $committee_referrals = array();
+    $reading_state = array();
 
-		$reading_replace = array(
-			'@R1@' => 'First Reading',
-			'@R2@' => 'Second Reading',
-			'@R3@' => 'Third Reading',
-		);
+    $reading_replace = array(
+      '@R1@' => 'First Reading',
+      '@R2@' => 'Second Reading',
+      '@R3@' => 'Third Reading',
+    );
 
     $secondary_committees = array();
-		while ( $this->recordfetch($sb) ) {/*{{{*/
+    while ( $this->recordfetch($sb) ) {/*{{{*/
       if ( $debug_method ) {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Got entry {$sb['id']}");
         $this->recursive_dump($sb,"(marker) - -");
       }
-			$journal       = $sb['journal'];
+      $journal       = $sb['journal'];
       if ( $congress_tag == nonempty_array_element($journal,'congress_tag') ) {
         $reading       = nonempty_array_element($journal['join'],'reading');
         $reading_date  = nonempty_array_element(explode(' ',nonempty_array_element($journal['join'],'reading_date',' -')),0);
@@ -395,16 +398,16 @@ EOH;
         }/*}}}*/
       }
 
-			$committee = $sb['committee'];
-			$committee_id = nonempty_array_element($committee['data'],'id');
-			if ( !is_null($committee_id) ) {
+      $committee = $sb['committee'];
+      $committee_id = nonempty_array_element($committee['data'],'id');
+      if ( !is_null($committee_id) ) {
 
-				$committee_name = array_element($committee['data'],'committee_name');
+        $committee_name = array_element($committee['data'],'committee_name');
 
         $committee_url = SenateCommitteeListParseUtility::get_committee_permalink_uri($committee_name);
 
-				$referral_mode = array_element($committee['join'],'referral_mode');
-				$referral_mode = ($referral_mode == 'primary') ? "Primary" : "Secondary";
+        $referral_mode = array_element($committee['join'],'referral_mode');
+        $referral_mode = ($referral_mode == 'primary') ? "Primary" : "Secondary";
 
         $committee_referrals["{$referral_mode}{$committee_id}"] = <<<EOH
 <li><a class="legiscope-remote" href="/{$committee_url}">{$committee_name}</a> ({$referral_mode})</li>
@@ -414,22 +417,22 @@ EOH;
           $secondary_committees["{$referral_mode}{$committee_id}"] = '<a class="legiscope-remote" href="/' . $committee_url . '">' . $committee_name . "</a>";
         else
           $pagecontent = preg_replace('@{main_referral_comm_url}@i', "/{$committee_url}", $pagecontent);
-			}
-			if ( $debug_method ) $this->recursive_dump($sb,"(marker) {$senatedoc} {$sb_sn}.{$congress_tag} #{$sb['id']}");
-		}/*}}}*/
+      }
+      if ( $debug_method ) $this->recursive_dump($sb,"(marker) {$senatedoc} {$sb_sn}.{$congress_tag} #{$sb['id']}");
+    }/*}}}*/
 
-		if ( 0 < count($reading_state) ) {/*{{{*/
+    if ( 0 < count($reading_state) ) {/*{{{*/
 
-			krsort($reading_state);
-			$reading_state = join(" ", $reading_state);
-			$pagecontent .= <<<EOH
+      krsort($reading_state);
+      $reading_state = join(" ", $reading_state);
+      $pagecontent .= <<<EOH
 <br/>
 <br/>
 <span>Reading</span>
 <ul>{$reading_state}</ul>
 
 EOH;
-		}/*}}}*/
+    }/*}}}*/
 
     if ( 0 < count($secondary_committees) ) {
       $secondary_committees = join(', ', $secondary_committees);
@@ -438,22 +441,24 @@ EOH;
       $pagecontent = preg_replace('@((.*){secondary_committees}(.*))@i','',$pagecontent);
     }
 
-		if ( 0 < count($committee_referrals) ) {/*{{{*/
-			ksort($committee_referrals);
-			$committee_referrals = join(" ", $committee_referrals);
-			$pagecontent .= <<<EOH
+    if ( 0 < count($committee_referrals) ) {/*{{{*/
+      ksort($committee_referrals);
+      $committee_referrals = join(" ", $committee_referrals);
+      $pagecontent .= <<<EOH
 <br/>
 <br/>
 <span>Referred to</span>
 <ul>{$committee_referrals}</ul>
 
 EOH;
-		}/*}}}*/
+    }/*}}}*/
 
-    if ( method_exists($this,'get_legislative_history') )
+    // Generate legislative history
+    if ( method_exists($this,'get_legislative_history') ) {/*{{{*/
       if ( 0 < strlen(($legislative_history =  $this->get_legislative_history())) ) {/*{{{*/
         $legislative_history = @json_decode($legislative_history,TRUE);
-        if ( is_array($legislative_history) && (0 < count($legislative_history)) ) {
+
+        if ( is_array($legislative_history) && (0 < count($legislative_history)) ) {/*{{{*/
           if ( $debug_method ) $this->recursive_dump($legislative_history,"(marker) -- FH --");
           krsort($legislative_history);
           // History entries consist of alternating date/text lines
@@ -488,34 +493,42 @@ EOH;
           }
           $history = array_filter($history);
           if ( $debug_method ) $this->recursive_dump($history,"(marker) -- FH --");
-        }
+        }/*}}}*/
 
         if ( is_array($history) ) foreach ( $history as $date => $actions ) {/*{{{*/
+          $date_element = DateTime::createFromFormat('m/d/Y H:i:s', "{$date} 00:00:00");
+          $timestamp    = $date_element->getTimestamp();
+          $date         = $date_element->format('F j, Y');
+          $day          = $date_element->format('l');
           $pagecontent .= <<<EOH
-<span>{$date}</span>
-<ul>
+<div class="process-date" id="ts-{$timestamp}"> 
+<span class="process-date">{$date}<br/>{$day}</span>
+<ul class="process-description">
 
 EOH;
           foreach ( $actions as $action ) {
             $pagecontent .= <<<EOH
-<li>{$action}</li>
+<li class="process-actions">{$action}</li>
 
 EOH;
           }
 
           $pagecontent .= <<<EOH
 </ul>
-
+</div>
 EOH;
         }/*}}}*/
 
       }/*}}}*/
+    }/*}}}*/
 
-		$pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+    $pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
 
-		return $pagecontent;
+    return $pagecontent;
 
-	}/*}}}*/
+  }/*}}}*/
+
+  function & set_filing_date($v) { return $this->set_dtm_attr($v,'filing_date'); }
+  function get_filing_date() { return $this->get_dtm_attr('filing_date'); }
 
 }
-

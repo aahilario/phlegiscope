@@ -567,7 +567,7 @@ EOH;
 
     if ( !$retainoriginal ) $pagecontent .= <<<EOH
 
-<div class="alternate-original half-container" id="ireport-snapshot-block">&nbsp;</div>
+<div class="alternate-content half-container" id="ireport-snapshot-block">&nbsp;</div>
 
 EOH;
 
@@ -799,7 +799,7 @@ jQuery(document).ready(function(){
 });
 </script>
 
-<div class="alternate-original half-container" id="ireport-snapshot-block"></div>
+<div class="alternate-content half-container" id="ireport-snapshot-block"></div>
 
 EOH;
 

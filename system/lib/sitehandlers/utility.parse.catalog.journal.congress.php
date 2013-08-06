@@ -472,7 +472,7 @@ EOH;
     // $inserted_content .= join('',$this->get_filtered_doc());
     $pagers = join('',$pagers);
     $pagecontent .= <<<EOH
-<div class="alternate-original alternate-content" id="senate-journal-block">
+<div class="alternate-content alternate-content" id="senate-journal-block">
 Session {$pagers}<br/>
 {$inserted_content}
 </div>

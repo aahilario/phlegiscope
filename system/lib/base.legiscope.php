@@ -2,6 +2,7 @@
 
 class LegiscopeBase extends SystemUtility {
 
+  protected static $hostmodel = NULL;
   public static $singleton = NULL;
   public static $user_id = NULL;
 
@@ -22,7 +23,13 @@ class LegiscopeBase extends SystemUtility {
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
     $this->seek_cache_filename = SYSTEM_BASE . "/../cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
     $this->enable_proxy        = $this->filter_post('proxy','false') == 'true';
+    $this->register_derived_class();
   }/*}}}*/
+
+  function & get_hostmodel() {
+    if ( !is_a(static::$hostmodel,'HostModel')) static::$hostmodel = new HostModel();
+    return static::$hostmodel; 
+  }
 
   static function & instantiate_by_host() {/*{{{*/
     // TODO: Implement RBAC here.
@@ -75,6 +82,23 @@ class LegiscopeBase extends SystemUtility {
 
   static function stylesheet_request() {/*{{{*/
     static::$singleton->handle_stylesheet_request();
+  }/*}}}*/
+
+  function transform_svgimage($image) {/*{{{*/
+    $debug_method = FALSE;
+    $svg = new SvgParseUtility();
+    $svg->transform_svgimage($image);
+    $image = $svg->get_containers('attrs,children[tagname*=svg]',0);
+    $image = nonempty_array_element($image,'children',array());
+    $this->reorder_with_sequence_tags($image);
+    $this->filter_nested_array($image,'tagname,attrs,children[tagname*=path|g|i]');
+    if ( $debug_method ) {
+      $this->recursive_dump($image,"(marker)");
+    }
+    $transformed = $svg->reconstruct_svg($image);
+    $this->recursive_dump($svg->extracted_styles,"(marker)");
+    $svg = NULL;
+    return $transformed;
   }/*}}}*/
 
   static function model_action() {/*{{{*/
@@ -184,34 +208,56 @@ class LegiscopeBase extends SystemUtility {
     $controller  = $this->filter_request('p');
     $action      = $this->filter_request('q');
     $subject     = $this->filter_request('r');
+    $base_url    = C('LEGISCOPE_PLUGIN_NAME');
+    $base_url    = plugins_url("{$base_url}");
 
     // Update host hits
 
     if ( !is_null($host) && (0 < strlen($host)) ) {/*{{{*/
-      $hostModel  = new HostModel($host);
-      if (!(0 < strlen($hostModel->get_hostname()))) {
+      $this->get_hostmodel()->set_id(NULL)->assign_hostmodel($host);
+			$hostname = $this->get_hostmodel()->get_hostname();
+      if (!(0 < strlen($hostname))) {
         $action = NULL;
         $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Nulling out action, process {$host} as Rootnode.");
         $request_uri = explode('/',trim($host,'/'));
-      } else if ( !$hostModel->in_database() ) {
-        $hostModel->stow();
-      } else {
-        $hostModel->increment_hits(TRUE);
-      }
+			} else {
+				if ( !$this->get_hostmodel()->in_database() ) {
+					$this->get_hostmodel()->stow();
+				} else  {
+					$this->get_hostmodel()->increment_hits(TRUE);
+				}
+				$subject_host = $this->get_hostmodel()->get_hostname();
+				$subject_hostpath = array_reverse(explode('.',preg_replace('@^www\.@i','',$subject_host)));
+				define('LEGISCOPE_SUBJECT_HOSTPATH', join('.', $subject_hostpath));
+				define('LEGISCOPE_SUBJECT_HOST', $subject_host);
+			}
+			
     }/*}}}*/
+
+		define('LEGISCOPE_RESOURCES_URLBASE'   , $base_url);
+		define('LEGISCOPE_TEMPLATES'           , LEGISCOPE_RESOURCES_URLBASE . "/templates/" . C('LEGISCOPE_SUBJECT_BASE', 'global') );
+		define('LEGISCOPE_ADMIN_IMAGES_URLBASE', LEGISCOPE_RESOURCES_URLBASE . "/images/admin" );
+
+		if ( $debug_method ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)       Host: " . C('LEGISCOPE_SUBJECT_HOSTPATH','Undefined'));
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)       Base: " . C('LEGISCOPE_RESOURCES_URLBASE','Undefined'));
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)  Templates: " . C('LEGISCOPE_TEMPLATES','Undefined'));
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)     Images: " . C('LEGISCOPE_ADMIN_IMAGES_URLBASE','Undefined'));
+		}
 
 		$action_hdl = ucfirst(strtolower($action)) . "Action";
 
-    $remote_addr    = $this->filter_server('REMOTE_ADDR');
+    $remote_addr = $this->filter_server('REMOTE_ADDR');
 
 		if ( $debug_method ) {/*{{{*/
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$remote_addr}");
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     Subject: " . C('LEGISCOPE_SUBJECT_HOST'));
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Request URI: " . $_SERVER['REQUEST_URI']);
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -  controller: " . $controller);
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -      action: " . $action    );
 			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     subject: " . $subject   );
       if ( !is_null($host) )
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -        host: " . $hostModel->get_hostname() . ', ' . $hostModel->get_hits() );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - -        host: " . $this->get_hostmodel()->get_hostname() . ', ' . $this->get_hostmodel()->get_hits() );
 		}/*}}}*/
 
 		if ( !is_null( $controller ) ) {/*{{{*/
@@ -270,9 +316,10 @@ class LegiscopeBase extends SystemUtility {
       //
       array_shift($request_uri);
       $request_uri = array_values($request_uri);
-      $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Remap " . join('/',$request_uri));
 
       $action_hdl = ucfirst(strtolower(nonempty_array_element($request_uri,0))) . "Rootnode";
+
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Remap [{$action_hdl}] " . join('/',$request_uri));
 
       if ( class_exists($action_hdl) ) {
         array_shift($request_uri);
@@ -281,8 +328,15 @@ class LegiscopeBase extends SystemUtility {
       }
 
     }/*}}}*/
+    else if ( empty($controller) && empty($action) && empty($subject) ) {/*{{{*/
 
-		return $this;
+      define('ALLOW_LEGISCOPE_ADMIN_FRAMEWORK', TRUE);
+
+      // Execute the default seek() action, to enable use of the full Legiscope MVC framework.
+      // include_once(static::$singleton->get_template_filename('index.html','global'));
+
+    }/*}}}*/
+
   }/*}}}*/
 
   function flush_output_buffer() {/*{{{*/
@@ -336,6 +390,8 @@ class LegiscopeBase extends SystemUtility {
 
   function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
 
+    if ( C('ALLOW_LEGISCOPE_ADMIN_FRAMEWORK') ) return;
+
     if ( FALSE == $this->subject_host_hash ) {/*{{{*/
       $this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do, exiting.");
       header('HTTP/1.0 404 Not Found');
@@ -362,6 +418,28 @@ class LegiscopeBase extends SystemUtility {
 
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
+    // Extract names of query component tuple variables
+    $query_component = array_element($urlpathhash,'query');
+    if ( !is_null($query_component) ) {/*{{{*/
+      // Extract and sort query variable names
+      $query_component = explode('&',$query_component);
+      array_walk($query_component,create_function(
+        '& $a, $k', '$p = explode("=",$a); $a = array("var" => array_element($p,0), "val" => array_element($p,1));'
+      ));
+      if ( 0 < count($query_component) ) { 
+        $query_component = array_combine(
+          array_map(create_function('$a', 'return $a["var"];'), $query_component),
+          array_map(create_function('$a', 'return $a["val"];'), $query_component)
+        );
+				// This should basically contain a hash map of query parameters.
+        if ( $debug_method ) $this->recursive_dump($query_component,"(marker) -- HDS");
+        $query_component = array_keys($query_component);
+        ksort($query_component);
+        $query_component = join('|',$query_component);
+      } else {
+        $query_component = NULL;
+      }
+    }/*}}}*/
     $urlpathhash_sans_script = $urlpathhash; 
     $urlpathhash_sans_script['query'] = NULL; 
     $urlpathhash_sans_script['fragment'] = NULL; 
@@ -372,10 +450,12 @@ class LegiscopeBase extends SystemUtility {
 
     $seek_postparse_pathonly_method  = "seek_postparse_bypathonly_" . UrlModel::get_url_hash($url_sans_script);
     $seek_postparse_path_method      = "seek_postparse_bypath_" . UrlModel::get_url_hash($urlpathhash);
+    $seek_postparse_path_qvs_method  = is_null($query_component) ? NULL : ("seek_postparse_bypath_plus_queryvars_" . UrlModel::get_url_hash($urlpathhash . $query_component));
     $seek_postparse_method           = "seek_postparse_{$urlhash}";
     $seek_postparse_querytype_method = "seek_postparse_{$urlhash}";
 
     if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(warning) ---- --- -- - - Handlers for " . $url->get_url() );
+
     if ( 1 == count($cluster_urls) ) {/*{{{*/
       $cluster_urls = array_values($cluster_urls);
       $cluster_urls = $cluster_urls[0];
@@ -408,10 +488,11 @@ class LegiscopeBase extends SystemUtility {
     }/*}}}*/ 
 
     $method_map = array(
-      'by-fullpath' => $seek_postparse_method,
-      'by-query'    => $seek_postparse_querytype_method,
-      'by-noquery'  => $seek_postparse_path_method,
-      'by-path'     => $seek_postparse_pathonly_method,
+      'by-fullpath'  => $seek_postparse_method,
+      'by-query'     => $seek_postparse_querytype_method,
+      'by-noquery'   => $seek_postparse_path_method,
+      'by-fullquery' => $seek_postparse_path_qvs_method,
+      'by-path'      => $seek_postparse_pathonly_method,
     );
     // 2nd-level parse; WordPress uses URL component routing,
     // so we attempt to create a map using path components.
@@ -442,7 +523,7 @@ class LegiscopeBase extends SystemUtility {
     $method_list = array();
 
     // Do not include unimplemented methods
-    foreach ( $method_map as $method_type => $method_name ) {/*{{{*/
+    foreach ( array_filter($method_map) as $method_type => $method_name ) {/*{{{*/
       if ( array_key_exists($method_name, array_flip($method_list)) ) continue;
       if ( method_exists($this, $method_name) ) {
         $method_list[$method_type] = $method_name;
@@ -731,13 +812,21 @@ class LegiscopeBase extends SystemUtility {
 	 * information about the framework itself.
 	 */
 
-	protected function register_derived_class() {/*{{{*/
+  /** View methods **/
 
-    $debug_method = FALSE;
+  function get_template_filename($template_name, $for_class = NULL) {
+    if ( is_null($for_class) ) {
+      $for_class = get_class($this);
+    } 
+    $for_class = join('.',array_reverse(camelcase_to_array($for_class)));
+    $template_filename = array(SYSTEM_BASE,'templates',$for_class,$template_name);
+    return join('/',$template_filename); 
+  }
 
-		if ($debug_method) $this->syslog(__FUNCTION__,__LINE__,"(marker)");
-
-	}/*}}}*/
+  function get_template($template_name, $for_class = NULL) {
+    $fn = $this->get_template_filename($template_name, $for_class);
+    return file_exists($fn) ? @file_get_contents($fn) : NULL;
+  }
 
   //////////////////////////////////////////////////////////////////////////
   /** WordPress Plugin adapter methods **/
@@ -878,11 +967,35 @@ class LegiscopeBase extends SystemUtility {
   }/*}}}*/
 
   static function phlegiscope_main() {/*{{{*/
-    // Display client and subscriber contact database
-    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
-      "" );
 
-    include_once( SYSTEM_BASE . '/../admin-pages/phlegiscope.php');
+		// ADMIN HOME PAGE
+    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+      " Loading main template " );
+
+		// Generate map link
+    $map_url = C('LEGISCOPE_PLUGIN_NAME');
+    $map_url = plugins_url("{$map_url}/images/admin");
+    $map_url = "{$map_url}/philippines-4c.svg"; 
+
+		$map_image = <<<EOH
+<img id="legislative-scope-map" class="legiscope-svg-fullsize" src="{$map_url}" alt="Placement" />
+EOH;
+
+		$map_image = static::$singleton->transform_svgimage(SYSTEM_BASE . "/../images/admin/philippines-4c.svg");
+		$map_image = str_replace(
+			array(
+				'{svg_inline}',
+				'{scale}',
+			),
+			array(
+				$map_image,
+				'1.4',
+			),
+			static::$singleton->get_template('map.html','global')
+		);
+
+    include_once(static::$singleton->get_template_filename('index.html','global'));
+
   }/*}}}*/
 
   // Filters that affect publication
@@ -890,11 +1003,23 @@ class LegiscopeBase extends SystemUtility {
   // Administrative menus - Subscriber database 
 
   static function wordpress_admin_initialize() {/*{{{*/
+
+		add_action('admin_xml_ns', array(get_class($this), 'legiscope_admin_xml_ns')); 
+
     if ( !current_user_can( 'manage_options' ) ) {
       wp_redirect(site_url());
       exit(0);
     }
   }/*}}}*/
+
+	static function legiscope_admin_xml_ns() {
+    syslog( LOG_INFO, __METHOD__ . ": " );
+		$nsparts = array(
+			'xmlns:svg="http://www.w3.org/2000/svg"',
+			'xmlns:xlink="http://www.w3.org/1999/xlink"',
+		);
+		echo join(' ', $nsparts);
+	}
 
   static function admin_post() {/*{{{*/
     // No need to invoke image_, javascript_, or stylesheet_request,
@@ -941,6 +1066,7 @@ EOH;
     syslog( LOG_INFO, "- - - - -  Styles: " . $admin_css_url);
     syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
     syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
+
   }/*}}}*/
 
 }

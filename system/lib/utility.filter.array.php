@@ -16,7 +16,7 @@ class ArrayFilterUtility extends FilterUtility {
   }
 
   static function component_condition_input_check($sa, $attparts) {
-    return 'array_key_exists("'.$sa.'", $a'.$attparts.')';
+    return 'is_array($a'.$attparts.') && array_key_exists("'.$sa.'", $a'.$attparts.')';
   }
 
   static function component_attribute_parts($sa) {
@@ -28,7 +28,7 @@ class ArrayFilterUtility extends FilterUtility {
   }
 
   static function get_condition_exact_match($attr,$val) {
-    return '$a["'.$attr.'"] == "'.$val.'"';
+    return 'is_array($a) && ($a["'.$attr.'"] == "'.$val.'")';
   }
 
   static function get_condition_regex_match($val, $regex_modifier, $attparts) {

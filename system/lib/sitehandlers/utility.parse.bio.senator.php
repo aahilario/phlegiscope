@@ -10,14 +10,19 @@
 
 class SenatorBioParseUtility extends SenateCommonParseUtility {
   
-  var $have_toc = FALSE;
+  var $in_table_cell    = FALSE;
+  var $have_image_entry = FALSE;
+  var $senator_bricks   = array();
+  var $senator_entry    = NULL;
+
+  // 16th Congress:  Closing a table cell (TD) processes a Senator image and link 
 
   function __construct() {
     parent::__construct();
   }
 
-  function ru_table_open(& $parser, & $attrs, $tagname) {/*{{{*/
-    $this->push_container_def($tagname, $attrs);
+  function ru_table_open(& $parser, & $attrs, $tag) {/*{{{*/
+    $this->push_container_def($tag, $attrs);
     return TRUE;
   }/*}}}*/
   function ru_table_close(& $parser, $tag) {/*{{{*/
@@ -25,172 +30,216 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
-  function ru_tr_open(& $parser, & $attrs, $tag) {/*{{{*/
-    return TRUE;
-  }/*}}}*/
-  function ru_tr_cdata(& $parser, & $cdata) {/*{{{*/
-    return TRUE;
-  }/*}}}*/
-  function ru_tr_close(& $parser, $tag) {/*{{{*/
-    return TRUE;
+  function ru_br_close(& $parser, $tag) {/*{{{*/
+    return FALSE;
   }/*}}}*/
 
   function ru_td_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'] = array();
     $this->push_tagstack();
-    if ( $this->have_toc && array_key_exists('NAME', $attrs) ) {
-      $desc = array_pop($this->desc_stack);
-      $desc['link'] = $attrs['NAME'];
-      array_push($this->desc_stack, $desc);
-    }
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', $this->get_stacktags() . " --- {$this->current_tag['tag']} {$this->current_tag['attrs']['HREF']}" );
+    $this->push_container_def($tag, $attrs);
+    $this->have_image_entry = FALSE;
+    $this->in_table_cell = TRUE;
+    $this->senator_entry = NULL;
     return TRUE;
   }/*}}}*/
   function ru_td_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
   function ru_td_close(& $parser, $tag) {/*{{{*/
-    $skip = FALSE;
-    $this->pop_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
-    if ( array_element($this->current_tag['attrs'],'ID') == "sidepane" ) $skip = TRUE;
-    if ( !$skip ) {
-      $this->add_to_container_stack($this->current_tag);
+
+    $debug_method = FALSE;
+    $this->current_tag();
+    $content = $this->stack_to_containers();
+    $paragraph = join('', str_replace("\n"," ",$this->current_tag['cdata']));
+
+    $skip_bio_override = property_exists($this,'skip_bio_override') && $this->skip_bio_override;
+
+    if ( $this->have_image_entry ) {
+      if (!$skip_bio_override && (0 == strlen(array_element($this->senator_entry['link'],'url')))) {
+        // THIS IS A DUMB, DUMB HACK.  The bio text for Senator Ramon Revilla Jr
+        // (16th Congress) is curiously formatted, with body text contained in
+        // a table at nest depth > 2
+        $paragraphs = preg_split('@(\n|\t)@i', $paragraph, NULL, PREG_SPLIT_NO_EMPTY );
+        $this->senator_entry['bio'] = $paragraphs;
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) --------------------- " . count($content) . "/" . ($this->have_image_entry ? "TRUE" : "FALSE") . "/" . (is_null($this->senator_entry) ? "Empty" : "+") );
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$paragraph}"); 
+          $this->recursive_dump($this->senator_entry,"(marker) - --");
+        }
+      }
+      else if (!(0 < strlen($this->senator_entry['link']['text']))) {
+        $this->senator_entry['link']['text'] = preg_replace('@[^-A-Zñ.“”" ]@i','',$paragraph);
+      }
+      $this->senator_bricks[] = $this->senator_entry;
     }
-    $this->push_tagstack();
-    return !$skip;
+    else {
+      $td = array(
+        'cell' => $paragraph,
+        'seq' => $this->current_tag['attrs']['seq'],
+      ); 
+      $this->add_to_container_stack($td);
+      if ( $debug_method ) {
+        $this->recursive_dump($this->current_tag,"(marker) -- -");
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) ---------");
+        $this->recursive_dump($content,"(marker) - --");
+      }
+    }
+    $this->senator_entry = NULL;
+    $this->have_image_entry = FALSE;
+    $this->in_table_cell = FALSE;
+    return TRUE;
   }/*}}}*/
 
   function ru_span_open(& $parser, & $attrs, $tag) {/*{{{*/
-    // Handle A anchor/link tags
-    if ( 0 < count($this->tag_stack) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'] = array();
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
   function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
-    // Attach CDATA to A tag 
-    if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = $cdata;
+    $this->push_tagstack();
     return TRUE;
   }/*}}}*/
   function ru_span_close(& $parser, $tag) {/*{{{*/
-    $skip = FALSE;
-    $this->pop_tagstack();
-    $this->push_tagstack();
-    $paragraph = array('text' => join('', $this->current_tag['cdata']));
-    if ( array_element($this->current_tag['attrs'],'CLASS') == "backtotop" ) $skip = TRUE;
-    if ( !$skip ) {
-      $this->add_to_container_stack($paragraph);
+    $this->current_tag();
+    $paragraph = array(
+      'text' => join('', str_replace("\n"," ",$this->current_tag['cdata'])),
+      'seq'  => $this->current_tag['attrs']['seq'],
+    );
+    if ( $this->in_table_cell && !is_null($this->senator_entry) ) {
+      if (!(0 < strlen($this->senator_entry['link']['text'])))
+      $this->senator_entry['link']['text'] = $paragraph['text'];
     }
-    return !$skip;
+    $this->add_to_container_stack($paragraph);
+    return TRUE;
   }/*}}}*/
 
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
-    // Handle A anchor/link tags
-    if ( 0 < count($this->tag_stack) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'] = array();
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
-    // Attach CDATA to A tag 
-    if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
-      $this->push_tagstack();
-    }
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = $cdata;
+    $this->push_tagstack();
     return TRUE;
   }/*}}}*/
   function ru_p_close(& $parser, $tag) {/*{{{*/
-    $skip = FALSE;
-    $this->pop_tagstack();
-    $this->push_tagstack();
-    $paragraph = array('text' => join(' ', $this->current_tag['cdata']));
-    if ( array_element($this->current_tag['attrs'],'CLASS') == "backtotop" ) $skip = TRUE;
-    if ( !$skip ) {
-      $this->add_to_container_stack($paragraph);
-    }
-    return !$skip;
+    $this->current_tag();
+    $paragraph = array(
+      'text' => join('', str_replace("\n"," ",$this->current_tag['cdata'])),
+      'seq'  => $this->current_tag['attrs']['seq'],
+    );
+    $this->add_to_container_stack($paragraph);
+    return TRUE;
   }/*}}}*/
 
-  function ru_a_close(& $parser, $tag) {/*{{{*/
-    // Override global 
-    $skip = FALSE;
+  function ru_a_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->pop_tagstack();
-    // --
-    if ( $this->current_tag['attrs']['HREF'] == '#top' ) $skip = TRUE;
-    // --
-    if ( !$skip ) {
-      $this->add_to_container_stack($this->current_tag);
-    }
+    $this->update_current_tag_url('HREF');
+    $this->current_tag['cdata'] = array();
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
-    return !$skip;
+    $this->push_container_def($tag, $attrs);
+    return TRUE;
+  }/*}}}*/
+  function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = $cdata;
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+  function ru_a_close(& $parser, $tag) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = trim(join('', $this->current_tag['cdata']));
+    $this->push_tagstack();
+    $content = $this->stack_to_containers();
+    if ( $this->in_table_cell && !is_null($this->senator_entry) ) {
+      if (!(0 < strlen($this->senator_entry['link']['text'])))
+      $this->senator_entry['link']['text']    = $this->current_tag['cdata'];
+      $this->senator_entry['link']['url']     = $this->current_tag['attrs']['HREF'];
+      $this->senator_entry['link']['urlhash'] = UrlModel::get_url_hash($this->senator_entry['link']['url']); 
+    } else {
+      $link = array(
+        'url'  => $this->current_tag['attrs']['HREF'],
+        'text' => $this->current_tag['cdata'],
+        'seq'  => $this->current_tag['attrs']['seq'],
+      );
+      $this->add_to_container_stack($link);
+    }
+    return TRUE;
   }/*}}}*/
 
   function ru_img_open(& $parser, & $attrs, $tag) {/*{{{*/
-    // Handle A anchor/link tags
-		$this->pop_tagstack();
-		$this->update_current_tag_url('SRC');
-		// Add capability to cache images as well
-		$faux_mem_uuid = sha1(mt_rand(10000,100000) . ' ' . $this->current_tag['attrs']['SRC']);
-		$this->current_tag['attrs']['FAUXSRC'] = $this->current_tag['attrs']['SRC'];
-		$this->current_tag['attrs']['SRC'] = '{REPRESENTATIVE-AVATAR('.$faux_mem_uuid.','.$this->current_tag['attrs']['SRC'].')}';//$this->current_tag['attrs']['SRC'];
-    if ( !array_key_exists('CLASS', $this->current_tag['attrs']) ) {
-      // $this->syslog(__FUNCTION__,__LINE__,"Setting CSS selector for '{$this->current_tag['attrs']['HREF']}'");
-      $this->current_tag['attrs']['CLASS'] = 'legiscope-remote representative-avatar representative-avatar-missing';
-    } else {
-      // $this->syslog(__FUNCTION__,__LINE__,"Adding CSS selector for '{$this->current_tag['attrs']['HREF']}'");
-      $this->current_tag['attrs']['CLASS'] .= ' legiscope-remote';
-    }
-		$this->current_tag['attrs']['ID'] = "image-{$faux_mem_uuid}";
-		$this->current_tag['attrs']['FAKEID'] = "{$faux_mem_uuid}";
-		$this->push_tagstack();
+    $this->pop_tagstack();
+    $this->update_current_tag_url('SRC');
+    $this->have_image_entry = $this->in_table_cell && (1 == preg_match('@senators/images/@i',$this->current_tag['attrs']['SRC']));
+    $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
   function ru_img_cdata(& $parser, & $cdata) {/*{{{*/
     return TRUE;
   }/*}}}*/
   function ru_img_close(& $parser, $tag) {/*{{{*/
-		$skip = FALSE;
-		$this->pop_tagstack();
-		if ( 1 == preg_match('@(nav_logo)@',$this->current_tag['attrs']['CLASS']) ) $skip = TRUE;
-		if ( !$skip ) {
-			$image = array(
-				'image' => $this->current_tag['attrs']['SRC'],
-				'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
-			 	'realsrc' => $this->current_tag['attrs']['FAUXSRC'],
-			);
-			$this->add_to_container_stack($image);
-		} else {
-			// $this->recursive_dump($this->current_tag,__LINE__);
-		}
-		$this->push_tagstack();
-    return !$skip;
+    $this->pop_tagstack();
+    $faux_mem_uuid = sha1(mt_rand(10000,100000) . ' ' . $this->current_tag['attrs']['SRC']);
+    $this->current_tag['attrs']['FAUXSRC'] = $this->current_tag['attrs']['SRC'];
+    $this->current_tag['attrs']['SRC']     = '{REPRESENTATIVE-AVATAR('.$faux_mem_uuid.','.$this->current_tag['attrs']['SRC'].')}';
+    $this->current_tag['attrs']['ID']      = "image-{$faux_mem_uuid}";
+    $this->current_tag['attrs']['FAKEID']  = "{$faux_mem_uuid}";
+    if ( !array_key_exists('CLASS', $this->current_tag['attrs']) ) {
+      $this->current_tag['attrs']['CLASS'] = 'legiscope-remote representative-avatar representative-avatar-missing';
+    } else {
+      $this->current_tag['attrs']['CLASS'] .= ' legiscope-remote';
+    }
+    if ( $this->have_image_entry && $this->in_table_cell ) {
+      $image = array(
+        'image'    => $this->current_tag['attrs']['SRC'],
+        'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
+        'realsrc'  => $this->current_tag['attrs']['FAUXSRC'],
+        'class'    => $this->current_tag['attrs']['CLASS'],
+        "link" => array( 
+          "url"     => NULL,
+          "urlhash" => NULL,
+          "text"    => NULL,
+        ),
+        'seq'      => $this->current_tag['attrs']['seq'],
+      );
+      $this->senator_entry = $image;
+    } else {
+      $image = array(
+        'image'    => $this->current_tag['attrs']['SRC'],
+        'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
+        'realsrc'  => $this->current_tag['attrs']['FAUXSRC'],
+        'class'    => $this->current_tag['attrs']['CLASS'],
+        'alt'      => $this->current_tag['attrs']['ALT'],
+        'width'    => $this->current_tag['attrs']['WIDTH'],
+        'height'   => $this->current_tag['attrs']['HEIGHT'],
+        'seq'      => $this->current_tag['attrs']['seq'],
+      );
+    }
+    $this->add_to_container_stack($image);
+    $this->push_tagstack();
+    return TRUE;
   }/*}}}*/
 
   /** Higher-level page parsers **/
 
   function parse_senators_fifteenth_congress(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $dossier = new SenatorDossierModel();
-    $url     = new UrlModel();
+    $debug_method = FALSE;
 
-    // $dossier->dump_accessor_defs_to_syslog();
+    $url = new UrlModel();
 
+    $this->skip_bio_override = FALSE;
     $this->
       set_parent_url($urlmodel->get_url())->
       parse_html(
@@ -205,109 +254,143 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     //
     ////////////////////////////////////////////////////////////////////
 
-    $image_url = array();
-    $filter_image_or_link = create_function('$a', 'return (array_key_exists("text",$a) || array_key_exists("image",$a) || ($a["tag"] == "A")) ? $a : NULL;'); 
-
-    $containerset = $this->get_containers(); 
-
-    foreach ( $containerset as $container_id => $container ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Candidate structure {$container_id} - now at " . count($image_url));
-      // $this->recursive_dump($container,"(marker) {$container_id}");
-      if ( !("table" == $container['tagname']) ) continue;
-      $children = array_filter(array_map($filter_image_or_link,$container['children']));
-      // $this->recursive_dump($children,'(warning)');
-      foreach( $children as $candidate_node ) {
-        if (array_key_exists("image", $candidate_node)) {
-          $image = array(
-            "image" => $candidate_node['image'],
-            "fauxuuid" => $candidate_node['fauxuuid'],
-            "realsrc" => $candidate_node['realsrc'],
-            "link" => array( 
-              "url" => NULL,
-              "urlhash" => NULL,
-              "text" => NULL, 
-            )
-          );
-          array_push($image_url, $image);
-          continue;
-        }
-        if ( !(0 < count($image_url) ) ) continue;
-        $image = array_pop($image_url);
-        if ( is_null($image['link']['text']) && array_key_exists('text', $candidate_node) ) {
-          $image['link']['text'] = str_replace(array('[BR]',"\n"),array(''," "),$candidate_node['text']);
-          array_push($image_url, $image);
-          continue;
-        }
-        if ( is_null($image['link']['url']) && array_key_exists('tag', $candidate_node) && ('a' == strtolower($candidate_node['tag'])) ) {
-          $image['link']['url'] = $candidate_node['attrs']['HREF'];
-          $image['link']['urlhash'] = UrlModel::get_url_hash($candidate_node['attrs']['HREF']);
-          if ( array_key_exists('cdata', $candidate_node) ) {
-            $test_name = trim(preg_replace('@[^A-Z."ñ ]@i','',join('',$candidate_node['cdata'])));
-            if ( is_null($image['link']['text']) ) $image['link']['text'] = $test_name;
-          }
-          array_push($image_url, $image);
-          continue;
-        }
-        array_push($image_url, $image);
-      }
-    }/*}}}*/
-
     $pagecontent = '';
     $senator_dossier = '';
 
-    if ( 0 < count($image_url) ) { /*{{{*/
-      foreach ( $image_url as $brick ) {/*{{{*/
-        $bio_url = $brick['link']['url'];
-        $dossier->set_id(NULL)->fetch(array(
-          'bio_url' => $bio_url,
-          'fullname' => $dossier->cleanup_senator_name($brick['link']['text'])
-        ),'OR');
-        $member_fullname      = NULL; 
-        $member_uuid          = NULL; 
-        $member_avatar_base64 = NULL; 
-        $avatar_url           = NULL; 
-        if ( !$dossier->in_database() ) {/*{{{*/
-          $member_fullname = $dossier->cleanup_senator_name($brick['link']['text']);
-          if (empty($member_fullname)) continue;
-          $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - -- Treating {$member_fullname} {$bio_url}");
-          $this->recursive_dump($brick,'(warning)');
-          $member_uuid = sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member_fullname);
-          $avatar_url  = $brick['realsrc'];
-          $url->fetch(UrlModel::get_url_hash($avatar_url),'urlhash');
-          if ( $url->in_database() ) {
-            $image_content_type   = $url->get_content_type();
-            $image_content        = base64_encode($url->get_pagecontent());
-            $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-          } else $member_avatar_base64 = NULL;
-          $dossier->
-            set_member_uuid($member_uuid)->
-            set_fullname($member_fullname)->
-            set_bio_url($bio_url)->
-            set_create_time(time())->
-            set_last_fetch(time())->
-            set_avatar_url($avatar_url)->
-            set_avatar_image($member_avatar_base64)->
-            stow();
-        }/*}}}*/
-        else {/*{{{*/
-          $member_fullname      = $dossier->get_fullname();
-          $member_uuid          = $dossier->get_member_uuid();
-          $member_avatar_base64 = $dossier->get_avatar_image();
-          $avatar_url           = $dossier->get_avatar_url();
-          $this->syslog(__FUNCTION__,__LINE__, "- Loaded {$member_fullname} {$bio_url}");
-        }/*}}}*/
+    $dossier = new SenatorDossierModel();
 
-        $senator_dossier .= <<<EOH
-<a href="{$bio_url}" class="human-element-dossier-trigger"><img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member_fullname}" /></a> 
-EOH;
-        if ( !(0 < strlen($member_avatar_base64)) ) $senator_dossier .= <<<EOH
-<input type="hidden" class="representative-avatar-source" name="image-ref" id="imagesrc-{$member_uuid}" value="{$avatar_url}" />
-EOH;
+    // $this->recursive_dump($this->senator_bricks,"(marker) --");
+
+    while ( 0 < count($this->senator_bricks) ) {/*{{{*/
+
+      $brick                 = array_shift($this->senator_bricks);
+      $alt_bio_name          = array_element($brick,'bio');
+      $link                  = array_element($brick,'link');
+      $bio_url               = array_element($link,'url');
+      $rawname               = nonempty_array_element($link,'text',array_element($alt_bio_name,0));
+      $rawname               = iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $rawname);
+      $text                  = $dossier->cleanup_senator_name($rawname);
+      $brick['link']['text'] = $text;
+      $senator_nameregex     = LegislationCommonParseUtility::legislator_name_regex($text);
+
+      $sql_condition = array_filter(array(
+        'bio_url' => $bio_url,
+        'fullname' => $senator_nameregex,
+      ));
+
+      if ( array_key_exists('fullname',$sql_condition) ) $sql_condition['fullname'] = "REGEXP '({$sql_condition['fullname']})'";
+      else {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Warning: No senator name parsed from '{$rawname}', URL = {$bio_url}");
+        continue;
+      }
+
+      // Data elements that can be derived from parsing the target page
+      $dossier_delta = array_filter(array(
+        'bio_url' => $bio_url,
+        'fullname' => $text,
+        'avatar_url' => nonempty_array_element($brick,'realsrc'),
+      ));
+
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) --- --- --- --- --- --- [{$senator_nameregex}] <- '{$rawname}'");
+        $this->recursive_dump($brick,"(marker) --");
+        $this->recursive_dump($alt_bio_name,"(marker) ++");
+        $this->recursive_dump($sql_condition,"(marker) ss");
+        $this->recursive_dump($dossier_delta,"(marker) dd");
+      }
+
+      $dossier->set_id(NULL);
+      $dossier_record = array();
+
+      $member_fullname      = NULL; 
+      $member_uuid          = NULL; 
+      $member_avatar_base64 = NULL; 
+      $avatar_url           = NULL; 
+
+      if ( 0 < count($sql_condition) ) $dossier_record = $dossier->fetch($sql_condition,'OR');
+
+      $difference = NULL;
+
+      if ( is_array($dossier_record) && (0 < count($dossier_record)) ) {/*{{{*/
+        $intersection = array_intersect_key($dossier_record,$dossier_delta); // From  
+        $difference   = array_diff_assoc($intersection,$dossier_delta);
+        if ( 0 < count($difference) ) {
+          $this->recursive_dump($dossier_record, "(marker) --------");
+          $this->recursive_dump($intersection  , "(marker) uu DB uu");
+          $this->recursive_dump($difference    , "(marker) nnnnnnnn");
+        }
       }/*}}}*/
 
-      $pagecontent = <<<EOH
+      if ( !$dossier->in_database() ) {/*{{{*/
+        if (empty($rawname)) continue;
+        $member_fullname = $rawname;
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - -- Treating {$rawname} {$bio_url}");
+        $this->recursive_dump($sql_condition,'(warning) -- Cond');
+        $this->recursive_dump($brick,'(warning) -- Data');
+        $member_uuid = sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member_fullname);
+        $avatar_url  = $brick['realsrc'];
+        $url->fetch(UrlModel::get_url_hash($avatar_url),'urlhash');
+        if ( $url->in_database() ) {
+          $image_content_type   = $url->get_content_type();
+          $image_content        = base64_encode($url->get_pagecontent());
+          $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
+        } else $member_avatar_base64 = NULL;
+
+        $member_id = $dossier->
+          set_member_uuid($member_uuid)->
+          set_fullname($rawname)->
+          set_bio_url($bio_url)->
+          set_create_time(time())->
+          set_last_fetch(time())->
+          set_avatar_url($avatar_url)->
+          set_avatar_image($member_avatar_base64)->
+          stow();
+
+        if ( 0 < intval($member_id) ) $dossier->fetch($member_id);
+
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - -- Stored #{$member_id} {$member_fullname} {$bio_url} UUID " . $dossier->get_member_uuid());
+
+      }/*}}}*/
+      else {/*{{{*/
+        if ( !is_null($difference) && is_array($difference) && (0 < count($difference)) ) {
+          $member_id = $dossier->
+            set_contents_from_array($difference)->
+            fields(array_keys($difference))->
+            stow();
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) ----- ++ {$member_id}");
+        }
+        $member_fullname      = $dossier->get_fullname();
+        $member_uuid          = $dossier->get_member_uuid();
+        $member_avatar_base64 = $dossier->get_avatar_image();
+        $avatar_url           = $dossier->get_avatar_url();
+        $this->syslog(__FUNCTION__,__LINE__, "(marker) - Loaded {$member_fullname} {$bio_url} UUID {$member_uuid}");
+      }/*}}}*/
+
+      $image_alt_text = preg_replace('@[^A-Z ñ,.]@i', '', $member_fullname);
+      $senator_dossier_meta = (0 < strlen($member_avatar_base64)) ? NULL : <<<EOH
+<input type="hidden" class="representative-avatar-source" name="image-ref" id="imagesrc-{$member_uuid}" value="{$avatar_url}" />
+EOH;
+      if (0 < strlen($bio_url))
+        $senator_dossier .= <<<EOH
+<a href="{$bio_url}" class="human-element-dossier-trigger"><img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$image_alt_text}" title="{$rawname}" /></a> 
+{$senator_dossier_meta}
+
+EOH;
+      else
+        $senator_dossier .= <<<EOH
+<img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$image_alt_text}" title="{$rawname}" />
+{$senator_dossier_meta}
+
+EOH;
+    }/*}}}*/
+
+    $pagecontent = <<<EOH
 <div class="senator-dossier-pan-bar"><div class="dossier-strip">{$senator_dossier}</div></div>
-<div id="human-element-dossier-container" class="alternate-original half-container"></div>
+EOH;
+    $specific_dossier = <<<EOH
+<div id="human-element-dossier-container" class="half-container"></div>
+EOH;
+    $pagecontent .= <<<EOH
 <script type="text/javascript">
 var total_image_width = 0;
 var total_image_count = 0;
@@ -319,18 +402,20 @@ jQuery(document).ready(function(){
   });
   if ( total_image_width < (total_image_count * 74) ) total_image_width = total_image_count * 74;
   jQuery("div[class=dossier-strip]").width(total_image_width).css({'width' : total_image_width+'px !important'});
-  update_representatives_avatars();
+  setTimeout((function(){ update_representatives_avatars(); }),10);
 });
 </script>
 EOH
-      ;
-
-    }/*}}}*/
+    ;
+    $parser->json_reply = array(
+      'retainoriginal' => TRUE,
+    );
 
   }/*}}}*/
 
   function parse_senators_sen_bio(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method = TRUE;
     ////////////////////////////////////////////////////////////////////
     $this->syslog( __FUNCTION__, __LINE__, "(marker) --------- SENATOR BIO PARSER Invoked for " . $urlmodel->get_url() );
     $membership  = new SenateCommitteeSenatorDossierJoin();
@@ -338,45 +423,135 @@ EOH
     $dossier     = new SenatorDossierModel();
     $this->
       set_parent_url($urlmodel->get_url())->
-      parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
-    $pagecontent = join('',$this->get_filtered_doc());
-    ////////////////////////////////////////////////////////////////////
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
 
+    $main_text          = $this->get_containers('children[tagname=td][id=content]',0);
+    $pagecontent        = '';
+    $have_avatar        = FALSE;
+    $fullname_candidate = NULL;
+
+    if ( !(0 < count($main_text) ) ) {/*{{{*/
+      $containerset = $this->get_containers();
+      $pagecontent = str_replace('[BR]','<br/>',join('',$this->get_filtered_doc()));
+      $parser->json_reply = array(
+        'retainoriginal' => TRUE,
+        'subcontent' => $pagecontent, 
+      );
+      $pagecontent = NULL;
+      return;
+    }/*}}}*/
+
+    // Revilla bio hack
+    $stack_top = array_element($this->senator_bricks,0);
+    if ( is_array( $biographic_sketch = array_element($stack_top,'bio') ) ) {
+      $main_text = array_values($main_text);
+      unset($stack_top['bio']);
+      // Add any Senator avatar data captured from input stream.
+      $main_text[] = $stack_top;
+      // Transfer contents of bio to containers
+      while ( 0 < count($biographic_sketch) ) {
+        $line = array_shift($biographic_sketch);
+        $line = array('text' => $line);
+        $main_text[] = $line;
+      }
+      if ( $debug_method ) $this->recursive_dump($stack_top, "(marker) RH --");
+    }
+
+    if ( $debug_method ) $this->recursive_dump($main_text, "(marker) MT --");
+
+    while ( 0 < count($main_text) ) {/*{{{*/
+      // Consume containers found
+      $entry = array_shift($main_text);
+      if ( array_key_exists('image',$entry) ) {
+        if ( $have_avatar ) break;
+        $have_avatar = TRUE;
+        $pagecontent .= <<<EOH
+
+<img id="image-{$entry['fauxuuid']}" class="{$entry['class']}" src="{$entry['image']}" fakeid="{$entry['fauxuuid']}" fauxsrc="{$entry['realsrc']}" width="151" vspace="3" hspace="10" height="200" />
+
+EOH;
+        continue;
+      }
+      if ( array_key_exists('url', $entry) ) {
+        continue;
+      }
+      if ( array_key_exists('text', $entry) ) {
+        $line = $this->reverse_iconv($entry['text']);
+        if ( is_null($fullname_candidate) ) {
+          $fullname_candidate = preg_replace('@^senator([ ]*)@i','', $line);
+        }
+        if ( empty($line) ) $line = "[BR]";
+        $pagecontent .= <<<EOH
+<p>{$line}</p>
+
+EOH;
+      }
+    }/*}}}*/
+
+    ////////////////////////////////////////////////////////////////////
     // Find the placeholder, and extract the target URL for the image.
     // If the image (UrlModel) is cached locally, then replace the entire
     // placeholder with the base-64 encoded image.  Otherwise, replace
     // the placeholder with an empty string, and emit the markup below.
     $avatar_match = array();
-    $dossier->fetch($urlmodel->get_url(), 'bio_url');
-    $member_uuid = $dossier->get_member_uuid(); 
+    $fullname_regex = LegislationCommonParseUtility::legislator_name_regex($fullname_candidate);
+    $dossier_match_conds = array_filter(array(
+      'bio_url' => $urlmodel->get_url(),
+      'fullname' => is_null($fullname_candidate) ? NULL : "REGEXP '({$fullname_regex})'",
+      '{committee}.`target_congress`' => C('LEGISCOPE_DEFAULT_CONGRESS'),
+    ));
 
+    if ( $debug_method )
+    $this->recursive_dump($dossier_match_conds,"(marker) ---");
+
+    // FIXME: WARNING: Full joins cause mysqli to fail.
+    $dossier->debug_final_sql = TRUE;
+    $dossier->join(array('committee'))->where(array('AND' => $dossier_match_conds))->recordfetch_setup();
+    $dossier->debug_final_sql = FALSE;
+
+    $dossier_entry  = NULL;
+    $matches_found  = 0;
+    $committee_list = array();
+    $committee_item = array();
     $committee_membership_markup = ''; 
 
-    if ( $membership->fetch_committees($dossier,TRUE) ) {/*{{{*/
-      $committee_list = array();
-      $committee_item = array();
-      while ( $membership->recordfetch($committee_item) ) {
-        $committee_list[$committee_item['senate_committee']] = array(
-          'data' => $committee_item,
-          'name' => NULL
-        );
-      }
-      // TODO: Allow individual Model classes to maintain separate DB handles 
-      $committee->debug_method = FALSE;
-      foreach ( $committee_list as $committee_id => $c ) {
-        $result = $committee->fetch($committee_id,'id');
-        $committee_list[$committee_id] = $committee->get_committee_name();
-        $committee_name_link = SenateCommitteeListParseUtility::get_committee_permalink_uri($committee_list[$committee_id]);
+    while ( $dossier->recordfetch($dossier_entry,TRUE) ) {
+      if ( is_array($committee_entry = nonempty_array_element($dossier_entry,'committee')) ) {
+        // Fetch Congress-specific committee links
+        $committee_data = $committee_entry['data'];
+        $committee_id = nonempty_array_element($committee_data,'id');
+        $committee_name = nonempty_array_element($committee_data,'committee_name');
+        $committee_list[$committee_id] = $committee_name;
+        $committee_name_link = SenateCommitteeListParseUtility::get_committee_permalink_uri($committee_name);
         $committee_membership_markup .= <<<EOH
-<li><a class="legiscope-remote" href="/{$committee_name_link}">{$committee_list[$committee_id]}</a></li>
+<li><a class="legiscope-remote" href="/{$committee_name_link}">{$committee_name}</a></li>
 EOH;
       }
-      $committee->debug_method = FALSE;
-      $this->recursive_dump($committee_list,'(marker) - C List');
+      $matches_found++;
+      $this->recursive_dump($dossier_entry,"(marker) --- ---");
+      if ( $matches_found > 100 ) break;
+    }
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Matches found: {$matches_found}.  Name regex {$fullname_regex} <- {$fullname_candidate}");
+
+    if ( !$dossier->in_database() ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- UNMATCHED RECORD.  Name regex {$fullname_regex} <- {$fullname_candidate}");
+      $pagecontent = NULL;
+      
+      $parser->json_reply = array(
+        'retainoriginal' => TRUE,
+        'subcontent' => join('',$this->get_filtered_doc())
+      );
+      return;
     }/*}}}*/
+
+    $member_uuid = $dossier->get_member_uuid(); 
 
     if ( 0 < strlen($committee_membership_markup) ) {/*{{{*/
       $committee_membership_markup = <<<EOH
+
 <hr class="{$member_uuid}"/>
 <span class="section-title">Committee Memberships</span><br/>
 <ul class="committee_membership">
@@ -389,7 +564,10 @@ EOH;
 
     if (1 == preg_match('@{REPRESENTATIVE-AVATAR\((.*)\)}@i',$pagecontent,$avatar_match)) {/*{{{*/
 
-      // $this->recursive_dump($avatar_match,'(marker) Avatar Placeholder');
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) Senator UUID: " . $dossier->get_member_uuid());
+        $this->recursive_dump($avatar_match,'(marker) Avatar Placeholder');
+      }
       $image_markup    = array();
       preg_match('@<img(.*)fauxsrc="([^"]*)"([^>]*)>@mi',$pagecontent,$image_markup);
       // $this->recursive_dump($image_markup,'(marker) Avatar Markup');
@@ -437,6 +615,7 @@ EOH;
         
       // Remove fake content
       // Insert committee membership in place of any extant <HR> tag
+      $image_alt_text = preg_replace('@[^A-Z ñ,.]@i', '', $member_fullname);
       $pagecontent = preg_replace(
         array(
           "@({$placeholder})@im",
@@ -444,7 +623,7 @@ EOH;
           '@(\<p (.*)class="h1_bold"([^>]*)\>)@i'),
         array(
           "{$replacement}",
-          "alt=\"{$member_fullname}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\"",
+          "alt=\"{$image_alt_text}\" id=\"image-{$member_uuid}\" class=\"representative-avatar\"",
           "{$committee_membership_markup}<table>",
         ), 
         $pagecontent
@@ -473,13 +652,14 @@ setTimeout((function(){
 }),50);
 });
 </script>
+
 EOH;
     }/*}}}*/
     else {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) No placeholder found!" );
     }
-    $pagecontent = str_replace('[BR]','<br/>', $pagecontent);
-    $parser->json_reply = array('retainoriginal' => TRUE);
+    $parser->json_reply['subcontent'] = str_replace('[BR]','<br/>', $pagecontent);
+    $pagecontent = NULL;
 
   }/*}}}*/
 

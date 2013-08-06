@@ -64,6 +64,9 @@ class SenateCommitteeReportDocumentModel extends SenateDocCommonDocumentModel {
   function & set_desc($v) { $this->description_vc4096 = $v; return $this; }
   function get_desc($v = NULL) { if (!is_null($v)) $this->set_desc($v); return $this->description_vc4096; }
 
+  function & set_description($v) { $this->set_desc($v); }
+  function get_description($v = NULL) { $this->get_desc($v); }
+
   function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
   function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
 

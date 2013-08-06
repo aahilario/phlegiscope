@@ -20,7 +20,8 @@ class GovPh extends SeekAction {
     $gazette = new GazetteCommonParseUtility();
     $gazette->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
 
-    $pagecontent = $urlmodel->get_url(); // str_replace('[BR]','<br/>',join('',$gazette->get_filtered_doc()));
+    // $pagecontent = $urlmodel->get_url(); // str_replace('[BR]','<br/>',join('',$gazette->get_filtered_doc()));
+    $pagecontent = str_replace('[BR]','<br/>',join('',$gazette->get_filtered_doc()));
 
   }/*}}}*/
 
@@ -547,7 +548,7 @@ EOJ;
   <div class="float-left link-cluster"><ul id="gazetteer-links" class="link-cluster">{$substitute_content}</ul></div>
   <div class="float-left link-cluster"></div>
 </div>
-<div id="human-element-dossier-container" class="alternate-original half-container">{$markup_current}</div>
+<div id="human-element-dossier-container" class="alternate-content half-container">{$markup_current}</div>
 {$script_tail}
 EOH
       : $markup_current

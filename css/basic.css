@@ -247,11 +247,11 @@ div.access-bar {
 }
 
 /* Content page diagnostic */
-div#original *, div#alternate-original * {
+div#original *, div#alternate-content * {
   border: 1px solid transparent;
 }
 
-div#original *:hover, div#alternate-original *:hover {
+div#original *:hover, div#alternate-content *:hover {
   border: 1px dotted #AAA;
 }
 

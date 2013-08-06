@@ -22,6 +22,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
 	var $committee_SenateCommitteeModel = NULL;
   var $senate_bill_SenateBillDocumentModel = NULL;
   var $senate_resolution_SenateResolutionDocumentModel = NULL;
+	var $dossier_records_SenatorDossierModel = NULL;
 
   function __construct() {
     parent::__construct();
@@ -62,12 +63,25 @@ class SenatorDossierModel extends RepresentativeDossierModel {
   function & set_avatar_image($v) { $this->avatar_image_vc8192 = $v; return $this; }
   function get_avatar_image($v = NULL) { if (!is_null($v)) $this->set_avatar_image($v); return $this->avatar_image_vc8192; }
 
-  function cleanup_senator_name($senator_fullname) {/*{{{*/
-    $senator_fullname = trim(preg_replace('@^Sen\.@i', '', $senator_fullname));
-    // Deal with quotes mistakenly parsed as '?'
-    $senator_fullname = str_replace(array('“',"\x09","[BR]","[EMPTY]"), array(' “',""," ",""), $senator_fullname);
-    $senator_fullname = preg_replace(array('@(\?|\')([^?\']*)(\?|\')@','@([ ]+)@'),array("$2",' '), $senator_fullname);
-    return $senator_fullname;
+  function cleanup_senator_name($name) {/*{{{*/
+
+		// $this->syslog(__FUNCTION__,__LINE__,"(marker) ------- WARNING: Potentially inconsistent behavior between 15th and 16th Congress ---");
+
+		$name = mb_ereg_replace('@[“”]@i', '"', $name);
+		$name = trim(preg_replace(
+			array(
+				'@^(Sen\.|Senator)([ ]*)@i', 
+				'@([ \t\n]+)@i',
+				'@([“”]+)@i',
+			),
+			array(
+				'',
+				' ',
+				'"',
+			),
+			$name
+		));
+    return $name;
   }/*}}}*/
 
   function stow_senator($url, $member_fullname, array & $senator_info, UrlModel & $parent_url ) {/*{{{*/

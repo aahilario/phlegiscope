@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateJournalParseUtility extends SenateCommonParseUtility {
+class SenateJournalParseUtility extends SenateDocAuthorshipParseUtility {
   
   var $activity_summary = array();
 
@@ -546,13 +546,18 @@ EOH;
         'SRN' => 'Resolution',
         'HBN' => 'Housebill',
         'SCR' => 'Concurrentres',
+        'SJR' => 'Jointres',
       );
       $document_joins = array(
         'SBN' => 'SenateBillSenateJournalJoin',
         'SRN' => 'SenateJournalSenateResolutionJoin',
         'HBN' => 'SenateHousebillSenateJournalJoin',
         'SCR' => 'SenateConcurrentresSenateJournalJoin',
+        'SJR' => 'SenateJointresSenateJournalJoin',
       );
+
+      // Iterate through each distinct prefix that we know how to parse,
+      // and commit nonexistent documents of that class to the database.
       foreach ( $distinct_prefixes as $prefix ) {
         $journal_data_copy = $journal_data;
         $at_state = $this->filter_nested_array($journal_data_copy,
@@ -658,7 +663,9 @@ EOH;
       }
     }
 
-    $parser->json_reply = array('retainoriginal' => TRUE);
+    $parser->json_reply['retainoriginal'] = TRUE;
+    $parser->json_reply['subcontent'] = $pagecontent;
+    $pagecontent = NULL;
 
   }/*}}}*/
 

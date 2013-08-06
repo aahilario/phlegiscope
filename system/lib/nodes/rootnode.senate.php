@@ -16,19 +16,25 @@ class SenateRootnode extends GlobalRootnode {
     $this->register_derived_class();
   }
 
-  function committee($uri) {
+  function committee($uri) {/*{{{*/
 
     ob_start();
 
     $committee = new SenateCommitteeModel();
 
     $zeroth    = array_shift($uri);
-    $leading   = SenateCommitteeListParseUtility::committee_permalink_to_regex($zeroth);
-    $n         = array_flip(array_keys($committee->get_joins()));
 
-    array_walk($n,create_function('& $a, $k', '$a = array("primary" => array(), "secondary" => array());'));
+    $markup = "Index for " . __FUNCTION__;
 
-    $markup = <<<EOH
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) Zeroth '{$zeroth}'");
+
+    if ( 0 < strlen($zeroth) ) {/*{{{*/
+      $leading   = SenateCommitteeListParseUtility::committee_permalink_to_regex($zeroth);
+      $n         = array_flip(array_keys($committee->get_joins()));
+
+      array_walk($n,create_function('& $a, $k', '$a = array("primary" => array(), "secondary" => array());'));
+
+      $markup = <<<EOH
 <h2>{committee_name}</h2>
 <hr/>
 <p>{jurisdiction}</p>
@@ -39,50 +45,52 @@ class SenateRootnode extends GlobalRootnode {
 <h4>Secondary</h4>
 EOH;
 
-    $element = $leading;
+      $element = $leading;
 
-    $k = 0;
+      $k = 0;
 
-    if ( $committee->cursor_fetch_by_name_regex($element) ) do {
+      if ( $committee->cursor_fetch_by_name_regex($element) ) do {
 
-      if ( ($k == 0) || $debug_method ) {
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) '{$zeroth}' {$element['committee_name']} #{$element['id']}" );
-				$markup = $committee->substitute($markup);
-      }
+        if ( ($k == 0) || $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) '{$zeroth}' {$element['committee_name']} #{$element['id']}" );
+          $markup = $committee->substitute($markup);
+        }
 
-      $senate_bill_jointype = nonempty_array_element($element['senate_bill'],'join');
-      $jointype             = nonempty_array_element($senate_bill_jointype,'referral_mode');
-      $senate_bill_datatype = nonempty_array_element($element['senate_bill'],'data');
-      $senate_bill_id       = nonempty_array_element($senate_bill_datatype,'id',0);
+        $senate_bill_jointype = nonempty_array_element($element['senate_bill'],'join');
+        $jointype             = nonempty_array_element($senate_bill_jointype,'referral_mode');
+        $senate_bill_datatype = nonempty_array_element($element['senate_bill'],'data');
+        $senate_bill_id       = nonempty_array_element($senate_bill_datatype,'id',0);
 
-      if ( !is_null($jointype) && !is_null($senate_bill_id) )
-      $n['senate_bill'][$jointype][$senate_bill_id] = NULL;
+        if ( !is_null($jointype) && !is_null($senate_bill_id) )
+          $n['senate_bill'][$jointype][$senate_bill_id] = NULL;
 
-      $senate_bill_jointype = nonempty_array_element($element['senate_housebill'],'join');
-      $jointype             = nonempty_array_element($senate_bill_jointype,'referral_mode');
-      $senate_bill_datatype = nonempty_array_element($element['senate_housebill'],'data');
-      $senate_bill_id       = nonempty_array_element($senate_bill_datatype,'id',0);
+        $senate_bill_jointype = nonempty_array_element($element['senate_housebill'],'join');
+        $jointype             = nonempty_array_element($senate_bill_jointype,'referral_mode');
+        $senate_bill_datatype = nonempty_array_element($element['senate_housebill'],'data');
+        $senate_bill_id       = nonempty_array_element($senate_bill_datatype,'id',0);
 
-      if ( !is_null($jointype) && !is_null($senate_bill_id) )
-      $n['senate_housebill'][$jointype][$senate_bill_id] = NULL;
+        if ( !is_null($jointype) && !is_null($senate_bill_id) )
+          $n['senate_housebill'][$jointype][$senate_bill_id] = NULL;
 
-      $k++;
+        $k++;
 
-      $element = NULL;
-      if ( $k > 5 ) break;
-    } while ( $committee->recordfetch($element,TRUE) );
+        $element = NULL;
+        if ( $k > 5 ) break;
+      } while ( $committee->recordfetch($element,TRUE) );
 
-    unset($n['senator']);
+      unset($n['senator']);
 
-    array_walk($n, create_function(
-      '& $a, $k', '$a["primary"] = count($a["primary"]); $a["secondary"] = count($a["secondary"]);'
-    ));
-    
-    $joins = $committee->get_joins();
+      array_walk($n, create_function(
+        '& $a, $k', '$a["primary"] = count($a["primary"]); $a["secondary"] = count($a["secondary"]);'
+      ));
 
-    $this->recursive_dump($this->node_uri,"(marker) ---");
-    $this->recursive_dump($joins,"(marker) - - -");
-    $this->recursive_dump($n,"(marker) -<>- -");
+      $joins = $committee->get_joins();
+
+      $this->recursive_dump($this->node_uri,"(marker) ---");
+      $this->recursive_dump($joins,"(marker) - - -");
+      $this->recursive_dump($n,"(marker) -<>- -");
+
+    }/*}}}*/
 
     $target_url = '/' . join('/',$this->node_uri);
 
@@ -91,8 +99,8 @@ EOH;
       'message'        => '', 
       'httpcode'       => 200,
       'retainoriginal' => TRUE,
-      'original'       => $markup,
-      'defaulttab'     => 'original',
+      'subcontent'     => $markup,
+      'defaulttab'     => 'processed',
       'referrer'       => $this->filter_session('referrer'),
       'contenttype'    => 'text/html',
     );
@@ -105,7 +113,7 @@ EOH;
 
     exit(0);
 
-  }
+  }/*}}}*/
 
 }
 

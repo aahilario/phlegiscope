@@ -69,8 +69,6 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     unset($this->committee_CongressionalCommitteeDocumentModel);
   }/*}}}*/
 
-  function & set_id($v) { $this->id = $v; return $this; }
-
   function & set_status($meta) {/*{{{*/
     $this->status_vc1024 = is_array($meta)
       ?  json_encode($meta)
@@ -373,10 +371,14 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
 
     $debug_method = FALSE;
 
-    $bill_cache = array_combine(
-      array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source),
-      $bill_cache_source
-    );
+		$bill_cache = array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source);
+
+		if (is_array($bill_cache) && (0 < count($bill_cache))) {
+			$bill_cache = array_combine(
+				$bill_cache,
+				$bill_cache_source
+			);
+		} else return;
 
     // Transform [meta] records, by moving their content into appropriate
     // Join property containers.

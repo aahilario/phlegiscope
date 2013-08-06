@@ -35,9 +35,5 @@ class SenateJournalSenateResolutionJoin extends ModelJoin {
   function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 
-  function & set_reading_date($v) { $this->reading_date_dtm = $v; return $this; }
-  function get_reading_date($v = NULL) { if (!is_null($v)) $this->set_reading_date($v); return $this->reading_date_dtm; }
-
-
 }
 

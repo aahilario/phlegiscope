@@ -134,7 +134,15 @@ class GenericParseUtility extends RawparseUtility {
 
   function ru_form_open(& $parser, & $attrs, $tagname) {/*{{{*/
     $this->pop_tagstack();
+    if ( $this->debug_tags ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) --- {$this->current_tag['attrs']['ACTION']}");
+      $this->recursive_dump($this->page_url_parts,"(marker) -p-");
+      $this->recursive_dump(UrlModel::parse_url($this->current_tag['attrs']['ACTION']),"(marker) -z-");
+    }
     $this->update_current_tag_url('ACTION');
+    if ( $this->debug_tags ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -+- {$this->current_tag['attrs']['ACTION']}");
+    }
     $attrs['ACTION'] = isset($this->current_tag['attrs']['ACTION']) ? $this->current_tag['attrs']['ACTION'] : NULL;
     $this->push_tagstack();
     $this->push_container_def($tagname, $attrs);
@@ -762,8 +770,7 @@ EOH
       $hashlist = array();
       // Collect all URL hashes.
       while ( $url_cache_iterator->recordfetch($result) ) {/*{{{*/
-        // $this->recursive_dump($result, $h > 2 ? '(skip)' : __LINE__);
-        $idlist[] = $result['id'];
+        $idlist[]   = $result['id'];
         $hashlist[] = $result['urlhash'];
         $n++;
       }/*}}}*/

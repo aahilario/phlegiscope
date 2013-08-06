@@ -51,14 +51,17 @@ class KeywordAction extends LegiscopeBase {
       $record = array();
       $count = 0;
       while ( $iterator->recordfetch($record) ) {
-        $records[] = array(
+        $records[$record['sn']] = array(
           'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
           'sn'          => $record['sn'],
           'hash'        => UrlModel::get_url_hash($record['url']),
           'category'    => 'Republic Acts',
           'url'         => $record['url'],
         );
-        if ($count++ > 100) break;;
+ 				if ($count++ > 100) {
+					krsort($records);
+					break;
+				}
       }
       $this->syslog( '----', __LINE__, "Republic Acts found: {$count}");
       /////////////////////////////////////////////////
@@ -72,14 +75,17 @@ class KeywordAction extends LegiscopeBase {
       $record = array();
       $count = 0;
       while ( $iterator->recordfetch($record) ) {
-        $records[] = array(
+        $records[$record['sn']] = array(
           'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
           'sn'          => $record['sn'],
           'hash'        => UrlModel::get_url_hash($record['url']),
           'category'    => 'House Bills',
           'url'         => $record['url'],
         );
-        if ($count++ > 20) break;;
+ 				if ($count++ > 20) {
+					krsort($records);
+					break;
+				}
       }
       $this->syslog( '----', __LINE__, "House Bills found: {$count}");
       /////////////////////////////////////////////////
@@ -96,14 +102,17 @@ class KeywordAction extends LegiscopeBase {
       $record = array();
       $count = 0;
       while ( $iterator->recordfetch($record) ) {
-        $records[] = array(
+        $records[$record['sn']] = array(
           'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
           'sn'          => $record['sn'],
           'hash'        => UrlModel::get_url_hash($record['url']),
           'category'    => 'Senate Bills',
           'url'         => $record['url'],
         );
-        if ($count++ > 20) break;;
+				if ($count++ > 20) {
+					krsort($records);
+					break;
+				}
       }
       $this->syslog( '----', __LINE__, "Senate Bills found: {$count}");
       /////////////////////////////////////////////////

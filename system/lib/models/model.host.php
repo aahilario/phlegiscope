@@ -15,11 +15,20 @@ class HostModel extends UrlModel {
   var $hostname_vc512 = NULL;
   var $hostname_hash_vc128uniq = NULL;
   var $hits_int11 = NULL;
+  var $linkset_root_bool = FALSE; // TRUE to display
   // END ModelFields
 
   function __construct($url_or_hostname = NULL) {
-		$debug_method = FALSE;
     parent::__construct();
+    if (0) {
+      $this->dump_accessor_defs_to_syslog();
+      $this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
+    }
+    $this->assign_hostmodel($url_or_hostname);
+  }
+
+  function assign_hostmodel($url_or_hostname) {
+		$debug_method = FALSE;
     $this->hostname_vc512 = NULL;
     $this->hostname_hash_vc128uniq = NULL;
     if ( !is_null($url_or_hostname) ) {
@@ -33,11 +42,6 @@ class HostModel extends UrlModel {
     }
   }
 
-  function increment_hits() {
-    $this->hits_int11 = intval($this->hits_int11) + 1;
-    return $this;
-  }
-
   function & set_hits($v) { $this->hits_int11 = $v; return $this; }
   function get_hits($v = NULL) { if (!is_null($v)) $this->set_hits($v); return $this->hits_int11; }
 
@@ -46,4 +50,7 @@ class HostModel extends UrlModel {
 
   function & set_hostname_hash($v) { $this->hostname_hash_vc128uniq = $v; return $this; }
   function get_hostname_hash($v = NULL) { if (!is_null($v)) $this->set_hostname_hash($v); return $this->hostname_hash_vc128uniq; }
+
+  function & set_linkset_root($v) { $this->linkset_root_bool = $v; return $this; }
+  function get_linkset_root($v = NULL) { if (!is_null($v)) $this->set_linkset_root($v); return $this->linkset_root_bool; }
 }

@@ -17,14 +17,18 @@ function initialize_dossier_triggers() {
       var linkset = data.linkset ? data.linkset : null;
       jQuery('#doctitle').html("Legiscope");
 
-			if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
 
       if ( /^text\/html/.test(contenttype) ) {
         if ( typeof linkset != 'null' ) {
           replace_contentof('linkset', linkset);
           initialize_linkset_clickevents(jQuery('ul[id=house-bills-by-rep]'),'li');
         }
-        replace_contentof('original', data.original);
+        if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
+        else
+        replace_contentof('content', data.content);
         initialize_remote_links(); 
       }
       replace_contentof('currenturl',
@@ -73,7 +77,9 @@ function update_representatives_avatars() {
         var altmarkup = data.altmarkup ? data.altmarkup : null;
         var total_image_width = 0;
         jQuery('img[id='+alt_name+']').attr('src', altmarkup);
-				if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+        if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+        if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+        if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
         if ( !no_replace ) {
           jQuery("div[class=dossier-strip]").find("img").each(function(){
             total_image_width += (jQuery(this).outerWidth() + 4);

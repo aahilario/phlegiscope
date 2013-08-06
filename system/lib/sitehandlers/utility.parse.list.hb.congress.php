@@ -30,7 +30,7 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 
   function __construct() {/*{{{*/
     parent::__construct();
-    // House Bill listing structure:
+    // House Bill listing structure (15th Congress, up to 23 July 2013):
     // <li>
     //   <span>HB00001</span>
     //   <a>[History]</a>
@@ -40,6 +40,17 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     //   <span>Main Referral: WAYS AND MEANS</span>
     //   <span>Status: Substituted by HB05460</span>
     // </li>
+    //
+    // House Bill listing structure (16th Congress):
+    // <td>
+    //   <strong>HB00001</strong>
+    //   <a>[History]</a>
+    //   <a>[Text As Filed 308k]</a>
+    //   <p>AN ACT EXEMPTING ALL MANUFACTURERS AND IMPORTERS OF HYBRID VEHICLES FROM THE PAYMENT OF CERTAIN TAXES AND FOR OTHER PURPOSES </p>
+    //   <p>Principal Author: SINGSON, RONALD VERSOZA</p>
+    //   <p>Main Referral: WAYS AND MEANS</p>
+    //   <p>Status: Substituted by HB05460</p>
+    // </td>
     //
     if ( !is_null($this->bill_set_size) ) $this->parsed_bills = array(0 => array());
   }/*}}}*/
@@ -54,31 +65,34 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     if ( $this->debug_ctors ) $this->syslog( __FUNCTION__,__LINE__,"(marker) ----------------------- < Memory load: " . memory_get_usage(TRUE) );
   }/*}}}*/
 
-  // LI tags wrap individual House Bill entries
+  // LI tags wrapped individual House Bill entries in the 15th Congress CMS.
+  // TR tags serve the same purpose for the new (WordPress?) CMS.
 
-  function ru_li_open(& $parser, & $attrs, $tag) {/*{{{*/
+  function ru_tr_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->is_bill_head_container = FALSE;
     $this->pop_tagstack();
     $this->current_tag['cdata'] = array();
     $this->push_tagstack();
     if ( 0 == $this->bill_head_entries ) {
-       $this->container_stack = array();
+      // Clear previously parsed stream contents
+      $this->container_stack = array();
       $this->containers = array();
     }
     $this->push_container_def($tag, $attrs);
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
-  function ru_li_cdata(& $parser, & $cdata) {/*{{{*/
+  function ru_tr_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
-  function ru_li_close(& $parser, $tag) {/*{{{*/
+  function ru_tr_close(& $parser, $tag) {/*{{{*/
     // Parsing of bill entries moved into this method
     $this->current_tag();
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     if ( $this->is_bill_head_container ) {
       $this->current_tag();
       $this->bill_head_entries++;
@@ -185,34 +199,71 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
-  function ru_span_open(& $parser, & $attrs, $tag) {/*{{{*/
+  // Methods superseding 15th Congress CMS parser tag handlers.
+  function ru_strong_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'] = array();
-    if ( 'bill-head' == nonempty_array_element($attrs,'CLASS') ) {
-      $this->is_bill_head_container = TRUE;
-    }
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
-  function ru_span_cdata(& $parser, & $cdata) {/*{{{*/
+  function ru_strong_cdata(& $parser, & $cdata) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = trim($cdata);
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']} {$cdata}" );
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
-  function ru_span_close(& $parser, $tag) {/*{{{*/
+  function ru_strong_close(& $parser, $tag) {/*{{{*/
     $this->pop_tagstack();
-    $span_class = array_element($this->current_tag['attrs'],'CLASS');
-    $span_class = strtolower(0 < strlen($span_class) ? $span_class : 'desc'); 
+    $span_class = 'bill-head'; // Hardwire this, to maintain compatibility with ru_span_close replacement ru_tr_close
     $span_type  = array(
       $span_class => is_array($this->current_tag['cdata']) ? array(join('',array_filter($this->current_tag['cdata']))) : array(),
       'seq'       => array_element($this->current_tag['attrs'],'seq')
     );
+    $content = array_element($span_type[$span_class],0);
+    if ( 1 == preg_match('@^([A-Z]*)([0-9]*)@i',$content) ) {
+      // $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- Found {$content}"); 
+      $this->is_bill_head_container = TRUE;
+    }
     $this->push_tagstack();
     $this->add_to_container_stack($span_type);
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, 'FORCE', "--- {$this->current_tag['tag']}" );
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
+    return TRUE;
+  }/*}}}*/
+
+  // P tags may wrap either 'desc' lines (the bill descriptive text)
+  // or 'meta' lines (which identify the principal author, main referral committee,
+  // and bill status lines)
+  function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
+    return TRUE;
+  }/*}}}*/
+  function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = trim($cdata);
+    $this->push_tagstack();
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
+    return TRUE;
+  }/*}}}*/
+  function ru_p_close(& $parser, $tag) {/*{{{*/
+    $this->pop_tagstack();
+    $content = join('',array_filter($this->current_tag['cdata']));
+    // 'meta' lines are preceded by a short prefix string ('Status', 'Main Referral', 'Principal Author')
+    $span_class = ( 1 == preg_match('@^([A-Z ]{4,32}):@i', $content) )
+      ? 'meta'
+      : 'desc'
+      ;
+    $span_type  = array(
+      $span_class => is_array($this->current_tag['cdata']) ? array($content) : array(),
+      'seq'       => array_element($this->current_tag['attrs'],'seq')
+    );
+    $this->push_tagstack();
+    $this->add_to_container_stack($span_type);
+    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
 
@@ -220,6 +271,23 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     parent::ru_a_close($parser,$tag);
     if ( array_key_exists('ONCLICK',$this->current_tag['attrs']) )
       return FALSE;
+    return TRUE;
+  }/*}}}*/
+
+  function ru_form_open(& $parser, & $attrs, $tagname) {/*{{{*/
+    $this->pop_tagstack();
+    if (1) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) --- {$this->current_tag['attrs']['ACTION']}");
+      $this->recursive_dump($this->page_url_parts,"(marker) -p-");
+      $this->recursive_dump(UrlModel::parse_url($this->current_tag['attrs']['ACTION']),"(marker) -z-");
+    }
+    $this->update_current_tag_url('ACTION',FALSE);
+    if (1) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -+- {$this->current_tag['attrs']['ACTION']}");
+    }
+    $attrs['ACTION'] = isset($this->current_tag['attrs']['ACTION']) ? $this->current_tag['attrs']['ACTION'] : NULL;
+    $this->push_tagstack();
+    $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
 
@@ -261,7 +329,7 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 
   function seek_postparse_d_billstext_preprocess(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = property_exists($this, 'debug_method') && $this->debug_method;
     // Obtain pre-cached JSON document, if available
     $metaorigin   = UrlModel::get_url_hash($urlmodel->get_url());
     $shadow_url   = new UrlModel($urlmodel->get_url(),FALSE);
@@ -275,7 +343,7 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
       if ( $debug_method ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Fake URL, real content: " . $urlmodel->get_url());
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Target congress: {$congress_tag} <- (" . gettype($metalink) . "){$metalink}" );
-				$this->recursive_dump($metalink,"(marker) -");
+        $this->recursive_dump($metalink,"(marker) -");
       }/*}}}*/
     }/*}}}*/
 
@@ -283,8 +351,6 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     $have_parsed_data = $shadow_url->set_url($shadow_url->get_url(),TRUE);
 
     if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Meta-URL: " . $shadow_url->get_url() );
-
-    $this->debug_tags   = FALSE;
 
     $this->start_offset = $this->filter_post('parse_offset',0);
     $this->parse_limit  = $this->filter_post('parse_limit',20);
@@ -294,16 +360,18 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
       if ( $debug_method ) {/*{{{*/
         $state = $have_parsed_data ? "existing" : "de novo";
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Regenerating {$state}: " . $shadow_url->get_url() );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Base URL for forms: " . $urlmodel->get_url() );
       }/*}}}*/
 
-			$this->start_offset = NULL;
-			$this->parse_limit  = NULL;
+      $this->start_offset = NULL;
+      $this->parse_limit  = NULL;
 
+      $this->debug_tags = FALSE;
       // Parse content stored in shadow_url
       $this->
         enable_filtered_doc(FALSE)-> // Conserve memory, do not store filtered doc.
-        set_parent_url($urlmodel->get_url())->
         initialize_bill_parser($urlmodel)-> 
+        set_parent_url($urlmodel->get_url())->
         parse_html(
           $urlmodel->get_pagecontent(),
           $urlmodel->get_response_header()
@@ -311,20 +379,43 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 
       // Clear content from memory
       $urlmodel->
-        set_content(NULL)->
-        set_id(NULL);
+        set_id(NULL)->
+        set_content(NULL);
 
       if ( $debug_method ) {/*{{{*/
         if ( !is_null($this->parse_limit) ) {
           $this->recursive_dump($this->parsed_bills,"(marker) -- F --");
         }
         $this->syslog(__FUNCTION__, __LINE__, "(marker) Containers: " . count($this->containers_r()));
+        $this->recursive_dump($this->containers_r(),"(marker) -- c --");
       }/*}}}*/
 
+      // 16th Congress:  We use the Congress selector form to determine
+      // congress_tag, if it does not yet exist
       $this->filter_nested_array($this->containers_r(),
-        'children,attrs[tagname*=form][id*=form1]',0
+        // 'children,attrs[tagname*=form][id*=form1]',0 // 15th Congress
+        'children,attrs[tagname*=form][attrs:ACTION*=billstext$|i]',0 // 16th Congress
       );
       $form_data = nonempty_array_element($this->containers_r(),0);
+
+      if ( is_null($congress_tag) ) {/*{{{*/// Extract Congress number from page filter form
+        // 16th Congress CMS
+        // Filter for SELECT tag 
+        $selected_congress = nonempty_array_element($form_data,'children');
+        if ( $debug_method ) $this->recursive_dump($selected_congress,"(marker) -- RAW --");
+        $this->filter_nested_array($selected_congress,'children[tagname*=select][id*=cstCombo]',0);
+        // Filter for OPTION element having selected := 1
+        $selected_congress = nonempty_array_element($selected_congress,0);
+        if ( $debug_method ) $this->recursive_dump($selected_congress,"(marker) -- CST --");
+        $this->filter_nested_array($selected_congress,'value[selected=1]',0);
+        if ( $debug_method ) $this->recursive_dump($selected_congress,"(marker) -- FIN --");
+        // Finally, assign
+        $congress_tag = nonempty_array_element($selected_congress,0);
+        if ( is_null($congress_tag) ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(error)  Unable to determine Congress number from current page");
+          return NULL;
+        }
+      }/*}}}*/
 
       if ( $debug_method ) {/*{{{*/
         $this->recursive_dump($form_data,"(marker) -- C --");
@@ -337,17 +428,21 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
         'entries'         => $this->bill_head_entries,
         'parsed_bills'    => $this->parsed_bills,
         'congress_tag'    => $congress_tag,
-      ); 
-
-      $this->container_buffer['form'] = array_merge(
-        array('action' => array_element(nonempty_array_element($form_data,'attrs'),'ACTION')),
-        $this->extract_form_controls(nonempty_array_element($form_data,'children'))
+        'form'            => array_merge(
+          array('action' => array_element(nonempty_array_element($form_data,'attrs'),'ACTION')),
+          $this->extract_form_controls(nonempty_array_element($form_data,'children'))
+        )
       );
 
       if ( $debug_method ) {/*{{{*/
         $this->recursive_dump($this->container_buffer['form'],"(marker) -- L --");
       }/*}}}*/
 
+      // Remember that we cache the parsed bill text in a URLModel record.
+      // Bad form.  Move BLOB attributes into their own table (so we maintain
+      // all data in the DB), and modify the get_pagecontent() methods to use
+      // that table as the data source for the pagecontent_blob attribute.
+      // Then we can use that BLOB store for this purpose.
       $id = $shadow_url->
         set_pagecontent_c(json_encode($this->container_buffer))->
         stow();
@@ -362,7 +457,12 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     }/*}}}*/
 
     $offset = $this->start_offset; // Ordinal index (resolves to a single bill as though the partitions are unrolled) 
-    $span   = $this->parse_limit; // Elements (bills) to return
+    $span   = intval($this->parse_limit); // Elements (bills) to return
+
+    if ( 0 == $span ) {
+      $span = 20;
+      $parser->json_reply['clear'] = true;
+    }
 
     $this->reset(TRUE,TRUE); // Eliminate XML parser, clear containers
 
@@ -382,30 +482,28 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
     $this->syslog(__FUNCTION__,__LINE__, "(marker) Getting n = {$span} from {$partition_start}.{$partition_offset} - {$partition_end}");
 
     $final_list = array();
-    $i = $partition_start;
     do {/*{{{*/
-      $index = min($i,$partitions-1);
+      $index = min($partition_start,$partitions-1);
       foreach ( array_reverse($this->container_buffer['parsed_bills'][$index]) as $entry ) {/*{{{*/
         if ( $partition_offset > 0 ) {/*{{{*/
-          if ( $i + 4 > $partitions )
-            $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$i}/{$partitions} SKIP");
+          if ( $partition_start + 4 > $partitions )
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$partition_start}/{$partitions} SKIP");
           $partition_offset--;
           continue;
         }/*}}}*/
         $entry['description'] = ucfirst(strtolower($entry['description']));
         $final_list[] = $entry;
-        if ( $i + 4 > $partitions )
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$i}/{$partitions}");
+        if ( $partition_start + 4 > $partitions )
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$entry['sn']}   {$partition_start}/{$partitions}");
         if ( count($final_list) >= $span ) break;
       }/*}}}*/
       $partition_offset = 0;
-      $i++;
+      $partition_start++;
     }/*}}}*/
-    while ((count($final_list) < $span) && ($i < $partitions));
+    while ((count($final_list) < $span) && ($partition_start < $partitions));
 
     if ( $debug_method )
     $this->syslog(__FUNCTION__,__LINE__, "(marker) Returning " . count($final_list) . " entries from source with " . count($this->container_buffer['parsed_bills']) . " partitions");
-
 
     $this->container_buffer['parsed_bills'] = $final_list; 
 

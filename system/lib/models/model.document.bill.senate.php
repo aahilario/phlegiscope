@@ -20,34 +20,34 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
   var $doc_url_vc256 = NULL;
-	var $status_vc1024 = NULL;
-	var $subjects_vc1024 = NULL;
+  var $status_vc1024 = NULL;
+  var $subjects_vc1024 = NULL;
   var $comm_report_url_vc256 = NULL;
   var $comm_report_info_vc256 = NULL;
   var $invalidated_bool = NULL;
-	var $filing_date_dtm = NULL;
-	var $legislative_history_vc8192 = NULL;
-	var $significance_vc16 = NULL;
+  var $filing_date_dtm = NULL;
+  var $legislative_history_blob = NULL;
+  var $significance_vc16 = NULL;
 
-	var $main_referral_comm_vc64 = NULL;
-	var $secondary_committee_vc128 = NULL;
+  var $main_referral_comm_vc64 = NULL;
+  var $secondary_committee_vc128 = NULL;
 
   var $journal_SenateJournalDocumentModel = NULL; // Referring journals
   var $committee_SenateCommitteeModel = NULL;
-	var $senator_SenatorDossierModel = NULL;
-	var $housebill_HouseBillDocumentModel = NULL;
-	var $republic_act_RepublicActDocumentModel = NULL;
+  var $senator_SenatorDossierModel = NULL;
+  var $housebill_HouseBillDocumentModel = NULL;
+  var $republic_act_RepublicActDocumentModel = NULL;
   var $bill_info_SenateBillDocumentModel = NULL;
 
   function __construct() {
     parent::__construct();
   }
 
-	function & set_presidential_action($v) { $this->presidential_action_vc256 = $v; return $this; }
-	function get_presidential_action($v = NULL) { if (!is_null($v)) $this->set_presidential_action($v); return $this->presidential_action_vc256; }
+  function & set_presidential_action($v) { $this->presidential_action_vc256 = $v; return $this; }
+  function get_presidential_action($v = NULL) { if (!is_null($v)) $this->set_presidential_action($v); return $this->presidential_action_vc256; }
 
-	function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
-	function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
+  function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
+  function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
 
   function & set_text($v) { return $this; }
   function get_text($v = NULL) { if (!is_null($v)) $this->set_text($v); return NULL; }
@@ -97,33 +97,16 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 
-	function & set_secondary_committee($v) { $this->secondary_committee_vc128 = $v; return $this; }
-	function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc128; }
+  function & set_secondary_committee($v) { $this->secondary_committee_vc128 = $v; return $this; }
+  function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc128; }
 
-	function & set_legislative_history($v) { $this->legislative_history_vc8192 = $v; return $this; }
-	function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_vc8192; }
+  function & set_legislative_history($v) { $this->legislative_history_blob = $v; return $this; }
+  function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_blob; }
 
-	function & set_filing_date($v) {
-		$filing_date = strtotime($v);
-		$date = new DateTime();
-		$date->setTimestamp($filing_date);
-		$this->filing_date_dtm = $date->format(DateTime::ISO8601); 
-		$date = NULL;
-		unset($date);
-		return $this;
-	}
-	function get_filing_date() {
-		$filing_date = strtotime($this->filing_date_dtm);
-		$date = new DateTime();
-		$date->setTimestamp($filing_date);
-		$filing_date = $date->format('F d, Y'); 
-		$date = NULL;
-		return $filing_date;
- 	}
 
   function single_record_markup_template_a() {
-		$senatedoc = get_class($this);
-		$total_bills_in_system = $this->count();
+    $senatedoc = get_class($this);
+    $total_bills_in_system = $this->count();
     return <<<EOH
 {$senatedoc} in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>

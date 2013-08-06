@@ -40,16 +40,20 @@ class SenateCommitteeSenatorDossierJoin extends ModelJoin {
 			;
 	}
 
-  function fetch_committees(SenatorDossierModel & $a, $iterating = TRUE) {
+  function fetch_committees(SenatorDossierModel & $a, $iterating = TRUE, $additional_params = array()) {
 		if ( !$a->in_database() ) {
 			$this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - - - Unable to retrieve Committees related to the given dossier");
 			return FALSE;
 		}
 		return $iterating
-			? $this->where(array('AND' => array(
-					'senator_dossier' => $a->get_id(),
+			? $this->where(array('AND' => array_merge(
+					$additional_params,
+					array('senator_dossier' => $a->get_id())
 				)))->recordfetch_setup()
-		  : $this->fetch($a->get_id(),'senator_dossier')
+			: $this->fetch(array_merge(
+					$additional_params,
+					array('senator_dossier' => $a->get_id())
+				),'AND')
 			;
   }
 

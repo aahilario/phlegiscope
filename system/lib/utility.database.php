@@ -57,8 +57,10 @@ class DatabaseUtility extends ReflectionClass {
     $this->debug_method = FALSE;
     $this->debug_operators = FALSE;
     $this->id = NULL;
-    if (1 == preg_match('@(Model|Join)$@i',get_class($this))) 
+    if (1 == preg_match('@(Model|Join)$@i',get_class($this))) { 
       $this->initialize_derived_class_state();
+      if (1 == preg_match('@(Model)$@i',get_class($this))) $this->register_derived_class();
+    }
   }/*}}}*/
 
   function __destruct() {/*{{{*/
@@ -467,6 +469,21 @@ EOH;
     );
   }/*}}}*/
 
+	protected function register_derived_class() {/*{{{*/
+
+    // Invoked from constructors of framework classes.
+    // Count instantiations of any given derived class.
+
+    $debug_method = TRUE;
+    if ($debug_method) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- " . get_class($this));
+      if ( method_exists($this, 'get_joins') ) {
+        $this->recursive_dump($this->get_joins(),"(marker) -- ");
+      }
+    }
+
+	}/*}}}*/
+
   protected final function initialize_derived_class_state() {/*{{{*/
 
     $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
@@ -574,6 +591,7 @@ EOH;
   }/*}}}*/
 
   function get_joins($specific_item = NULL,$try_cached = FALSE) {/*{{{*/
+    if ( !is_array($this->join_props) ) $this->join_props = array(); 
     if ( !$try_cached || !(0 < count($this->join_props)) || (!is_null($specific_item) && !array_key_exists($specific_item,$this->join_props)) ) {/*{{{*/
       $this->join_props = $this->get_attrdefs();
       $this->filter_nested_array($this->join_props,'propername,joinobject[joinobject*=.*|i]');
@@ -606,11 +624,15 @@ EOH;
     return is_null($model_typename) ? $by_modelname : array_element($by_modelname,$model_typename);
   }/*}}}*/
 
-  function create_joins( $modelname_or_attrname, & $foreign_keys, $allow_update = FALSE ) {/*{{{*/
+  function create_joins( $modelname_or_attrname, & $foreign_keys, $allow_update = FALSE, $full_match = TRUE ) {/*{{{*/
 
-    // Accept a list of foreign keys having either of the forms:
-    // Array ( fk0, fk1, ... , fkn )
-    // Array ( fk0 => Array(<join attributes>), fk1 => Array(...), ... , fkn => Array(...) )
+    // Parameters:
+    // $model_or_attrname (string):  Model foreign table
+    // $foreign_keys (array): 
+    //   Accept a list of foreign keys having either of the forms:
+    //   Array ( fk0, fk1, ... , fkn )
+    //   Array ( fk0 => Array(<join attributes>), fk1 => Array(...), ... , fkn => Array(...) )
+    // $allow_update: 
     $debug_method = FALSE;
 
     $join_table = $this->get_joins();
@@ -672,12 +694,16 @@ EOH;
               $foreign_attrname => $foreignkey
             );
           if ( $debug_method ) $this->recursive_dump($data,"(marker) --- - F ---");
-          $joinobj->fetch(array(
-            $self_attrname    => $data[$self_attrname],
-            $foreign_attrname => $data[$foreign_attrname],
-          ),'AND');
+          if ( $full_match ) 
+            $joinobj->fetch($data,'AND');
+          else
+            $joinobj->fetch(array(
+              $self_attrname    => $data[$self_attrname],
+              $foreign_attrname => $data[$foreign_attrname],
+            ),'AND');
           $join_present = $joinobj->in_database();
           if ( !$join_present || $allow_update ) {
+						// FIXME: Tidy up the duplicate check
             $join_id = $join_present ? $joinobj->get_id() : NULL;
             if ( $join_present ) {
               unset($data[$self_attrname]);
@@ -693,6 +719,11 @@ EOH;
               $this->syslog( __FUNCTION__, __LINE__, "(marker) - -- JOIN ". get_class($joinobj) ." {$join_exists} to {$modelname}" );
               $this->recursive_dump($data,"(marker) --- - ---");
             }
+          } else {
+            // FIXME: Verify operation of $full_match, then make this conditional
+            $this->syslog(__FUNCTION__,__LINE__,
+              "(marker) - No DB store. Join present " . ($join_present ? 'TRUE' : 'FALSE') . ", allow update " . ($allow_update ? 'TRUE' : 'FALSE')
+            );
           }
         }/*}}}*/
 
@@ -1533,6 +1564,26 @@ EOS;
     return $this;
   }/*}}}*/
 
+  function retrieved_record_difference($stowable_content, $debug_method = FALSE) {
+    // Return the difference between a stowable content array
+    // and the result of an IMMEDIATELY preceding retrieve() call.
+    //
+    // A use case for calling this method is when we wish to know ONLY 
+    // which record attributes have changed between previously computed
+    // Model content, and the matching record stored on disk.
+    $document_fetched = $this->query_result;
+    if ( !is_array($document_fetched) ) $document_fetched = array();
+    // Determine difference between stored and parsed documents.
+    $intersection  = array_intersect_key( $stowable_content, $document_fetched );
+    $difference    = array_diff( $intersection, $document_fetched );
+    if ( $debug_method && (0 < count($difference)) ) {
+      $this->recursive_dump($stowable_content,"(marker) - -*- -");
+      $this->recursive_dump($intersection,"(marker) - -+- -");
+      $this->recursive_dump($difference,"(marker) - --- -");
+    }
+    return $difference;
+  }
+
   function in_database() {/*{{{*/
     // If an instance of this class has an ID, then it is assumed that
     // the record exists.
@@ -1548,9 +1599,10 @@ EOS;
   }/*}}}*/
 
   private function insert_update_common($sql, $boundattrs, $attrlist) {/*{{{*/
+    // TODO: Handle Join components given as [join,data] tuples
     $debug_method = FALSE;
     if ( empty($sql) ) throw new Exception(get_class($this));
-    if ( 0 < count($boundattrs) ) {
+    if ( 0 < count($boundattrs) ) {/*{{{*/
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "--- (marker) Currently: {$sql}");
       $bindable_attrs = array();
       foreach ( $boundattrs as $b ) {/*{{{*/
@@ -1573,7 +1625,7 @@ EOS;
       }/*}}}*/
       $bindable_attrs = NULL;
       return $result;
-    }
+    }/*}}}*/
 
     if ( 0 < count($this->join_value_cache) ) { /*{{{*/
       $this->suppress_reinitialize = TRUE;
@@ -1600,8 +1652,11 @@ EOS;
       foreach ( $this->join_value_cache as $attr => $data_src ) {/*{{{*/
         // Suppress attributes in data_src that are NOT in the actual
         // model structure, by obtaining the intersection of the full property list
+
         if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  For {$attr}");
+
         $joinprops = $this->get_join_instance($attr)->fetch_combined_property_list();
+
         foreach ( $data_src as $fkey => $data ) {/*{{{*/
           if ( !is_array($data) ) continue;
           $intersect = array_intersect_key(
@@ -1852,15 +1907,15 @@ EOS;
 EOP
           );
         }
-				if ( !array_key_exists($name,$this->join_value_cache) ) {
-					$this->join_value_cache[$name] = array();
-				}
-				$fkey = array_element($value,'fkey');
-				if ( is_null($fkey) ) {
-					$this->join_value_cache[$name]['UNCACHED'] = $value;
-				} else {
-					$this->join_value_cache[$name][$fkey] = $value;
-				}
+        if ( !array_key_exists($name,$this->join_value_cache) ) {
+          $this->join_value_cache[$name] = array();
+        }
+        $fkey = array_element($value,'fkey');
+        if ( is_null($fkey) ) {
+          $this->join_value_cache[$name]['UNCACHED'] = $value;
+        } else {
+          $this->join_value_cache[$name][$fkey] = $value;
+        }
 
       } else {
         // Attribute [$name] is an atomic attribute 
@@ -2089,7 +2144,7 @@ EOP
   }/*}}}*/
 
   function get_stuffed_join($join_attrname) {/*{{{*/
-		$debug_method = FALSE;
+    $debug_method = FALSE;
     // Return an object representing the 'far end' of a Join attribute
     if ( !is_null($joined_document = array_element($this->get_all_properties(),$join_attrname))) {
       if ( !is_null($data = array_element($joined_document,'data')) ) {/*{{{*/
@@ -2101,19 +2156,46 @@ EOP
             '`a`.`id`' => $data['id'],
           )))->
           recordfetch_setup();
-				$joined_document = array();
-				if ( $this->get_foreign_obj_instance($join_attrname)->recordfetch($joined_document,TRUE) ) {
-					if ( $debug_method ) {
-						$this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - - J {$join_attrname} - - - -");
-						$this->recursive_dump($joined_document,"(marker) -- - - -");
-					}
-					$setter = "set_data_{$join_attrname}";
-					if ( method_exists($this,$setter) ) $this->$setter($joined_document);
-					return $joined_document;
-				}	
+        $joined_document = array();
+        if ( $this->get_foreign_obj_instance($join_attrname)->recordfetch($joined_document,TRUE) ) {
+          if ( $debug_method ) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - - J {$join_attrname} - - - -");
+            $this->recursive_dump($joined_document,"(marker) -- - - -");
+          }
+          $setter = "set_data_{$join_attrname}";
+          if ( method_exists($this,$setter) ) $this->$setter($joined_document);
+          return $joined_document;
+        }  
       }/*}}}*/
     }
-		return NULL;
+    return NULL;
   }/*}}}*/
     
+  function & set_dtm_attr($v,$attrname) {/*{{{*/
+    // Set a _dtm (SQL datetime) attribute 
+    $attrname = "{$attrname}_dtm";
+    if ( !property_exists($this,$attrname) ) return $this;
+    $datetime_attrib = strtotime($v);
+    $date = new DateTime();
+    $date->setTimestamp($datetime_attrib);
+    $this->$attrname = $date->format(DateTime::ISO8601); 
+    $date = NULL;
+    unset($date);
+    return $this;
+  }/*}}}*/
+
+  function get_dtm_attr($attrname,$fmt = 'F j, Y') {/*{{{*/
+    // Return a datetime attribute, formatted using $fmt
+    $attrname = "{$attrname}_dtm";
+    if ( !property_exists($this,$attrname) ) return FALSE;
+    $datetime_attrib = strtotime($this->$attrname);
+    $date = new DateTime();
+    $date->setTimestamp($datetime_attrib);
+    $datetime_attrib = $date->format($fmt); 
+    $date = NULL;
+    return $datetime_attrib;
+  }/*}}}*/
+
+  function & set_id($v) { $this->id = $v; return $this; }
+
 }

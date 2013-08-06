@@ -10,7 +10,7 @@ class UrlModel extends DatabaseUtility {
   
   // Model fields are used to generate typed fields. See DatabaseUtility::fetch_typemap()
   // BEGIN ModelFields
-	// var $parsedcontent_blob = NULL;
+  // var $parsedcontent_blob = NULL;
   var $pagecontent_blob = NULL;
   var $urlhash_vc128uniq = 'md5';
   var $urltext_vc4096 = NULL;
@@ -28,7 +28,7 @@ class UrlModel extends DatabaseUtility {
   var $hits_int11 = NULL;
   var $is_fake_bool = NULL;
   var $custom_parse_bool = NULL;
-	var $pregenerated_bool = NULL;
+  var $pregenerated_bool = NULL;
   // END ModelFields
 
   var $a_UrlModel = NULL;
@@ -38,18 +38,18 @@ class UrlModel extends DatabaseUtility {
     $this->set_url($url, $load);
   }
 
-	function & set_url_c($url, $load = FALSE) {
-		$this->set_url($url, $load);
-		return $this;
-	}
+  function & set_url_c($url, $load = FALSE) {
+    $this->set_url($url, $load);
+    return $this;
+  }
 
   function set_url($url, $load = TRUE) {/*{{{*/
-		$this->url_vc4096 = $url;
-		$this->urlhash_vc128uniq = (is_null($url) || empty($url)) ? NULL : static::get_url_hash($url);
-		if ( $load && !is_null($this->urlhash_vc128uniq ) ) {
-			$this->id = NULL;
-			$this->fetch($this->urlhash_vc128uniq,'urlhash');
-		}
+    $this->url_vc4096 = $url;
+    $this->urlhash_vc128uniq = (is_null($url) || empty($url)) ? NULL : static::get_url_hash($url);
+    if ( $load && !is_null($this->urlhash_vc128uniq ) ) {
+      $this->id = NULL;
+      $this->fetch($this->urlhash_vc128uniq,'urlhash');
+    }
     return $this->in_database();
   }/*}}}*/
 
@@ -59,13 +59,13 @@ class UrlModel extends DatabaseUtility {
     return is_array($query_parts) ? array_element($query_parts,$component) : NULL;
   }/*}}}*/
 
-	function get_query_element($component, $if_empty = FALSE) {/*{{{*/
+  function get_query_element($component, $if_empty = FALSE) {/*{{{*/
     $component = self::query_element($component, $this->get_url());
     if ( empty($component) && !(FALSE == $if_empty) ) {
       $component = $if_empty;
     }
     return $component;
-	}/*}}}*/
+  }/*}}}*/
 
   function add_query_element($n, $v, $load = TRUE, $clear = FALSE) {/*{{{*/
     $debug_method = FALSE;
@@ -103,7 +103,8 @@ class UrlModel extends DatabaseUtility {
     $q['query']    = ( !empty($q['query']) ) ?  "?{$q['query']}" : NULL;
     if ( !array_key_exists('fragment', $q) ) $q['fragment'] = NULL;
     $q['fragment'] = ( !empty($q['fragment']) || (array_key_exists('url',$link_item) && ($link_item['url'] == '#')) ) ? "#{$q['fragment']}" : NULL;
-    return "{$q['scheme']}{$q['host']}{$q['port']}/" . ltrim(preg_replace('@\/+@','/', "{$q['path']}{$q['query']}{$q['fragment']}"),'/');
+    $pathparts = preg_replace('@[/]{2,}@','/', "{$q['path']}/{$q['query']}{$q['fragment']}");
+    return str_replace('/?','?',"{$q['scheme']}{$q['host']}{$q['port']}/" . ltrim($pathparts,'/'));
   }/*}}}*/
 
   static function recompose_query_parts($query_components, $as_array = FALSE, $query_component_delimiter = '&') {/*{{{*/
@@ -129,14 +130,14 @@ class UrlModel extends DatabaseUtility {
   static function path_sans_script( array $parent_url ) {/*{{{*/
     if ( !array_key_exists('path', $parent_url) ) return NULL;
     $path_sans_script = $parent_url['path'];
-    if ( 1 == preg_match('@(.*)/([^.]*)\.(.*)$@',$path_sans_script) ) {
+    if ( 1 == preg_match('@(.*)/([^.]*)\.([^/]*)$@',$path_sans_script) ) {
       // If the tail of the path appears to be a script, remove it from the path
-      $path_sans_script = preg_replace('@(.*)/([^./]*)\.(.*)$@','$1', $path_sans_script);
+      $path_sans_script = preg_replace('@(.*)/([^.]*)\.([^/]*)$@','$1', $path_sans_script);
     }
     return $path_sans_script;
   }/*}}}*/
 
-  static function normalize_url($parent_url, & $link_item, $strip_path_and_query = FALSE) {/*{{{*/
+  static function normalize_url($parent_url, & $link_item, $trim_path_slashes = TRUE) {/*{{{*/
 
     if ( !array_key_exists('url', $link_item) || (FALSE == $link_item['url']) ) return FALSE;
 
@@ -156,7 +157,7 @@ class UrlModel extends DatabaseUtility {
       // If there is no path component in the link URL (i.e. just a query or a fragment part),
       // copy the path part from the containing page's URL
       if ( empty($q['path']) ) {
-        $q['path'] = array_key_exists('path', $parent_url) ? $parent_url['path'] : NULL;
+        $q['path'] = array_key_exists('path', $parent_url) ? "{$parent_url['path']}/" : NULL;
       } else {
         // Otherwise use the parent URL and link URL to compose a full URL
         if ( !('/' == substr($q['path'],0,1) ) ) {
@@ -166,7 +167,7 @@ class UrlModel extends DatabaseUtility {
         }
       }
 
-      $q['path'] = trim($q['path'],'/');
+      if ( $trim_path_slashes ) $q['path'] = trim($q['path'],'/');
     }
 
     $normalized_link = rtrim(self::recompose_url($q, $link_item),'/');
@@ -193,7 +194,7 @@ class UrlModel extends DatabaseUtility {
       PHP_URL_PASS     => 8 ,
       PHP_URL_HOST     => 10,
       PHP_URL_PORT     => 13,
-      PHP_URL_PATH     => 16,
+      PHP_URL_PATH     => 15,
       PHP_URL_QUERY    => 19,
       PHP_URL_FRAGMENT => 22,
     );
@@ -202,7 +203,7 @@ class UrlModel extends DatabaseUtility {
     $preg_match_result = preg_match($url_regex, $url, $match_parts);
     if (array_key_exists(1,$match_parts) && array_key_exists(10, $match_parts) && ($match_parts[1] == $match_parts[10])) {
       if ( !array_key_exists(15,$match_parts) ) $match_parts[15] = NULL;
-      $match_parts[15] = "{$match_parts[10]}/{$match_parts[15]}"; 
+      $match_parts[15] = join('/', array_filter(array($match_parts[10],$match_parts[15]))); 
       $match_parts[1] = NULL;
       $match_parts[9] = NULL;
       $match_parts[10] = NULL;
@@ -222,44 +223,44 @@ class UrlModel extends DatabaseUtility {
     return $match_parts;
   }/*}}}*/
 
-	static function construct_metalink_fake_url(UrlModel & $url, array & $metalink) {/*{{{*/
-		// Reduce long metalink query parameters (truncate params exceeding 32 characters)
-		$metalink_fix     = create_function('$a', 'return (strlen($a) > 32) ? "" : $a;' );
-		$query_components = self::parse_url($url->get_url(),PHP_URL_QUERY);
-		if ( 0 < strlen($query_components) ) {
-			$query_components = self::decompose_query_parts($query_components);
-		} else {
-			$query_components = array();
-		}
-		$framework_metalink_data = NULL;
-		if ( array_key_exists('_LEGISCOPE_', $metalink) ) {
-			$framework_metalink_data = $metalink['_LEGISCOPE_'];
-			unset($metalink['_LEGISCOPE_']);
-		}
-		$query_components = array_map($metalink_fix,array_merge($query_components, $metalink));
-		ksort($query_components); // Ensure that we are not sensitive to query part parameter order
-		ksort($metalink); // Just so the caller gets a clue we've reordered the POST data URL
-		$query_components = self::recompose_query_parts($query_components);
+  static function construct_metalink_fake_url(UrlModel & $url, array & $metalink) {/*{{{*/
+    // Reduce long metalink query parameters (truncate params exceeding 32 characters)
+    $metalink_fix     = create_function('$a', 'return (strlen($a) > 32) ? "" : $a;' );
+    $query_components = self::parse_url($url->get_url(),PHP_URL_QUERY);
+    if ( 0 < strlen($query_components) ) {
+      $query_components = self::decompose_query_parts($query_components);
+    } else {
+      $query_components = array();
+    }
+    $framework_metalink_data = NULL;
+    if ( array_key_exists('_LEGISCOPE_', $metalink) ) {
+      $framework_metalink_data = $metalink['_LEGISCOPE_'];
+      unset($metalink['_LEGISCOPE_']);
+    }
+    $query_components = array_map($metalink_fix,array_merge($query_components, $metalink));
+    ksort($query_components); // Ensure that we are not sensitive to query part parameter order
+    ksort($metalink); // Just so the caller gets a clue we've reordered the POST data URL
+    $query_components = self::recompose_query_parts($query_components);
 
-		// Create fake URL using faked query parameters 
-		$whole_url = self::parse_url($url->get_url());
-		$whole_url['query'] = $query_components;
-		$faux_url = self::recompose_url($whole_url);
+    // Create fake URL using faked query parameters 
+    $whole_url = self::parse_url($url->get_url());
+    $whole_url['query'] = $query_components;
+    $faux_url = self::recompose_url($whole_url);
 
-		if ( !is_null($framework_metalink_data) ) {
-			$metalink['_LEGISCOPE_'] = $framework_metalink_data;
-		}
-		return $faux_url;
-	}/*}}}*/
+    if ( !is_null($framework_metalink_data) ) {
+      $metalink['_LEGISCOPE_'] = $framework_metalink_data;
+    }
+    return $faux_url;
+  }/*}}}*/
 
   function fetch_referrers() {
     // Return a list of UrlModel referrers
   }
 
-	function is_cached($url) {
-		$this->fetch(static::get_url_hash($url),'urlhash');
-		return $this->in_database();
-	}
+  function is_cached($url) {
+    $this->fetch(static::get_url_hash($url),'urlhash');
+    return $this->in_database();
+  }
 
   function get_caching_state($links) {/*{{{*/
     // Return a list of URLs (extracted from $links) that are NOT cached in UrlModel backing store.
@@ -315,12 +316,12 @@ class UrlModel extends DatabaseUtility {
   }/*}}}*/
 
   function set_pagecontent($t) {/*{{{*/
-		// Returns array(
-		//   'http_response_code'      => $http_response_code,
-		//   'parsed_headers'          => $final_headers,
-		//   'response_regular_markup' => $response_regular_markup ? 1 : 0,
-		// );
-		//
+    // Returns array(
+    //   'http_response_code'      => $http_response_code,
+    //   'parsed_headers'          => $final_headers,
+    //   'response_regular_markup' => $response_regular_markup ? 1 : 0,
+    // );
+    //
     // Accept cURL output
     $content_length          = mb_strlen($t);
     $header_regex            = '@^HTTP/1.@';
@@ -380,14 +381,14 @@ class UrlModel extends DatabaseUtility {
     return $result;
   }/*}}}*/
 
-	function & set_pagecontent_c($c) {/*{{{*/
-		$this->set_pagecontent($c);
-		return $this;
-	}/*}}}*/
+  function & set_pagecontent_c($c) {/*{{{*/
+    $this->set_pagecontent($c);
+    return $this;
+  }/*}}}*/
 
   function cached_to_disk() {/*{{{*/
-		return !$this->in_database() &&
-		 	!@file_exists($this->get_cache_filename());
+    return !$this->in_database() &&
+       !@file_exists($this->get_cache_filename());
   }/*}}}*/
 
   function content_changed($do_update = TRUE) {/*{{{*/
@@ -414,18 +415,18 @@ class UrlModel extends DatabaseUtility {
     if ( $this->debug_method ) $this->syslog( __FUNCTION__, __LINE__, "Header raw: {$this->response_header_vc32767}");
     $h = json_decode($this->response_header_vc32767,TRUE);
     if ( !is_array($h) ) return array();
-		$h = array_combine(
-			array_map(create_function('$a', 'return strtolower($a);'), array_keys($h)),
-			array_values($h)
-		);
-		if ( (FALSE == $h) || !is_array($h) ) {
-			$this->syslog( __FUNCTION__, __LINE__, "Header JSON parse failure");
-			return $as_array ? array() : NULL;
-		}
+    $h = array_combine(
+      array_map(create_function('$a', 'return strtolower($a);'), array_keys($h)),
+      array_values($h)
+    );
+    if ( (FALSE == $h) || !is_array($h) ) {
+      $this->syslog( __FUNCTION__, __LINE__, "Header JSON parse failure");
+      return $as_array ? array() : NULL;
+    }
     if ($as_array != TRUE) {
       $header_lines = array();
       foreach ( $h as $key => $val ) {
-				if ( is_array($val) ) continue;
+        if ( is_array($val) ) continue;
         $header_lines[] = "{$key}: {$val}";
       }
       $h = join($interline_break, $header_lines);
@@ -436,7 +437,7 @@ class UrlModel extends DatabaseUtility {
 
   function referrers($attr = NULL) {/*{{{*/
     if ( !$this->in_database() ) return NULL;
-		throw new Exception("Replace uses of UrlEdgeModel with UrlUrlJoin");
+    throw new Exception("Replace uses of UrlEdgeModel with UrlUrlJoin");
     $edge = new urledgemodel();
     $link = new UrlModel();
     $record = array();
@@ -475,7 +476,7 @@ class UrlModel extends DatabaseUtility {
 
   function set_create_time($utx) {/*{{{*/
     $this->create_time_utx = $utx;
-		return $this;
+    return $this;
   }/*}}}*/
 
   function & set_last_modified($v) { $this->last_modified_utx = $v; return $this; }
@@ -493,7 +494,7 @@ class UrlModel extends DatabaseUtility {
     $cache_filename = $this->get_cache_filename();
     if ( $this->in_database() && is_null($this->pagecontent_blob) && file_exists($cache_filename) ) {
 
-			// If pagecontent_blob is empty, but a cache file exists, then move the contents of that file into DB
+      // If pagecontent_blob is empty, but a cache file exists, then move the contents of that file into DB
 
       $this->syslog(__FUNCTION__,__LINE__,"---------- LOADING {$cache_filename}" );
       $this->pagecontent_blob = @file_get_contents($this->get_cache_filename());
@@ -502,7 +503,7 @@ class UrlModel extends DatabaseUtility {
       if ( empty($this->pagecontent_blob) && $is_pdf ) {
         $this->syslog(__FUNCTION__, __LINE__, "PDF could not be obtained from {$cache_filename}");
       }
-			if ( $this->in_database() ) $stowresult = $this->fields(array('pagecontent'))->stow();
+      if ( $this->in_database() ) $stowresult = $this->fields(array('pagecontent'))->stow();
       $sr_type = gettype($stowresult);
       $this->syslog(__FUNCTION__,__LINE__,"---------- [{$sr_type} {$stowresult}] LOADED {$length} octets from {$cache_filename} into DB" );
       if ( 'string' == $sr_type && (0 < strlen(intval($stowresult))) ) {
@@ -524,7 +525,7 @@ class UrlModel extends DatabaseUtility {
 
   function & increment_hits($update = FALSE) {
     $this->hits_int11 = intval($this->hits_int11) + 1; 
-		if ( $update && $this->in_database() ) $this->fields(array('hits'))->stow();
+    if ( $update && $this->in_database() ) $this->fields(array('hits'))->stow();
     return $this;
   }
 
@@ -576,9 +577,9 @@ class UrlModel extends DatabaseUtility {
     return $this;
   }
 
-	function get_id() {
-		return $this->id;
-	}
+  function get_id() {
+    return $this->id;
+  }
 
   function & set_is_fake($v) { $this->is_fake_bool = $v; return $this; }
   function get_is_fake($v = NULL) { if (!is_null($v)) $this->set_is_fake($v); return $this->is_fake_bool; }
@@ -592,19 +593,19 @@ class UrlModel extends DatabaseUtility {
   function & set_update_time($v) { $this->update_time_utx = $v; return $this; }
   function get_update_time($v = NULL) { if (!is_null($v)) $this->set_update_time($v); return $this->update_time_utx; }
 
-	static function create_metalink($linktext, $target_url, $control_set, $classname, $with_hash = FALSE) {/*{{{*/
-		// Create a link A tag that results in a POST action to a target URL page.
-		ksort($control_set);
-		$controlset_json_base64 = base64_encode(json_encode($control_set));
-		$controlset_hash        = md5($controlset_json_base64);
-		$generated_link = <<<EOH
+  static function create_metalink($linktext, $target_url, $control_set, $classname, $with_hash = FALSE) {/*{{{*/
+    // Create a link A tag that results in a POST action to a target URL page.
+    ksort($control_set);
+    $controlset_json_base64 = base64_encode(json_encode($control_set));
+    $controlset_hash        = md5($controlset_json_base64);
+    $generated_link = <<<EOH
 <a href="{$target_url}" class="{$classname}" id="switch-{$controlset_hash}">{$linktext}</a>
 <span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
 EOH;
-		return $with_hash
-			? array( 'metalink' => $generated_link, 'hash' => $controlset_hash )
-			:	$generated_link
-			;
-	}/*}}}*/
+    return $with_hash
+      ? array( 'metalink' => $generated_link, 'hash' => $controlset_hash )
+      :  $generated_link
+      ;
+  }/*}}}*/
 
 }

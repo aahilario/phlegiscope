@@ -41,9 +41,6 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
     parent::__construct();
   }
 
-	function & set_filing_date($v) { $this->filing_date_dtm = $v; return $this; }
-	function get_filing_date($v = NULL) { if (!is_null($v)) $this->set_filing_date($v); return $this->filing_date_dtm; }
-
 	function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
 	function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
 
@@ -137,6 +134,7 @@ Senate {$senatedoc}s in system: {$total_bills_in_system}
 <span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
 <span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committee}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
+<span class="sb-match-item sb-match-committee-filing-date">Date Filed: {filing_date}</span>
 EOH
 		);
 

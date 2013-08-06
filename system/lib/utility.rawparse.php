@@ -22,11 +22,13 @@ class RawparseUtility extends SystemUtility {/*{{{*/
   protected $freewheel                 = FALSE; // TRUE to prevent execution of parser callbacks
   protected $terminated                = FALSE; // TRUE to end piecewise parsing
 	protected $no_store                  = FALSE; // TRUE to prevent populating stacks
+
   /*
    * HTML document XML parser class
    */
 
   function __construct() {/*{{{*/
+    parent::__construct();
     $this->initialize();
   }/*}}}*/
 
@@ -486,9 +488,9 @@ EOH;
 
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
 		if ( $this->freewheel ) return TRUE;
-    $tag = strtoupper($tag);
-    // $this->syslog(__FUNCTION__,__LINE__,">>>>>>>>>>>>>>>> {$tag}" );
     if ( $tag == 'HTTP:' ) return; 
+    $tag = str_replace(':','_',strtoupper($tag));
+		// if ( $this->debug_tags ) $this->syslog(__FUNCTION__,__LINE__,"(marker) >>>>>>>>>>>>>>>> {$tag}" );
     $tag_handler = strtolower("ru_{$tag}_open");
 		$seq = intval($this->tag_counter);
     $current_tag = array(
@@ -532,7 +534,7 @@ EOH;
   function ru_tag_close($parser, $tag) {/*{{{*/
 		if ( $this->freewheel ) return TRUE;
     $debug_method = FALSE;
-    $tag = strtoupper($tag);
+    $tag = str_replace(':','_',strtoupper($tag));
     $tag_handler = strtolower("ru_{$tag}_close");
     $result = ( method_exists($this, $tag_handler) )
       ? $this->$tag_handler($parser, $tag)
@@ -689,8 +691,8 @@ EOH;
     $container_def = array(
       'tagname' => $tagname,
       'sethash' => $this->hash_generator_counter++,
-      'class'   => array_key_exists('CLASS', $attrs) ? "{$attrs['CLASS']}" : NULL,
-      'id'      => array_key_exists('ID'   , $attrs) ? "{$attrs['ID']}"    : NULL,
+      'class'   => nonempty_array_element($attrs,'CLASS',nonempty_array_element($attrs,'class')),
+      'id'      => nonempty_array_element($attrs,'ID',nonempty_array_element($attrs,'id')),
       'attrs'   => $attrs,
       'children' => array(),
       'seq'     => nonempty_array_element($this->current_tag['attrs'],'seq',0),
@@ -703,10 +705,15 @@ EOH;
     array_push($this->container_stack, $container_def);
   }/*}}}*/
 
-  function & update_current_tag_url($k) {/*{{{*/
+  function & update_current_tag_url($k, $trim_path_slashes = TRUE) {/*{{{*/
     if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) && is_array($this->current_tag) && array_key_exists('attrs', $this->current_tag) && array_key_exists($k, $this->current_tag['attrs'])) {
-      $fixurl = array('url' => $this->current_tag['attrs'][$k]);
-      $this->current_tag['attrs'][$k] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
+      $prev_url = $this->current_tag['attrs'][$k];
+      $fixurl = array('url' => $prev_url);
+      // Hack for URL normalization/parsing, change '/?' to '?'
+      $url = UrlModel::normalize_url($this->page_url_parts, $fixurl, $trim_path_slashes);
+      $url = str_replace('/?','?',$url);
+      $this->current_tag['attrs'][$k] = $url;
+      // $this->syslog( __FUNCTION__, __LINE__, "(marker) Updated {$this->current_tag['attrs'][$k]} <- {$prev_url}");
     }
     return $this;
   }/*}}}*/
@@ -793,6 +800,40 @@ EOH;
 		);
 	}/*}}}*/
 	
+	function embed_container_in_parent(& $parser,$tag) {/*{{{*/
+		$keep_container = TRUE;
+		$this->pop_tagstack();
+		if ( array_key_exists('CONTAINER',$this->current_tag) ) {
+			$content = $this->stack_to_containers();
+			$attrs = nonempty_array_element($this->current_tag,'attrs',array());
+			unset($attrs['seq']);
+			$this->current_tag = $content['container'];
+			$this->current_tag['attrs'] = array_merge(
+				$this->current_tag['attrs'],
+				$attrs
+			);
+			$keep_container = FALSE;
+		}
+		$this->add_to_container_stack($this->current_tag);
+		$this->push_tagstack();
+		// $this->recursive_dump($content,"(marker) {$tag}");
+		return $keep_container;
+	}/*}}}*/
+
+	function add_cdata_property() {/*{{{*/
+		$this->pop_tagstack();
+		$this->current_tag['cdata'] = array();
+		$this->push_tagstack();
+	}/*}}}*/
+
+	function append_cdata($cdata) {/*{{{*/
+		$this->pop_tagstack();
+		$this->current_tag['cdata'][] = $cdata;
+		$this->push_tagstack();
+		return TRUE;
+	}/*}}}*/
+
+
   // ------------ Specific HTML tag handler methods -------------
 
   function ru_x_open(& $parser, & $attrs, $tagname ) {/*{{{*/
@@ -858,7 +899,6 @@ EOH;
 	}/*}}}*/
 
 
-
   function & current_tag() {/*{{{*/
     $this->pop_tagstack();
     $this->push_tagstack();
@@ -880,13 +920,5 @@ EOH;
       $this->current_tag['cdata'] = array_filter(explode('[BR]',preg_replace('@(&nbsp([;]*))+@i',' ',join('',$this->current_tag['cdata']))));
     }
   }/*}}}*/
-
-	function iconv($s) {/*{{{*/
-		return iconv( strtoupper($this->content_type), 'UTF-8//TRANSLIT', $s );
-	}/*}}}*/
-
-	function reverse_iconv($s) {/*{{{*/
-		return iconv( 'UTF-8', strtoupper($this->content_type), $s );
-	}/*}}}*/
 
 }/*}}}*/

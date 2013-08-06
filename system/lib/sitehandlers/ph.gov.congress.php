@@ -5,7 +5,6 @@ class CongressGovPh extends SeekAction {
   private $container_buffer = NULL;
 
   function __construct() {
-    $this->syslog( __FUNCTION__, '-', 'Using site-specific container class' );
     parent::__construct();
   }
 
@@ -24,18 +23,10 @@ class CongressGovPh extends SeekAction {
     $common->
       set_parent_url($urlmodel->get_url())->
       parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
+    //$this->recursive_dump($common->get_containers(),"(marker) --");
     $pagecontent = str_replace('[BR]','<br/>',join('',$common->get_filtered_doc()));
-    $parser->json_reply = array('retainoriginal' => TRUE);
-  }/*}}}*/
-
-  function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-
-    // http://www.congress.gov.ph/members 
-    $document_parser = new CongressMemberBioParseUtility();
-    $document_parser->update_existing = $parser->update_existing;
-    $document_parser->representative_bio_parser($parser,$pagecontent,$urlmodel);
-    $document_parser = NULL;
-    unset($document_parser);
+    $parser->json_reply['retainoriginal'] = TRUE;
+    $parser->json_reply['subcontent'] = $pagecontent;
 
   }/*}}}*/
 
@@ -374,7 +365,7 @@ EOH;
 
     $debug_method = FALSE;
 
-    $own_url      = $urlmodel->get_url();
+    $own_url = $urlmodel->get_url();
 
     if ( $debug_method ) {/*{{{*/
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() . ". Length: " . $urlmodel->get_content_length() . ". Memory load: " . memory_get_usage(TRUE) );
@@ -391,37 +382,53 @@ EOH;
 
     $hb_listparser = new CongressHbListParseUtility();
 
+    $hb_listparser->debug_method = $debug_method;
+
     $congress_tag = $hb_listparser->seek_postparse_d_billstext_preprocess($parser,$pagecontent,$urlmodel);
 
     $urlmodel->set_content(NULL)->set_id(NULL);
 
-    $debug_method = FALSE;
     $house_bills = new HouseBillDocumentModel();
-    $cached = NULL;
+    $cached      = NULL;
+    $emit_frame  = FALSE; 
+
+    $house_bills->cache_parsed_housebill_records(
+      $hb_listparser->container_buffer['parsed_bills'],
+      $congress_tag,
+      $parser->from_network
+    );
+
     if ( 'fetch' == $this->filter_post('catalog') ) {
-      $house_bills->cache_parsed_housebill_records($hb_listparser->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
       $parser->json_reply['catalog'] = nonempty_array_element($hb_listparser->container_buffer,'parsed_bills');
       if ( $debug_method ) $this->recursive_dump(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'),"(marker) --- A --");
+      $parser->json_reply['division'] = 'A';
     } else {
-      $house_bills->cache_parsed_housebill_records($hb_listparser->container_buffer['parsed_bills'], $congress_tag, $parser->from_network);
       $cached = addslashes($this->safe_json_encode(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'))); 
       if ( $debug_method ) $this->recursive_dump(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'),"(marker) --- B --");
+      $emit_frame = TRUE;
+      $parser->json_reply['division'] = 'B';
     }
-    $debug_method = FALSE;
 
     // Store records not yet recorded in HouseBillDocumentModel backing store.
-
     // Generate POST links
 
     $actions        = nonempty_array_element($hb_listparser->container_buffer,'form');
     $action         = nonempty_array_element($actions,'action');
     $trigger_pull   = NULL;
-    $emit_frame     = is_null($congress_tag);
     $generated_link = array();
 
     if ( $debug_method ) $this->recursive_dump(nonempty_array_element($actions,'form_controls'),"(marker) -- - --");
 
-    foreach ( nonempty_array_element($actions,'form_controls') as $k => $v ) {/*{{{*/
+    // This code depends on successful extraction of form_controls in
+    // CongressHbListParseUtility
+    $form_controls = nonempty_array_element($actions,'form_controls',nonempty_array_element($actions,'userset',array()));
+
+    if ( $debug_method ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -+-+-+-+-+-- {$congress_tag}");
+      $this->recursive_dump($actions,"(marker) -+-+-+-+-+--");
+    }/*}}}*/
+    foreach ( $form_controls as $k => $v ) {/*{{{*/
+      $v = array_keys($v);
       foreach ( $v as $val ) {
         $link_class_selector = array('fauxpost');
         $link_class_selector = join(' ', $link_class_selector);
@@ -429,14 +436,18 @@ EOH;
           '_' => 'SKIPGET',
           $k => $val
         );
-        extract( UrlModel::create_metalink("{$val}", $action, $control_set, $link_class_selector, TRUE) );
+        $metalink_source = UrlModel::create_metalink("{$val}", $action, $control_set, $link_class_selector, TRUE);
+
+        if ( $debug_method )
+        $this->recursive_dump($metalink_source,"(marker) --+-+-+-+-+- {$val}");
+
+        extract($metalink_source);
         $generated_link[$hash] = $metalink;
         if ( is_null($congress_tag) ) $congress_tag = $val;
         if ( $congress_tag == $val ) $trigger_pull = "switch-{$hash}";
       }
     }/*}}}*/
 
-    krsort($generated_link);
     $generated_link = join('&nbsp;', $generated_link);
     $entries        = array_element($hb_listparser->container_buffer,'entries');
     $bills          = NULL;
@@ -463,14 +474,10 @@ EOH;
   {$system_stats}
 </div>
 
-<div class="float-left half-container alternate-original" id="parsed-content">
-{$bills}
-</div>
-
 <script type="text/javascript">
 
 var parse_offset = 0;
-var parse_limit = 11;
+var parse_limit = {$parse_limit};
 var cached = jQuery.parseJSON("{$cached}");
 
 function emit_bill_entries(entries) {
@@ -479,7 +486,7 @@ function emit_bill_entries(entries) {
     var links = entry && entry.links ? entry.links : null;
     var representative = entry && entry.representative ? entry.representative : null;
     var committee = entry && entry.committee ? entry.committee : null;
-    jQuery('#parsed-content').append(
+    jQuery('#subcontent').append(
       jQuery(document.createElement('DIV'))
         .addClass('bill-container')
         .addClass('clear-both')
@@ -554,12 +561,10 @@ function emit_bill_entries(entries) {
 }
 
 function pull() {
-  var active = jQuery('#{$trigger_pull}').attr('id').replace(/^switch-/,'content-');
-  var linkurl = jQuery('#{$trigger_pull}').attr('href');
-  if ( !jQuery('#spider').prop('checked') ) {
-    emit_bill_entries(cached);
-    return; 
-  }
+  var trigger_pull = '{$trigger_pull}';
+  if ( !(trigger_pull.length > 0) ) return;
+  var active = jQuery('[id='+trigger_pull+']').attr('id').replace(/^switch-/,'content-');
+  var linkurl = jQuery('[id='+trigger_pull+']').attr('href');
   jQuery.ajax({
     type     : 'POST',
     url      : '/seek/',
@@ -581,77 +586,150 @@ function pull() {
         }  
       }
       parse_offset = ( data && data.parse_offset ) ? data.parse_offset : 0;
-      if ( data && data.catalog ) {
-        emit_bill_entries(data.catalog);
-      }
+      if ( data && data.catalog ) emit_bill_entries(data.catalog);
       jQuery('#seek').prop('checked',null);
       if ( jQuery('#spider').prop('checked') ) {
-        setTimeout((function(){pull();}),500);
+        setTimeout((function(){ pull(); }),500);
       }
     })
   });
 }
 
 jQuery(document).ready(function(){
+  jQuery('#subcontent').children().remove();
+  if ( !jQuery('#spider').prop('checked') ) {
+    emit_bill_entries(cached);
+    return; 
+  }
   pull();
 });
 </script>
 
 EOH;
-
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 
   }/*}}}*/
 
   /** Automatically matched parsers **/
 
-  function seek_by_pathfragment_6e242fdc8fb6d6f9eacd5ac9869f3015(& $parser, & $pagecontent, & $urlmodel) {
-		$this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
-	}
+  function seek_by_pathfragment_6e242fdc8fb6d6f9eacd5ac9869f3015(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
 
-  function seek_by_pathfragment_d89f6d777c7c648792580db32d8867b1(& $parser, & $pagecontent, & $urlmodel) {
-		$this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
-	}
+  function seek_by_pathfragment_d89f6d777c7c648792580db32d8867b1(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
 
-   function seek_by_pathfragment_38ba6300f99b9aff7f316d454326f418(& $parser, & $pagecontent, & $urlmodel) {
-		$this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
-	}
+  function seek_by_pathfragment_38ba6300f99b9aff7f316d454326f418(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->republic_act_pdf_intercept($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
 
-  
-
-  function seek_by_pathfragment_e4d1bcf92a20bcf057f690e18c95d159(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+  function committee_information_page(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // Specific Committee Listing entries
+    // http://www.congress.gov.ph/committees/search.php/?id=0501 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $document_parser = new CongressionalCommitteeInfoParseUtility();
     $document_parser->update_existing = $parser->update_existing;
     $document_parser->committee_information_page(& $parser, & $pagecontent, & $urlmodel);
     $document_parser = NULL;
     unset($document_parser);
+
+    $parser->json_reply = array(
+      'retainoriginal' => TRUE,
+      'subcontent' => $pagecontent,
+    );
+
+    $pagecontent = NULL;
+
   }/*}}}*/
 
-  function seek_postparse_bypath_9f222d54cda33a330ffc7cd18e7ce27f(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+  function seek_by_pathfragment_e4d1bcf92a20bcf057f690e18c95d159(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->committee_information_page($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_postparse_bypathonly_c129bfbe3255b997d22b73aa77edfda7(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->committee_information_page($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_postparse_bypath_plus_queryvars_80e9cbc1eea29170c03c8e573d231b2e(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->committee_information_page($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+
+
+  function congress_committee_listing(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/committees/search.php?congress=15&id=A505
+    $p = new CongressCommitteeListParseUtility();
+    $p->congress_committee_listing($parser,$pagecontent,$urlmodel);
+    $p = NULL;
+    unset($p);
+
+  }/*}}}*/
+
+  function seek_by_pathfragment_8d5125b7dba2f2b263f1bd6e4917b247(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/committees/search.php 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->congress_committee_listing($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
-  function seek_postparse_9e8648ad99163238295d15cfa534be86(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.congress.gov.ph/committees/search.php 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $this->congress_committee_listing($parser,$pagecontent,$urlmodel);
-  }/*}}}*/
-
-  function seek_by_pathfragment_b536fc060d348f720ee206f9d3131a5c(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.congress.gov.ph/committees/search.php 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    $this->congress_committee_listing($parser,$pagecontent,$urlmodel);
-  }/*}}}*/
 
   function seek_postparse_bypathonly_0808b3565dcaac3a9ba45c32863a4cb5(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // HOME PAGE OVERRIDDEN BY NODE GRAPH
     // http://www.congress.gov.ph
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+
+    $full_url = 'http://www.congress.gov.ph/';
+    $full_url_p = UrlModel::parse_url($full_url);
+    $action  = '?d=billstext';
+    $action_p = UrlModel::parse_url($action);
+    $action_q = parse_url($action);
+
+    $this->recursive_dump($full_url_p,"(marker) -- {$full_url}");
+    $this->recursive_dump($action_p,"(marker) +- {$action}");
+    $this->recursive_dump($action_q,"(marker) -+ {$action}");
+
+    $pagecontent = "Congress Data Object Nodes";
+    $pagecontent = str_replace(
+      '{alternate-content}',
+      $pagecontent,
+      $this->get_template('index.html')
+    );
+    $parser->json_reply = array(
+      'retainoriginal' => FALSE,
+      'rootpage' => TRUE
+    );
   }/*}}}*/
            
+  function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    // http://www.congress.gov.ph/members 
+    $document_parser = new CongressMemberBioParseUtility();
+    $document_parser->update_existing = $parser->update_existing;
+    $document_parser->representative_bio_parser($parser,$pagecontent,$urlmodel);
+    $document_parser = NULL;
+
+    $parser->json_reply = array(
+      'retainoriginal' => TRUE,
+      'subcontent' => $pagecontent,
+    );
+
+    $pagecontent = NULL;
+
+    unset($document_parser);
+
+  }/*}}}*/
+
+  function seek_by_pathfragment_238349a55956282c344e08786c207313(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->representative_bio_parser($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
   function seek_postparse_bypathonly_2e56f3e00b2b7764f027fe14c4910080(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->representative_bio_parser($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_postparse_bypath_plus_queryvars_dfdf905bf71fd81a3044e7ca8cb59fff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->representative_bio_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
@@ -681,15 +759,6 @@ jQuery(document).ready(function(){
 });
 </script>
 EOH;
-  }/*}}}*/
-
-  function congress_committee_listing(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.congress.gov.ph/committees/search.php?congress=15&id=A505
-    $p = new CongressCommitteeListParseUtility();
-    $p->congress_committee_listing($parser,$pagecontent,$urlmodel);
-    $p = NULL;
-    unset($p);
-
   }/*}}}*/
 
   function seek_postparse_bypath_356caa1dcd2d3a76fcc6debce13393ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -794,8 +863,8 @@ EOH;
     return ( 
       // PDF links intercepted by the parser class
       1 == preg_match('@http://www.congress.gov.ph/download/(.*)/(.*).pdf@i', $url->get_url()) ||
-			// Normal markup pages on congress.gov.ph
-      1 == preg_match('@http://www.congress.gov.ph/download/index.php\?d=billstext@i', $url->get_url()) ||
+      // Normal markup pages on congress.gov.ph
+      1 == preg_match('@http://www.congress.gov.ph/download/(index.php)*\?d=billstext@i', $url->get_url()) ||
       1 == preg_match('@http://www.congress.gov.ph/members(([/]*)(.*))*@i', $url->get_url()) ||
       1 == preg_match('@http://www.congress.gov.ph/download/index.php\?d=journals(.*)@i', $url->get_url()) ||
       1 == preg_match('@http://www.congress.gov.ph/members/search.php\?(.*)@i', $url->get_url())  || 

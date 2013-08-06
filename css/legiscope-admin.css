@@ -1,13 +1,12 @@
 /** Various overrides of default admin template **/
+/** Legiscope Admin Pages **/ 
 
 li > a {
   margin-right: 0;
   padding-right: 0;
 }
-h2.legiscope {
-  width: auto;
-  display: block;
-  float: left;
+hr {
+  outline-style: none;
 }
 a {
   text-decoration: none;
@@ -33,31 +32,55 @@ a:hover {
 #search-wait > img {
 	height: 15px;
 }
+
 /** Major panel divisions **/
+
+h2.light {
+  font-weight: normal;
+}
+
+div#controlpanel label {
+  display: inline-block;
+  text-align: right;
+  padding-top: 4px;
+  width: 29%;
+}
+.readout {
+  margin-top: 6px;
+  margin-bottom: 6px;
+  text-align: right;
+}
 
 .poc {
   background-color: transparent;
 }
 .panels {
+  display: block;
   scroll: none;
   clip: auto;
   overflow: hidden;
-  display: block;
-  min-height: 300px;
+  min-height: 640px;
   border: 1px solid transparent;
 }
 #controlpanel {
-  float: left;
+  background-color: #F7F7F7;
+  float: right;
   width: 20%;
   line-height: 100%;
   min-width: 240px;
+  padding: 3px;
 }
 #controlpanel > input {
   background-color: #EEE;
   width: 90%;
 }
-#controlpanel > a {
+#controlpanel a {
+  margin-left: 6px;
   text-decoration: none;
+}
+#controlpanel input#keywords {
+  background-image: url('/wp-admin/images/search.svg');
+  background-repeat: no-repeat;
 }
 
 #sitecontent {
@@ -65,6 +88,11 @@ a:hover {
   line-height: 120%;
   float: right;
   width: 79%;
+}
+.contentwindow {
+  margin: 4px;
+  margin-top: 10px;
+  background-color: transparent;
 }
 div.linkset ul {
   list-style-type: none;
@@ -77,14 +105,18 @@ ul.linkset-pager {
   padding-bottom: 4px;
   margin-right: 10px;
 }
-ul.linkset-pager > li {
+ul.linkset-pager li {
   padding-bottom: 4px;
 }
-div.linkset > hr {
-  color: #DDD;
+div.linkset hr {
+  color: #EEE;
   width: 88%;
 }
-
+li.link-section {
+  text-align: center;
+  font-size: 110%;
+  line-height: 100%;
+}
 /** Search hits **/
 
 a.search-match {
@@ -148,8 +180,6 @@ span.contenttab {
 	display: block;
 	line-height: 20px;
 	vertical-align: top;
-	height: 49px;
-	max-height: 49px;
 	float: right;
 	clear: right;
 }
@@ -316,7 +346,7 @@ div.congress-doc-item > span {
 	display: block;
 	float: left;
 	clear: left;
-  width: 52%;
+  width: 100%;
 	min-height: 640px;
 }
 
@@ -379,7 +409,7 @@ div.committee-jurisdiction {
 
 a.listing-committee-name {
   display: inline-block;
-  width: 200px;
+  width: 50%;
   padding-right: 5px;
   text-align: right;
   vertical-align: top;
@@ -391,7 +421,7 @@ div.committee-leader-box {
 }
 span.listing-committee-representative {
   display: inline-block;
-  width: auto;
+  width: 49%;
   vertical-align: top;
 }
 
@@ -489,3 +519,74 @@ a.clicked {
   background-color: #FDD;
 }
 */
+
+/** Graph node canvas **/
+
+/** Legiscope Common Site Information (Per-Site) **/
+div.legiscope-admin-main {
+  display: block;
+  width: 100%;
+  clear: both;
+  padding: 0;
+  margin: 0;
+  border: 0px solid transparent;
+}
+div.legiscope-admin {
+  display: block;
+  background-color: #F7F7F7;
+  margin: 0;
+  margin-top: 6px;
+  padding: 2px;
+  border: 1px dotted #777777;
+  clear: none;
+}
+div.legiscope-admin:hover {
+  background-color: transparent;
+  padding: 2px;
+  border: 1px solid transparent;
+}
+
+.legiscope-admin-submenu {
+  width: 99%;
+  min-height: 25px;
+  vertical-align: middle;
+}
+.legiscope-admin-maincontent {
+  clip: auto;
+  overflow: hidden;
+  clear: none;
+  float: left;
+  width: 49%;
+  min-height: 640px;
+}
+.legiscope-admin-subcontent {
+  clear: none;
+  float: right;
+  width: 49%;
+  min-height: 640px;
+}
+
+.legiscope-admin h2 {
+  font-weight: normal;
+}
+
+.legiscope-admin hr {
+  color: transparent;
+  background-color: transparent;
+  border-style: dotted;
+}
+
+.legiscope-svg-fullsize {
+	width: 100%;
+}
+
+#basemap {
+	width: 100%;
+}
+.svg-outline {
+	stroke: #000000;
+	stroke-width: 0.2;
+}
+.hilight-outline {
+	fill: blue !important;
+}

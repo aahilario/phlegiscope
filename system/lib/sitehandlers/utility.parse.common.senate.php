@@ -53,8 +53,8 @@ class SenateCommonParseUtility extends LegislationCommonParseUtility {
       if ( array_key_exists('ID',$this->current_tag['attrs']) && array_key_exists($this->current_tag['attrs']['ID'],array_flip(array(
         'nav_top',
         'nav_bottom',
-				'lis_changecongress',
-				'div_Help',
+        'lis_changecongress',
+        'div_Help',
       )))) $skip = TRUE;
       if ( $skip && $this->debug_tags ) {
         usleep(20000);
@@ -107,7 +107,6 @@ class SenateCommonParseUtility extends LegislationCommonParseUtility {
     $this->pop_tagstack();
     $this->current_tag['cdata'][] = $cdata;
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "--- {$this->current_tag['tag']} {$cdata}" );
     return TRUE;
   }/*}}}*/
   function ru_a_close(& $parser, $tag) {/*{{{*/
@@ -115,7 +114,6 @@ class SenateCommonParseUtility extends LegislationCommonParseUtility {
     $link_data = $this->collapse_current_tag_link_data();
     $this->add_to_container_stack($link_data);
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "--- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
 
@@ -153,50 +151,49 @@ class SenateCommonParseUtility extends LegislationCommonParseUtility {
     return !(is_array($this->current_tag) && array_key_exists('attrs',$this->current_tag) && array_key_exists('CLASS',$this->current_tag['attrs']) && (1 == preg_match('@(nav_logo)@i',$this->current_tag['attrs']['CLASS'])));
   }/*}}}*/
 
-	function session_select_option_assignments(& $control_set, $select_option, $select_name) {/*{{{*/
-		// This method must be defined for Congress pagers as well
-		$control_set['__EVENTTARGET']   = $select_name;
-		$control_set['__EVENTARGUMENT'] = NULL;
-	}/*}}}*/
+  function session_select_option_assignments(& $control_set, $select_option, $select_name) {/*{{{*/
+    // This method must be defined for Congress pagers as well
+    $control_set['__EVENTTARGET']   = $select_name;
+    $control_set['__EVENTARGUMENT'] = NULL;
+  }/*}}}*/
 
-	function jquery_seek_missing_journal_pdf() {
-		return <<<EOH
+  function jquery_seek_missing_journal_pdf() {/*{{{*/
+    return <<<EOH
 
 <script type="text/javascript">
 
 jQuery(document).ready(function(){
   jQuery('a[class*=journal-pdf]').each(function() {
-		if ( jQuery(this).hasClass('uncached') ) {
-			var self = jQuery(this);
+    if ( jQuery(this).hasClass('uncached') ) {
+      var self = jQuery(this);
       var linkurl = jQuery(this).attr('href');
-			jQuery.ajax({
-				type     : 'POST',
-				url      : '/seek/',
-				data     : { url : linkurl, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true },
-				cache    : false,
-				dataType : 'json',
-				async    : false,
-				beforeSend : (function() {
-					display_wait_notification();
-				}),
-				complete : (function(jqueryXHR, textStatus) {
-					remove_wait_notification();
-				}),
-				success  : (function(data, httpstatus, jqueryXHR) {
-					jQuery(self).addClass('cached').removeClass('uncached');
-					if ( data && data.original ) replace_contentof('original',data.original);
-					if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-				})
-			});
-		}
+      jQuery.ajax({
+        type     : 'POST',
+        url      : '/seek/',
+        data     : { url : linkurl, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true },
+        cache    : false,
+        dataType : 'json',
+        async    : false,
+        beforeSend : (function() {
+          display_wait_notification();
+        }),
+        complete : (function(jqueryXHR, textStatus) {
+          remove_wait_notification();
+        }),
+        success  : (function(data, httpstatus, jqueryXHR) {
+          jQuery(self).addClass('cached').removeClass('uncached');
+          if ( data && data.original ) replace_contentof('original',data.original);
+          if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+        })
+      });
+    }
   });
 });
 
 </script>
 
 EOH;
+  }/*}}}*/
 
-
-	}
 }
 

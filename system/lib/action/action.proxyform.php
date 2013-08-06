@@ -124,8 +124,9 @@ class ProxyformAction extends LegiscopeBase {
           'markup'         => $headers['legiscope-regular-markup'] == 1 ? $final_content : '[OBSCURED CONTENT]',
           'responseheader' => $responseheader,
           'httpcode'       => $headers['http-response-code'], 
-          'original'       => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
-          'defaulttab'     => array_key_exists($headers['http-response-code'],array_flip(array(100,200,302,301))) ? 'original' : 'responseheader',
+          'content'        => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
+          // FIXME:  The {responseheader} container should not be a front page content division, but instead relegated to a technical detail section
+          'defaulttab'     => array_key_exists($headers['http-response-code'],array_flip(array(100,200,302,301))) ? 'content' : 'responseheader',
         ),
         $json_reply
       );

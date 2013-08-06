@@ -217,6 +217,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
       $bounds[$congress]['max'] = max($bounds[$congress]['max'], $srn);
       $bounds[$congress]['d']   = $bounds[$congress]['max'] - $bounds[$congress]['min'];
       $bounds[$congress]['count']++;
+
       $pagers[$congress] = NULL;
 
       // Store URL regex patterns for documents within each congress. 
@@ -311,7 +312,6 @@ class LegislationCommonParseUtility extends GenericParseUtility {
       }
     }/*}}}*/
 
-
     //////////////////////////////////////////////////////////////////////
     return array(
       'child_collection' => $child_collection,
@@ -341,7 +341,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
         $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
         $linktext = "No. {$url_query_parts['q']}";
       }
-      $link_class = array('legiscope-remote','suppress-reorder','indent-3');
+      $link_class = array('legiscope-remote','suppress-reorder','indent-3','matchable');
       $link_class[] = ( array_element($child_link,'cached') == TRUE ) ? "cached" : "uncached";
       $li_class = array('no-bullets');
       $invalidated = 1 == nonempty_array_element($child_link,'inv',0);
@@ -355,7 +355,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 
 EOH
         : <<<EOH
-<li class="no-bullets"><a title="{$title}" class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
+<li class="no-bullets" id="line-{$child_link['hash']}"><a title="{$title}" class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
 
 EOH;
       if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
@@ -433,6 +433,14 @@ EOH;
     $pagecontent = <<<EOH
 
 <div class="senate-journal">
+<h2><input type="text" class="full-width" id="listing-filter-string" /></h2>
+
+<script type="text/javascript">
+jQuery(document).ready(function(){
+  initialize_filter("#listing-filter-string","span[class*=indent-1]","test");
+});
+</script>
+
 
 EOH;
 
@@ -469,7 +477,7 @@ EOH;
           $pagecontent .= <<<EOH
 
 [SWITCHER]
-<span class="indent-1">Last 3 Congress Conventions {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
+<span class="indent-1">Congress: {$congress_change_link} <input type="button" value="Reset" id="reset-cached-links" /><br/>
 
 EOH;
           $level_0_rendered = TRUE;
@@ -662,9 +670,9 @@ EOH;
   }/*}}}*/
 
   static function committee_name_regex($committee_name) {/*{{{*/
-    $search_name = explode(' ',preg_replace(
+    $search_name = array_filter(explode(' ',preg_replace(
       array(
-        "@[^&;'A-Z0-9ñ ]@i",
+        "@[^&;'A-Z0-9-ñ ]@i",
         "@[']@i",
         "@[“”]@",
         '@\&([a-z]*);@i',
@@ -678,13 +686,53 @@ EOH;
         ' ',
       ),
       $committee_name)
-    );
+    ));
     array_walk($search_name,
       create_function(
         '&$a, $k, $s',
         '$a = strlen($a) > 3 ? "(" . trim($a) . ")" : NULL;'),
       $search_name
     );
+    $search_name = join('(.*)',array_filter($search_name));
+    if (!(0 < strlen($search_name) ) ) return FALSE;
+    return $search_name;
+  }/*}}}*/
+
+  static function legislator_name_regex($human_name) {/*{{{*/
+    $search_name = array_values(array_filter(explode(' ',preg_replace(
+      array(
+				'@([ \t\n]+)@i',
+        "@[“”]@i",
+				'@["][^"]*["]@i',
+        "@[^&;'A-Zñ\" ]@i",
+
+        "@[']@i",
+        '@\&([a-z]*);@i',
+        '@&@i',
+				'@[[:space:]](IV|III|II|VII|VI|V|Jr\.|Sr\.)$@',
+      ),
+      array(
+				' ',
+        '"',
+				'',
+        '',
+
+        "\'",
+        ' ',
+        ' ',
+				'',
+      ),
+      $human_name)
+    )));
+		array_walk(
+			$search_name,
+      create_function(
+        '& $a, $k, $s',
+				'$m = (($k == 0) || ($k + 1 == (count($s)))) ? "" : "?"; $a = (mb_strlen(preg_replace("@[^A-Zñ ]@i","",$a)) >= 3) ? "(" . trim($a) . "){$m}" : NULL;'
+			),
+			$search_name
+    );
+
     $search_name = join('(.*)',array_filter($search_name));
     if (!(0 < strlen($search_name) ) ) return FALSE;
     return $search_name;

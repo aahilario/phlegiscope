@@ -12,12 +12,13 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
   
   var $committee_name_vc256 = NULL;
   var $jurisdiction_vc1024 = NULL;
-  var $congress_tag_vc8 = NULL;
+  var $congress_tag_vc8 = NULL; // Pointless to track changes in jurisdiction
   var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
-  var $url_vc4096 = NULL; // TODO: Replace with UrlModel[ {} ]
-  var $office_address_vc4096 = NULL;
+  var $url_vc4096 = NULL; // FIXME: Mutable, move to contact_info join 
+  var $office_address_vc4096 = NULL; // FIXME: Also mutable, ditto.
 
+  var $office_contact_CongressionalAdminContactDocumentModel = NULL;
   var $representative_RepresentativeDossierModel = NULL; // Relationship between a committee and a representative (role, mainly: e.g. chairman, member)
   var $master_document_links_UrlModel = NULL; // Note that this also supersedes the Committee URL
 
@@ -33,7 +34,6 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
     unset($this->last_fetch_utx);
     unset($this->url_vc4096);
     unset($this->office_address_vc4096);
-    unset($this->contact_json_vc4096);
     unset($this->representative_RepresentativeDossierModel);
   }/*}}}*/
 
@@ -61,17 +61,14 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
   function & set_url($v) { $this->url_vc4096 = $v; return $this; }
   function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
 
-  function & set_office_address($v) {
+  function & set_office_address($v) {/*{{{*/
     $this->office_address_vc4096 = is_array($v) ? json_encode($v) : $v;
     return $this;
-   }
-  function get_office_address($v = NULL) { 
+  }/*}}}*/
+  function get_office_address($v = NULL) { /*{{{*/
     if (!is_null($v)) $this->set_office_address($v);
     return is_string($this->office_address_vc4096) ? json_decode($this->office_address_vc4096,TRUE) : $this->office_address_vc4096;
-   }
-
-  function & set_contact_json($v) { $this->contact_json_vc4096 = $v; return $this; }
-  function get_contact_json($v = NULL) { if (!is_null($v)) $this->set_contact_json($v); return $this->contact_json_vc4096; }
+  }/*}}}*/
 
   function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
@@ -159,12 +156,12 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
       }
       ksort($committee_regex_lookup);
 
-			$this->committee_regex_lookup = $committee_regex_lookup;
+      $this->committee_regex_lookup = $committee_regex_lookup;
       // Update bill cache with committee names, IDs, and URLs.
       array_walk($bill_cache,create_function(
         '& $a, $k, $s', '$s->cache_parsed_housebill_records_commupdate($a,$k);'
       ),$this);
-			$this->committee_regex_lookup = NULL; 
+      $this->committee_regex_lookup = NULL; 
     }
 
     return $fixed_mapping;

@@ -11,6 +11,7 @@
 class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   
   var $member_contact_details = NULL;
+  var $representative_name = NULL;
   var $current_member_classification = NULL;
   var $link_title_classif_map = array();
   var $span_content_prefix_map = array();
@@ -341,6 +342,7 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       );
       $this->recursive_dump($contact_items,"(marker) B CIs --- ");
     }
+    else $contact_items = NULL;
     // Determine whether the image for this representative is available in DB
     $member_avatar_base64 = NULL;
     $url->fetch(UrlModel::get_url_hash($member['avatar']),'urlhash');
@@ -710,12 +712,36 @@ EOH
     return join('',$pagecontent);
   }/*}}}*/
 
+  function ru_h2_open(& $parser, & $attrs, $tagname ) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+  function ru_h2_cdata(& $parser, & $cdata) {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'][] = $cdata;
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+  function ru_h2_close(& $parser, $tag) {/*{{{*/
+    $this->current_tag();
+    if ( 'mainheading' == array_element($this->current_tag['attrs'],'CLASS') ) {
+      $representative_name = trim(join('',array_element($this->current_tag,'cdata')));
+      $representative_name = preg_replace('@^hon.([ ]*)@i','', $representative_name);
+      $this->representative_name = $representative_name;
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - Representative {$representative_name}");
+    }
+    return TRUE;
+  }/*}}}*/
+
+
   function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     if ( $debug_method ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for {$parser->trigger_linktext} " . $urlmodel->get_url() );
     }
     // Representative bio parser
 
@@ -735,22 +761,49 @@ EOH
     $urlmodel->ensure_custom_parse();
 
     $pagecontent = '';
+		$member_record = array();
 
-    $m->fetch($urlmodel->get_url(), 'bio_url');
+		if ( 0 < strlen($this->representative_name) ) {/*{{{*/
 
-    if ( !$m->in_database() || $parser->from_network || $this->update_existing ) {/*{{{*/
+			$nameparts  = $m->parse_name($this->representative_name);
+			$given_name = explode(' ', $nameparts['given']);
+			$given_name = array_shift($given_name);
+			$nameparts  = "{$nameparts['surname']}(.*){$given_name}";
 
-      $this->stow_parsed_representative_info($m,$urlmodel);
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Using name regex '{$nameparts}'");
 
-    }/*}}}*/
+			$member_record = $m->fetch(array(
+				'bio_url' => $urlmodel->get_url(),
+				'fullname' => "REGEXP '({$nameparts})'",
+			),'OR');
 
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) E ------------------------------ " );
+			if ( !$m->in_database() || $parser->from_network || $this->update_existing ) {/*{{{*/
+
+				$this->stow_parsed_representative_info($m,$urlmodel);
+
+				$member_record = $m->fetch(array(
+					'bio_url' => $urlmodel->get_url(),
+					'fullname' => "REGEXP '({$nameparts})'",
+				),'OR');
+
+			}/*}}}*/
+
+			if ( $debug_method ) {/*{{{*/
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) E ------------------------------ " );
+				$this->recursive_dump($member_record,"(marker) ++");
+			}/*}}}*/
+
+		}/*}}}*/
+
     $member               = $this->get_member_contact_details();
     $contact_items        = $m->get_contact_json();
     $member_avatar_base64 = $m->get_avatar_image();
     $member_uuid          = $m->get_member_uuid();
-    $member['fullname']   = $m->get_fullname();
+    $bailiwick            = $m->get_bailiwick();
     $member['avatar']     = $m->get_avatar_url();
+    $member               = array_merge($member_record,$member);
+
+    $member['fullname']   = join(' ',array_filter(array($member['firstname'],$member['mi'],$member['surname'],$member['namesuffix'])));
 
     extract($this->extract_committee_membership_and_bills());
 
@@ -761,7 +814,7 @@ EOH
     $legislation_links = join('',$legislation_links);
 
     // To trigger automated fetch, crawl this list after loading the entire dossier doc;
-    // then find the next unvisited dossier entry
+    // then find the next unvisited dossier entry.
     $legislation_links = <<<EOH
 <ul id="house-bills-by-rep" class="link-cluster">{$legislation_links}</ul>
 EOH;
@@ -774,9 +827,10 @@ EOH;
     $pagecontent = <<<EOH
 <div class="congress-member-summary clear-both">
   <h1 class="representative-avatar-fullname">{$member['fullname']}</h1>
-  <img class="representative-avatar" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member['fullname']}" />
+  <img class="representative-avatar" width="120" height="120" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member['fullname']}" />
   <input type="hidden" class="representative-avatar-source" name="image-ref" id="imagesrc-{$member_uuid}" value="{$member['avatar']}" />
   <span class="representative-avatar-head">Role: {$contact_items['district']} {$contact_items['role']}</span>
+  <span class="representative-avatar-head">Bailiwick: {$bailiwick}</span>
   <span class="representative-avatar-head">Term: {$contact_items['term']}</span>
   <br/>
   <span class="representative-avatar-head">Room: {$contact_items['room']}</span>
@@ -843,8 +897,6 @@ jQuery(document).ready(function(){
 });
 </script>
 EOH;
-    // PDFJS.workerSrc = 'wp-content/plugins/phlegiscope/js/pdf.js';
-
     $parser->json_reply = array('retainoriginal' => TRUE);
 
     if ( $debug_method ) {

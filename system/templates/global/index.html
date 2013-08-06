@@ -1,0 +1,56 @@
+<div id="controlpanel" class="panels">
+
+  <input class="controlpanel-textinput" id="siteURL" type="text" />
+  <span id="search-wait"></span>
+  <input class="controlpanel-textinput" id="keywords" type="text" />
+  <div class="readout full-width" id="time-delta">&nbsp;</div>
+
+  <label for="proxy">Proxy <input id="proxy" type="checkbox" value="1" /></label>
+  <label for="cache">Cache <input id="cache" type="checkbox" value="1" /></label>
+  <label for="seek">Pull <input id="seek" type="checkbox" value="1" /></label>
+  <label for="spider">Spider <input id="spider" type="checkbox" value="1" /></label>
+  <label for="preload">Preload <input id="preload" type="checkbox" value="1" /></label>
+  <label for="update">Update <input id="update" type="checkbox" value="1" /></label>
+
+  <div id="permalinks" class="linkset">
+    <hr class="linkset"/>
+    <ul id="systemrootlinks" class="link-cluster">
+      <li><a class="legiscope-remote" href="http://www.gov.ph/section/legis/republic-acts/page/1">Official Gazette</a></li>
+      <li><a class="legiscope-remote" href="http://www.senate.gov.ph">Senate</a></li>
+      <li><a class="legiscope-remote" href="http://www.congress.gov.ph">Congress</a></li> 
+    </ul>
+  </div>
+
+	<div class="linkset" id="scope-map"><?php echo $map_image; ?></div>
+
+  <div class="linkset">
+    <ul class="link-cluster"><li class="link-section">Site Information</li></ul>
+  </div>
+  <div class="linkset" id="hoststats"></div>
+  <div class="linkset">
+    <ul class="link-cluster"><li class="link-section">Current Page Links</li></ul>
+  </div>
+  <div class="linkset" id="linkset"></div>
+
+</div> <!-- controlpanel -->
+
+<div id="sitecontent" class="panels">
+
+  <div class="contenttabs" id="contenttabs"></div>
+  <div class="contentwindow hidden" id="responseheader"></div>
+  <div class="contentwindow hidden" id="processed"></div>
+
+</div>
+
+
+<span id="metalink"></span>
+
+
+<script type="text/javascript">
+jQuery(document).ready(function(){
+	PDFJS.workerSrc = '/wp-content/plugins/phlegiscope/js/pdf.js';
+  jQuery('#keywords').val('');
+  initialize_spider();
+});
+</script>
+

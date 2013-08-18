@@ -24,6 +24,8 @@ define('LEGISCOPE_CURLOPT_PROXYPORT', 9050);
 define('LEGISCOPE_CURLOPT_PROXYTYPE',  CURLPROXY_SOCKS5);
 
 // Debug logging
+define('DEBUGLOG_FILENAME', TRUE);
+define('DEBUG_HANDLER_NAMES', FALSE);
 define('DEBUG_DatabaseUtility', FALSE);
 define('DEBUG_LegiscopeBase', FALSE);
 define('DEBUG_CongressGovPh', FALSE);

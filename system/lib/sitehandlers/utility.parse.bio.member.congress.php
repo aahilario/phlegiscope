@@ -10,41 +10,12 @@
 
 class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   
-  var $member_contact_details = NULL;
-  var $representative_name = NULL;
-  var $current_member_classification = NULL;
-  var $link_title_classif_map = array();
-  var $span_content_prefix_map = array();
-
-  var $temporary_document_container = array();
-  var $complete_document_container = NULL;
+  var $complete_document_container = array();
   var $total_bills_parsed = 0;
 
   function __construct() {/*{{{*/
     parent::__construct();
-    $this->temporary_document_container = array();
-    $this->link_title_classif_map = array(
-      'about the committee'   => 'committee',
-      'text of bill as filed' => 'bill-url',
-      'text of bill'          => 'bill-engrossed',
-      'history of bill'       => 'history',
-      'about our member'      => 'representative',
-    );
-    $this->link_title_classif_regex = '@(' . join('|',array_keys($this->link_title_classif_map)) . ')@i';
-    $this->link_title_classif_map = array_combine(
-      array_map(create_function('$a','return "@(.*)({$a})(.*)@i";'), array_keys($this->link_title_classif_map)),
-      array_values($this->link_title_classif_map)
-    );
-
-    $this->span_content_prefix_map = array(
-      'status' => 'status',
-      'principal author' => 'principal-author',
-    );
-    $this->span_content_prefix_regex = '@^(' . join('|',array_keys($this->span_content_prefix_map)) . '):(.*)@i';
-    $this->span_content_prefix_map = array_combine(
-      array_map(create_function('$a','return "@^(({$a}):(.*))@i";'), array_keys($this->span_content_prefix_map)),
-      array_values($this->span_content_prefix_map)
-    );
+    $this->initialize_related_source_links_parse();
   }/*}}}*/
 
   function get_document_sn_regex() {/*{{{*/
@@ -56,53 +27,16 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   }/*}}}*/
 
   function ru_p_open(& $parser, & $attrs, $tagname ) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
-    if (!('silver_hdr' == array_element($this->current_tag['attrs'],'CLASS')))
+    $this->add_cdata_property();
     $this->push_container_def($tagname, $attrs);
     return TRUE;
   }/*}}}*/
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
-    if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
-      $this->push_tagstack();
-    }
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_p_close(& $parser, $tag) {/*{{{*/
-    $skip = FALSE;
-    $is_container = TRUE;
-    $this->current_tag();
-    $text = trim(join('',array_element($this->current_tag,'cdata')));
-    if ( array_element($this->current_tag['attrs'],'CLASS') == 'meta' ) $skip = TRUE;
-    else
-    if ( array_element($this->current_tag['attrs'],'CLASS') == 'mem_info' ) {
-      $container = array_pop($this->container_stack);
-      array_push($this->container_stack, $container);
-      if ( is_array($container) ) {
-        // $this->recursive_dump($container,__LINE__);
-        $images  = array_values(array_filter(array_map(create_function('$a', 'return array_key_exists("image", $a) ? $a["image"] : NULL;'), $container['children'])));
-        $strings = array_values(array_filter(array_map(create_function('$a', 'return array_key_exists("text", $a) ? $a["text"] : NULL;'), $container['children']))); 
-        $this->member_contact_details = array(
-          'avatar'   => $images[0],
-          'fullname' => $strings[0],
-          'contact'  => explode("[BR]",preg_replace('@(\s)*\[BR\]$@','',trim($strings[1]))),
-          'extra'    => explode("[BR]",preg_replace('@(\s)*\[BR\]$@','',$text)),
-        );
-      }
-      $skip = TRUE;
-    }
-    else if ( ( array_element($this->current_tag['attrs'],'CLASS') == 'silver_hdr' ) && (1 == preg_match('@(member for the|member|chairperson|majority leader|minority leader)@i',$text)) ) {
-      $this->current_member_classification = $text;
-      $skip = FALSE;
-      $is_container = FALSE;
-      if ( $this->debug_tags ) $this->syslog( __FUNCTION__, __LINE__, "(marker) {$tag} - - - {$text} " );
-    }
-    if ( $this->debug_tags && (0 < count(array_element($this->current_tag,'cdata',array()))) ) $this->recursive_dump($this->current_tag,"(marker) " . ($skip ? "REJ" : "ACC"));
-    if ( !$skip && $is_container ) $this->stack_to_containers();
-    return !$skip;
+    // SVN #693: Removed legacy parser code 
+    return $this->embed_container_in_parent($parser,$tag);
   }/*}}}*/
 
   function ru_ul_open(& $parser, & $attrs, $tagname ) {/*{{{*/
@@ -117,93 +51,239 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
-  function ru_span_close(& $parser, $tag) {/*{{{*/
-    $this->current_tag();
-    $paragraph = array(
-      'text' => trim(join('', $this->current_tag['cdata'])),
-      'seq'  => $this->current_tag['attrs']['seq'],
-    );
-    $regex_matches = array();
-
-    if (1 == preg_match($this->span_content_prefix_regex, $paragraph['text'], $regex_matches)) {
-      $paragraph['indicator'] = preg_replace(
-        array_keys($this->span_content_prefix_map),
-        array_values($this->span_content_prefix_map),
-        $paragraph['text']
-      );
-      $paragraph['content'] = trim(array_element($regex_matches,2,'--'));
-
-      $this->temporary_document_container = array_merge(
-        $this->temporary_document_container,
-        array($paragraph['indicator'] => $paragraph['content']) 
-      );
-
-      $paragraph['tag-class'] = 'bill-content';
+  function ru_article_open(& $parser, & $attrs, $tag ) {/*{{{*/
+    $this->add_cdata_property();
+    $this->push_container_def($tag, $attrs);
+    return TRUE;
+  }/*}}}*/
+  function ru_article_cdata(& $parser, & $cdata) {/*{{{*/
+    return $this->append_cdata($cdata);
+  }/*}}}*/
+  function ru_article_close(& $parser, $tag) {/*{{{*/
+    if ( 0 < strlen($this->representative_name) ) {
+      $this->pop_tagstack();
+      $this->current_tag['attrs']['id'] = 'representative-data';
+      $this->push_tagstack();
     }
-    else if ( (1 == preg_match($this->get_document_sn_regex(), $paragraph['text'],$regex_matches)) &&
-      (0 < strlen(($prefix = array_element($regex_matches,1)))) &&
-      (0 < strlen(($suffix = array_element($regex_matches,3))))
-    ) {
-      // Detect a document serial number next (a document SN may be embedded in a status line) 
-      unset($regex_matches[0]);
-      if ( join('',$regex_matches) == $paragraph['text'] ) {
-        $paragraph['tag-class']         = 'bill-head'; 
-        $paragraph['sequence-position'] = $this->current_tag['attrs']['seq'];
-        $this->complete_document_container = $this->temporary_document_container;
-        $this->temporary_document_container = array(
-          'seq'              => $this->current_tag['attrs']['seq'],
-          'bill'             => $paragraph['text'],
-          'bill-url'         => NULL,
-          'bill-engrossed'   => NULL,
-          'history'          => NULL,
-          'bill-title'       => NULL,
-          'principal-author' => NULL,
-          'status'           => NULL,
-          'ref'              => NULL,
-          'prune-to'         => $this->current_tag['attrs']['seq'],
-        );
-        if (!is_null(($prune_to = array_element($this->complete_document_container,'prune-to')))) {
-          $this->complete_document_container['prune-from'] = $this->current_tag['attrs']['seq'];
-          // $this->recursive_dump($this->complete_document_container,"(marker) -- - -- - Cricker");
-          array_walk($this->container_stack,create_function(
-            '& $a, $k, $s', 'if ( array_element($a,"sethash") == "'.array_element($this->complete_document_container,'container').'" ) $s->flush_document_container_range($k);'
-          ),$this);
-          //unset($this->complete_document_container['prune-to']);
-          unset($this->complete_document_container['prune-from']);
-          unset($this->complete_document_container['container']);
-          $this->add_to_container_stack($this->complete_document_container);
-          $this->total_bills_parsed++;
-          if ( $this->total_bills_parsed > 200 ) {
-            // Suspend parsing of the remainder of the document
-            $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - - Parsing suspended - - - - - - -");
-            $this->set_freewheel();
-          }
+    $this->embed_container_in_parent($parser,$tag); // Fills $this->current_tag
+    if ( $this->current_tag['attrs']['id'] == 'representative-data' ) {
+      $data = nonempty_array_element($this->current_tag,'children');
+      $this->reorder_with_sequence_tags($data);
+      // Extract all parseable information on this page from this <article>
+      while ( 0 < count($data) ) {/*{{{*/
+        $cell = array_shift($data);
+        $cdata = array_filter(nonempty_array_element($cell, 'cdata',array()));
+        $image = nonempty_array_element($cell,'image');
+        if ( !empty($image) ) {
+          $this->member_contact_details['avatar'] = $image;
+          continue;
         }
-      }
-    }
-    else if ( !is_null(array_element($this->temporary_document_container,'bill')) && is_null(array_element($this->temporary_document_container,'bill-title')) ) {
-      $key = 1 == preg_match('@Journal@i', $paragraph['text']) ? 'ref' : 'bill-title';
-      $this->temporary_document_container = array_merge(
-        $this->temporary_document_container,
-        array($key => $paragraph['text']) 
-      );
-    }
-    if (0 < strlen(trim($paragraph['text']))) {
-      $this->add_to_container_stack($paragraph);
-      if ( array_element($this->current_tag['attrs'],'seq') == array_element($this->temporary_document_container,'seq') )
-        $this->temporary_document_container['container'] = array_element($paragraph,'sethash');
+        // Skip empty lines
+        if ( 0 == count($cdata) ) continue;
+        // FIXME: Multiline entries may contain either office or rep contact data.
+        if ( 1 < count($cdata) ) {
+          $this->member_contact_details['contact'] = $cdata;
+          continue;
+        }
+        if ( !array_key_exists('extra', $this->member_contact_details) ) {
+          $this->member_contact_details['extra'] = array();
+        }
+        $cdata = join('',$cdata);
+        if ( 0 == strlen(preg_replace("@[^-A-Z0-9ñ,. ]@i","",$cdata)) ) {
+        }
+        else if ( 1 == preg_match('@(district representative|party list)@i', $cdata) ) {
+          $this->member_contact_details['extra'][1] = $cdata;
+        }
+        else if ( 1 == preg_match('@^term:@i', $cdata) ) {
+          $term = preg_replace('@[^0-9]@','',$cdata);
+          $this->member_contact_details['extra'][2] = $term;
+        }
+        else {
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) Unparsed <article id='representative-data'>...</article> text '{$cdata}', adding to [bailiwick]");
+          $this->member_contact_details['bailiwick'] = $cdata;
+        }
+      }/*}}}*/
+
     }
     return TRUE;
   }/*}}}*/
 
-  function flush_document_container_range($k) {/*{{{*/
-    // $this->recursive_dump($this->container_stack[$k]["children"],"(marker) - - Subj");
-    array_walk($this->container_stack[$k]['children'],create_function(
-      '& $a, $k, $s', 
-      //'$a = $s->flush_document_container_range_worker($a,$k);'
-      '$n = array_element($a,"seq"); if (($s->complete_document_container["prune-to"] <= $n) && ($n < $s->complete_document_container["prune-from"])) $a = NULL;'
-    ), $this);
-    $this->container_stack[$k]['children'] = array_filter($this->container_stack[$k]['children']);
+  // TR tags contain individual Representative-authored measures.
+
+  function ru_tr_open(& $parser, & $attrs, $tag ) {/*{{{*/
+    $this->add_cdata_property();
+    $this->push_container_def($tag, $attrs);
+    return TRUE;
+  }/*}}}*/
+  function ru_tr_cdata(& $parser, & $cdata) {/*{{{*/
+    return $this->append_cdata($cdata);
+  }/*}}}*/
+  function ru_tr_close(& $parser, $tag) {/*{{{*/
+
+    $this->embed_container_in_parent($parser,$tag); // Fills $this->current_tag['children']
+
+    $debug_method = FALSE;
+
+    if ( $debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) F ----RAW-------------------------- " );
+      $this->recursive_dump($this->current_tag,'(marker) - - - Main ');
+    }
+
+    $bill = array(
+      'bill'             => NULL,
+      'bill-url'         => NULL,
+      'bill-engrossed'   => NULL,
+      'history'          => NULL,
+      'bill-title'       => NULL,
+      'principal-author' => NULL,
+      'status'           => NULL,
+      'ref'              => NULL,
+      'seq'              => $this->current_tag['attrs']['seq'],
+    );
+
+    while ( 0 < count(nonempty_array_element($this->current_tag,'children',array())) ) {
+      $item = array_shift($this->current_tag['children']);
+      $item_container_hash = nonempty_array_element($item,'sethash');
+      if ( array_element($item,'tag-class') == 'history' ) {
+        $bill['history'] = nonempty_array_element($item,'onclick-param');
+        $this->unset_container_by_hash($item_container_hash);
+        continue;
+      }
+      $cdata = nonempty_array_element($item,'cdata',0);
+      $regex_matches = array();
+      if ( 0 == count($cdata) ) {
+      }
+      else if ( 1 < count($cdata) ) {
+      }
+      else if (array_key_exists('header',$item)) {
+        $bill['bill'] = $item['header'];  
+      } 
+      else if (1 == preg_match($this->span_content_prefix_regex, ($cdata = nonempty_array_element($cdata,0)), $regex_matches)) {
+        $component = preg_replace(
+          array_keys($this->span_content_prefix_map),
+          array_values($this->span_content_prefix_map),
+          $cdata
+        );
+        $bill[$component] = trim(array_element($regex_matches,2,'--'));
+      }
+      else {
+        // FIXME: Make sure to capture other components of description in blocks above
+        $bill['bill-title'] = $cdata;
+      }
+      $this->unset_container_by_hash($item_container_hash);
+    }
+
+    $item_container_hash = array_element($item_container_hash,'sethash');
+    $this->unset_container_by_hash($item_container_hash);
+
+    $sn = nonempty_array_element($bill,'bill');
+    if ( !empty($sn) ) $this->complete_document_container[$sn] = $bill;
+
+    if ( $debug_method )
+    $this->recursive_dump($bill,'(marker) - + + Bill ');
+
+    if (0) if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
+      // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
+      foreach ( $container as $tag ) {/*{{{*/
+
+        if ( !is_null(array_element($tag,'prune-to'))) {
+          array_push($bills, $tag);
+          continue;
+        }
+
+        if ( array_key_exists('text',$tag) && 1 == preg_match($this->get_document_sn_regex(), $tag['text']) ) {/*{{{*/
+
+          if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - Found {$tag['text']}");
+
+          if ( 0 < count($bills) ) {
+            $bill = array_pop($bills);
+            array_push($bills, $bill);
+          }
+          array_push($bills,array(
+            'bill'             => $tag['text'],
+            'bill-url'         => NULL,
+            'bill-engrossed'   => NULL,
+            'history'          => NULL,
+            'bill-title'       => NULL,
+            'principal-author' => NULL,
+            'status'           => NULL,
+            'ref'              => NULL,
+          ));
+          continue;
+        }/*}}}*/
+
+        if ( array_key_exists('image', $tag) ) continue;
+
+        if ( array_key_exists('url', $tag) && ('[HISTORY]' == strtoupper(trim($tag['text']))) ) {/*{{{*/
+          $clickevent = array_element($tag,'onclick');
+          if ( is_null($clickevent) ) continue;
+          $displayWindow_regex = "display_Window\('([^']*)','([0-9]*)'\)";
+          $matches = array();
+          if ( !(1 == preg_match("@{$displayWindow_regex}@i", $clickevent, $matches ) ) ) continue;
+          if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) ) {
+            $bill = array_pop($bills);
+            $matches = $matches[1]; // The URL itself.
+            $fixurl = array('url' => $matches);
+            $tag['url'] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
+            if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Normalized {$tag['text']} URL to {$tag['url']}");
+            $bill['history'] = $tag['url'];
+            array_push($bills,$bill);
+          }
+          continue;
+        }/*}}}*/
+
+        $bill = array_pop($bills);
+        if ( is_null(array_element($bill,'history')) && array_key_exists('url',$tag) && (1 == preg_match("@(history of bill)@i", $tag["title"])) ) {
+          $bill['history'] = $tag['url'];
+          array_push($bills, $bill); continue;
+        }
+        if ( is_null(array_element($bill,'bill-engrossed')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill)@i", $tag["title"])) ) {
+          $bill['bill-engrossed'] = $tag['url'];
+          array_push($bills, $bill); continue;
+        }
+        if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill as filed)@i", $tag["title"])) ) {
+          $bill['bill-url'] = $tag['url'];
+          array_push($bills, $bill); continue;
+        }
+        if ( is_null(array_element($bill,'ref')) && array_key_exists('text',$tag) && ( 1 == preg_match('@^\[(.*)\]$@', trim($tag['text'])) ) ) {
+          $bill['ref'] = $tag['text'];
+          array_push($bills, $bill); continue;
+        }
+        if ( is_null(array_element($bill,'status')) && array_key_exists('text', $tag) && (1 == preg_match('@^Status:@i',$tag['text'])) ) {
+          $bill['status'] = preg_replace('@^(Status:)([ ]*)@i','',$tag['text']);
+          array_push($bills, $bill); continue;
+        }
+        if ( is_null(array_element($bill,'principal-author')) && array_key_exists('text', $tag) && (1 == preg_match('@^Principal author:@i',$tag['text'])) ) {
+          $bill['principal-author'] = preg_replace('@^(Principal author:)([ ]*)@i','',$tag['text']);
+          array_push($bills, $bill); continue;
+        }
+        if ( is_null(array_element($bill,'bill-title')) && array_key_exists('text', $tag) ) {
+          $bill['bill-title'] = $tag['text'];
+        }
+        array_push($bills, $bill);
+      }/*}}}*/
+      continue;
+    }/*}}}*/
+
+    $this->total_bills_parsed++;
+
+    if ( $this->total_bills_parsed > 200 ) {
+      // Suspend parsing of the remainder of the document
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - - Parsing suspended - - - - - - -");
+      // $this->set_freewheel();
+    }
+
+    return FALSE;
+  }/*}}}*/
+
+  function ru_strong_close(& $parser, $tag) {/*{{{*/
+    $this->current_tag();
+    $text = array(
+      'header' => trim(join('',array_element($this->current_tag,'cdata'))),
+      'seq'  => $this->current_tag['attrs']['seq'],
+    );
+    $this->add_to_container_stack($text);
+    return TRUE;
   }/*}}}*/
 
   /* Span tags contain legislation items. Moved to parent class. */
@@ -257,52 +337,35 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
   }/*}}}*/
   function ru_a_close(& $parser, $tag) {/*{{{*/
     parent::ru_a_close($parser,$tag);
-    if ( is_null(array_element($this->current_tag,'sethash')) ) {
+    return $this->generate_related_source_links($parser, $tag);
+  }/*}}}*/
 
-    } else if ( 1 == preg_match($this->link_title_classif_regex, ($classification = array_element($this->current_tag['attrs'],'TITLE'))) ) {
-      // If the 'title' attribute matches telltale strings (above), we try to
-      // match it's content to one of three categories - bill, representative, or
-      // committee - and label the URL with that classification.
-      $classification = preg_replace(
-        array_keys($this->link_title_classif_map),
-        array_values($this->link_title_classif_map),
-        $classification
-      );
-      switch ( $classification ) {
-        case 'history'        : $key = 'onclick-param'; break;
-        case 'bill-url'       : $key = 'url'; break;
-        case 'bill-engrossed' : $key = 'url'; break;
-      }
-      $add_to_tempdoc = NULL;
-      if ( is_null(($found_index = array_element($this->current_tag,'found_index'))) ) {
-        $cstack_top = array_pop($this->container_stack);
-        if ( is_array(($lasttag = array_element($cstack_top,'children'))) && (0 < count($lasttag)) ) {
-          $lasttag = array_pop($cstack_top['children']);
-          $lasttag['tag-class'] = $classification;
-          if ( !is_null($key) && array_key_exists($key, $lasttag) ) {
-            $add_to_tempdoc = array($classification => array_element($lasttag,$key,'--'));
-          }
-          if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - Tag class '{$classification}'" );
-          array_push($cstack_top['children'],$lasttag);
-        }
-        array_push($this->container_stack, $cstack_top);
-      } else {
-        $link_data = array_pop($this->container_stack[$found_index]['children']);
-        $link_data['tag-class'] = $classification;
-        if ( !is_null($key) && array_key_exists($key, $link_data) ) {
-          $add_to_tempdoc = array($classification => array_element($link_data,$key,'--'));
-        }
-        if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker) - - - - Tag class '{$classification}'" );
-        array_push($this->container_stack[$found_index]['children'], $link_data);
-      }
-      if ( !is_null($add_to_tempdoc) ) {
-        $this->temporary_document_container = array_merge(
-          $this->temporary_document_container,
-          $add_to_tempdoc
-        );
-      }
+  function ru_h2_open(& $parser, & $attrs, $tagname ) {/*{{{*/
+    $this->add_cdata_property();
+  }/*}}}*/
+  function ru_h2_cdata(& $parser, & $cdata) {/*{{{*/
+    return $this->append_cdata($cdata);
+  }/*}}}*/
+  function ru_h2_close(& $parser, $tag) {/*{{{*/
+    $this->current_tag();
+    if ( 'mainheading' == array_element($this->current_tag['attrs'],'CLASS') ) {
+      $representative_name = trim(join('',array_element($this->current_tag,'cdata')));
+      $representative_name = preg_replace('@^hon.([ ]*)@i','', $representative_name);
+      $this->representative_name = $representative_name;
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) - Representative {$representative_name}");
+      $this->member_contact_details['fullname'] = $representative_name;
     }
     return TRUE;
+  }/*}}}*/
+
+  function ru_h3_open(& $parser, & $attrs, $tagname ) {/*{{{*/
+    return $this->add_cdata_property();
+  }/*}}}*/
+  function ru_h3_cdata(& $parser, & $cdata) {/*{{{*/
+    return $this->append_cdata($cdata);
+  }/*}}}*/
+  function ru_h3_close(& $parser, $tag) {/*{{{*/
+    return $this->add_current_tag_to_container_stack();
   }/*}}}*/
 
   /** User markup-generating and utility methods **/
@@ -313,21 +376,26 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
 
   function stow_parsed_representative_info(RepresentativeDossierModel & $m, UrlModel & $urlmodel) {/*{{{*/
 
+    $debug_method = TRUE;
+
     $url  = new UrlModel();
 
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) A ------------------------------ " );
     }
     if ( !$m->in_database() ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Member {$urlmodel} not in DB" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) FIXME: Member {$urlmodel} not in DB" );
+      return NULL;
     }
 
     $member = $this->get_member_contact_details();
 
+    $this->recursive_dump($member,"(marker) A Detail --- ");
+
     // Extract room, phone, chief of staff (2013-03-25)
     $contact_regex = '@(((Chief of Staff|Phone):) (.*)|Rm. ([^,]*),)([^|]*)@i';
     $contact_items = array();
-    if ( is_array($member) && array_key_exists('contact',$member) ) {
+    if ( is_array($member) && array_key_exists('contact',$member) ) {/*{{{*/
       if ( $debug_method ) {
         $this->syslog( __FUNCTION__, __LINE__, "(marker) B ------------------------------ " );
       }
@@ -341,36 +409,55 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
         'role'     => $member['extra'][1],
       );
       $this->recursive_dump($contact_items,"(marker) B CIs --- ");
-    }
+    }/*}}}*/
     else $contact_items = NULL;
+
     // Determine whether the image for this representative is available in DB
-    $member_avatar_base64 = NULL;
     $url->fetch(UrlModel::get_url_hash($member['avatar']),'urlhash');
-    if ( $url->in_database() ) {
+
+    if ( $url->in_database() && $m->in_database() ) {/*{{{*/
       if ( $debug_method ) {
         $this->syslog( __FUNCTION__, __LINE__, "(marker) C ------------------------------ " );
       }
       $image_content_type   = $url->get_content_type();
       $image_content        = base64_encode($url->get_pagecontent());
       $member_avatar_base64 = "data:{$image_content_type};base64,{$image_content}";
-    }
-    $member_id = $m->
-      set_fullname($member['fullname'])->
-      set_create_time(time())->
-      set_bio_url($urlmodel->get_url())->
-      set_last_fetch(time())->
-      set_avatar_url($member['avatar'])->
-      set_member_uuid(sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member['fullname']))->
-      set_contact_json($contact_items)->
-      set_avatar_image($member_avatar_base64)->
+    }/*}}}*/
+
+    $final_data = array(
+      'fullname'     => $member['fullname'],
+      'create_time'  => time(),
+      'bio_url'      => $urlmodel->get_url(),
+      'last_fetch'   => time(),
+      'bailiwick'    => $member['bailiwick'],
+      'avatar_url'   => $member['avatar'],
+      'member_uuid'  => sha1(mt_rand(10000,100000) . ' ' . $urlmodel->get_url() . $member['fullname']),
+      'contact_json' => $contact_items,
+      'avatar_image' => $member_avatar_base64,
+    );
+
+    $this->syslog( __FUNCTION__, __LINE__, "(warning) D --------- DISABLED stow() --------------------- " );
+    if (0) $member_id = $m->
+      set_contents_from_array($final_data)->
+      fields(array_keys($final_data))->
       stow();
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) D Parsed data, committable to DB ------------------------------ " );
+    $this->recursive_dump($final_data,"(marker) --");
     $this->syslog( __FUNCTION__, __LINE__, "(marker) D ------------------------------ Returning with member #{$member_id}" );
+
     return $member_id;
   }/*}}}*/
 
   function extract_committee_membership_and_bills($selector = 'children[tagname=ul][id=nostylelist]' ) {/*{{{*/
     
+    // 16th Congress: Committee membership and bill information pages are now separate links
     $debug_method = FALSE;
+
+    if (0) {/*{{{*/
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) F ----RAW-------------------------- " );
+      $this->recursive_dump($this->get_containers(),'(marker) - - - Main ');
+    }/*}}}*/
 
     $this->recursive_dump(($entries = array_filter($this->get_containers(
       $selector 
@@ -379,14 +466,15 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     $nullo = NULL;
     $this->assign_containers($nullo);
 
-    $classifications = array();
     $membership_role = array();
     $bills           = array();
 
     if ( !(0 < count($entries) ) ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) F ------------------------------ " );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) No records parsed, given selector '{$selector}'");
     }
-    foreach ( $entries as $item => $container ) {/*{{{*/
+
+    if (0) foreach ( $entries as $item => $container ) {/*{{{*/
       // The container presents committee membership as a series of URL+text+text containers
       if ( array_key_exists('image', $container) ) continue;
       // FIXME: Detection of sections should probably be relegated to the parse stage.
@@ -402,7 +490,7 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
         foreach ( $container as $tag ) {/*{{{*/
           if ( array_key_exists('text',$tag) ) $tag['text'] = $tag['text'];
           $classification = array_element($tag,'classification');
-          if ( !is_null($classification) && !array_key_exists($classification,$classifications) ) $classifications[$classification] = array();
+          if ( !is_null($classification) && !array_key_exists($classification,$membership_role) ) $membership_role[$classification] = array();
           if ( array_key_exists('url',$tag) ) {/*{{{*/
             $new_entry = array(
               'committee'     => $tag['text'], // Full name
@@ -449,91 +537,12 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
         //    ref => (Journal #7)
         continue;
       }/*}}}*/
-      if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
-        // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
-        foreach ( $container as $tag ) {/*{{{*/
-
-          if ( !is_null(array_element($tag,'prune-to'))) {
-            array_push($bills, $tag);
-            continue;
-          }
-
-          if ( array_key_exists('text',$tag) && 1 == preg_match($this->get_document_sn_regex(), $tag['text']) ) {/*{{{*/
-
-            if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - Found {$tag['text']}");
-
-            if ( 0 < count($bills) ) {
-              $bill = array_pop($bills);
-              array_push($bills, $bill);
-            }
-            array_push($bills,array(
-              'bill'             => $tag['text'],
-              'bill-url'         => NULL,
-              'bill-engrossed'   => NULL,
-              'history'          => NULL,
-              'bill-title'       => NULL,
-              'principal-author' => NULL,
-              'status'           => NULL,
-              'ref'              => NULL,
-            ));
-            continue;
-          }/*}}}*/
-
-          if ( array_key_exists('image', $tag) ) continue;
-
-          if ( array_key_exists('url', $tag) && ('[HISTORY]' == strtoupper(trim($tag['text']))) ) {/*{{{*/
-            $clickevent = array_element($tag,'onclick');
-             if ( is_null($clickevent) ) continue;
-            $displayWindow_regex = "display_Window\('([^']*)','([0-9]*)'\)";
-            $matches = array();
-            if ( !(1 == preg_match("@{$displayWindow_regex}@i", $clickevent, $matches ) ) ) continue;
-            if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) ) {
-              $bill = array_pop($bills);
-              $matches = $matches[1]; // The URL itself.
-              $fixurl = array('url' => $matches);
-              $tag['url'] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
-              if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Normalized {$tag['text']} URL to {$tag['url']}");
-              $bill['history'] = $tag['url'];
-              array_push($bills,$bill);
-            }
-            continue;
-          }/*}}}*/
-
-          $bill = array_pop($bills);
-          if ( is_null(array_element($bill,'history')) && array_key_exists('url',$tag) && (1 == preg_match("@(history of bill)@i", $tag["title"])) ) {
-            $bill['history'] = $tag['url'];
-            array_push($bills, $bill); continue;
-          }
-          if ( is_null(array_element($bill,'bill-engrossed')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill)@i", $tag["title"])) ) {
-            $bill['bill-engrossed'] = $tag['url'];
-            array_push($bills, $bill); continue;
-          }
-          if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill as filed)@i", $tag["title"])) ) {
-            $bill['bill-url'] = $tag['url'];
-            array_push($bills, $bill); continue;
-          }
-          if ( is_null(array_element($bill,'ref')) && array_key_exists('text',$tag) && ( 1 == preg_match('@^\[(.*)\]$@', trim($tag['text'])) ) ) {
-            $bill['ref'] = $tag['text'];
-            array_push($bills, $bill); continue;
-          }
-          if ( is_null(array_element($bill,'status')) && array_key_exists('text', $tag) && (1 == preg_match('@^Status:@i',$tag['text'])) ) {
-            $bill['status'] = preg_replace('@^(Status:)([ ]*)@i','',$tag['text']);
-            array_push($bills, $bill); continue;
-          }
-          if ( is_null(array_element($bill,'principal-author')) && array_key_exists('text', $tag) && (1 == preg_match('@^Principal author:@i',$tag['text'])) ) {
-            $bill['principal-author'] = preg_replace('@^(Principal author:)([ ]*)@i','',$tag['text']);
-            array_push($bills, $bill); continue;
-          }
-          if ( is_null(array_element($bill,'bill-title')) && array_key_exists('text', $tag) ) {
-            $bill['bill-title'] = $tag['text'];
-          }
-          array_push($bills, $bill);
-        }/*}}}*/
-        continue;
-      }/*}}}*/
     }/*}}}*/
 
-    // Sort the list
+    // Sort the lists
+
+    $bills = $this->complete_document_container;
+
     if ( 0 < count($bills) ) {/*{{{*/
       $bills = array_combine(
         array_map(create_function('$a', 'return array_element($a,"bill");'), $bills),
@@ -543,39 +552,49 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
       array_walk($bills, create_function('& $a, $k', '$a = array_filter($a);'));
     }/*}}}*/
 
-    if ( 0 < count($classifications) ) {/*{{{*/
-      foreach ( $classifications as $classification => $content ) {
-        $classifications[$classification] = array_filter(
+    if ( 0 == count($membership_role) ) {
+      // Generate membership_role list from existing database records for this member.
+    }
+    else if ( 0 < count($membership_role) ) {/*{{{*/
+      foreach ( $membership_role as $classification => $content ) {
+        $membership_role[$classification] = array_filter(
           array_map(create_function(
             '$a', 'return array_element($a,"classification") == "'.$classification.'" ? $a : NULL;'
           ),$membership_role));
-        $classifications[$classification] = array_combine(
-          array_map(create_function('$a','return array_element($a,"committee");'), $classifications[$classification]),
-          array_map(create_function('$a','unset($a["classification"]); return $a;'), $classifications[$classification])
+        $membership_role[$classification] = array_combine(
+          array_map(create_function('$a','return array_element($a,"committee");'), $membership_role[$classification]),
+          array_map(create_function('$a','unset($a["classification"]); return $a;'), $membership_role[$classification])
         );
-        ksort($classifications[$classification]);
-        $classifications[$classification] = array_values($classifications[$classification]);
+        ksort($membership_role[$classification]);
+        $membership_role[$classification] = array_values($membership_role[$classification]);
       }
-      $membership_role = $classifications;
     }/*}}}*/
 
     if ( $debug_method ) $this->recursive_dump($membership_role,"(marker) - - - Mem");
 
     return array(
+      'resource_links'  => $this->extract_aux_information_links(),
       'membership_role' => $membership_role,
       'bills'           => $bills
     );
   }/*}}}*/
 
   function generate_committee_membership_markup(& $membership_role, $entry_wrap = NULL) {/*{{{*/
+    $role_map = array(
+      'chairperson' => 'Chairperson',
+      'vice-chairperson' => 'Vice-Chairperson',
+      'member-majority'  => 'Member for the majority',
+      'member-minority' => 'Member for the minority',
+    );
     $pagecontent = '';
     if ( !(0 < count($membership_role) ) ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) G ------------------------------ " );
     }
     foreach ( $membership_role as $role ) {/*{{{*/
+      if ( array_key_exists($role['role'],$role_map) ) $role['role'] = $role_map[$role['role']];
       $CommitteeName = ucwords(strtolower($role['committee']));
       $pagecontent .= <<<EOH
-<span class="congress-roles-committees">{$role['role']} <a href="{$role['committee-url']}" class="legiscope-remote">{$CommitteeName}</a> {$role['ref']}</span>
+<span class="congress-roles-committees">{$role['role']} <a href="{$role['committee-url']}" class="legiscope-remote no-autospider">{$CommitteeName}</a> {$role['ref']}</span>
 EOH;
     }/*}}}*/
     return $pagecontent;
@@ -609,7 +628,7 @@ EOH;
       $active_hash = NULL;
       $bill_title = NULL;
       foreach ( $bill_urls as $hash => $url ) {
-        $properties = array('congress-doc-name','legiscope-remote');
+        $properties = array('congress-doc-name','legiscope-remote','no-autospider');
         if ( $url == array_element($bill,'history') ) $properties[] = 'document-meta';
         $properties = join(' ', $properties);
         $link = <<<EOH
@@ -670,17 +689,20 @@ EOH
         'urlhash' => array_keys($legislation_links_temp)
       )))->recordfetch_setup();
       if ( $debug_method) $this->syslog( __FUNCTION__, __LINE__, "(marker) L ---------- Remaining: " . count($legislation_links) );
+
+      $default_cache_state = 'cached';
+
       while ( $u->recordfetch($url) ) {
         $urlhash = UrlModel::get_url_hash($url['url']);
-          $legislation_links_temp[$urlhash]["link"] = preg_replace(
-            '@{cache-state}@',
-            'cached',
-            $legislation_links_temp[$urlhash]["link"]
-          );
+        $legislation_links_temp[$urlhash]["link"] = preg_replace(
+          '@{cache-state}@',
+          $default_cache_state,
+          $legislation_links_temp[$urlhash]["link"]
+        );
         if ( array_key_exists($urlhash, $pagecontent) ) 
         $pagecontent[$urlhash]["link"] = preg_replace(
           '@{cache-state}@',
-          'cached',
+          $default_cache_state,
           $pagecontent[$urlhash]["link"]
         );
       }
@@ -712,33 +734,9 @@ EOH
     return join('',$pagecontent);
   }/*}}}*/
 
-  function ru_h2_open(& $parser, & $attrs, $tagname ) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
-    return TRUE;
-  }/*}}}*/
-  function ru_h2_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    return TRUE;
-  }/*}}}*/
-  function ru_h2_close(& $parser, $tag) {/*{{{*/
-    $this->current_tag();
-    if ( 'mainheading' == array_element($this->current_tag['attrs'],'CLASS') ) {
-      $representative_name = trim(join('',array_element($this->current_tag,'cdata')));
-      $representative_name = preg_replace('@^hon.([ ]*)@i','', $representative_name);
-      $this->representative_name = $representative_name;
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) - Representative {$representative_name}");
-    }
-    return TRUE;
-  }/*}}}*/
-
-
   function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for {$parser->trigger_linktext} " . $urlmodel->get_url() );
@@ -749,51 +747,59 @@ EOH
     $hb   = new HouseBillDocumentModel();
     $url  = new UrlModel();
 
-    $this->debug_tags = FALSE;
-    $this->
-      set_parent_url($urlmodel->get_url())->
-      parse_html(
-        $urlmodel->get_pagecontent(),
-        $urlmodel->get_response_header()
-      );
-    $this->debug_tags = FALSE;
-
     $urlmodel->ensure_custom_parse();
 
+    $this->debug_tags = FALSE;
+    $this->standard_parse($urlmodel);
+    $this->debug_tags = FALSE;
+
+    // $this->recursive_dump($this->get_containers('children[tagname=div][id=leftcontainer]'),"(marker) ++");
+    // $this->reorder_with_sequence_tags($this->aux_information_links);
+    // $this->recursive_dump($this->aux_information_links,"(marker) ++");
+
     $pagecontent = '';
-		$member_record = array();
+    $member_record = array();
 
-		if ( 0 < strlen($this->representative_name) ) {/*{{{*/
+    if ( 0 < strlen($this->representative_name) ) {/*{{{*/
 
-			$nameparts  = $m->parse_name($this->representative_name);
-			$given_name = explode(' ', $nameparts['given']);
-			$given_name = array_shift($given_name);
-			$nameparts  = "{$nameparts['surname']}(.*){$given_name}";
+      $nameparts  = $m->parse_name($this->representative_name);
+      $given_name = explode(' ', $nameparts['given']);
+      $given_name = array_shift($given_name);
+      $nameparts  = "{$nameparts['surname']}(.*){$given_name}";
 
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Using name regex '{$nameparts}'");
+      if ( $debug_method )
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Using name regex '{$nameparts}'");
 
-			$member_record = $m->fetch(array(
-				'bio_url' => $urlmodel->get_url(),
-				'fullname' => "REGEXP '({$nameparts})'",
-			),'OR');
+      $member_record = $m->fetch(array(
+        'bio_url' => $urlmodel->get_url(),
+        'fullname' => "REGEXP '({$nameparts})'",
+      ),'OR');
 
-			if ( !$m->in_database() || $parser->from_network || $this->update_existing ) {/*{{{*/
+      if ( !$m->in_database() || $parser->from_network || $this->update_existing ) {/*{{{*/
 
-				$this->stow_parsed_representative_info($m,$urlmodel);
+        $this->stow_parsed_representative_info($m,$urlmodel);
 
-				$member_record = $m->fetch(array(
-					'bio_url' => $urlmodel->get_url(),
-					'fullname' => "REGEXP '({$nameparts})'",
-				),'OR');
+        $member_record = $m->fetch(array(
+          'bio_url' => $urlmodel->get_url(),
+          'fullname' => "REGEXP '({$nameparts})'",
+        ),'OR');
 
-			}/*}}}*/
+      }/*}}}*/
+      else {
+        $member = $this->get_member_contact_details();
+        $m->update_last_fetch();
+        if ( TRUE || $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Ep MCD ------------------------------ " );
+          $this->recursive_dump($member,"(marker) Current Detail --- ");
+        }
+      }
 
-			if ( $debug_method ) {/*{{{*/
-				$this->syslog( __FUNCTION__, __LINE__, "(marker) E ------------------------------ " );
-				$this->recursive_dump($member_record,"(marker) ++");
-			}/*}}}*/
+      if ( $debug_method ) {/*{{{*/
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) E ------------------------------ " );
+        $this->recursive_dump($member_record,"(marker) ++");
+      }/*}}}*/
 
-		}/*}}}*/
+    }/*}}}*/
 
     $member               = $this->get_member_contact_details();
     $contact_items        = $m->get_contact_json();
@@ -805,26 +811,85 @@ EOH
 
     $member['fullname']   = join(' ',array_filter(array($member['firstname'],$member['mi'],$member['surname'],$member['namesuffix'])));
 
-    extract($this->extract_committee_membership_and_bills());
+    extract($this->extract_committee_membership_and_bills()); // $resource_links, $membership_role, $bills 
+
+    // Generate missing committee associations from database 
+    if ( 0 == count($membership_role) && $m->in_database() ) {/*{{{*/
+      // Generate list of committee memberships
+      $representative_id = $m->get_id();
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Fp {$representative_id} ------------------------------ " );
+      $m->
+        join(array('committees'))->
+        where(array('AND' => array(
+          'id' => $representative_id
+        )))->
+        recordfetch_setup();
+      $r = NULL;
+      while ( $m->recordfetch($r) ) {
+        $committees = array_element($r,'committees');
+        $join = nonempty_array_element($committees,'join');
+        $data = nonempty_array_element($committees,'data');
+        $membership_role["{$join['role']}{$data['committee_name']}"] = array(
+          'committee' => $data['committee_name'],
+          'committee-url' => $data['url'],
+          'role' => $join['role'],
+          'ref' => NULL,
+        );
+        // $this->recursive_dump($r,"(marker) -");
+      }
+      ksort($membership_role);
+
+    }/*}}}*/
+    else {/*{{{*/
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Fp ------------------------------ " );
+    }/*}}}*/
 
     $membership_role   = $this->generate_committee_membership_markup($membership_role);
     $legislation_links = array();
     $billsource        = $bills;
     $bills             = $this->generate_legislation_links_markup($m, $legislation_links, $billsource);
     $legislation_links = join('',$legislation_links);
+    $linkset_resources = join('',array_map(create_function('$a', 'return $a["ls"];'), $resource_links)); 
 
-    // To trigger automated fetch, crawl this list after loading the entire dossier doc;
-    // then find the next unvisited dossier entry.
-    $legislation_links = <<<EOH
-<ul id="house-bills-by-rep" class="link-cluster">{$legislation_links}</ul>
-EOH;
+    $target_page = $urlmodel->get_query_element('pg');
+
     if ( $urlmodel->is_custom_parse() ) {
+      // Override/restore default behavior, recreate control panel links
       extract($this->generate_linkset($urlmodel->get_url()));
       $parser->linkset = $linkset; 
     }
+    // Prepend legislation links
     $parser->linkset = "{$legislation_links}{$parser->linkset}";
 
-    $pagecontent = <<<EOH
+    if ( empty($target_page) ) {/*{{{*/
+
+      $tab_options = array_combine(
+        array_map(create_function('$a','return $a["tag-class"];'), $resource_links),
+        array_map(create_function('$a','return $a["text"];'), $resource_links)
+      );
+      ksort($tab_options);
+      $link_members = array_combine(
+        array_map(create_function('$a','return $a["tag-class"];'), $resource_links),
+        array_map(create_function('$a','return $a["url"];'), $resource_links)
+      );
+      ksort($link_members);
+
+      // Trigger reload
+      $tab_sources = array(
+        'committee-membership' => $membership_role,
+        'authorship' => $bills,
+      );
+
+      $tab_containers = $this->generate_committee_rep_tabs($link_members, $tab_options, $tab_sources);
+
+      // To trigger automated fetch, crawl this list after loading the entire dossier doc;
+      // then find the next unvisited dossier entry.
+      $legislation_links = <<<EOH
+<ul id="source-links" class="link-cluster">{$linkset_resources}</ul>
+<ul id="house-bills-by-rep" class="link-cluster">{$legislation_links}</ul>
+EOH;
+
+      $pagecontent = <<<EOH
 <div class="congress-member-summary clear-both">
   <h1 class="representative-avatar-fullname">{$member['fullname']}</h1>
   <img class="representative-avatar" width="120" height="120" id="image-{$member_uuid}" src="{$member_avatar_base64}" alt="{$member['fullname']}" />
@@ -838,65 +903,46 @@ EOH;
   <span class="representative-avatar-head">Chief of Staff: {$contact_items['cos']}</span>
 </div>
 
-<div class="congress-member-summary">
-  <hr/>
-  <div class="congress-member-roles">
-{$membership_role}
-  </div>
-  <div class="congress-legislation-tally link-cluster clear-both">
-  &nbsp;<br/>
-  <hr/>
-{$bills}
-  </div>
+<br/>
+<div class="theme-options clear-both">
+{$tab_containers}
 </div>
 
-<script type="text/javascript">
-var hits = 0;
-function crawl_dossier_links() {
-  if ( jQuery('#spider').prop('checked') ) {
-    jQuery('ul[id=house-bills-by-rep]').find("a[class*=uncached]").first().each(function(){
-      var self = jQuery(this);
-      load_content_window(
-        jQuery(this).attr('href'),
-        jQuery('#seek').prop('checked'),
-        jQuery(this),
-        { url : jQuery(this).attr('href'), async : true },
-        { success : function (data, httpstatus, jqueryXHR) {
-            std_seek_response_handler(data, httpstatus, jqueryXHR);
-            jQuery(self).removeClass('uncached').addClass('cached');
-            if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-            setTimeout((function() {crawl_dossier_links();}),200);
-          }
-        }
-      );
-    });
-    hits = 0;
-    jQuery('ul[id=house-bills-by-rep]').find("a[class*=uncached]").each(function(){
-      hits++;
-    });
-    if (hits == 0) {
-      jQuery('div[id=congresista-list]')
-        .find('a[class*=seek]')
-        .first()
-        .each(function() { 
-          jQuery('#doctitle').html('Loading '+jQuery(this).attr('href'));
-          jQuery(this).removeClass('seek').addClass('cached'); 
-          jQuery(this).click();
-        });
-    } else {
-      jQuery('#doctitle').html('Remaining: '+hits);
-    }
-  }
-}
+EOH;
+      $pagecontent .= $this->std_committee_detail_panel_js(); 
+      $pagecontent .= $this->trigger_default_tab('joint-author');
 
+    }/*}}}*/
+    else {
+      switch ( $target_page ) {
+        case 'auth':
+          $pagecontent = $bills;
+          break;
+        case 'coauth':
+          $pagecontent = $bills;
+          break;
+        case 'commem':
+          $pagecontent = $membership_role;
+          break; 
+        default:
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Ip  UNHANDLED {$target_page} ------------------------------ " );
+          $pagecontent = NULL;
+      }
+      if ( !is_null($pagecontent) ) {/*{{{*/
+        $pagecontent .= <<<EOH
+
+<script type="text/javascript">
 jQuery(document).ready(function(){
-  update_representatives_avatars();
-  setTimeout((function(){
-    crawl_dossier_links();
-  }),2000);
+  enable_proxied_links('legiscope-remote');
+  setTimeout((function(){ crawl_dossier_links(); }),1000);
 });
 </script>
+
 EOH;
+
+      }/*}}}*/
+    }
+
     $parser->json_reply = array('retainoriginal' => TRUE);
 
     if ( $debug_method ) {

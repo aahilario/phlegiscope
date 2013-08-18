@@ -139,14 +139,14 @@ EOH
     if ( !is_null(array_element($document,'desc')) && is_null(array_element($document,'description')) ) {
       $document['description'] = $document['desc'];
     }
-		$action = $this->in_database() ? ($allow_update ? "Updated" : "Skip updating") : "Stowed";
-		if ( !$this->in_database() || $allow_update ) {
-			$document_id = $this->
-				set_contents_from_array($document)->
-				stow();
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) Stowed {$document['text']} (#{$document_id})");
-			$this->recursive_dump($document,"(marker) --- -- ---");
-		}
+    $action = $this->in_database() ? ($allow_update ? "Updated" : "Skip updating") : "Stowed";
+    if ( !$this->in_database() || $allow_update ) {
+      $document_id = $this->
+        set_contents_from_array($document)->
+        stow();
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Stowed {$document['text']} (#{$document_id})");
+      $this->recursive_dump($document,"(marker) --- -- ---");
+    }
     return $document_id;
   }/*}}}*/
 
@@ -295,20 +295,37 @@ EOH
 
     $senatedoc = get_class($this);
 
-    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $this->get_id() . " " . get_class($this) );
+    $doc_id = $this->get_id();
+    $doc_sn = $this->get_sn();
+    $doc_congress = $this->get_congress_tag();
+
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got {$senatedoc} #{$doc_id} ({$doc_sn}.{$doc_congress})" );
 
     $total_bills_in_system = $this->count();
 
-    $doc_url_attrs = array('legiscope-remote');
-    $faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
-    if( $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ) {
-      $doc_url_attrs[] = 'cached';
+    if ( method_exists($this,'test_document_ocr_result') ) {
+      // Expected return values:
+      // TRUE: At least one OCR record associated with the current document.
+      // FALSE: No OCRd version available, or document still in OCR spooling queue.
+      // NULL: Unknown (possibly because this document hasn't yet been retrieved from DB)
+      $this->test_document_ocr_result();
+    }
+
+    if ( method_exists($this,'get_doc_url_attributes') ) {
+      $doc_url_attrs = $this->get_doc_url_attributes($faux_url);
+    } else {
+      $doc_url_attrs = array('legiscope-remote');
+      $faux_url_hash = UrlModel::get_url_hash($this->get_doc_url()); 
+      $doc_url_attrs[] = $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ? 'cached' : 'uncached';
+      if ( $faux_url->in_database() ) {
+        $doc_url_attrs[] = $faux_url->get_logseconds_css();
+      }
     }
     $doc_url_attrs = join(' ', $doc_url_attrs);
 
-    if ( method_exists($this,'single_record_markup_template_a') ) {
-      $template = $this->single_record_markup_template_a();
-    }
+    if ( method_exists($this,'single_record_markup_template_a') ) {/*{{{*/
+      $template = str_replace('{doc_url_hash}',$faux_url_hash,$this->single_record_markup_template_a());
+    }/*}}}*/
     else {/*{{{*/
       $senatedoc             = get_class($this);
       $total_bills_in_system = $this->count();
@@ -319,7 +336,7 @@ EOH
 <span class="sb-match-item sb-match-description">{description}</span>
 <span class="sb-match-item sb-match-significance">Scope: {significance}</span>
 <span class="sb-match-item sb-match-status">Status: {status}</span>
-<span class="sb-match-item sb-match-doc-url">Document: <a class="{doc_url_attrs}" href="{doc_url}">{sn}</a></span>
+<span class="sb-match-item sb-match-doc-url">Document: <a class="{doc_url_attrs}" href="{doc_url}" id="{$faux_url_hash}">{sn}</a></span>
 <span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
 <span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committee}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
@@ -523,6 +540,52 @@ EOH;
     }/*}}}*/
 
     $pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
+    $document_hash = md5($this->get_sn() . "." . $this->get_congress_tag());
+    // Generate wrapper to automatically fetch all uncached links
+    $pagecontent = <<<EOH
+<div class="admin-senate-document" id="senate-document-{$document_hash}">{$pagecontent}</div>
+
+<script type="text/javascript">
+function load_uncached_links() {
+  jQuery('div[id=senate-document-{$document_hash}]')
+    .find('a[class*=uncached]')
+    .first()
+    .each(function(){
+      var url = jQuery(this).attr('href');
+      var linktext = jQuery(this).html();
+      var self = this;
+      jQuery.ajax({
+        type     : 'POST',
+        url      : '/seek/',
+        data     : { url : url, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true, linktext: linktext },
+        cache    : false,
+        dataType : 'json',
+        async    : true,
+        beforeSend : (function() {
+          display_wait_notification();
+        }),
+        complete : (function(jqueryXHR, textStatus) {
+          remove_wait_notification();
+        }),
+        success  : (function(data, httpstatus, jqueryXHR) {
+          jQuery(self).addClass('cached').removeClass('uncached');
+          if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+          if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
+          if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+          update_a_age(data);
+          setTimeout((function(){load_uncached_links();}),100);
+        })
+      });
+      return true;
+    });
+} 
+jQuery(document).ready(function(){
+  load_uncached_links();
+});
+</script>
+
+
+EOH;
 
     return $pagecontent;
 
@@ -530,5 +593,75 @@ EOH;
 
   function & set_filing_date($v) { return $this->set_dtm_attr($v,'filing_date'); }
   function get_filing_date() { return $this->get_dtm_attr('filing_date'); }
+
+  //  Committee names
+
+  function cleanup_committee_name($committee_name) {/*{{{*/
+    $committee_name = str_replace(array("\x09","[BR]",'%20'),array(""," ",' '),trim($committee_name));
+    $committee_name = preg_replace(
+      array("@[^,'A-Z0-9 ]@i",'@[ ]+@'),
+      array('',' '),$committee_name);
+    return trim($committee_name);
+  }/*}}}*/
+
+  function cursor_fetch_by_name_regex(& $search_name) {/*{{{*/
+    return $this->fetch_by_name_regex($search_name, TRUE);
+  }/*}}}*/
+
+  function fetch_by_name_regex(& $search_name, $cursor = FALSE) {/*{{{*/
+
+    $debug_method = FALSE;
+
+    if ( !$cursor ) {
+      // The limit() call is necessary and reasonable since large resultsets
+      // can choke the application, and should be retrieved with a cursor anyway.
+      $search_name = $this->
+        limit(1,0)->
+        fetch(array(
+          'LOWER(committee_name)' => "REGEXP '({$search_name})'"
+        ),'AND');
+      $result = $this->in_database();
+    } else if ( is_null($search_name) ) {
+      $result = $this->recordfetch($search_name,TRUE);
+    } else {
+      // Return a record in the search_name parameter
+      $this->
+        join_all()->
+        where(array('AND' => array(
+        'committee_name' => "REGEXP '({$search_name})'"
+      )))->recordfetch_setup();
+      $result = $this->recordfetch($search_name,TRUE);
+    }
+    if ( $result ) {
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "(marker) Found record " . $this->get_id() . " (" . $this->get_committee_name() . ")");
+    } else {
+      $this->syslog(__FUNCTION__,__LINE__, 
+        $cursor
+        ? "(marker) No cursor match"
+        : "(marker) Failed to match record using regex {$search_name}"
+      );
+    }
+    return $result;
+  }/*}}}*/
+
+  function fetch_by_committee_name($committee_name, $cursor = FALSE) {/*{{{*/
+
+    $debug_method = FALSE;
+
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name raw   {$committee_name}");
+
+    $search_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
+
+    if ( FALSE == $search_name ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(error) - - - - Unparseable committee name '{$committee_name}'");
+      return FALSE;
+    }
+
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name regex {$search_name}");
+
+    return $this->fetch_by_name_regex($search_name, $cursor);
+
+  }/*}}}*/
+
 
 }

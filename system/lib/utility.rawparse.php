@@ -229,6 +229,15 @@ EOH;
     return $this;
   }/*}}}*/
 
+	function standard_parse(UrlModel & $urlmodel) {/*{{{*/
+		return $this->
+			set_parent_url($urlmodel->get_url())->
+			parse_html(
+				$urlmodel->get_pagecontent(),
+				$urlmodel->get_response_header()
+			);
+	}/*}}}*/
+
   function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {/*{{{*/
 
 		$debug_method = FALSE;
@@ -447,13 +456,13 @@ EOH;
   function get_stacktags() {/*{{{*/
     $tagstack_tags = create_function('$a', 'return $a["tag"];');
     $tagstack_stack = array_filter(array_map($tagstack_tags, $this->tag_stack));
-    $topmost = $this->tag_stack[count($this->tag_stack)-1]['tag'];
-    $parent = $this->tag_stack[count($this->tag_stack)-2]['tag'];
+    $topmost = $this->tag_stack[count($this->tag_stack)-1]["tag"];
+    $parent = $this->tag_stack[count($this->tag_stack)-2]["tag"];
     return "{$parent} <- {$topmost} [" . join(',',$tagstack_stack) . ']';
   }/*}}}*/
 
   function parent_tag() {/*{{{*/
-    return 2 < count($this->tag_stack) ? $this->tag_stack[count($this->tag_stack)-2]['tag'] : NULL;
+    return 2 < count($this->tag_stack) ? $this->tag_stack[count($this->tag_stack)-2]["tag"] : NULL;
   }/*}}}*/
 
   function & parent_item() {/*{{{*/
@@ -494,7 +503,7 @@ EOH;
     $tag_handler = strtolower("ru_{$tag}_open");
 		$seq = intval($this->tag_counter);
     $current_tag = array(
-      'tag' => $tag, 
+      "tag" => $tag, 
       'attrs' => is_array($attrs) ? array_merge( $attrs, array('seq' => $seq) ) : array('seq' => $seq),
       'position' => NULL,
     );
@@ -605,7 +614,7 @@ EOH;
       if ( array_key_exists('CONTAINER', $this->current_tag) ) {
         $container_id_hash = $this->current_tag['CONTAINER'];
         if ( array_key_exists($container_id_hash, $this->containers) ) {
-          // $this->syslog(__FUNCTION__,__LINE__, "Removing container {$this->current_tag['tag']} with set hash {$container_id_hash}");
+          // $this->syslog(__FUNCTION__,__LINE__, "Removing container {$this->current_tag["tag"]} with set hash {$container_id_hash}");
           unset($this->containers[$container_id_hash]);
         } else {
           // $this->syslog(__FUNCTION__,__LINE__, "Deferring removal of container {$container_id_hash}");
@@ -625,7 +634,7 @@ EOH;
     if ( 0 < count($this->tag_stack) ) {
       $stack_top = array_pop($this->tag_stack);
       array_push($this->tag_stack,$stack_top);
-      $cdata_content_handler = strtolower("ru_{$stack_top['tag']}_cdata");
+      $cdata_content_handler = strtolower("ru_{$stack_top["tag"]}_cdata");
       if ( method_exists($this, $cdata_content_handler) ) {
         $parser_result = $this->$cdata_content_handler($parser, $cdata);
       } else {
@@ -800,18 +809,44 @@ EOH;
 		);
 	}/*}}}*/
 	
+	function current_tag_cdata() {
+		$cdata = nonempty_array_element($this->current_tag,'cdata',array());
+		$cdata = array_values(array_filter(explode('[BR]',trim(join('',$cdata)))));
+		return is_array($cdata) ? $cdata : array();
+	}
+
 	function embed_container_in_parent(& $parser,$tag) {/*{{{*/
 		$keep_container = TRUE;
 		$this->pop_tagstack();
 		if ( array_key_exists('CONTAINER',$this->current_tag) ) {
 			$content = $this->stack_to_containers();
+			$container_hash = $content['hash_value'];
 			$attrs = nonempty_array_element($this->current_tag,'attrs',array());
-			unset($attrs['seq']);
-			$this->current_tag = $content['container'];
-			$this->current_tag['attrs'] = array_merge(
-				$this->current_tag['attrs'],
-				$attrs
-			);
+			$cdata = array_filter(nonempty_array_element($this->current_tag,'cdata',array()));
+			if ( $container_hash == nonempty_array_element($this->current_tag,'sethash') ) {
+
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) -- WARNING: Prevented container duplication. Double-check your parser output");
+				$this->recursive_dump($this->current_tag,"(marker) +-");
+				$this->recursive_dump($content,"(marker) -+");
+
+			} else {
+				$cdata = $this->current_tag_cdata();
+				$this->current_tag = array_merge(
+					array(
+						'cdata' => $cdata,
+					),
+					$content['container']
+				);
+				// Remove processed container
+				if (0) if ( array_key_exists($content['hash_value'], $this->containers) ) {
+					unset($this->containers[$content['hash_value']]);
+				}
+				unset($attrs['seq']);
+				$this->current_tag['attrs'] = array_merge(
+					$this->current_tag['attrs'],
+					$attrs
+				);
+			}
 			$keep_container = FALSE;
 		}
 		$this->add_to_container_stack($this->current_tag);
@@ -828,11 +863,21 @@ EOH;
 
 	function append_cdata($cdata) {/*{{{*/
 		$this->pop_tagstack();
+		if (0 < mb_strlen(trim($cdata)))
 		$this->current_tag['cdata'][] = $cdata;
 		$this->push_tagstack();
 		return TRUE;
 	}/*}}}*/
 
+	function add_current_tag_to_container_stack() {
+    $this->pop_tagstack();
+		$this->add_to_container_stack(array_filter(array_merge(
+			$this->current_tag,
+			array('seq' => nonempty_array_element($this->current_tag['attrs'],'seq')) 
+		)));
+    $this->push_tagstack();
+    return TRUE;
+	}
 
   // ------------ Specific HTML tag handler methods -------------
 

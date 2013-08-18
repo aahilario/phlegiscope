@@ -46,6 +46,14 @@ class SenateGovPh extends SeekAction {
     // $this->recursive_dump($common->get_containers(),'(warning)');
   }/*}}}*/
 
+  /** PDF OCR handler **/
+
+  function seek_by_pathfragment_f26ae3f52382caead303ecf6885875c8(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.senate.gov.ph/lisdata/1712514353!.pdf
+    $result = $this->write_to_ocr_queue($urlmodel);
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
+  }/*}}}*/
+
 
   /** Committee Information **/
 
@@ -371,7 +379,7 @@ EOH;
 
     // $this->append_filtered_doc = TRUE;
 
-    // $this->stateful_child_pager_links = TRUE;
+    $this->stateful_child_pager_links = TRUE;
 
     return $this->non_session_linked_document(
       ($listing_prefix == 'HBN') ? 'leg_sys_housebill' : __FUNCTION__,
@@ -1250,6 +1258,11 @@ EOH
     $this->leg_sys_router($parser,$pagecontent,$urlmodel);
   }
 
+  function seek_postparse_bypath_plus_queryvars_609c17530429204ab1790ea5bef4f0b1(& $parser, & $pagecontent, & $urlmodel) {
+    // 16th Congress
+    $this->leg_sys_router($parser,$pagecontent,$urlmodel);
+  }
+
   function leg_sys_router(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     /** Router **/ 
     // http://www.senate.gov.ph/lis/leg_sys.aspx?congress=15&type=bill 
@@ -1338,6 +1351,14 @@ EOH
   function senate_housebill_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $this->append_filtered_doc = FALSE;
+    $this->debug_method        = FALSE;
+
+    // Workaround to force POST without GET, when retrieving detail pages.
+    $parser->network_fetch_skip_get = TRUE;
+    if ( $parser->update_existing ) {
+      $parser->from_network = TRUE;
+    }
+
 
     $this->session_linked_content_parser(__FUNCTION__, 'HBN', $parser, $pagecontent, $urlmodel );
 
@@ -1345,8 +1366,14 @@ EOH
 
   function senate_jointres_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = FALSE;
     $this->debug_method        = FALSE;
+
+    // Workaround to force POST without GET, when retrieving detail pages.
+    $parser->network_fetch_skip_get = TRUE;
+    if ( $parser->update_existing ) {
+      $parser->from_network = TRUE;
+    }
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SJR', $parser, $pagecontent, $urlmodel );
 
@@ -1354,8 +1381,14 @@ EOH
 
   function senate_concurrentres_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = FALSE;
     $this->debug_method        = FALSE;
+
+    // Workaround to force POST without GET, when retrieving detail pages.
+    $parser->network_fetch_skip_get = TRUE;
+    if ( $parser->update_existing ) {
+      $parser->from_network = TRUE;
+    }
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SCR', $parser, $pagecontent, $urlmodel );
 
@@ -1363,7 +1396,7 @@ EOH
 
   function senate_resolution_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = FALSE;
     $this->debug_method        = FALSE;
     $urlmodel->ensure_custom_parse();
 
@@ -1379,22 +1412,27 @@ EOH
 
   function senate_bill_content_parser(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
 
-    $this->append_filtered_doc = TRUE;
+    $this->append_filtered_doc = FALSE;
     $this->debug_method        = FALSE;
     $urlmodel->ensure_custom_parse();
 
+    $content = new ContentDocumentModel();
+
     // Workaround to force POST without GET, when retrieving detail pages.
-    $parser->network_fetch_skip_get = TRUE;
     if ( $parser->update_existing ) {
+      $parser->network_fetch_skip_get = TRUE;
       $parser->from_network = TRUE;
     }
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SBN', $parser, $pagecontent, $urlmodel );
 
+    $parser->json_reply['retainoriginal'] = FALSE;
+
   }/*}}}*/
 
   function non_session_linked_content_parser($caller, $prefix, & $parser, & $pagecontent, & $urlmodel ) {/*{{{*/
 
+    $pagecontent = NULL;
     $debug_method = FALSE;
 
     $method_infix = '@^senate_(.*)_content_parser$@i';
@@ -1413,7 +1451,10 @@ EOH
 
     $debug_method = (property_exists($this,'debug_method') && $this->debug_method);
 
-    $parser->json_reply = array('retainoriginal' => TRUE);
+    $parser->json_reply = array(
+      'retainoriginal' => TRUE,
+      'subcontent' => "<span>Parse failure</span>", 
+    );
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$document_parser}, {$documents}" );
 
@@ -1444,6 +1485,8 @@ EOH
       $faux_url   , $debug_method
     ); 
 
+    $pagecontent = "";
+
     if ( is_null($faux_url) || (FALSE == $traversal_resultarray) || !(2 == count($traversal_resultarray) ) ) {/*{{{*/
       // Try it again.
       $parser->from_network = TRUE;
@@ -1465,15 +1508,21 @@ EOH
           $pagecontent, $urlmodel              , $action_url,
           $faux_url   , $debug_method
         ); 
+
+        $pagecontent = "";
+
         $ok = !( is_null($faux_url) || ( FALSE == $traversal_resultarray ) || !(2 == count($traversal_resultarray) ));
       }
 
       if ( $ok ) {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - RELOADED " . $urlmodel->get_url());
       } else {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - EXIT " . $urlmodel->get_url());
         $this->invalidate_record($senate_document, $urlmodel);
         $document_sn = $senate_document->get_sn();
         $pagecontent = NULL;
+        // unset($parser->json_reply['retainoriginal']);
+        $parser->json_reply['retainoriginal'] = FALSE;
         $parser->json_reply['subcontent'] = <<<EOH
 <span>No Content Retrieved for {$document_sn}</span>
 EOH;
@@ -1523,6 +1572,8 @@ EOH;
 
     }/*}}}*/
 
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - Z" );
+
     if ( $senate_document->in_database() ) {/*{{{*/
 
       // Join this document to Senator dossiers
@@ -1535,12 +1586,17 @@ EOH;
 
       $valid_entry = (0 < strlen($senate_document->get_sn())) && (0 < strlen($senate_document->get_description()));
 
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - Y" );
+
       if ( !method_exists($senate_document,$markup_generator) ) {
+
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - X" );
 
         throw new Exception("Missing method " . get_class($senate_document) . "::{$markup_generator}");
 
       } else {
 
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - W" );
         $pagecontent = $senate_document->$markup_generator();
 
         if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc ) {
@@ -1555,73 +1611,9 @@ EOH;
 
       }
      
-     if (0) {/*{{{*/// From session_linked_content_parser
-
-        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) . " {$sbn_regex_result}|" . (method_exists($senate_document,'get_sn') ? $senate_document->get_sn() : "" ) );
-
-        $total_bills_in_system = $senate_document->count();
-
-        $doc_url_attrs = array('legiscope-remote');
-        $faux_url_hash = UrlModel::get_url_hash($senate_document->get_url());
-        $faux_url->fetch($faux_url_hash,'urlhash');
-        if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
-        $doc_url_attrs = join(' ', $doc_url_attrs);
-
-        $pagecontent = $valid_entry 
-          ?  $senate_document->substitute(<<<EOH
-
-Senate {$senatedoc}s in system: {$total_bills_in_system}
-<span class="sb-match-item">{sn}.{congress_tag}</span>
-<span class="sb-match-item sb-match-subjects">{title}</span>
-<span class="sb-match-item sb-match-subjects">{subjects}</span>
-<span class="sb-match-item sb-match-description">{description}</span>
-<span class="sb-match-item sb-match-significance"><b>Scope</b>: {significance}</span>
-<span class="sb-match-item sb-match-status"><b>Status</b>: {status}</span>
-<span class="sb-match-item sb-match-doc-url"><b>Document</b>: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
-<span class="sb-match-item sb-match-main-referral-comm"><b>Committee</b>: {main_referral_comm}</span>
-<span class="sb-match-item sb-match-main-referral-comm"><b>Secondary Committee</b>: {secondary_committee}</span>
-<span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
-EOH
-        )
-          : <<<EOH
-<span>No Content Recorded</span>
-EOH;
-        $pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
-        if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
-          $pagecontent .= '<br/><hr/>' . join('',$senate_document_parser->get_filtered_doc());
-      }/*}}}*/
-
-      if (0) {/*{{{*/// From non_session_linked_content_parser_worker
-
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) ---  - - -  --- WARNING: No markup generator " . get_class($senate_document) . "::{$markup_generator}()" );
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) ---  - - -  --- Got #" . $senate_document->get_id() . " " . get_class($senate_document) );
-
-        $total_bills_in_system = $senate_document->count();
-
-        $doc_url_attrs = array('legiscope-remote');
-        $faux_url_hash = UrlModel::get_url_hash($senate_document->get_url()); 
-        $faux_url->fetch($faux_url_hash,'urlhash');
-        if ( $faux_url->in_database() ) $doc_url_attrs[] = 'cached';
-        $doc_url_attrs = join(' ', $doc_url_attrs);
-
-        $pagecontent = $senate_document->substitute(<<<EOH
-Senate {$senatedoc}s in system: {$total_bills_in_system}
-<span class="sb-match-item">{sn}.{congress_tag}</span>
-<span class="sb-match-item sb-match-subjects">{subjects}</span>
-<span class="sb-match-item sb-match-description">{description}</span>
-<span class="sb-match-item sb-match-significance">Scope: {significance}</span>
-<span class="sb-match-item sb-match-status">Status: {status}</span>
-<span class="sb-match-item sb-match-doc-url">Document: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
-<span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
-<span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
-EOH
-      );
-        $pagecontent  = str_replace('[BR]','<br/>', $pagecontent);
-        if ( property_exists($this,'append_filtered_doc') && $this->append_filtered_doc )
-          $pagecontent .= '<br/><hr/>' . join('',$senate_document_parser->get_filtered_doc());
-      }/*}}}*/
-
       if ( !$valid_entry ) {/*{{{*/
+
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - V" );
 
         $senate_document_id = $senate_document->get_id();
         $remove_invalidated = C('REMOVE_INVALIDATED_DOCUMENTS');
@@ -1640,6 +1632,7 @@ EOH
 
       }/*}}}*/
       else {/*{{{*/
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - U" );
         $senate_document->
           set_invalidated(0)->
           set_last_fetch(time())->
@@ -1652,12 +1645,17 @@ EOH
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') ) {/*{{{*/
-      if ( !file_exists($cache_filename) || $parser->from_network )
-        file_put_contents($cache_filename, $pagecontent);
+      if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - T" );
+      if ( !file_exists($cache_filename) || $parser->from_network ) {
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - S" );
+        @file_put_contents($cache_filename, $pagecontent);
+      }
     }/*}}}*/
 
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - R" );
+
     $parser->json_reply['subcontent'] = $pagecontent; 
-    $pagecontent = NULL;
+    $pagecontent = '';
 
   }/*}}}*/
 
@@ -1854,6 +1852,7 @@ EOH;
     return ( 
       // PDF links intercepted by the parser class
       1 == preg_match('@http://www.senate.gov.ph/republic_acts/(.*).pdf@i', $url->get_url()) ||
+      1 == preg_match('@http://www.senate.gov.ph/lisdata/(.*).pdf@i', $url->get_url()) ||
       // Normal markup pages on senate.gov.ph
       1 == preg_match('@q=SBN-([0-9]*)@i', $url->get_url()) ||
       1 == preg_match('@http://www.senate.gov.ph/lis/bill_res.aspx\?congress=([0-9]*)&q=HBN-([0-9]*)@i', $url->get_url()) ||

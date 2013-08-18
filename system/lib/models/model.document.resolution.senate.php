@@ -214,7 +214,7 @@ EOH;
     // Note that a Join to Journals is created only when the Journal 
     // referencing this Senate Bill is accessed.
 
-    $id           = $this->set_contents_from_array($document_contents)->stow();
+    $id           = $this->set_contents_from_array($document_contents)->fields(array_keys($document_contents))->stow();
     $bill         = $this->get_sn();
     $congress_tag = $this->get_congress_tag();
 
@@ -224,7 +224,7 @@ EOH;
     $this->debug_method    = FALSE;
 
     $document_contents = $this->join_all()->where(array('AND' => array(
-      '`a`.`id`' => $this->get_id(),
+      '`a`.`id`' => $id,
       // Do not assert additional constraints; we want all Joined properties
       //'{journal}.`congress_tag`' => $congress_tag,
       //'{journal_senate_journal_document_model}.`congress_tag`' => $congress_tag

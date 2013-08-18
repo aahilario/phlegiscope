@@ -15,7 +15,7 @@ class SeekAction extends LegiscopeBase {
 
   function __construct() {
     parent::__construct();
-    $this->debug_handler_names = FALSE;
+    $this->debug_handler_names = C('DEBUG_HANDLER_NAMES');
   }
 
   function seek() {/*{{{*/
@@ -59,8 +59,6 @@ class SeekAction extends LegiscopeBase {
       'url'            => $target_url,
       'error'          => '',
       'message'        => '', 
-      'markup'         => '',
-      'responseheader' => '',
       'httpcode'       => '400',
       'retainoriginal' => TRUE,
       'subcontent'     => "<pre>NO CONTENT RETRIEVED\nURL {$target_url}</pre>",
@@ -84,10 +82,10 @@ class SeekAction extends LegiscopeBase {
 
     if ( $network_fetch ) {/*{{{*/
 
-			$retrieved = $this->perform_network_fetch( 
-				$url     , $referrer, $target_url  ,
-				$faux_url, $metalink, $debug_method
-		 	);
+      $retrieved = $this->perform_network_fetch( 
+        $url     , $referrer, $target_url  ,
+        $faux_url, $metalink, $debug_method
+       );
 
       $action = $retrieved
         ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
@@ -125,8 +123,6 @@ class SeekAction extends LegiscopeBase {
 
     }/*}}}*/
 
-    if ( $retrieved ) $url->increment_hits(TRUE);
-
     $pagecontent    = $url->get_pagecontent();
     $responseheader = '...';
     $headers        = $url->get_response_header(TRUE);
@@ -154,6 +150,7 @@ class SeekAction extends LegiscopeBase {
           $this->syslog( __FUNCTION__, __LINE__, "WARNING ********** Removing {$url} #{$url_id}. Must remove cache file {$cache_filename}" );
           $url->remove();
         } else {
+          $url->increment_hits(TRUE);
           $url->fetch($url_id);
         }
       }
@@ -191,6 +188,8 @@ class SeekAction extends LegiscopeBase {
 
       $linkset = array();
 
+      $url->increment_hits(TRUE);
+
       if ( array_key_exists('content-type', $headers) ) {/*{{{*/
 
         if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker)  - - - - Content-Type: {$headers['content-type']}");
@@ -217,6 +216,10 @@ class SeekAction extends LegiscopeBase {
           $body_content = 'PDF';
           $body_content_length = $url->get_content_length();
           $this->syslog( __FUNCTION__, __LINE__, "(marker) PDF fetch {$body_content_length} from " . $url->get_url());
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) PDF fetch URL hash " . $url->get_urlhash());
+
+          $this->write_to_ocr_queue($url);
+
           $headers['legiscope-regular-markup'] = 0;
           // Attempt to reload PDFs in an existing block container (alternate 'original' rendering block)
           $json_reply = array('retainoriginal' => 'true');
@@ -258,8 +261,6 @@ class SeekAction extends LegiscopeBase {
 
           //Moved up in the execution foc
           //$invocation_delta = microtime(TRUE);
-
-            $this->recursive_dump($linkset,"(marker) -- Lnks --");
 
           foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
             // Break on first match
@@ -327,7 +328,7 @@ class SeekAction extends LegiscopeBase {
 
       $final_body_content = preg_replace(
         array(
-          '/<html([^>]*)>/imU',
+          '@<[/]*(body|html|style)([^>]*)>@imU',
           '/>([ ]*)</m',
           '/<!--(.*)-->/imUx',
           '@<noscript>(.*)</noscript>@imU',
@@ -337,7 +338,7 @@ class SeekAction extends LegiscopeBase {
           "@\n@",
         ),
         array(
-          '<html>',
+          '',
           '><',
           '',
           '',
@@ -366,25 +367,39 @@ class SeekAction extends LegiscopeBase {
         ? 'processed'
         : 'responseheader'
         ;
+      $age = intval($url->get_last_fetch());
+      if ( 0 < ($age) ) {
+        $age = time() - $age; // Seconds delta
+        $minutes = intval($age / 60);
+        $hours   = intval($minutes / 60);
+        $days    = intval($hours / 24);
+
+        $minutes = $minutes % 60;
+        $hours   = $hours % 24;
+        $age = "{$days}d {$hours}h {$minutes}m";
+      } else {
+        $age = '--';
+      }
       $json_reply = array_merge(
         array(
           'url'            => $displayed_target_url,
           'referrer'       => $referrer,
           'httpcode'       => $headers['http-response-code'], 
-          'responseheader' => $responseheader,
           'contenthash'    => $url->get_content_hash(),
+          'urlhash'        => $url->get_urlhash(),
           'contenttype'    => $url->get_content_type(),
           'linkset'        => $linkset,
           'defaulttab'     => $defaulttab, 
           'clicked'        => $target_url_hash,
-          'markup'         => $headers['legiscope-regular-markup'] == 1 ? $final_content : '[OBSCURED CONTENT]',
           'content'        => C('DISPLAY_ORIGINAL') ? $final_body_content : '',
+          'age'            => $url->get_logseconds_css(), 
+          'lastupdate'     => $age,
           'hoststats'      => $this->get_hostmodel()->substitute(<<<EOH
 
 <ul class="link-cluster">
 <li><b>Host</b>: {hostname}</li>
 <li><b>Hits</b>: {hits}</li>
-<li><b>Last Update</b>: {update}</li>
+<li><b>Last Update</b>: {$age}</li>
 </ul>
 
 EOH

@@ -16,18 +16,20 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
 
   private $map_by_header = array();
 
-  function __construct() {
+  function __construct() {/*{{{*/
     parent::__construct();
     $this->map_by_header = array(
       'jurisdiction'     => 'jurisdiction',
       'committee office' => 'office_address',
       'chairperson'      => 'chairperson',
+			'majority leader'  => 'chairperson',
       'membership'       => 'membership',
     );
     $this->committee_information = array(
       'representative' => array(),
     );
-  }
+    $this->initialize_related_source_links_parse();
+  }/*}}}*/
 
   function ru_div_close(& $parser, $tag) {/*{{{*/
     // Hack to mark DIV containers of membership roster URLs in 
@@ -109,6 +111,18 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
     return $ok;
   }/*}}}*/
 
+  function ru_ul_open(& $parser, & $attrs, $tagname ) {/*{{{*/
+    $this->push_container_def($tagname, $attrs);
+    return TRUE;
+  }/*}}}*/
+  function ru_ul_cdata(& $parser, & $cdata) {/*{{{*/
+    return TRUE;
+  }/*}}}*/
+  function ru_ul_close(& $parser, $tag) {/*{{{*/
+    $this->stack_to_containers();
+    return TRUE;
+  }/*}}}*/
+
   function ru_span_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
     $text = trim(join('',array_element($this->current_tag,'cdata')));
@@ -130,17 +144,11 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
   }/*}}}*/
 
   function ru_strong_open(& $parser, & $attrs, $tagname ) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
     $this->current_component = NULL;
-    return TRUE;
+    return $this->add_cdata_property();
   }/*}}}*/
   function ru_strong_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_strong_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
@@ -332,18 +340,13 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
     $this->pop_tagstack();
     $this->current_tag['cdata'] = array();
     $this->update_current_tag_url('HREF');
-    $url = $this->current_tag['attrs']['HREF'];
-    $url = str_replace('/?','?',$url);
-    $this->current_tag['attrs']['HREF'] = $url;
+    $this->current_tag['attrs']['HREF'] = str_replace('/?','?',$this->current_tag['attrs']['HREF']);
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  $this->get_stacktags() . " --- {$this->current_tag['tag']} " . array_element($this->current_tag['attrs'],'HREF') );
     return TRUE;
   }/*}}}*/
   function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  "--- {$this->current_tag['tag']} {$cdata}" );
+    return $this->append_cdata($cdata);
     return TRUE;
   }/*}}}*/
   function ru_a_close(& $parser, $tag) {/*{{{*/
@@ -357,9 +360,12 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
         $this->current_component = NULL;
       }
     }
+    if ( property_exists($this, 'current_member_classification') && !is_null($this->current_member_classification) ) {
+      $link_data['classification'] = $this->current_member_classification;
+    }
     $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog(__FUNCTION__,__LINE__, "(marker)" .  "--- {$this->current_tag['tag']}" );
-    return TRUE;
+    parent::ru_a_close($parser,$tag);
+    return $this->generate_related_source_links($parser, $tag);
   }/*}}}*/
 
   function ru_img_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -417,11 +423,7 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
 
     if ( array_key_exists('committee_name', $this->committee_information) ) {
       $committee_name = array_element($this->committee_information,'committee_name');
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name raw   {$committee_name}");
-      $committee_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name regex {$committee_name}");
-			$constraints = array('committee_name' => "REGEXP '({$committee_name})'");
-			$committee->fetch($constraints,'AND');
+			$committee->fetch_by_committee_name($committee_name);
     }
 
     return $this;
@@ -466,46 +468,31 @@ class CongressionalCommitteeInfoParseUtility extends CongressCommonParseUtility 
     // Selection tabs
     $tab_options     = array(
       'bills_referred'     => 'Bills Referred',
+      'bills_cosponsored'  => 'Bills Cosponsored',
       'member_list'        => 'Committee Members',
       'committee_meetings' => 'Meetings',
     );
-    ksort($tab_options);
+
+    $aux_information_links = $this->extract_aux_information_links();
+
+    $this->committee_information['bills_referred']     = nonempty_array_element($this->committee_information                 , 'bills_referred'     , array_element(nonempty_array_element($aux_information_links, 'bills_referred')   , 'url'));
+    $fix_url = new UrlModel($this->committee_information['bills_referred'],FALSE);
+    $fix_url->add_query_element('sponsor','co',FALSE,FALSE);
+    $this->committee_information['bills_cosponsored']  = $fix_url->get_url();
+    $this->committee_information['member_list']        = nonempty_array_element($this->committee_information                 , 'member_list'        , array_element(nonempty_array_element($aux_information_links, 'member_list')      , 'url'));
+    $this->committee_information['committee_meetings'] = nonempty_array_element(nonempty_array_element($aux_information_links, 'committee_meetings'), 'url', nonempty_array_element($this->committee_information, 'committee_meetings'));
+
     $link_members = array_intersect_key(
       $this->committee_information,
       $tab_options
     );
-    ksort($link_members);
 
     if ( $debug_method ) {/*{{{*/
       $this->recursive_dump($tab_options, "(marker) - - -- -- - T");
       $this->recursive_dump($link_members, "(marker) - - -- -- - M");
     }/*}}}*/
 
-    if (is_array($link_members) && is_array($tab_options) && (count($link_members) == count($tab_options))) {/*{{{*/
-
-      // Store Joins between child page URLs and the current committee record
-      // Generate tab markup
-      $tab_links = array_combine(array_values($tab_options),array_values($link_members));
-      array_walk($tab_links, create_function(
-        '& $a, $k, $s', '$hash = UrlModel::get_url_hash($a); $a = "<li id=\"{$s[$k]}\"><a class=\"legiscope-content-tab\" id=\"{$hash}\" href=\"{$a}\">{$k}</a>";'
-      ), array_flip($tab_options));
-
-      $tab_links = join('',array_values($tab_links));
-
-      $tab_containers = array();
-      foreach ( array_flip($tab_options) as $id ) {/*{{{*/
-        $properties = array('congress-committee-info-tab');
-        if ( 0 < count($tab_containers) ) $properties[] = 'hidden';
-        $properties = join(' ',$properties);
-        $tab_containers[] = <<<EOH
-<div class="{$properties}" id="tab_{$id}"></div>
-
-EOH;
-      }/*}}}*/
-      $tab_containers = join('',$tab_containers);
-
-      $this->recursive_dump($tab_links, "(marker) - - -- -- - Links");
-    }/*}}}*/
+    $tab_containers = $this->generate_committee_rep_tabs($link_members, $tab_options);
 
     $pagecontent = <<<EOH
 <h2>{$committee_name}</h2>
@@ -528,60 +515,12 @@ EOH;
   {$contact_details}
 </div>
 <br/>
-<div class="theme-options clear-both">
-  <hr/>
-  <ul>{$tab_links}</ul>
-  <div class="congress-committee-info-tabs">{$tab_containers}</div>
-</div>
+{$tab_containers}
 
 EOH;
     $pagecontent .= $this->std_committee_detail_panel_js(); 
     // bills_referred
     // committee_meetings
-  }/*}}}*/
-
-  function std_committee_detail_panel_js() {/*{{{*/
-    return <<<EOH
-
-<script type="text/javascript">
-function initialize_committee_detail_triggers() {
-  jQuery('a[class*=legiscope-content-tab]').click(function(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    var parent_id = jQuery(this).parent('li').attr('id');
-    var self_id = jQuery(this).attr('id');
-    var url = jQuery(this).attr('href');
-    jQuery('div[class=congress-committee-info-tabs]').children().each(function(){
-      jQuery(this).addClass('hidden');
-    });
-    jQuery('div[class=congress-committee-info-tabs]').find('div[id=tab_'+parent_id+']').each(function(){
-      jQuery(this).removeClass('hidden');
-      var tab_id = 'tab_'+parent_id; 
-      if ( !jQuery(this).hasClass('loaded') ) {
-        load_content_window(
-          url,
-          jQuery('#seek').prop('checked'),
-          jQuery('a[id='+self_id+']'),
-          { url : url, defaulttab : parent_id, async : true },
-          { success : (function(data, httpstatus, jqueryXHR) {
-              jQuery('div[id='+tab_id+']').addClass('loaded').html(data && data.subcontent ? data.subcontent : 'No content retrieved');
-              if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-              setTimeout((function(){initialize_committee_detail_triggers();}),300);
-            })
-          }
-        );
-      }
-    });
-    return false;
-  });
-  initialize_remote_links();
-}
-jQuery(document).ready(function(){
-  initialize_committee_detail_triggers();
-});
-</script>
-
-EOH;
   }/*}}}*/
 
   function dump_member_list(& $pagecontent, UrlModel & $urlmodel, CongressionalCommitteeDocumentModel & $committee) {/*{{{*/
@@ -598,7 +537,7 @@ EOH;
 
     if ( $debug_method ) $this->recursive_dump($doc_parser->get_containers(),"(marker) - - - Raw");
 
-    extract($doc_parser->extract_committee_membership_and_bills('children[tagname=div][id=main-ol]'));
+    extract($doc_parser->extract_committee_membership_and_bills('children[tagname=div][id=main-ol]')); // $resource_links, $membership_role, $bills 
 
     if ( $debug_method ) $this->recursive_dump($membership_role, "(marker) -+-+- Raw");
     // Partition the membership/role list
@@ -614,6 +553,7 @@ EOH;
       $pagecontent .= $doc_parser->generate_committee_membership_markup($membership_list);
       $pagecontent .= <<<EOH
 <br/>
+{$legislation_links}
 
 EOH;
     }
@@ -646,6 +586,16 @@ EOH;
 
     $pagecontent = $doc_parser->generate_legislation_links_markup($m, $legislation_links, $bills);
 
+    $pagecontent .= <<<EOH
+
+<script type="text/javascript">
+jQuery(document).ready(function(){
+  enable_proxied_links('legiscope-remote');
+  setTimeout((function(){ crawl_dossier_links(); }),1000);
+});
+</script>
+
+EOH;
   }/*}}}*/
 
   function committee_information_page(& $stdparser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -661,7 +611,7 @@ EOH;
      * - Bills referred to the Committee
      * - Committee meetings
      */
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     $urlmodel->ensure_custom_parse();
     $committee      = new CongressionalCommitteeDocumentModel();
@@ -672,12 +622,7 @@ EOH;
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for Congress {$congress_tag} " . $urlmodel->get_url() );
 
-    $this->
-      set_parent_url($urlmodel->get_url())->
-      parse_html(
-        $urlmodel->get_pagecontent(),
-        $urlmodel->get_response_header()
-      );
+    $this->standard_parse($urlmodel);
 
     $pagecontent = str_replace('[BR]','<br/>',join('',$this->get_filtered_doc()));
 
@@ -932,18 +877,22 @@ EOH;
     $committee_detail_panel = $this->filter_post('defaulttab');
 
     if ( !is_null($committee_detail_panel) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Detail panel {$committee_detail_panel}");
       switch ($committee_detail_panel) {
-      case 'bills_referred': 
-        return $this->dump_referred_bill_listing($pagecontent, $urlmodel, $committee);
-        break;
-      case 'committee_meetings':
-        //$pagecontent = 'Committee Meetings';
-        break;
-      case 'member_list':
-        return $this->dump_member_list($pagecontent, $urlmodel, $committee);
-        break;
-      default: 
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) - -- - Unhandled request for committee detail panel '{$committee_detail_panel}'");
+        case 'bills_cosponsored': 
+          return $this->dump_referred_bill_listing($pagecontent, $urlmodel, $committee);
+          break;
+        case 'bills_referred': 
+          return $this->dump_referred_bill_listing($pagecontent, $urlmodel, $committee);
+          break;
+        case 'committee_meetings':
+          //$pagecontent = 'Committee Meetings';
+          break;
+        case 'member_list':
+          return $this->dump_member_list($pagecontent, $urlmodel, $committee);
+          break;
+        default: 
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - -- - Unhandled request for committee detail panel '{$committee_detail_panel}'");
       }
       return;
     }
@@ -959,23 +908,8 @@ EOH;
       $s
     );
 
-    $pagecontent .= <<<EOH
-
-<script type="text/javascript">
-jQuery(document).ready(function(){
-
-  jQuery('div[class=congress-committee-info-tab]').children().remove();
-  jQuery('div[class=congress-committee-info-tabs]').children().append(jQuery(document.createElement('IMG'))
-    .attr('src','data:image/gif;base64,R0lGODlhEAAQALMAAP8A/7CxtXBxdX1+gpaXm6OkqMnKzry+womLj7y9womKjwAAAAAAAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQBCgAAACwAAAAAEAAQAAAESBDICUqhmFqbZwjVBhAE9n3hSJbeSa1sm5HUcXQTggC2jeu63q0D3PlwAB3FYMgMBhgmk/J8LqUAgQBQhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAES3DJuUKgmFqb5znVthQF9h1JOJKl96UT27oZSRlGNxHEguM6Hu+X6wh7QN2CRxEIMggExumkKKLSCfU5GCyu0Sm36w3ryF7lpNuJAAAh+QQBCgALACwAAAAAEAAQAAAESHDJuc6hmFqbpzHVtgQB9n3hSJbeSa1sm5GUIHRTUSy2jeu63q0D3PlwCx1lMMgQCBgmk/J8LqULBGJRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuYyhmFqbpxDVthwH9n3hSJbeSa1sm5HUMHRTECy2jeu63q0D3PlwCx0FgcgUChgmk/J8LqULAmFRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuYSgmFqb5xjVthgG9n3hSJbeSa1sm5EUgnTTcSy2jeu63q0D3PlwCx2FQMgEAhgmk/J8LqWLQmFRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJucagmFqbJ0LVtggC9n3hSJbeSa1sm5EUQXSTYSy2jeu63q0D3PlwCx2lUMgcDhgmk/J8LqWLQGBRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuRCimFqbJyHVtgwD9n3hSJbeSa1sm5FUUXSTICy2jeu63q0D3PlwCx0lEMgYDBgmk/J8LqWLw2FRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuQihmFqbZynVtiAI9n3hSJbeSa1sm5FUEHTTMCy2jeu63q0D3PlwCx3lcMgIBBgmk/J8LqULg2FRhV6z2q0VF94iJ9pOBAA7')
-    .addClass('center')
-    .attr('id','busy-notification-wait')
-  );
-  jQuery('li[id=bills_referred]').find('a').click();
-
-});
-</script>
-
-EOH;
+    $pagecontent .= $this->trigger_default_tab('bills_referred');
+    // $pagecontent .= $this->trigger_default_tab('bills_cosponsored');
 
   }/*}}}*/
 

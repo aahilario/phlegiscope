@@ -143,7 +143,8 @@ class DatabaseUtility extends ReflectionClass {
       $value    = nonempty_array_element(nonempty_array_element($this->$getter(),$referent,array()),$property);
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- {$joinattr} {$referent} {$property} = {$value}");
       $regex_match[] = "@(" . nonempty_array_element($component,0) . ")@imU";
-      $regex_replace[] = $value;
+      // Strip HTML tag delimiters
+      $regex_replace[] = preg_replace('@[><^]@i','?',$value);
     }/*}}}*/
     if ( $debug_method ) {/*{{{*/
       $this->recursive_dump($matches, "(marker) " . __METHOD__ . " (" . gettype($matches) . ")'{$result}'");
@@ -469,12 +470,12 @@ EOH;
     );
   }/*}}}*/
 
-	protected function register_derived_class() {/*{{{*/
+  protected function register_derived_class() {/*{{{*/
 
     // Invoked from constructors of framework classes.
     // Count instantiations of any given derived class.
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
     if ($debug_method) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) -- " . get_class($this));
       if ( method_exists($this, 'get_joins') ) {
@@ -482,7 +483,7 @@ EOH;
       }
     }
 
-	}/*}}}*/
+  }/*}}}*/
 
   protected final function initialize_derived_class_state() {/*{{{*/
 
@@ -703,7 +704,7 @@ EOH;
             ),'AND');
           $join_present = $joinobj->in_database();
           if ( !$join_present || $allow_update ) {
-						// FIXME: Tidy up the duplicate check
+            // FIXME: Tidy up the duplicate check
             $join_id = $join_present ? $joinobj->get_id() : NULL;
             if ( $join_present ) {
               unset($data[$self_attrname]);
@@ -1016,7 +1017,7 @@ EOS;
       // foreign table attributes.  If any attributes of the Join subject
       // are specified, these must be aliased.
       $joins               = $this->get_joins();
-      $ft_aliases          = array('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n'); // Alias 'a' is always the join parent
+      $ft_aliases          = array('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n','p','q','r'); // Alias 'a' is always the join parent
       $ft_aliasmap         = array();
       $join_instance_table = array();
 
@@ -1815,6 +1816,7 @@ EOS;
 
   final function syslog($fxn, $line, $message) {/*{{{*/
     if ( $this->logging_ok($message) ) { 
+      $message = str_replace('(marker)','',$message);
       syslog( LOG_INFO, $this->syslog_preamble($fxn, $line) . " {$message}" );
       if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));
     }
@@ -1822,7 +1824,7 @@ EOS;
 
   final protected function syslog_preamble($fxn, $line) {/*{{{*/
     $line = is_null($line) ? "" : "({$line})";
-    return get_class($this) . ":: {$fxn}{$line}: ";
+    return (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :: {$fxn}{$line}: ";
   }/*}}}*/
 
   protected function recursive_file_dump($filename, $a, $depth, $prefix) {/*{{{*/
@@ -1858,8 +1860,10 @@ EOS;
     foreach ( $a as $key => $val ) {
       $logstring = is_null($prefix) 
         ? basename(__FILE__) . "::" . __LINE__ . "::" . __FUNCTION__ . ": "
-        : get_class($this) . " :{$prefix}: "
+        : (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :{$prefix}: "
         ;
+
+      $logstring = preg_replace('@\(marker\)([ ]*)@i','',$logstring);
       $logstring .= str_pad(' ', $depth * 3, " ", STR_PAD_LEFT) . '('.gettype($val).')' . " {$key} => " ;
       if ( is_array($val) ) {
         syslog( LOG_INFO, $logstring );

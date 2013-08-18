@@ -10,49 +10,42 @@
 
 class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
   
-	var $committee_list = array();
-	var $committee_sub  = NULL;
+  var $committee_list = array();
+  var $committee_sub  = NULL;
 
   function __construct() {
     parent::__construct();
-		$this->committee_list = array();
+    $this->committee_list = array();
   }
 
   function ru_header_close(& $parser, $tag) {/*{{{*/
-		// All <header> tags are discarded by this parser
+    // All <header> tags are discarded by this parser
     return FALSE;
   }/*}}}*/
 
   function ru_footer_close(& $parser, $tag) {/*{{{*/
-		// All <footer> tags are discarded by this parser
+    // All <footer> tags are discarded by this parser
     return FALSE;
   }/*}}}*/
 
   function ru_style_close(& $parser, $tag) {/*{{{*/
-		// All <style> tags are discarded by this parser
+    // All <style> tags are discarded by this parser
     return FALSE;
   }/*}}}*/
 
   function ru_article_close(& $parser, $tag) {/*{{{*/
-		// All <article> tags are discarded by this parser
+    // All <article> tags are discarded by this parser
     return FALSE;
   }/*}}}*/
 
  function ru_tr_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->is_bill_head_container = FALSE;
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
+    $this->add_cdata_property();
     $this->push_container_def($tag, $attrs);
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
     return TRUE;
   }/*}}}*/
   function ru_tr_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_tr_close(& $parser, $tag) {/*{{{*/
     // Parsing of name + bailiwick rows moved into this method
@@ -71,46 +64,38 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
         $cell = array_shift($cells);
         if ( !is_array($cell) ) continue;
         if ( array_key_exists('url', $cell) ) {
-					if ( 0 < strlen(array_element($cell,'text')) ) {
-						$row['url']  = trim($cell['url']);
-						$row['text'] = trim($cell['text']);
-						$row['type'] = $this->committee_sub;
-					}
+          if ( 0 < strlen(array_element($cell,'text')) ) {
+            $row['url']  = trim($cell['url']);
+            $row['text'] = trim($cell['text']);
+            $row['type'] = $this->committee_sub;
+          }
           continue;
         }
-				if ( !array_key_exists('text', $cell) ) {
-				} else if ( array_key_exists('url',$row) ) {
-					if ( 0 < strlen(trim($cell['text'])) && !array_key_exists('chairperson',$row) )
+        if ( !array_key_exists('text', $cell) ) {
+        } else if ( array_key_exists('url',$row) ) {
+          if ( 0 < strlen(trim($cell['text'])) && !array_key_exists('chairperson',$row) )
           $row['chairperson'] = trim($cell['text']);
-				} else {
-					// Test for a committee listing subsection
-					$match = array();
-					if ( 1 == preg_match('@(STANDING|SPECIAL) COMMITTEES([^(]*)\(([^)]*)\)@i', $cell['text'], $match) ) {
-						$this->committee_sub = array_element($match,1);
-					}
-				}
+        } else {
+          // Test for a committee listing subsection
+          $match = array();
+          if ( 1 == preg_match('@(STANDING|SPECIAL) COMMITTEES([^(]*)\(([^)]*)\)@i', $cell['text'], $match) ) {
+            $this->committee_sub = array_element($match,1);
+          }
+        }
       }
-			if ( 0 < count($row) && array_key_exists('chairperson',$row) ) {
-				$this->committee_list[] = $row;
-				return FALSE;
-			}
+      if ( 0 < count($row) && array_key_exists('chairperson',$row) ) {
+        $this->committee_list[] = $row;
+        return FALSE;
+      }
     }
     return TRUE;
   }/*}}}*/
 
   function ru_td_open(& $parser, & $attrs, $tag) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
-    return TRUE;
+    return $this->add_cdata_property();
   }/*}}}*/
   function ru_td_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']}" );
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_td_close(& $parser, $tag) {/*{{{*/
     $this->pop_tagstack();
@@ -125,19 +110,23 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
   }/*}}}*/
 
   function ru_th_open(& $parser, & $attrs, $tag) {/*{{{*/
-		return $this->ru_td_open($parser, $attrs, $tag);
+    return $this->ru_td_open($parser, $attrs, $tag);
   }/*}}}*/
   function ru_th_cdata(& $parser, & $cdata) {/*{{{*/
-		return $this->ru_td_cdata($parser, $cdata);
+    return $this->ru_td_cdata($parser, $cdata);
   }/*}}}*/
   function ru_th_close(& $parser, $tag) {/*{{{*/
-		return $this->ru_td_close($parser, $tag);
+    return $this->ru_td_close($parser, $tag);
   }/*}}}*/
 
-	function congress_committee_listing(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+  function ru_span_close(& $parser, $tag) {/*{{{*/
+    return $this->embed_cdata_in_parent();
+  }/*}}}*/
 
-		$debug_method = FALSE;
-		// http://www.congress.gov.ph/committees
+  function congress_committee_listing(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $debug_method = FALSE;
+    // http://www.congress.gov.ph/committees
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $m    = new RepresentativeDossierModel();
@@ -156,89 +145,130 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
 
     $pagecontent = str_replace('[BR]','<br/>',join('',$this->get_filtered_doc()));
 
-		if ( $debug_method ) $this->recursive_dump($this->committee_list,"(marker) +");
+    if ( $debug_method ) $this->recursive_dump($this->committee_list,"(marker) +");
+    if ( $debug_method ) $this->recursive_dump($this->get_containers(),"(marker) +");
 
     // We are able to extract names of committees and current chairperson.
-		$committee_leader_boxes = array();
+    $committee_leader_boxes = array();
+
+    // Generate markup, stow representative name updates in the full name or name components.
     if ( 0 < count($this->committee_list) ) {/*{{{*/
+
       $pagecontent = '';
       $committees  = array();
-			while ( 0 < count( $this->committee_list ) ) {/*{{{*/
 
-				$tag         = array_shift($this->committee_list);
-				$chairperson = nonempty_array_element($tag,'chairperson');
-				$hash        = UrlModel::get_url_hash($tag['url']);
-				$committee_count++;
-				$committee_leader_boxes[$committee_count] = array(
-					'hash' => $hash,
-					'text' => <<<EOH
-<a href="{$tag['url']}" id="{$hash}" class="matchable legiscope-remote listing-committee-name">{$tag['text']}</a>
+      while ( 0 < count( $this->committee_list ) ) {/*{{{*/
+
+        $tag         = array_shift($this->committee_list);
+        $chairperson = nonempty_array_element($tag,'chairperson');
+        $hash        = UrlModel::get_url_hash($tag['url']);
+        $committee_count++;
+        $class = array('legiscope-remote','no-autospider','matchable','listing-committee-name');
+        $class = join(' ',$class);
+        $committee_leader_boxes[$committee_count] = array(
+          'hash' => $hash,
+          'text' => <<<EOH
+<a href="{$tag['url']}" id="{$hash}" class="{$class}">{$tag['text']}</a>
 EOH
-				);
-				$committees[$hash] = array(
-					'url'            => $tag['url'],
-					'committee_name' => $tag['text'],
-					'congress_tag'   => UrlModel::query_element('congress', $tag['url']), 
-					'chairperson'    => $chairperson,
-				);
+        );
+        $congress_tag = UrlModel::query_element('congress', $tag['url']);
+        if ( empty($congress_tag) ) $congress_tag = C('LEGISCOPE_DEFAULT_CONGRESS');  
+        $committees[$hash] = array(
+          'url'            => $tag['url'],
+          'committee_name' => $tag['text'],
+          'congress_tag'   => $congress_tag, 
+          'chairperson'    => $chairperson,
+        );
 
-				// If the chairperson striing is empty, we go without.
-				if (0 < strlen($chairperson)) {/*{{{*/
+        // If the chairperson string is empty, we go without.
+        if (0 < strlen(trim(preg_replace('@[^A-Zñ ]@i','',$chairperson)))) {/*{{{*/
 
-					// Replace $name with legislator dossier record
-					// Parameter $name contains a RepresentativeDossier entry on successful load.
-					$name = $chairperson;
-					$chairperson = $m->replace_legislator_names_hotlinks($name);
-					if (!(0 < strlen(trim($chairperson)))) {
-					 	$chairperson = nonempty_array_element($tag,'chairperson');
-					}
+          // Replace $name with legislator dossier record
+          // Parameter $name contains a RepresentativeDossier entry on successful load.
+          $name = $chairperson;
+          $chairperson = $m->replace_legislator_names_hotlinks($name);
 
-					if (is_null(nonempty_array_element($name,'fullname')) && (0 < intval(array_element($name,'id')))) {/*{{{*/
-						$this->syslog( __FUNCTION__, __LINE__, "(marker) Stowing {$name['original']}" );
-						$parsed_name = $m->parse_name( $name['original'] );
-						$committees[$hash]['original'] = $parsed_name;
-						$data = array(
-							'fullname'   => $name['original'],
-							'firstname'  => $parsed_name['given'],
-							'mi'         => $parsed_name['mi'],
-							'surname'    => $parsed_name['surname'],
-							'namesuffix' => $parsed_name['suffix'],
-						);
-						$this->recursive_dump($data,"(marker) ------");
-            // FIXME: Ensure that member records are stowed properly
-						$m->fetch($name['id'],'id');
-						if (!$m->in_database()) $m->
-							set_contents_from_array($data)->
-							fields(array_keys($data))->
-							stow();
-					}/*}}}*/
-				}/*}}}*/
-				else {
-					$chairperson = 'TBA';
-				}
-				$committee_leader_boxes[$committee_count]['text'] .= <<<EOH
-<span id="name-span-{$hash}" class="matchable representative-name listing-committee-representative">{$chairperson}</span><br/>
+          if (!(0 < strlen(trim($chairperson)))) {
+             $chairperson = nonempty_array_element($tag,'chairperson');
+          }
+
+          if ( $debug_method ) {
+            $this->syslog( __FUNCTION__, __LINE__, "(marker) Chairperson '{$chairperson}'" );
+            $this->recursive_dump($name, "(marker)");
+          }
+
+          if (!(0 < intval(array_element($name,'id')))) {/*{{{*/
+            // If the legislator name is not yet cached, generate a link anyway.
+            // Triggering the link invokes the CongressMemberBioParseUtility.
+            if ( $debug_method ) {
+              $this->syslog( __FUNCTION__, __LINE__, "(marker) New legislator name entry '{$chairperson}'" );
+              $this->recursive_dump($name, "(marker)");
+            }
+            $data = array(
+              'fullname' => $chairperson,
+              'bio_url' => $tag['url'],
+              'url_hash' => UrlModel::get_url_hash($tag_url),
+            );
+            $chairperson = str_replace(
+              array_map(create_function('$a','return "{{$a}}";'), array_keys($data)),
+              array_values($data),
+              $m->get_legislator_link_template(array('uncached','no-autospider'))
+            );
+          }/*}}}*/
+          else if (is_null(nonempty_array_element($name,'fullname'))) {/*{{{*/
+            $parsed_name = $m->parse_name( $name['original'] );
+            $committees[$hash]['original'] = $parsed_name;
+            $data = array(
+              'fullname'   => $name['original'],
+              'firstname'  => $parsed_name['given'],
+              'mi'         => $parsed_name['mi'],
+              'surname'    => $parsed_name['surname'],
+              'namesuffix' => $parsed_name['suffix'],
+            );
+            if ( $debug_method ) {
+              $this->recursive_dump($data,"(marker) ------");
+            }
+            $id = $m->
+              set_contents_from_array($data)->
+              fields(array_keys($data))->
+              stow();
+            $this->syslog( __FUNCTION__, __LINE__, "(marker) Updating {$name['original']} #{$name['id']}, stow result {$id}" );
+            $committees[$hash]['representative'] = $id;
+          }/*}}}*/
+          else {
+            // We have a representative-committee match.
+            $committees[$hash]['representative'] = $name['id'];
+          }
+        }/*}}}*/
+        else {
+          $chairperson = 'TBA';
+        }
+        $class = array('matchable','representative-name','listing-committee-representative');
+        $class = join(' ',$class);
+        $committee_leader_boxes[$committee_count]['text'] .= <<<EOH
+<span id="name-span-{$hash}" class="{$class}">{$chairperson}</span><br/>
 EOH;
-			}/*}}}*/
+      }/*}}}*/
 
       // At this point, the $containers stack has been depleted of entries,
       // basically being transformed into the $committees stack
       // $this->recursive_dump($committees,"(marker) -- -- --");
-    }/*}}}*/
-    else {/*{{{*/
-      $pagecontent = join('', $this->get_filtered_doc());
-    }/*}}}*/
-
-		$pagecontent = '';
-		while ( 0 < count($committee_leader_boxes) ) {
-			$cl = array_shift($committee_leader_boxes);
-			$pagecontent .= <<<EOH
+      $pagecontent = '';
+      while ( 0 < count($committee_leader_boxes) ) {
+        $cl = array_shift($committee_leader_boxes);
+        $pagecontent .= <<<EOH
 <div class="committee-leader-box" id="line-{$cl['hash']}">
 {$cl['text']}
 </div>
 
 EOH;
-		}
+      }
+
+    }/*}}}*/
+    else {/*{{{*/
+      // $pagecontent = join('', $this->get_filtered_doc());
+      $pagecontent = 'No committee list available';
+    }/*}}}*/
 
     $committee = array();
     $updated = 0;
@@ -248,10 +278,15 @@ EOH;
       $this->pop_stack_entries($committee, $committees, 10);
       // Use 'url' and 'committee_name' keys; store missing CongressionalCommitteeDocumentModel entries. 
       $comm->mark_committee_ids($committee);
+      $joinable = $committee;
       // Extract all records marked 'UNMAPPED'
       $this->filter_nested_array($committee, '#[id*=UNMAPPED]');
+      if ( $debug_method )
       $this->recursive_dump($committee, "(marker) - -- - STOWABLE");
-      foreach ( $committee as $entry ) {
+
+      while ( 0 < count($committee) ) {
+
+        $entry = array_shift($committee);
         $updated++;
         $comm->fetch($entry['committee_name'],'committee_name');
         $entry = array(
@@ -261,10 +296,37 @@ EOH;
           'last_fetch'     => array_element($entry,'last_fetch'),
           'url'            => array_element($entry,'url'),
         );
-        $id = $comm->set_contents_from_array($entry)->stow();
+
+        $id = $comm->
+          set_contents_from_array($entry)->
+          fields(array_keys($entry))->
+          stow();
+
         $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Stowed {$id} {$entry['committee_name']}");
       }
+
+      $this->filter_nested_array($joinable,'#[rj*=UNMAPPED|i]');
+      if ( $debug_method )
+      $this->recursive_dump($joinable, "(marker) - -- - JOINABLE");
+
+      while ( 0 < count($joinable) ) {
+        $entry = array_shift($joinable);
+        if (!(0 < intval($entry['representative']))) continue;
+        $comm->set_id(NULL)->fetch($entry['id'],'id');
+        if ( $comm->in_database() ) {
+          $join = array($entry['representative'] => array(
+            'role' => 'chairperson',
+            'congress_tag' => $entry['congress_tag'],
+            'create_time' => time(),  
+          ));
+          $joinid = $comm->create_joins('RepresentativeDossierModel', $join);
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Joined ({$entry['id']} -> Rep {$entry['representative']})");
+          $this->recursive_dump($joinid,"(marker) - + +");
+        }
+      }
+
     }/*}}}*/
+
     if ( $updated == 0 ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - All {$committees_found} committee names stowed");
 
     $pagecontent = <<<EOH
@@ -275,8 +337,12 @@ EOH;
 <script type="text/javascript">
 var match_timeout = null;
 jQuery(document).ready(function(){
+  jQuery('div[class*=committee-leader-box]').find("a[class*=no-autospider]").each(function(){
+    jQuery(this).addClass('traverse');
+  });
+
   initialize_linkset_clickevents(jQuery('div[id*=committee-listing]'),'div');
-	jQuery('#listing-filter-string').unbind('click').click(function(e){
+  jQuery('#listing-filter-string').unbind('click').click(function(e){
     e.stopPropagation();
     e.preventDefault();
     return false;
@@ -301,10 +367,10 @@ jQuery(document).ready(function(){
         if ( jQuery(this).hasClass('matched') || jQuery(this).hasClass('unmatched') ) {
           var selfid = jQuery(this).attr('id');
           var peer = /^name-span-.*/g.test(selfid) ? selfid.replace(/^name-span-/,'') : selfid;
-					if ( jQuery('[id='+selfid+']').hasClass('unmatched') && jQuery('[id='+peer+']').hasClass('unmatched') ) {
+          if ( jQuery('[id='+selfid+']').hasClass('unmatched') && jQuery('[id='+peer+']').hasClass('unmatched') ) {
             jQuery('[id=line-'+selfid.replace(/^name-span-/,'')+']').slideUp();
           } else 
-					if ( jQuery('[id='+selfid+']').hasClass('matched') | jQuery('[id='+peer+']').hasClass('matched') ) {
+          if ( jQuery('[id='+selfid+']').hasClass('matched') | jQuery('[id='+peer+']').hasClass('matched') ) {
             jQuery('[id=line-'+selfid.replace(/^name-span-/,'')+']').slideDown();
           }
         }
@@ -315,11 +381,11 @@ jQuery(document).ready(function(){
 </script>
 
 EOH
-		;
+    ;
 
     // $parser->json_reply = array('retainoriginal' => TRUE);
 
-	}/*}}}*/
+  }/*}}}*/
 
 }
 

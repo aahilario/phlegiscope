@@ -218,19 +218,32 @@ class RepresentativeDossierModel extends DatabaseUtility {
 
   }/*}}}*/
 
+	function get_legislator_link_template($additional_css_classes = NULL) {/*{{{*/
+		$link_class = array('legiscope-remote');
+		if ( is_string($additional_css_classes) )
+			$link_class[] = $additional_css_classes;
+		else if ( is_array($additional_css_classes) )
+			$link_class = array_merge($link_class,$additional_css_classes);
+		$class = join(' ',$link_class);
+		$template = <<<EOH
+<a id="{urlhash}" href="{bio_url}" class="{link-class}">{fullname}</a>
+EOH;
+		return str_replace('{link-class}',$class,$template);
+	}/*}}}*/
+
   function replace_legislator_names_hotlinks(& $name) {/*{{{*/
+		// Return an HTML <A> tag containing a single link to a legislator's bio
 		$name = trim(preg_replace('@[^-A-Zñ"., ]@i','',$name));
 		if ( empty($name) || is_null($nameparts = $this->parse_name($name)) ) {
 			if ( !empty($name) ) $this->syslog(__FUNCTION__,__LINE__,"(warning) Unparsed name '{$name}'");
 		 	return NULL;
 		}
+		// Keep original name passed in to the method.
     $original_name = $name;
 		$given_name = explode(' ',$nameparts['given']);
 		$given_name = array_shift($given_name);
     $matches = preg_replace('@[^A-Z]@i','(.*)',"{$nameparts['surname']},{$given_name}"); 
-    $template = <<<EOH
-<a class="legiscope-remote legislator-name-hotlink" href="{bio_url}" id="{urlhash}">{fullname}</a>
-EOH;
+		$template = $this->get_legislator_link_template(array('legislator-name-hotlink','no-autospider'));
     $s = NULL;
     $name = array();
     $this->where(array('AND' => array('fullname' => "REGEXP '({$matches})'")))->recordfetch_setup();
@@ -251,6 +264,18 @@ EOH;
 		}
     return $s;
   }/*}}}*/
+
+	function update_last_fetch($t = NULL) {
+		if ( $this->in_database() ) {
+			if ( is_null($t) ) $t = time();
+			return $this->set_last_fetch($t)->fields('last_fetch')->stow();
+		}
+		return NULL;
+	}
+
+	function generate_member_uuid() {
+		return sha1(mt_rand(10000,100000) . ' ' . $this->get_bio_url() . $this->get_fullname());
+	}
 
   function stow() {
     return parent::stow();

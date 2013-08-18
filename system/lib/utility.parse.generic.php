@@ -567,7 +567,7 @@ EOH;
 		$containers = $this->get_containers();
 
     $link_generator = create_function('$a', <<<EOH
-return '<li><a class="legiscope-remote {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a></li>';
+return '<li><a class="legiscope-remote markable {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a></li>';
 EOH
     );
     $hash_extractor = create_function('$a', <<<EOH
@@ -717,7 +717,7 @@ EOH
 				$linkset[$contained_url_set_hash] = "{$linklist}<hr/>";
 			}
 
-			if ( is_array($cluster_list) ) {/*{{{*/// DELETE THIS
+			if ( is_array($cluster_list) ) {/*{{{*/// FIXME: DELETE THIS
 				// Reorder URLs by imposing an ordinal key on this array $linkset
 				$pager_clusters[$contained_url_set_hash] = array_key_exists($contained_url_set_hash,$cluster_list) ? $cluster_list[$contained_url_set_hash]['id'] : NULL;
 			}/*}}}*/
@@ -754,7 +754,6 @@ EOH
 		$partitioned_list   = $this->partition_array( $urlhashes, 10 );
 
 		$url_cache_iterator = new UrlModel();
-		$idlist             = array();
 		$linkset            = join("\n", $linkset);
 
 		if ( $debug_method ) {
@@ -768,18 +767,25 @@ EOH
         where(array('urlhash' => array_keys($partition)))->
         recordfetch_setup();
       $hashlist = array();
-      // Collect all URL hashes.
-      while ( $url_cache_iterator->recordfetch($result) ) {/*{{{*/
-        $idlist[]   = $result['id'];
-        $hashlist[] = $result['urlhash'];
+      // Collect all URL hashes. Obtain link age from last-fetch time.
+      $now = time();
+      while ( $url_cache_iterator->recordfetch($result,TRUE) ) {/*{{{*/
+        // Compute hours since last fetch
+        $hashlist[$result['urlhash']] = $url_cache_iterator->get_logseconds_since_last_fetch($now);
         $n++;
       }/*}}}*/
-      $hashlist = join('|', $hashlist);
+      array_walk($hashlist,create_function('& $a, $k, $s', '$a = $s->get_logseconds_css($a);'),$url_cache_iterator);
+      // $this->recursive_dump($hashlist,"(marker)");
       // Add 'cached' and 'refresh' class to selectors
-      $linkset = preg_replace('@\{cached-('.$hashlist.')\}@','cached', $linkset);
+      $linkset = preg_replace(
+        array_map(create_function('$a','return "@\{cached-({$a})\}@";'),array_keys($hashlist)),
+        array_map(create_function('$a','return "cached {$a}";'),$hashlist),
+        $linkset
+      );
 			if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/
 
+    // Remove unmatched selectors 
     $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
 
     $return_value = array(

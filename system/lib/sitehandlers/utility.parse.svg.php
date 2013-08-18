@@ -189,10 +189,7 @@ class SvgParseUtility extends RawparseUtility {
 		return $this->append_cdata($cdata);
 	}/*}}}*/
   function ru_style_close(& $parser, $tag) {/*{{{*/
-    $this->pop_tagstack();
-    $this->add_to_container_stack($this->current_tag);
-    $this->push_tagstack();
-    return TRUE;
+		return $this->add_current_tag_to_container_stack();
   }/*}}}*/
 
   function ru_title_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -305,7 +302,7 @@ EOH;
     $loadresult = $this->dom->loadXML(file_get_contents($image));
 
     $this->syslog(__FUNCTION__,__LINE__,
-      "(marker) Load result (" .gettype($loadresult) . ")" . print_r($loadresult) .
+      "(marker) Load result (" .gettype($loadresult) . ")" . print_r($loadresult,TRUE) .
       " {$image}");
 
     $this->dom->normalizeDocument();
@@ -338,23 +335,23 @@ EOH;
     $this->dom->strictErrorChecking = FALSE;
     $this->dom->substituteEntities  = TRUE;
 
-    if (0) {
-    $this->parser = xml_parser_create();
-    xml_set_object($this->parser, $this);
-    xml_set_element_handler($this->parser, 'ru_tag_open', 'ru_tag_close');
-    xml_set_character_data_handler($this->parser, 'ru_cdata');
-    xml_set_default_handler($this->parser, 'ru_default');
-    /* Diagnostics */
-    xml_set_start_namespace_decl_handler($this->parser,'ru_start_namespace');
-    xml_set_end_namespace_decl_handler($this->parser, 'ru_end_namespace');
-    xml_set_processing_instruction_handler($this->parser, 'ru_processing_instr');
-    xml_set_external_entity_ref_handler($this->parser, 'ru_external_entity_ref');
+		if (0) {
+			$this->parser = xml_parser_create();
+			xml_set_object($this->parser, $this);
+			xml_set_element_handler($this->parser, 'ru_tag_open', 'ru_tag_close');
+			xml_set_character_data_handler($this->parser, 'ru_cdata');
+			xml_set_default_handler($this->parser, 'ru_default');
+			/* Diagnostics */
+			xml_set_start_namespace_decl_handler($this->parser,'ru_start_namespace');
+			xml_set_end_namespace_decl_handler($this->parser, 'ru_end_namespace');
+			xml_set_processing_instruction_handler($this->parser, 'ru_processing_instr');
+			xml_set_external_entity_ref_handler($this->parser, 'ru_external_entity_ref');
 
-    /* Options. Do not change these XML_OPTION_CASE_FOLDING */
-    xml_parser_set_option($this->parser, XML_OPTION_CASE_FOLDING, 1 );
-    xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1 );
-    xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
-    }
+			/* Options. Do not change these XML_OPTION_CASE_FOLDING */
+			xml_parser_set_option($this->parser, XML_OPTION_CASE_FOLDING, 1 );
+			xml_parser_set_option($this->parser, XML_OPTION_SKIP_WHITE, 1 );
+			xml_parser_set_option($this->parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
+		}
 
 
   }/*}}}*/

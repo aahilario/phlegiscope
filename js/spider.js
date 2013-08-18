@@ -1,6 +1,7 @@
 var Spider = {};
 var hotsearch_timer = null;
 
+var preload_container = null;
 var preload_a = null;
 var preload_n = 0;
 
@@ -13,6 +14,23 @@ function replace_contentof(a,c) {
   jQuery(target).children().remove();
   jQuery(target).html('');
   jQuery(target).append(c);
+}
+
+function update_a_age(data) {
+  if ( data && data.age && data.urlhash ) {
+    jQuery('a[id='+data.urlhash+']')
+      .removeClass('age-newfetch')
+      .removeClass('age-recent')
+      .removeClass('age-10')
+      .removeClass('age-100')
+      .removeClass('age-1000')
+      .removeClass('age-10000')
+      .removeClass('age-100000')
+      .removeClass('age-1m')
+      .removeClass('age-10m')
+      .removeClass('age-100m')
+      .addClass(data.age);
+  }
 }
 
 function display_wait_notification() { 
@@ -35,8 +53,14 @@ function preload_worker() {
     var live       = jQuery('#seek').prop('checked') ? jQuery('#seek').prop('checked') : hashpair.live;
     var linkstring = jQuery('a[id='+hash+']').attr('href');
 
+    if ( jQuery('a[id='+hash+']').hasClass('no-autospider') ) return false;
+
     jQuery('a[id='+hash+']').addClass('uncached').removeClass('cached').removeClass('traverse');
 
+    if (!linkstring || !(0 < linkstring.length) ) {
+      if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
+    }
+    else
     jQuery.ajax({
       type     : 'POST',
       url      : '/seek/',
@@ -54,11 +78,13 @@ function preload_worker() {
       success  : (function(data, httpstatus, jqueryXHR) {
         jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
         if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
-				else
+        else
         if ( data && data.content ) replace_contentof(data && data.rootpage ? 'processed' : 'content',data.content);
         if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+        if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
         if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-				if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker();}),100);
+        update_a_age(data);
+        if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker();}),100);
       })
     });
   } 
@@ -70,8 +96,15 @@ function preload_worker_unconditional() {
   var live       = jQuery('#seek').prop('checked');
   var linkstring = jQuery('a[id='+hash+']').attr('href');
 
+  if ( jQuery('a[id='+hash+']').hasClass('no-autospider') ) return false;
+
   jQuery('a[id='+hash+']').addClass('uncached').removeClass('traverse');
 
+  if (!linkstring || !(0 < linkstring.length) ) {
+    if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
+    return false;
+  }
+  else
   jQuery.ajax({
     type     : 'POST',
     url      : '/seek/',
@@ -89,13 +122,16 @@ function preload_worker_unconditional() {
     success  : (function(data, httpstatus, jqueryXHR) {
       jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
       if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
-			else
+      else
       if ( data && data.content ) replace_contentof(data && data.rootpage ? 'processed' : 'content',data.content);
       if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+      if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      update_a_age(data);
       if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
     })
   });
+  return false;
 }
 
 function preload(components) {
@@ -118,7 +154,9 @@ function preload(components) {
       var uncached_entries = data.count ? data.count : 0;
       var uncached_list = data.uncached ? data.uncached : [];
       if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+      if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      update_a_age(data);
       preload_a = new Array(uncached_entries);
       preload_n = 0;
       for (var n in uncached_list) {
@@ -136,7 +174,7 @@ function initialize_linkset_clickevents(linkset,childtag) {
   var child_tags = typeof childtag == 'undefined' ? 'li' : childtag;
   jQuery(linkset).on('contextmenu',function(){
     return false;
-  }).click(function(e){
+  }).unbind('click').click(function(e){
 
     e.stopPropagation();
     e.preventDefault();
@@ -148,17 +186,35 @@ function initialize_linkset_clickevents(linkset,childtag) {
     var components = new Array(jQuery(this).children(child_tags).length);
     var component_index = 0;
     jQuery(this).children(child_tags).find('a').each(function(){
-			jQuery(this).addClass('traverse');
+      if ( jQuery(this).hasClass('no-autospider') ) return true;
       if ( jQuery(this).hasClass('cached') && !jQuery('#spider').prop('checked') ) return true;
+      if ( jQuery(this).hasClass('uncached') ) jQuery(this).addClass('traverse');
       if ( component_index > 300 ) return true;
       var linkset_child = jQuery(this).attr('id');
       components[component_index] = linkset_child; 
       component_index++;
-			return true;
+      return true;
     });
     preload(components);
 
   }).find(child_tags).each(function(){
+    jQuery(this).find('a[class*=legiscope-remote]').first().each(function(){
+      var link_id = jQuery(this).attr('id');
+      if ( jQuery(this).parentsUntil('ul').first().parent().attr('id') == 'systemrootlinks' ) return true;
+      if ( link_id.length > 0 && jQuery(this).hasClass('markable') ) {
+        jQuery(this).parent().first().each(function(){
+          jQuery(this).children('input[id=m-'+link_id+']').remove();
+          jQuery(this).prepend(
+            jQuery(document.createElement('INPUT'))
+              .attr('type','checkbox')
+              .attr('value','1')
+              .attr('id','m-'+link_id)
+              .addClass('link-marker')
+          );
+        });
+      }
+      return true;
+    });
     jQuery(this).on('contextmenu', function(){
       return false;
     }).mouseup(function(e){
@@ -168,15 +224,20 @@ function initialize_linkset_clickevents(linkset,childtag) {
       return false;
     });
   });
+  jQuery('input[class*=link-marker]')
+    .unbind('click')
+    .on('click',function(e){
+			e.stopPropagation();
+			e.preventDefault();
+      return false;
+    });
 }
 
 function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 
-  if (typeof data == 'null') return;
+  if (typeof data == 'null') return true;
 
-  var response = data && data.error ? data.message : data.linkset;
-  var markup = data.markup;
-  var responseheader = data.responseheader;
+  var linkset = data && data.error ? data.message : data.linkset;
   var referrer = data.referrer;
   var url = data.url;
   var contenttype = data.contenttype ? data.contenttype : '';
@@ -190,21 +251,24 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
   }
 
   jQuery('div[class*=contentwindow]').each(function(){
-    if (jQuery(this).attr('id') == 'processed') return;
+    if (jQuery(this).attr('id') == 'processed') return true;
     if (retainoriginal)
-    if (jQuery(this).attr('id') == 'content') return;
+    if (jQuery(this).attr('id') == 'content') return true;
     jQuery(this).children().remove();
+    return true;
   });
 
   if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+  if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
   if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
   if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
+  update_a_age(data);
 
   if ( /^application\/pdf/.test(contenttype) ) {
     if ( !(jQuery('#spider').prop('checked')) ) {
       var target_container = jQuery(retainoriginal ? ('#'+jQuery(targetframe).first().attr('id')) : '#subcontent');
       display_wait_notification();
-      PDFJS.getDocument('/fetchpdf/'+data.contenthash).then(function(pdf){
+      PDFJS.getDocument('/fetchpdf/'+data.urlhash).then(function(pdf){
         var np = pdf.numPages;
         for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
           if ( pagecounter == 1 ) jQuery(target_container).children().remove();
@@ -229,9 +293,11 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
               };
               page.render(renderContext);
             }
+            return true;
           });
         }
         remove_wait_notification();
+        return true;
       });
     }
   } else {
@@ -239,14 +305,12 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
     else
     replace_contentof(rootpage ? 'processed' : 'content', data.content);
     if ( /^text\/html/.test(contenttype) ) {
-      if ( response && response.length > 0 ) {
-        replace_contentof('linkset', response);
+      if ( linkset && linkset.length > 0 ) {
+        replace_contentof('linkset', linkset);
         initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
       }
     }
     jQuery('#siteURL').val(referrer);
-    replace_contentof('markup',markup);
-    replace_contentof('responseheader',responseheader);
     replace_contentof('referrer',jQuery(document.createElement('A'))
       .addClass('legiscope-remote')
       .attr('href', referrer)
@@ -261,34 +325,37 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
     initialize_authentication_inputs();
     jQuery('#tab_'+data.defaulttab).click();
   }
+  initialize_remote_links(); 
   setTimeout(function(){ 
-    initialize_remote_links(); 
     var seek_enabled    = jQuery('#seek').prop('checked');
-    if ( !seek_enabled ) return;
+    if ( !seek_enabled ) return false;
     var component_count = jQuery("span[class*=search-match-searchlisting]").length || jQuery("div[id=content]").find('a[class*=legiscope-remote]').length;
     var component_index = 0;
     if ( 0 == component_count ) {
       jQuery("div[id=content]").children('a').each(function(){
         component_count++;
+        return true;
       });
     }
     jQuery('#doctitle').html("Seek: +"+component_count);
-    if ( 0 == component_count ) return;
+    if ( 0 == component_count ) return false;
     if ( components > 300 ) components = 300;
     var components = new Array(component_count);
     jQuery("div[id=content]").find('a[class*=legiscope-remote]').each(function(){
-			jQuery(this).addClass('traverse');
+      if ( jQuery(this).hasClass('no-autospider') ) return true;
+      if ( jQuery(this).hasClass('cached') ) return true;
+      if ( jQuery(this).hasClass('uncached') ) jQuery(this).addClass('traverse');
       if ( component_index > 300 ) return true;
       var linkset_child = jQuery(this).attr('id');
-      if ( jQuery(this).hasClass('cached') ) return true;
       components[component_index] = linkset_child; 
       component_index++;
-			return true;
+      return true;
     });
     preload(components);
     jQuery('a[class*=pull-in]').first().click(); 
     return true; 
   },1);
+  return true;
 }
 
 function load_content_window(a,ck,obj,data,handlers) {
@@ -320,13 +387,12 @@ function load_content_window(a,ck,obj,data,handlers) {
     }),
     success  : (handlers && handlers.success) ? handlers.success : std_seek_response_handler
   });
+  return false;
 }
 
 function initialize_remote_links() {
 
-  jQuery('a[class*=metapager]').unbind('click');
-
-  jQuery('a[class*=metapager]').click(function(e){
+  jQuery('a[class*=metapager]').unbind('click').click(function(e){
     var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
     var content = jQuery('span[id='+content_id+']').html();
     var data = jQuery('#jumpto') && jQuery('#jumpto').val() ?  { 'LEGISCOPE' : { coPage : jQuery('#jumpto').val() } } : null;
@@ -337,10 +403,7 @@ function initialize_remote_links() {
     return false;
   });
 
-
-  jQuery('a[class*=fauxpost]').unbind('click');
-
-  jQuery('a[class*=fauxpost]').click(function(e){
+  jQuery('a[class*=fauxpost]').unbind('click').click(function(e){
     var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
     var content = jQuery('span[id='+content_id+']').html();
     jQuery('#metalink').html(content);
@@ -350,23 +413,27 @@ function initialize_remote_links() {
     return false;
   });
 
-  enable_proxied_links('legiscope-remote');
-
   jQuery('span[class*=legiscope-refresh]').unbind('mouseout');
   jQuery('span[class*=legiscope-refresh]').mouseout(function(){
     jQuery(this).parent().children('span[class*=legiscope-refresh]').each(function(){
       jQuery(this)
-        .unbind('click')
         .addClass('hover')
+        .unbind('click')
         .click(function(e){
           e.stopPropagation();
           load_content_window(jQuery(this).parent().children('a').attr('href'),'reload',null);
+          return false;
         }).mouseout(function(){
           var subject = this;
           setTimeout(function(){jQuery(subject).removeClass('hover');},1000);
+          return true;
         });
+      return true;
     });
+    return true;
   });
+
+  enable_proxied_links('legiscope-remote');
 
   return true;
 }
@@ -380,6 +447,7 @@ function initialize_spider_tabs() {
         .attr('id','tab_'+jQuery(this).attr('id'))
         .addClass('contenttab')
         .html(jQuery(this).attr('id').toUpperCase())
+        .unbind('click')
         .click(function(e){
           var target = jQuery(this).attr('id').replace(/^tab_/,'');
           jQuery('#contenttabs').children().removeClass('activetab').removeClass('inactivetab');
@@ -403,19 +471,22 @@ function initialize_spider_tabs() {
 
 function enable_proxied_links(classname,handlers) {
   var handler = typeof handlers == 'undefined' ? {} : handlers; 
-  jQuery('a[class*='+classname+']')
-    .unbind('click');
-
-  jQuery('a[class*='+classname+']').click(function(e){
-    e.stopPropagation();
-    load_content_window(
-      jQuery(this).attr('href'),
-       jQuery(e).attr('metaKey'),
-       jQuery(this),
-       { async : true },
-       handler
-    );
-    return false;
+  jQuery('a[class*='+classname+']').each(function() {
+    jQuery(this)
+      .removeClass('proxied')
+      .addClass('proxied')
+      .unbind('click')
+      .click(function(e){
+        e.stopPropagation();
+        return load_content_window(
+          jQuery(this).attr('href'),
+          jQuery(e).attr('metaKey'),
+          jQuery(this),
+          { async : true },
+          handler
+        );
+      });
+    return true;
   });
 }
 
@@ -451,7 +522,9 @@ function initialize_hot_search() {
           var returns = data.count ? data.count : 0;
           var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
           if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+          if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
           if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+          update_a_age(data);
           jQuery('#currenturl').html("Matches: "+returns);
           if ( !(0 < returns) ) return;
           replace_contentof('subcontent',jQuery(document.createElement('UL')).attr('id','searchresults'));
@@ -539,6 +612,7 @@ function initialize_authentication_inputs() {
       });
       load_content_window(jQuery('[id=authentication-target-url]').val(), 'false', null, data);
     }
+    return true;
   });
 }  
 
@@ -546,7 +620,9 @@ function initialize_spider() {
   jQuery('#siteURL').keydown(function(e){
     if( jQuery(e).attr('keyCode') == 13) {
       load_content_window(jQuery(this).val(), jQuery(e).attr('metaKey'), null, null);
+      return false;
     }
+    return true;
   });
   initialize_remote_links();
   initialize_spider_tabs();
@@ -559,33 +635,33 @@ var current_re = null;
 var match_counter = 0;
 
 function execute_filter(s,c,a) {
-	var empty_match = jQuery(s).val().length == 0;
-	var sp = s;
-	var cp = c;
-	var ap = a;
-	match_counter = 0;
-	jQuery(c).find('[class*='+a+']').each(function(){
+  var empty_match = jQuery(s).val().length == 0;
+  var sp = s;
+  var cp = c;
+  var ap = a;
+  match_counter = 0;
+  jQuery(c).find('[class*='+a+']').each(function(){
     var id = jQuery(this).attr('id');
-		if (empty_match || current_re.test(jQuery(this).text().replace(/ñ/gi,'n'))) {
-			jQuery('li[id=line-'+id+']').removeClass('hidden');
-		} else {
-			jQuery('li[id=line-'+id+']').addClass('hidden');
-		}
-		jQuery(this).removeClass(a);
-		if ( ++match_counter < 50 ) return true;
+    if (empty_match || current_re.test(jQuery(this).text().replace(/ñ/gi,'n'))) {
+      jQuery('li[id=line-'+id+']').removeClass('hidden');
+    } else {
+      jQuery('li[id=line-'+id+']').addClass('hidden');
+    }
+    jQuery(this).removeClass(a);
+    if ( ++match_counter < 50 ) return true;
     if ( typeof match_timeout != 'null' ) {
       clearTimeout(match_timeout);
       match_timeout = null;
     }
-	  match_timeout = setTimeout((function() { execute_filter(sp,cp,ap); }),1);
-		match_counter = 0;
-		return false;
-	});
-	if ( match_counter > 0 ) jQuery(s).removeClass('hotsearch-active');
+    match_timeout = setTimeout((function() { execute_filter(sp,cp,ap); }),1);
+    match_counter = 0;
+    return false;
+  });
+  if ( match_counter > 0 ) jQuery(s).removeClass('hotsearch-active');
 }
 
 function initialize_filter(s,c,a) {
-	jQuery(s).unbind('click').click(function(e){
+  jQuery(s).unbind('click').click(function(e){
     e.stopPropagation();
     e.preventDefault();
     return false;
@@ -595,20 +671,118 @@ function initialize_filter(s,c,a) {
       clearTimeout(match_timeout);
       match_timeout = null;
     }
-		current_re = null;
-		current_re = new RegExp(jQuery(this).val(),'gi');
-		match_timeout = setTimeout((function() { 
-			jQuery(s).addClass('hotsearch-active');
-			if ( 0 < jQuery(s).val().length ) {
-				jQuery(c).find('[class*=invalidated]').addClass('hidden');
-				jQuery(c).find('[class*=matchable]').addClass(a);
-				execute_filter(s,c,a); 
-			} else {
-				jQuery(c).find('[class*=invalidated]').removeClass('hidden');
-				jQuery(c).find('[class*=matchable]').removeClass(a).removeClass('hidden').parent().removeClass('hidden');
-				jQuery(s).removeClass('hotsearch-active');
-			}
+    current_re = null;
+    current_re = new RegExp(jQuery(this).val(),'gi');
+    match_timeout = setTimeout((function() { 
+      jQuery(s).addClass('hotsearch-active');
+      if ( 0 < jQuery(s).val().length ) {
+        jQuery(c).find('[class*=invalidated]').addClass('hidden');
+        jQuery(c).find('[class*=matchable]').addClass(a);
+        execute_filter(s,c,a); 
+      } else {
+        jQuery(c).find('[class*=invalidated]').removeClass('hidden');
+        jQuery(c).find('[class*=matchable]').removeClass(a).removeClass('hidden').parent().removeClass('hidden');
+        jQuery(s).removeClass('hotsearch-active');
+      }
     }),700);
+  });
+}
+
+function initialize_dossier_triggers() {
+  enable_proxied_links('human-element-dossier-trigger',{
+    beforeSend : (function() {
+      jQuery('#doctitle').html("Dossier loader triggered. Please wait.");
+      display_wait_notification();
+    }),
+    complete : (function(jqueryXHR, textStatus) {
+      remove_wait_notification();
+    }),
+    success : (function(data, httpstatus, jqueryXHR) {
+      var response = data.error ? data.message : data.linkset;
+      var referrer = data.referrer;
+      var url = data.url;
+      var contenttype = data.contenttype ? data.contenttype : '';
+      var linkset = data.linkset ? data.linkset : null;
+      jQuery('#doctitle').html("Legiscope");
+
+      if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+      if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
+      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+      if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
+      update_a_age(data);
+
+      if ( /^text\/html/.test(contenttype) ) {
+        if ( typeof linkset != 'null' ) {
+          replace_contentof('linkset', linkset);
+          initialize_linkset_clickevents(jQuery('ul[id=house-bills-by-rep]'),'li');
+        }
+        if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
+        else
+        replace_contentof('content', data.content);
+        initialize_remote_links(); 
+      }
+      replace_contentof('currenturl',
+        jQuery(document.createElement('a'))
+        .attr('href', url)
+        .attr('target','blank')
+        .html(url)
+      );
+
+    })
+  });
+}
+
+function update_representatives_avatars() {
+  jQuery('img[class*=representative-avatar][src=""]').first().each(function(){
+    var avatar_id = jQuery(this).attr('id').replace(/^image-/,'imagesrc-');
+    if ( jQuery(this).attr('src').length > 0 && !/^data:/.test(jQuery(this).attr('src')) ) {
+      setTimeout((function(){update_representatives_avatars();}),100);
+      return true;
+    }
+    var no_replace = jQuery('input[id='+avatar_id+']').hasClass('no-replace');
+    var alt_name = no_replace ? (jQuery(this).attr('id')+'-alt') : jQuery(this).attr('id'); 
+    var member_uuid = jQuery(this).attr('id').replace(/^image-/,'');
+    var avatar_url = jQuery('input[id='+avatar_id+']').val();
+    jQuery(this).attr('id', alt_name);
+    jQuery.ajax({
+      type     : 'POST',
+      url      : '/seek/',
+      data     : { url : avatar_url, modifier : jQuery('#spider').prop('checked'), cache : jQuery('#cache').prop('checked'), member_uuid : member_uuid, no_replace : no_replace, fr : true },
+      cache    : false,
+      dataType : 'json',
+      async    : true,
+      beforeSend : (function() {
+        display_wait_notification();
+      }),
+      complete : (function(jqueryXHR, textStatus) {
+        remove_wait_notification();
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+        var altmarkup = data.altmarkup ? data.altmarkup : null;
+        var total_image_width = 0;
+        jQuery('img[id='+alt_name+']').attr('src', altmarkup);
+        if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+        if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
+        if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+        if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
+        update_a_age(data);
+        if ( !no_replace ) {
+          jQuery("div[class=dossier-strip]").find("img").each(function(){
+            total_image_width += (jQuery(this).outerWidth() + 4);
+          });
+          jQuery("div[class=dossier-strip]").width(total_image_width);
+        }
+        setTimeout((function(){update_representatives_avatars();}),10);
+      })
+    });
+    return true;
+  });
+}
+
+function initialize_traversable(c) {
+  var selector = c && (0<c.length) ? c : 'div[class*=committee-leader-box]';
+  jQuery(selector).find("a[class*=no-autospider]").each(function(){
+    jQuery(this).addClass('traverse');
   });
 }
 

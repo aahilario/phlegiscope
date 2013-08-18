@@ -96,6 +96,8 @@ class CongressMemberListParseUtility extends CongressCommonParseUtility {
 
   function seek_congress_memberlist(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+		$debug_method = TRUE;
+
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
 
     $member = new RepresentativeDossierModel();
@@ -110,11 +112,9 @@ class CongressMemberListParseUtility extends CongressCommonParseUtility {
       );
 
     $pagecontent      = array();
-    $surname_initchar = NULL;
+    $surname_initchar = '--';
     $section_break    = NULL;
     $districts        = array();
-
-    // $this->recursive_dump($this->member_list,"(marker)");
 
     $lc_surname_initchar = '';
 
@@ -123,10 +123,12 @@ class CongressMemberListParseUtility extends CongressCommonParseUtility {
     ), $member);
 
     $member_matched = NULL;
+    $now = time();
+
     foreach ( $this->member_list as $item ) {/*{{{*/
 
       $bio_url     = $item['url'];
-      $fullname    = $item['fullname'];
+      $fullname    = $this->reverse_iconv($item['fullname']);
 
 			if ( !(0 < strlen($fullname) ) ) {
 				$this->syslog(__FUNCTION__,__LINE__,"(marker) Skipping entry");
@@ -141,37 +143,49 @@ class CongressMemberListParseUtility extends CongressCommonParseUtility {
 
       $member_matched = $member->in_database() ? $member->get_id() : NULL;
 
-      $debug_method = TRUE;
       if ( is_null($member_matched) ) {/*{{{*/
-        $member_id = $member->
-          set_id(NULL)->
-          set_avatar_url(NULL)->
-          set_avatar_image(NULL)->
-          set_member_uuid(NULL)->
-					set_contact_json(NULL)->
-          set_fullname($fullname)->
-          set_bio_url($bio_url)->
-          set_firstname(array_element($parsed_name,'given'))->
-          set_mi(array_element($parsed_name,'mi'))->
-          set_surname(array_element($parsed_name,'surname'))->
-          set_namesuffix(array_element($parsed_name,'suffix'))->
-          set_bailiwick($item['bailiwick'])->
-          stow();
+        $data = array( 
+          'id'           => NULL,
+          'avatar_url'   => NULL,
+          'avatar_image' => NULL,
+          'member_uuid'  => NULL,
+          'contact_json' => NULL,
+          'fullname'     => $fullname,
+          'bio_url'      => $bio_url,
+          'firstname'    => array_element($parsed_name,'given'),
+          'mi'           => array_element($parsed_name,'mi'),
+          'surname'      => array_element($parsed_name,'surname'),
+          'namesuffix'   => array_element($parsed_name,'suffix'),
+          'bailiwick'    => $item['bailiwick'],
+          'last_fetch'   => time(),
+        );
+        $member->set_contents_from_array($data);
+        $member->set_member_uuid($member->generate_member_uuid());
+        $member_id = $member->stow();
         if ( $debug_method ) {
           $this->syslog(__FUNCTION__,__LINE__,"(marker) ---+-+-+-+ {$fullname} [{$member_id}]");
           $this->recursive_dump($item["parsed_name"],"(marker) - ");
         }
       }/*}}}*/
       else {/*{{{*/
-        $member->
-          set_bio_url($bio_url)->
-          set_firstname(array_element($parsed_name,'given'))->
-          set_mi(array_element($parsed_name,'mi'))->
-          set_surname(array_element($parsed_name,'surname'))->
-          set_namesuffix(array_element($parsed_name,'suffix'))->
-          set_bailiwick($item['bailiwick'])->
-          fields(array('bio_url','bailiwick','firstname','mi','surname','namesuffix'))->
+        $member_uuid = $member->get_member_uuid();
+        if ( empty($member_uuid) ) {
+          $member_uuid = $member->generate_member_uuid();
+        }
+        $data = array(
+          'bio_url'     => $bio_url,
+          'firstname'   => array_element($parsed_name,'given'),
+          'mi'          => array_element($parsed_name,'mi'),
+          'surname'     => array_element($parsed_name,'surname'),
+          'namesuffix'  => array_element($parsed_name,'suffix'),
+          'bailiwick'   => $item['bailiwick'],
+          'member_uuid' => $member_uuid,
+        );
+        $member_matched = $member->
+          set_contents_from_array($data)->
+          fields(array_keys($data))->
           stow();
+
         if ( $debug_method ) {
           $this->syslog(__FUNCTION__,__LINE__,"(marker) ---------- {$fullname} [{$member_matched}]");
           $this->recursive_dump($item["parsed_name"],"(marker) - ");
@@ -191,7 +205,7 @@ class CongressMemberListParseUtility extends CongressCommonParseUtility {
 
       // $this->recursive_dump($parsed_name, "(marker)");
 
-      $name_regex = '@^([^,]*),(.*)(([A-Z]?)\.)*( (.*))@i';
+      $name_regex = '@^([^,]*),(.*)(([A-Zñ]?)\.)*( (.*))@i';
       $name_match = array();
       preg_match($name_regex, $fullname, $name_match);
       $name_match = array(
@@ -210,7 +224,11 @@ class CongressMemberListParseUtility extends CongressCommonParseUtility {
         $sub_district = trim($district_match[2]);
         $district = trim($district_match[1]);
       }
-      if ( strlen($district) > 0 && !array_key_exists($district, $districts) ) $districts[$district] = array('00' => "<h1>" . preg_replace('@^Zz@','', $district) . "</h1>"); 
+      $district_id = preg_replace(array('@(ñ)@i','@([ ]{1,})@i','@[^A-Z-]@i'),array('n','-',''),strtolower($district));
+      $district = <<<EOH
+<h1 class="domain-reset-children" id="mapto-{$district_id}">{$district}</h1>
+EOH;
+      if ( strlen($district) > 0 && !array_key_exists($district, $districts) ) $districts[$district] = array('00' => preg_replace('@Zz@','', $district)); 
 
       $fullname = "{$name_match['first-name']} {$name_match['middle-initial']} {$name_match['surname']}";
       $surname_first = strtoupper(substr(trim($name_match['surname']),0,1));
@@ -227,6 +245,8 @@ EOH;
       $link_attributes = array("human-element-dossier-trigger");
       if ( !is_null($member_matched) ) $link_attributes[] = "cached";
       else $link_attributes[] = 'trigger';
+      $time_since_fetch = $urlmodel->get_logseconds_since_last_fetch($now,$member->get_last_fetch());
+      $link_attributes[] = $urlmodel->get_logseconds_css($time_since_fetch);
       $link_attributes[] = "surname-cluster-{$lc_surname_initchar}";
       $link_attributes = join(' ', $link_attributes);
       $candidate_entry = <<<EOH
@@ -250,37 +270,51 @@ EOH;
 
 EOH;
     $pagecontent = <<<EOH
-  <input class="reset-cached-links" type="button" value="Clear"> 
-  <input class="reset-cached-links" type="button" value="Reset"> 
-  <div class="float-left link-cluster" id="congresista-list">{$pagecontent}</div>
-  <div class="float-left link-cluster">{$districts}</div>
+<input class="reset-cached-links" type="button" value="Reset"> 
+<input class="reset-cached-links" type="button" value="Traverse"> 
+<div class="float-left link-cluster" id="committee-listing">{$pagecontent}</div>
+<div class="float-left link-cluster">{$districts}</div>
 <script type="text/javascript">
 jQuery(document).ready(function(){
-  jQuery('input[class=reset-cached-links]').click(function(e) {
-    if (jQuery(this).val() == 'Reset') {
+  jQuery('input[class=reset-cached-links]').unbind('click').click(function(e) {
+    if (jQuery(this).val() == 'Traverse') {
       jQuery(this).parent().first().find('a').each(function(){
-        jQuery(this).removeClass('cached').removeClass('uncached').addClass("seek");
+        jQuery(this).removeClass('cached').addClass('uncached').addClass("traverse");
       });
     } else {
       jQuery(this).parent().first().find('a').each(function(){
-        jQuery(this).removeClass('uncached').removeClass('seek').addClass("cached");
+        jQuery(this).removeClass('uncached').removeClass('traverse').addClass("cached");
       });
     } 
   });
-  jQuery('h1[class=surname-reset-children]').click(function(e){
+
+  jQuery('h1[class*=surname-reset-children]').unbind('click').click(function(e){
     var linkset = jQuery(this).attr('id').replace(/^surname-reset-/,'surname-cluster-');
     if ( jQuery(this).hasClass('on') ) {
       jQuery(this).removeClass('on');
       jQuery('a[class*='+linkset+']').each(function(){
-        jQuery(this).removeClass('cached').removeClass('uncached').addClass("seek");
+        jQuery(this).removeClass('cached').removeClass('uncached').addClass("traverse");
       });
     } else {
       jQuery(this).addClass('on');
       jQuery('a[class*='+linkset+']').each(function(){
-        jQuery(this).removeClass('uncached').removeClass('seek').addClass("cached");
+        jQuery(this).removeClass('uncached').removeClass('traverse').addClass("cached");
       });
     }
   });
+
+  jQuery('h1[class*=domain-reset-children]')
+    .unbind('click')
+    .unbind('mouseover')
+    .unbind('mouseout')
+    .mouseout(function(e){
+      var mapregion = jQuery(this).attr('id').replace(/^mapto-/,'');
+      jQuery('[id='+mapregion+']').attr('fill',jQuery('[id='+mapregion+']').attr('oldfill'));
+    })
+    .mouseover(function(e){
+      var mapregion = jQuery(this).attr('id').replace(/^mapto-/,'');
+      jQuery('[id='+mapregion+']').attr('fill','blue');
+    });
   initialize_dossier_triggers();
 });
 </script>
@@ -327,20 +361,24 @@ EOH;
         $bio_url = $tag['url'];
         $member->fetch($bio_url,'bio_url');
 
-        $cdata = $tag['text'];
+        $cdata = $this->reverse_iconv($tag['text']);
 
         if ( is_null($member->get_firstname()) ) {/*{{{*/
           $parsed_name = $member->parse_name($cdata);
+          $data = array(
+            'fullname'   => $cdata,
+            'firstname'  => $parsed_name['given'],
+            'mi'         => $parsed_name['mi'],
+            'surname'    => $parsed_name['surname'],
+            'namesuffix' => $parsed_name['suffix'],
+          );
           $member->
-            set_fullname($cdata)->
-            set_firstname($parsed_name['given'])->
-            set_mi($parsed_name['mi'])->
-            set_surname($parsed_name['surname'])->
-            set_namesuffix($parsed_name['suffix'])->
+            set_contents_from_array($data)->
+            fields(array_keys($data))->
             stow();
         }/*}}}*/
 
-        $name_regex = '@^([^,]*),(.*)(([A-Z]?)\.)*( (.*))@i';
+        $name_regex = '@^([^,]*),(.*)(([A-Zñ]?)\.)*( (.*))@i';
         $name_match = array();
         preg_match($name_regex, $cdata, $name_match);
         $name_match = array(
@@ -349,17 +387,23 @@ EOH;
           'middle-initial' => trim($name_match[6]),
         );
         $name_index = "{$name_match['surname']}-" . UrlModel::get_url_hash($tag['url']);
+
         $district = $this->reverse_iconv($tag['title']); 
         if ( empty($district) ) $district = 'Zz - Party List -';
         else {
           $district_regex = '@^([^,]*),(.*)@';
           $district_match = array();
           preg_match($district_regex, $district, $district_match);
-          // $this->recursive_dump($district_match,__LINE__);
+          $this->recursive_dump($district_match,__LINE__);
           $sub_district = trim($district_match[2]);
           $district = trim($district_match[1]);
         }
-        if ( strlen($district) > 0 && !array_key_exists($district, $districts) ) $districts[$district] = array('00' => "<h1>" . preg_replace('@^Zz@','', $district) . "</h1>"); 
+        $district_id = preg_replace(array('@(ñ)@i','@([ ]{1,})@i','@[^A-Z-]@i'),array('n','-',''),strtolower($district));
+        $district = <<<EOH
+<h1 class="domain-reset-children" id="mapto-{$district_id}">{$district}</h1>
+EOH;
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) {$district}");
+        if ( strlen($district) > 0 && !array_key_exists($district, $districts) ) $districts[$district] = array('00' => preg_replace('@^Zz@','', $district)); 
 
         $fullname = "{$name_match['first-name']} {$name_match['middle-initial']} {$name_match['surname']}";
         $surname_first = strtoupper(substr(trim($name_match['surname']),0,1));

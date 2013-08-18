@@ -13,6 +13,7 @@ class CongressionalCommitteeRepresentativeDossierJoin extends ModelJoin {
   // Join table model
   var $congressional_committee_CongressionalCommitteeDocumentModel;
   var $representative_dossier_RepresentativeDossierModel;
+	var $create_time_utx = NULL;
   var $congress_tag_vc8 = NULL;
   var $role_vc32 = NULL;
 
@@ -34,5 +35,7 @@ class CongressionalCommitteeRepresentativeDossierJoin extends ModelJoin {
   function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 
+  function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
+  function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
 }
 

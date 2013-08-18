@@ -17,6 +17,8 @@ class PreloadAction extends LegiscopeBase {
 
   function preload() {/*{{{*/
 
+		$debug_method = FALSE;
+
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']}" );
 
     ob_start();
@@ -24,6 +26,7 @@ class PreloadAction extends LegiscopeBase {
     $link_hashes = $this->filter_post('links', array());
     $modifier    = $this->filter_post('modifier');
 
+		if ( $debug_method ) 
     $this->recursive_dump($link_hashes,"(marker)");
 
     $url = new UrlModel();

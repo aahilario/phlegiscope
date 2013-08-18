@@ -15,6 +15,7 @@ class CongressionalCommitteeHouseBillJoin extends ModelJoin {
   var $create_time_utx = NULL;
 
   // Join table model
+	var $payload_blob = NULL; // Particulars of join type
   var $congressional_committee_CongressionalCommitteeDocumentModel;
   var $house_bill_HouseBillDocumentModel;
 

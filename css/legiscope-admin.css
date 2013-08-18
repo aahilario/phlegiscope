@@ -590,3 +590,43 @@ div.legiscope-admin:hover {
 .hilight-outline {
 	fill: blue !important;
 }
+
+span.congress-member-source-links {
+	padding: 3px 6px 3px 0;
+}
+
+.proxied {
+	color: #0F0FBF;
+}
+
+ul.tab-links li {
+  padding: 4px;
+  background-color: #DDD;
+}
+
+ul.tab-links li.active {
+  background-color: #A00;
+}
+
+ul.tab-links li.active a, ul.tab-links li.active a:hover {
+  color: white;
+  background-color: transparent;
+  font-weight: bold;
+}
+
+ul.tab-links li.active a:active {
+  outline-style: none;
+}
+
+a.age-newfetch { color: #0000A0 !important; }
+a.age-recent { color: #0000D0 !important; }
+a.age-10 { color: #00B000 !important; }
+a.age-100 { color: #00A000 !important; }
+a.age-1000 { color: #007000 !important; }
+
+a.age-10000 { color: #A00000 !important; }
+a.age-100000 { color: #C00000 !important; }
+a.age-1m { color: #E00000 !important; }
+a.age-10m { color: #F00000 !important; }
+a.age-100m { color: #FF0000 !important; }
+

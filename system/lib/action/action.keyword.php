@@ -71,6 +71,7 @@ class KeywordAction extends LegiscopeBase {
           'description' => "REGEXP '({$components})'",
           'sn'     => "REGEXP '({$components})'",
         )))->
+				order(array('create_time' => 'DESC'))->
         recordfetch_setup();
       $record = array();
       $count = 0;
@@ -98,6 +99,7 @@ class KeywordAction extends LegiscopeBase {
           'subjects' => "REGEXP '({$components})'",
           'sn'     => "REGEXP '({$components})'",
         )))->
+				order(array('create_time' => 'DESC'))->
         recordfetch_setup();
       $record = array();
       $count = 0;

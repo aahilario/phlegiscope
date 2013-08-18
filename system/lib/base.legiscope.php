@@ -96,7 +96,9 @@ class LegiscopeBase extends SystemUtility {
       $this->recursive_dump($image,"(marker)");
     }
     $transformed = $svg->reconstruct_svg($image);
+    if ( $debug_method ) {
     $this->recursive_dump($svg->extracted_styles,"(marker)");
+		}
     $svg = NULL;
     return $transformed;
   }/*}}}*/
@@ -678,7 +680,7 @@ class LegiscopeBase extends SystemUtility {
       $transfer_info = CurlUtility::$last_transfer_info;
       $http_code = intval(array_element($transfer_info,'http_code',400));
 
-      if ( 400 <= $http_code && $http_code < 500 ) {/*{{{*/
+      if ( 400 <= $http_code && $http_code < 600 ) {/*{{{*/
 
         $this->syslog( __FUNCTION__, __LINE__, "(warning) cURL last_transfer_info" );
         $this->recursive_dump($transfer_info, "(warning) HTTP {$http_code}");
@@ -1018,7 +1020,7 @@ EOH;
 			'xmlns:svg="http://www.w3.org/2000/svg"',
 			'xmlns:xlink="http://www.w3.org/1999/xlink"',
 		);
-		echo join(' ', $nsparts);
+		return join(' ', $nsparts);
 	}
 
   static function admin_post() {/*{{{*/
@@ -1037,7 +1039,6 @@ EOH;
 
     $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
     $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
-    $interactivity_js_url = plugins_url('interactivity.js', LEGISCOPE_JS_PATH . '/' . 'interactivity.js');
 
     $admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
 
@@ -1046,11 +1047,9 @@ EOH;
 
     wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
     wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
-    wp_register_script('legiscope-interactivity', $interactivity_js_url, array('jquery','legiscope-spider'), NULL);
 
     wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
     wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
-    wp_enqueue_script('legiscope-interactivity', $interactivity_js_url, array('jquery' , 'legiscope-spider'), NULL);
 
 		$inline_script = <<<EOH
 <script type="text/javascript">
@@ -1068,5 +1067,65 @@ EOH;
     syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
 
   }/*}}}*/
+
+	/** OCR queue **/
+
+	static function get_ocr_queue_stem(UrlModel & $url) {
+		$ocr_queue_file = $url->get_urlhash();
+		$ocr_queue_base = SYSTEM_BASE . '/../cache/ocr';
+		$ocr_queue_stem = "{$ocr_queue_base}/{$ocr_queue_file}/{$ocr_queue_file}";
+		return preg_replace('@/([^/]*)/\.\./@i','/', $ocr_queue_stem);
+	}
+
+	function write_to_ocr_queue(UrlModel & $url) {/*{{{*/
+
+		// Return 0 if a converted file exists
+		//        1 if the source file was successfully placed in the OCR queue
+		//        < 0 if an error occurred
+
+		if ( !(($content_type = $url->get_content_type()) == 'application/pdf') ) {
+			$urlstring = $url->get_url();
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) {$urlstring} file type is not 'application/pdf' (currently {$content_type}).");
+			return FALSE;
+		}
+		$ocr_queue_stem = static::get_ocr_queue_stem($url);
+		$ocr_queue_src  = "{$ocr_queue_stem}.pdf";
+		$ocr_queue_targ = "{$ocr_queue_stem}.txt";
+		$ocr_queue_base = dirname($ocr_queue_src);
+		$this->syslog(__FUNCTION__,__LINE__,"(marker) Target path {$ocr_queue_base}");
+		$this->syslog(__FUNCTION__,__LINE__,"(marker) Output path {$ocr_queue_targ}");
+
+		if ( !file_exists($ocr_queue_base) ) mkdir($ocr_queue_base);
+
+		if ( !file_exists($ocr_queue_base) || !is_dir($ocr_queue_base) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) Unable to create target output directory. Check filesystem permissions.");
+			return -1;
+		}
+		else if ( file_exists($ocr_queue_targ) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
+			return 0;
+		}
+		else if ( file_exists($ocr_queue_src) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Waiting for conversion in {$ocr_queue_base}.");
+			return -2;
+		}
+	 	else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
+			return -3;
+		}
+	 	else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
+			return -4;
+		}
+		else if (FALSE == unlink("{$ocr_queue_src}.tmp")) {
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) Unable to unlink conversion source temporary file.");
+			return -5;
+		}
+		else {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Wrote file {$ocr_queue_src}, {$bytes_written} written.");
+			return 1;
+		}	
+		return TRUE;
+	}/*}}}*/
 
 }

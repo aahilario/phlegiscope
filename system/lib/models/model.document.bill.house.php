@@ -11,11 +11,11 @@
 class HouseBillDocumentModel extends RepublicActDocumentModel {
   
   var $sn_vc64uniq = NULL;
+  var $congress_tag_vc8 = NULL;
   var $description_vc4096 = NULL;
   var $create_time_utx = NULL;
   var $last_fetch_utx = NULL;
   var $searchable_bool = NULL;
-  var $congress_tag_vc8 = NULL;
   var $url_vc4096 = NULL; // Filed
   var $url_history_vc4096 = NULL; // Whenever available
   var $url_engrossed_vc4096 = NULL;
@@ -38,10 +38,10 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
   //var $house_approval_date_utx = NULL;
   //var $significance_vc16 = NULL;
 
-  var $housebill_HouseBillDocumentModel = NULL; // Reference to other house bills, indicating the relationship (e.g. substitution).
-  var $republic_act_RepublicActDocumentModel = NULL; // Republic Act toward which this House Bill contributed essential language and intent. 
-  var $representative_RepresentativeDossierModel = NULL; // Several types of association between a house bill and representatives (authorship, etc.).
-  var $content_UrlModel = NULL; // Content BLOB edges.
+  var $housebill_HouseBillDocumentModel = NULL;              // Reference to other house bills, indicating the relationship (e.g. substitution).
+  var $republic_act_RepublicActDocumentModel = NULL;         // Republic Act toward which this House Bill contributed essential language and intent.
+  var $representative_RepresentativeDossierModel = NULL;     // Several types of association between a house bill and representatives (authorship, etc.).
+  var $content_UrlModel = NULL;                              // Content BLOB edges.
   var $committee_CongressionalCommitteeDocumentModel = NULL; // Reference to Congressional Committees, bearing the status of a House Bill, or the principal committee.
 
   function __construct() {/*{{{*/
@@ -370,6 +370,11 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     $this->committee_regex_lookup = array();
 
     $debug_method = FALSE;
+
+		if ( !is_array($bill_cache_source) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Nothing parsed. Leaving.");
+		 	return;
+		}
 
 		$bill_cache = array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source);
 

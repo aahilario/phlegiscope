@@ -29,6 +29,7 @@ class UrlModel extends DatabaseUtility {
   var $is_fake_bool = NULL;
   var $custom_parse_bool = NULL;
   var $pregenerated_bool = NULL;
+  var $source_root_bool = NULL;
   // END ModelFields
 
   var $a_UrlModel = NULL;
@@ -469,15 +470,14 @@ class UrlModel extends DatabaseUtility {
     return $this->content_hash_vc128;
   }/*}}}*/
 
-  function set_last_fetch($utx) {/*{{{*/
-    $this->last_fetch_utx = $utx;
-    return $this;
-  }/*}}}*/
+  function & set_last_fetch($v) { $this->last_fetch_utx = $v; return $this; }
+  function get_last_fetch($v = NULL) { if (!is_null($v)) $this->set_last_fetch($v); return $this->last_fetch_utx; }
 
-  function set_create_time($utx) {/*{{{*/
-    $this->create_time_utx = $utx;
-    return $this;
-  }/*}}}*/
+  function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
+  function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
+
+  function & set_source_root($v) { $this->source_root_bool = $v; return $this; }
+  function get_source_root($v = NULL) { if (!is_null($v)) $this->set_source_root($v); return $this->source_root_bool; }
 
   function & set_last_modified($v) { $this->last_modified_utx = $v; return $this; }
   function get_last_modified($v = NULL) { if (!is_null($v)) $this->set_last_modified($v); return $this->last_modified_utx; }
@@ -525,8 +525,39 @@ class UrlModel extends DatabaseUtility {
 
   function & increment_hits($update = FALSE) {
     $this->hits_int11 = intval($this->hits_int11) + 1; 
-    if ( $update && $this->in_database() ) $this->fields(array('hits'))->stow();
+    $this->set_last_fetch(time());
+    if ( $update && $this->in_database() ) $this->fields(array('hits','last_fetch'))->stow();
     return $this;
+  }
+
+  function get_hours_since_last_fetch($now = NULL) {
+    return ceil(((is_null($now) ? time() : $now) - $this->get_last_fetch())/3600.0);
+  }
+
+  function get_logseconds_since_last_fetch($now = NULL,$last_fetch = NULL) {
+    $t = (is_null($now) ? time() : $now) - (is_null($last_fetch) ? $this->get_last_fetch() : $last_fetch);
+    return intval($t < 1 ? 0 : ceil(log10($t)));
+  }
+
+  function get_logseconds_css($logseconds = NULL, $now = NULL, $last_fetch = NULL) {
+    if ( is_null($logseconds) ) $logseconds = $this->get_logseconds_since_last_fetch($now,$last_fetch);
+    $classes = array(
+      'age-newfetch',
+      'age-recent',
+      'age-10',
+      'age-100',
+      'age-1000',
+
+      'age-10000',
+      'age-100000',
+      'age-1m',
+      'age-10m',
+      'age-100m',
+    );
+    return intval($logseconds) > 9
+      ? $classes[9]
+      : $classes[intval($logseconds)]
+      ;
   }
 
   function get_url() {

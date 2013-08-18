@@ -475,5 +475,31 @@ EOH;
 		return join("\n",$final_links);
 	}/*}}}*/
 
+	function complete_series(& $q) {/*{{{*/
+    reset($q);
+    $sample = current($q);
+		$prefix = $this->senate_document_sn_prefix;
+    $url_q = UrlModel::query_element('q',$sample['url']);
+    $limit = intval(preg_replace('@[^0-9]@','',$url_q));
+    $template_url = preg_replace("@{$prefix}-".$limit.'$@i',"{$prefix}-{PLACEHOLDER}",$sample['url']);
+    $missing = 0;
+    for ( $suffix = $limit ; $suffix > 0 ; $suffix-- ) {
+      if ( !array_key_exists($suffix, $q) ) {
+        $url = str_replace('{PLACEHOLDER}',"{$suffix}", $template_url);
+        $urlhash = UrlModel::get_url_hash($url);
+        $q[$suffix] = array(
+          'url' => $url,
+          'urlhash' => $urlhash,
+          'text' => "{$prefix}-{$suffix}"
+        );
+        $missing++;
+      }
+    }
+    if ( $missing > 0 ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Inserted {$missing} missing URLs");
+      krsort($q);
+    }
+	}/*}}}*/
+
 }
 

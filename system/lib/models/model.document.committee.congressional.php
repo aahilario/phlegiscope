@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class CongressionalCommitteeDocumentModel extends DatabaseUtility {
+class CongressionalCommitteeDocumentModel extends SenateDocCommonDocumentModel {
   
   var $committee_name_vc256 = NULL;
   var $jurisdiction_vc1024 = NULL;
@@ -90,27 +90,37 @@ class CongressionalCommitteeDocumentModel extends DatabaseUtility {
     array_walk($committee_name_list,create_function(
       '& $a, $k, $s', 'return $s->mark_committee_ids_setup($a,$k);'
     ), $this);
+
     $regex_fragments = "REGEXP '(".join('|',array_map(create_function('$a', 'return $a["regex"];'),$committee_name_list)).")'";
-    $this->where(array('AND' => array(
-      'committee_name' => $regex_fragments
-    )))->recordfetch_setup();
-    $comm = NULL;
-    $n = 0;
+		$this->
+			join(array('representative'))->
+			where(array('AND' => array(
+				'committee_name' => $regex_fragments,
+			)))->recordfetch_setup();
+
     if ( $debug_method ) $this->recursive_dump(array_combine(
       array_keys($committee_name_list),
       array_map(create_function('$a', 'return array("committee_name" => array_element($a,"committee_name"), "regex" => array_element($a,"regex"));'),$committee_name_list)
     ),"(marker) - - - ---- -- -- -- - Before marking");
+
+    $comm = NULL;
+    $n = 0;
+
     while ($this->recordfetch($comm)) {
       // Since we can't match committee names directly, we simply 
       // walk through the result set
       array_walk($committee_name_list,create_function(
         '& $a, $k, $s',
-        'if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; $a["committee_name"] = $s["committee_name"]; $a["url"] = $s["url"]; }'
+        'if ( 1 == preg_match("@" . $a["regex"] . "@i", $s["committee_name"], $matches) ) { $a["id"] = $s["id"]; $a["committee_name"] = $s["committee_name"]; $a["url"] = $s["url"]; if (!array_key_exists("rj",$a)) $a["rj"] = array(); $representative = nonempty_array_element($s,"representative",array()); $join = nonempty_array_element($representative,"join",array()); if ( $a["congress_tag"] == nonempty_array_element($join,"congress_tag") && nonempty_array_element($join,"role") == "chairperson" && nonempty_array_element($representative["data"],"id") == $a["representative"] ) $a["rj"][] = $s["representative"]["join"]; }'
       ),$comm);
       $n++;
       $comm = NULL;
       unset($comm);
     }
+		// Mark all entries where a chairperson record was not found
+		array_walk($committee_name_list,create_function(
+			'& $a, $k, $s', 'if ( array_key_exists("rj",$a) ) { $a["rj"] = array_filter($a["rj"]); if ( 0 == count($a["rj"]) ) $a["rj"] = "UNMAPPED"; else unset($a["rj"]); }'
+		),$this);
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__, __LINE__,"(marker) - - - - Matched {$n} entries using {$regex_fragments}");
       $this->recursive_dump( $committee_name_list, "(marker) - - - - - -");

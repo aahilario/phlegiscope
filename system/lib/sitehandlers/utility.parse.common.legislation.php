@@ -12,6 +12,8 @@ class LegislationCommonParseUtility extends GenericParseUtility {
   
   var $restrict_length = NULL;
 
+  var $column_markup_only_uncached = FALSE;
+
   function __construct() {
     parent::__construct();
   }
@@ -326,7 +328,9 @@ class LegislationCommonParseUtility extends GenericParseUtility {
     $pagecontent = '';
     $nq = 0;
     krsort($q);
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) N = " . count($q) );
     foreach ( $q as $child_link ) {/*{{{*/
+      if ( $this->column_markup_only_uncached ) if ( array_element($child_link,'cached') == TRUE ) continue; 
       $linktext =  $child_link[empty($child_link['text']) ? "url" : 'text'];
       $child_link['hash'] = UrlModel::get_url_hash($child_link['url']);
       $child_link['url'] = str_replace(' ','%20', $child_link['url']);
@@ -417,6 +421,10 @@ EOH;
      *  Because the mapping between local state and subject (i.e. Senate) state can differ
      *  from page to page, we will need to relegate processing of the state to parser callbacks rather than
      *  perform the mapping in the general-purpose markup generator.
+     *
+     *  This is implemented by use of 'metalinks', a mechanism to insert additional 
+     *  items into client-side POST requests.
+     *
      */
     $debug_method = FALSE;
 
@@ -701,36 +709,36 @@ EOH;
   static function legislator_name_regex($human_name) {/*{{{*/
     $search_name = array_values(array_filter(explode(' ',preg_replace(
       array(
-				'@([ \t\n]+)@i',
+        '@([ \t\n]+)@i',
         "@[“”]@i",
-				'@["][^"]*["]@i',
+        '@["][^"]*["]@i',
         "@[^&;'A-Zñ\" ]@i",
 
         "@[']@i",
         '@\&([a-z]*);@i',
         '@&@i',
-				'@[[:space:]](IV|III|II|VII|VI|V|Jr\.|Sr\.)$@',
+        '@[[:space:]](IV|III|II|VII|VI|V|Jr\.|Sr\.)$@',
       ),
       array(
-				' ',
+        ' ',
         '"',
-				'',
+        '',
         '',
 
         "\'",
         ' ',
         ' ',
-				'',
+        '',
       ),
       $human_name)
     )));
-		array_walk(
-			$search_name,
+    array_walk(
+      $search_name,
       create_function(
         '& $a, $k, $s',
-				'$m = (($k == 0) || ($k + 1 == (count($s)))) ? "" : "?"; $a = (mb_strlen(preg_replace("@[^A-Zñ ]@i","",$a)) >= 3) ? "(" . trim($a) . "){$m}" : NULL;'
-			),
-			$search_name
+        '$m = (($k == 0) || ($k + 1 == (count($s)))) ? "" : "?"; $a = (mb_strlen(preg_replace("@[^A-Zñ ]@i","",$a)) >= 3) ? "(" . trim($a) . "){$m}" : NULL;'
+      ),
+      $search_name
     );
 
     $search_name = join('(.*)',array_filter($search_name));

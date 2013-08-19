@@ -49,7 +49,7 @@ class SenateGovPh extends SeekAction {
   /** PDF OCR handler **/
 
   function seek_by_pathfragment_f26ae3f52382caead303ecf6885875c8(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // http://www.senate.gov.ph/lisdata/1712514353!.pdf
+    // http://www.senate.gov.ph/lisdata/1712514353!.pdf and similar path tail.
     $result = $this->write_to_ocr_queue($urlmodel);
     $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
   }/*}}}*/

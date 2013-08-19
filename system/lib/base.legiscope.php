@@ -12,11 +12,11 @@ class LegiscopeBase extends SystemUtility {
   var $seek_cache_filename = NULL;
   var $enable_proxy = TRUE;
   var $debug_handler_names = FALSE;
-	var $debug_handle_model_action = FALSE;
+  var $debug_handle_model_action = FALSE;
 
   function __construct() {/*{{{*/
     parent::__construct();
-		gc_enable();
+    gc_enable();
     $this->session_start_wrapper();
     $target_url                = $this->filter_post('url');
     $this->subject_host_hash   = UrlModel::get_url_hash($target_url,PHP_URL_HOST);
@@ -38,15 +38,16 @@ class LegiscopeBase extends SystemUtility {
     // defining class SubDomainPh (derived from (www.)*sub.domain.tld),
     // then that class (which extends LegiscopeBase) is generated, 
     // instead of LegiscopeBase.
+		$debug_method = FALSE;
     $request_url = filter_post('url');
     $hostname    = @UrlModel::parse_url($request_url, PHP_URL_HOST);
     $matches     = array();
     $base_regex  = '/^(www\.)?(([^.]+[.]?)*)/i';
     $matchresult = preg_match_all($base_regex, $hostname, $matches);
-    // syslog( LOG_INFO, "----------------- (" . gettype($matchresult) . " {$matchresult})" . print_r($matches,TRUE));
+    if ($debug_method)  syslog( LOG_INFO, "----------------- (" . gettype($matchresult) . " {$matchresult})" . print_r($matches,TRUE));
     $initcaps    = create_function('$a', 'return ucfirst($a);');
     $nameparts   = array_map($initcaps, explode('.', $matches[2][0]));
-    // syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
+    if ($debug_method)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
     if ( count($nameparts > 3) ) {
       krsort($nameparts);
       $nameparts = array_values($nameparts);
@@ -54,7 +55,7 @@ class LegiscopeBase extends SystemUtility {
       krsort($nameparts);
       $nameparts = array_values($nameparts);
     }
-    // syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
+    if ($debug_method)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
     $classname   = join('', $nameparts);
     $hostregex   = '/^((www|ireport)\.)+((gmanetwork|sec|denr|dbm|senate|congress)\.)*(gov\.ph|com)/i';
     static::$singleton = (1 == preg_match($hostregex, $hostname)) && @class_exists($classname)
@@ -98,7 +99,7 @@ class LegiscopeBase extends SystemUtility {
     $transformed = $svg->reconstruct_svg($image);
     if ( $debug_method ) {
     $this->recursive_dump($svg->extracted_styles,"(marker)");
-		}
+    }
     $svg = NULL;
     return $transformed;
   }/*}}}*/
@@ -153,10 +154,10 @@ class LegiscopeBase extends SystemUtility {
 
     $debug_method = FALSE;
     // Modify $_REQUEST by extracting an action value from the request URI 
-		if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) {
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) Not a plugin context. Leaving" );
-		 	return NULL;
-		}
+    if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Not a plugin context. Leaving" );
+       return NULL;
+    }
     // TODO: Permit XMLHTTPRequest GET
     // if (!('POST' == $this->filter_server('REQUEST_METHOD'))) return NULL;
     if ( $debug_method ) {
@@ -181,14 +182,14 @@ class LegiscopeBase extends SystemUtility {
 
     if ( 1 == preg_match($request_regex, $request_uri, $actions_match) ) {
 
-			if (('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) {
-			}
-			else if (!('fetchpdf' == array_element($actions_match,1))) {
-				$this->syslog( __FUNCTION__, __LINE__, "(marker) Not an XMLHttpRequest context. Leaving." );
-				return NULL;
-			} else {
-				$_REQUEST['r'] = array_element($actions_match,2);
-			}
+      if (('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) {
+      }
+      else if (!('fetchpdf' == array_element($actions_match,1))) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Not an XMLHttpRequest context. Leaving." );
+        return NULL;
+      } else {
+        $_REQUEST['r'] = array_element($actions_match,2);
+      }
 
       if ( $debug_method ) $this->recursive_dump($actions_match,"(marker) -- -- -- REMAP -- --");
       $_REQUEST['q'] = array_element($actions_match,1);
@@ -198,7 +199,7 @@ class LegiscopeBase extends SystemUtility {
 
   final protected function handle_model_action() {/*{{{*/
 
-		$debug_method = $this->debug_handle_model_action;
+    $debug_method = $this->debug_handle_model_action;
 
     // Extract controller, action, and subject values from server context
     $this->handle_plugin_context();
@@ -217,52 +218,52 @@ class LegiscopeBase extends SystemUtility {
 
     if ( !is_null($host) && (0 < strlen($host)) ) {/*{{{*/
       $this->get_hostmodel()->set_id(NULL)->assign_hostmodel($host);
-			$hostname = $this->get_hostmodel()->get_hostname();
+      $hostname = $this->get_hostmodel()->get_hostname();
       if (!(0 < strlen($hostname))) {
         $action = NULL;
         $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Nulling out action, process {$host} as Rootnode.");
         $request_uri = explode('/',trim($host,'/'));
-			} else {
-				if ( !$this->get_hostmodel()->in_database() ) {
-					$this->get_hostmodel()->stow();
-				} else  {
-					$this->get_hostmodel()->increment_hits(TRUE);
-				}
-				$subject_host = $this->get_hostmodel()->get_hostname();
-				$subject_hostpath = array_reverse(explode('.',preg_replace('@^www\.@i','',$subject_host)));
-				define('LEGISCOPE_SUBJECT_HOSTPATH', join('.', $subject_hostpath));
-				define('LEGISCOPE_SUBJECT_HOST', $subject_host);
-			}
-			
+      } else {
+        if ( !$this->get_hostmodel()->in_database() ) {
+          $this->get_hostmodel()->stow();
+        } else  {
+          $this->get_hostmodel()->increment_hits(TRUE);
+        }
+        $subject_host = $this->get_hostmodel()->get_hostname();
+        $subject_hostpath = array_reverse(explode('.',preg_replace('@^www\.@i','',$subject_host)));
+        define('LEGISCOPE_SUBJECT_HOSTPATH', join('.', $subject_hostpath));
+        define('LEGISCOPE_SUBJECT_HOST', $subject_host);
+      }
+      
     }/*}}}*/
 
-		define('LEGISCOPE_RESOURCES_URLBASE'   , $base_url);
-		define('LEGISCOPE_TEMPLATES'           , LEGISCOPE_RESOURCES_URLBASE . "/templates/" . C('LEGISCOPE_SUBJECT_BASE', 'global') );
-		define('LEGISCOPE_ADMIN_IMAGES_URLBASE', LEGISCOPE_RESOURCES_URLBASE . "/images/admin" );
+    define('LEGISCOPE_RESOURCES_URLBASE'   , $base_url);
+    define('LEGISCOPE_TEMPLATES'           , LEGISCOPE_RESOURCES_URLBASE . "/templates/" . C('LEGISCOPE_SUBJECT_BASE', 'global') );
+    define('LEGISCOPE_ADMIN_IMAGES_URLBASE', LEGISCOPE_RESOURCES_URLBASE . "/images/admin" );
 
-		if ( $debug_method ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker)       Host: " . C('LEGISCOPE_SUBJECT_HOSTPATH','Undefined'));
-			$this->syslog(__FUNCTION__,__LINE__,"(marker)       Base: " . C('LEGISCOPE_RESOURCES_URLBASE','Undefined'));
-			$this->syslog(__FUNCTION__,__LINE__,"(marker)  Templates: " . C('LEGISCOPE_TEMPLATES','Undefined'));
-			$this->syslog(__FUNCTION__,__LINE__,"(marker)     Images: " . C('LEGISCOPE_ADMIN_IMAGES_URLBASE','Undefined'));
-		}
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)       Host: " . C('LEGISCOPE_SUBJECT_HOSTPATH','Undefined'));
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)       Base: " . C('LEGISCOPE_RESOURCES_URLBASE','Undefined'));
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)  Templates: " . C('LEGISCOPE_TEMPLATES','Undefined'));
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)     Images: " . C('LEGISCOPE_ADMIN_IMAGES_URLBASE','Undefined'));
+    }
 
-		$action_hdl = ucfirst(strtolower($action)) . "Action";
+    $action_hdl = ucfirst(strtolower($action)) . "Action";
 
     $remote_addr = $this->filter_server('REMOTE_ADDR');
 
-		if ( $debug_method ) {/*{{{*/
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$remote_addr}");
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     Subject: " . C('LEGISCOPE_SUBJECT_HOST'));
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Request URI: " . $_SERVER['REQUEST_URI']);
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -  controller: " . $controller);
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -      action: " . $action    );
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     subject: " . $subject   );
+    if ( $debug_method ) {/*{{{*/
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - Invoked by remote host {$remote_addr}");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     Subject: " . C('LEGISCOPE_SUBJECT_HOST'));
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - Request URI: " . $_SERVER['REQUEST_URI']);
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - -  controller: " . $controller);
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - -      action: " . $action    );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) - - -     subject: " . $subject   );
       if ( !is_null($host) )
       $this->syslog( __FUNCTION__, __LINE__, "(marker) - - -        host: " . $this->get_hostmodel()->get_hostname() . ', ' . $this->get_hostmodel()->get_hits() );
-		}/*}}}*/
+    }/*}}}*/
 
-		if ( !is_null( $controller ) ) {/*{{{*/
+    if ( !is_null( $controller ) ) {/*{{{*/
 
 
     }/*}}}*/
@@ -351,44 +352,44 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-	function safe_json_encode($s) {/*{{{*/
+  function safe_json_encode($s) {/*{{{*/
 
-		$pagecontent     = json_encode($s);
-		$json_last_error = json_last_error();
-		switch ( $json_last_error ) {
-		case JSON_ERROR_NONE: break;
-		case JSON_ERROR_CTRL_CHAR:
-		case JSON_ERROR_UTF8:
-			// Reencode every string element of the JSON response array
-			array_walk($s,create_function(
-				'& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
-			));
-			$pagecontent = json_encode($s);
-			$json_last_error = json_last_error();
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
-			break;
-		default:
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
-			break;
-		}	
-		return $pagecontent;
+    $pagecontent     = json_encode($s);
+    $json_last_error = json_last_error();
+    switch ( $json_last_error ) {
+    case JSON_ERROR_NONE: break;
+    case JSON_ERROR_CTRL_CHAR:
+    case JSON_ERROR_UTF8:
+      // Reencode every string element of the JSON response array
+      array_walk($s,create_function(
+        '& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
+      ));
+      $pagecontent = json_encode($s);
+      $json_last_error = json_last_error();
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
+      break;
+    default:
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
+      break;
+    }  
+    return $pagecontent;
 
-	}/*}}}*/
+  }/*}}}*/
 
-	function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
-		if ( get_class($this) == $class_match ) {/*{{{*/
-			$cache_force = $this->filter_post('cache');
-			$pagecontent = $this->safe_json_encode($json_reply);
-			header('Content-Type: application/json');
-			header('Content-Length: ' . strlen($pagecontent));
-			$this->flush_output_buffer();
-			if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-				file_put_contents($this->seek_cache_filename, $pagecontent);
-			}
-			echo $pagecontent;
-			exit(0);
-		}/*}}}*/
-	}/*}}}*/
+  function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
+    if ( get_class($this) == $class_match ) {/*{{{*/
+      $cache_force = $this->filter_post('cache');
+      $pagecontent = $this->safe_json_encode($json_reply);
+      header('Content-Type: application/json');
+      header('Content-Length: ' . strlen($pagecontent));
+      $this->flush_output_buffer();
+      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
+        file_put_contents($this->seek_cache_filename, $pagecontent);
+      }
+      echo $pagecontent;
+      exit(0);
+    }/*}}}*/
+  }/*}}}*/
 
   function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
 
@@ -433,7 +434,7 @@ class LegiscopeBase extends SystemUtility {
           array_map(create_function('$a', 'return $a["var"];'), $query_component),
           array_map(create_function('$a', 'return $a["val"];'), $query_component)
         );
-				// This should basically contain a hash map of query parameters.
+        // This should basically contain a hash map of query parameters.
         if ( $debug_method ) $this->recursive_dump($query_component,"(marker) -- HDS");
         $query_component = array_keys($query_component);
         ksort($query_component);
@@ -503,22 +504,22 @@ class LegiscopeBase extends SystemUtility {
     $url_map = array();
     $method_name = NULL;
 
-		if ( array_key_exists('path', $url_components) ) {/*{{{*/
-			$test_url_components = $url_components;
-			unset($test_url_components['query']);
-			unset($test_url_components['fragment']);
-			foreach ( explode('/', $test_url_components['path']) as $path_part ) {
-				$method_name = NULL;
-				if ( empty($path_part) ) continue;
-				$url_map[] = $path_part;
-				$test_path = '/' . join('/',$url_map);
-				$test_url = $test_url_components;
-				$test_url['path'] = $test_path;
-				$test_url = UrlModel::recompose_url($test_url);
-				$test_path = str_replace('/','-',$test_path);
-				$method_map['by-path-' . count($url_map) . "{$test_path}"] = 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url);
-			}
-		}/*}}}*/
+    if ( array_key_exists('path', $url_components) ) {/*{{{*/
+      $test_url_components = $url_components;
+      unset($test_url_components['query']);
+      unset($test_url_components['fragment']);
+      foreach ( explode('/', $test_url_components['path']) as $path_part ) {
+        $method_name = NULL;
+        if ( empty($path_part) ) continue;
+        $url_map[] = $path_part;
+        $test_path = '/' . join('/',$url_map);
+        $test_url = $test_url_components;
+        $test_url['path'] = $test_path;
+        $test_url = UrlModel::recompose_url($test_url);
+        $test_path = str_replace('/','-',$test_path);
+        $method_map['by-path-' . count($url_map) . "{$test_path}"] = 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url);
+      }
+    }/*}}}*/
 
     $method_map['generic'] = 'common_unhandled_page_parser';
 
@@ -655,11 +656,11 @@ class LegiscopeBase extends SystemUtility {
         ? CurlUtility::head($url_copy, $curl_options)
         : CurlUtility::get($url_copy, $curl_options)
         ;
-			if ( $debug_dump ||
-				!array_key_exists('http_code',CurlUtility::$last_transfer_info) ||
-				!(200 == intval(CurlUtility::$last_transfer_info['http_code'])) ) {
-				 	$this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) GET/HEAD " . __LINE__ );
-				}
+      if ( $debug_dump ||
+        !array_key_exists('http_code',CurlUtility::$last_transfer_info) ||
+        !(200 == intval(CurlUtility::$last_transfer_info['http_code'])) ) {
+           $this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) GET/HEAD " . __LINE__ );
+        }
       $successful_fetch = CurlUtility::$last_error_number == 0;
     }/*}}}*/
 
@@ -728,16 +729,16 @@ class LegiscopeBase extends SystemUtility {
           // Override content of target URL (possibly a FORM POST action URL) 
           // with response content.
 
-					$prior_url_id = $url->get_id();
-					$this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Prior ID #{$prior_url_id} " . $url->get_url());
+          $prior_url_id = $url->get_id();
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Prior ID #{$prior_url_id} " . $url->get_url());
 
           // Reload content of original URL object from DB
-					$url->set_id(NULL)->fetch(UrlModel::get_url_hash($target_url),'urlhash');
+          $url->set_id(NULL)->fetch(UrlModel::get_url_hash($target_url),'urlhash');
 
-					if ( !$url->in_database() ) {
+          if ( !$url->in_database() ) {
             $url_id = $url->set_url_c($target_url,FALSE)->set_pagecontent_c($response)->stow();
             $action = "Created";
-					} else {
+          } else {
             $url_id = $url->
               set_url_c($target_url,FALSE)->
               set_pagecontent_c($response)->
@@ -745,7 +746,7 @@ class LegiscopeBase extends SystemUtility {
               fields(array('pagecontent','update_time','content_length','content_hash','last_modified','content_type','hits','response_header'))->
               stow();
             $action = "Matched";
-					}
+          }
           $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - {$action} #{$url_id} {$target_url}");
 
         }/*}}}*/
@@ -805,14 +806,14 @@ class LegiscopeBase extends SystemUtility {
     ) ? FALSE : TRUE;
   }/*}}}*/
 
-	/** Object Reflection Methods **/
+  /** Object Reflection Methods **/
 
-	/*
-	 * These methods support use of Legiscope framework metadata: Runtime
-	 * information about available classes and methods is used for access
-	 * control and to provide developers with a way to store and access
-	 * information about the framework itself.
-	 */
+  /*
+   * These methods support use of Legiscope framework metadata: Runtime
+   * information about available classes and methods is used for access
+   * control and to provide developers with a way to store and access
+   * information about the framework itself.
+   */
 
   /** View methods **/
 
@@ -968,33 +969,16 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
+	static function include_map() {
+	}
+
   static function phlegiscope_main() {/*{{{*/
 
-		// ADMIN HOME PAGE
+    // ADMIN HOME PAGE
     syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
       " Loading main template " );
 
-		// Generate map link
-    $map_url = C('LEGISCOPE_PLUGIN_NAME');
-    $map_url = plugins_url("{$map_url}/images/admin");
-    $map_url = "{$map_url}/philippines-4c.svg"; 
-
-		$map_image = <<<EOH
-<img id="legislative-scope-map" class="legiscope-svg-fullsize" src="{$map_url}" alt="Placement" />
-EOH;
-
-		$map_image = static::$singleton->transform_svgimage(SYSTEM_BASE . "/../images/admin/philippines-4c.svg");
-		$map_image = str_replace(
-			array(
-				'{svg_inline}',
-				'{scale}',
-			),
-			array(
-				$map_image,
-				'1.4',
-			),
-			static::$singleton->get_template('map.html','global')
-		);
+		$map_image = static::emit_basemap(1.4,TRUE);
 
     include_once(static::$singleton->get_template_filename('index.html','global'));
 
@@ -1006,7 +990,7 @@ EOH;
 
   static function wordpress_admin_initialize() {/*{{{*/
 
-		add_action('admin_xml_ns', array(get_class($this), 'legiscope_admin_xml_ns')); 
+    add_action('admin_xml_ns', array(get_class($this), 'legiscope_admin_xml_ns')); 
 
     if ( !current_user_can( 'manage_options' ) ) {
       wp_redirect(site_url());
@@ -1014,14 +998,14 @@ EOH;
     }
   }/*}}}*/
 
-	static function legiscope_admin_xml_ns() {
+  static function legiscope_admin_xml_ns() {/*{{{*/
     syslog( LOG_INFO, __METHOD__ . ": " );
-		$nsparts = array(
-			'xmlns:svg="http://www.w3.org/2000/svg"',
-			'xmlns:xlink="http://www.w3.org/1999/xlink"',
-		);
-		return join(' ', $nsparts);
-	}
+    $nsparts = array(
+      'xmlns:svg="http://www.w3.org/2000/svg"',
+      'xmlns:xlink="http://www.w3.org/1999/xlink"',
+    );
+    return join(' ', $nsparts);
+  }/*}}}*/
 
   static function admin_post() {/*{{{*/
     // No need to invoke image_, javascript_, or stylesheet_request,
@@ -1032,100 +1016,165 @@ EOH;
     exit(0);
   }/*}}}*/
 
-  static function wordpress_enqueue_admin_scripts() {/*{{{*/
+	public static function emit_basemap($scale = NULL, $return = FALSE) {
+    $m = str_replace(
+      array(
+        '{svg_inline}',
+        '{scale}',
+      ),
+      array(
+        static::$singleton->transform_svgimage(SYSTEM_BASE . "/../images/admin/philippines-4c.svg"),
+        is_null($scale) ? 1.4 : floatval($scale),
+      ),
+      static::$singleton->get_template('map.html','global')
+    );
+		if ( $return ) return $m;
+		echo $m;
+	}
 
-    $plugins_url = plugins_url();
-    $themes_uri  = get_template_directory_uri(); 
+	static function register_userland_menus() {
 
-    $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
-    $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+		register_nav_menus(
+			array(
+				'legiscope-header-menu' => __( 'Header Menu' ),
+			)
+		);
 
-    $admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+	}
 
-    wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
-    wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
+	static function wordpress_enqueue_scripts() {/*{{{*/
 
-    wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-    wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+		$debug_method = FALSE;
 
-    wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-    wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+		$plugins_url = plugins_url();
+		$themes_uri  = get_template_directory_uri(); 
+
+		$spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
+		$pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+
+		wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+		wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+
+		wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+		wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+
+		static::register_userland_menus();
 
 		$inline_script = <<<EOH
 <script type="text/javascript">
-  PDFJS.workerSrc = 'js/pdf.js';
+	PDFJS.workerSrc = 'js/pdf.js';
 </script>
 EOH;
 
-    syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
-    syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
-    syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
-    syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
-    syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
-    syslog( LOG_INFO, "- - - - -  Styles: " . $admin_css_url);
-    syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
-    syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
+		if ( $debug_method ) {/*{{{*/
+			syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
+			syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
+			syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
+			syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
+			syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
+			syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
+			syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
+		}/*}}}*/
 
+	}/*}}}*/
+
+	static function wordpress_enqueue_admin_scripts() {/*{{{*/
+
+		$debug_method = FALSE;
+
+		$plugins_url = plugins_url();
+		$themes_uri  = get_template_directory_uri(); 
+
+		$spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
+		$pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+		$admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+
+		wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
+		wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
+
+		wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+		wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+
+		wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+		wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+
+		$inline_script = <<<EOH
+<script type="text/javascript">
+	PDFJS.workerSrc = 'js/pdf.js';
+</script>
+EOH;
+
+		if ( $debug_method ) {/*{{{*/
+			syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
+			syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
+			syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
+			syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
+			syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
+			syslog( LOG_INFO, "- - - - -  Styles: " . $admin_css_url);
+			syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
+			syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
+		}/*}}}*/
+
+	}/*}}}*/
+
+  /** OCR queue **/
+
+  static function get_ocr_queue_stem(UrlModel & $url) {/*{{{*/
+    $ocr_queue_file = $url->get_urlhash();
+    $ocr_queue_base = SYSTEM_BASE . '/../cache/ocr';
+    $ocr_queue_stem = "{$ocr_queue_base}/{$ocr_queue_file}/{$ocr_queue_file}";
+    return preg_replace('@/([^/]*)/\.\./@i','/', $ocr_queue_stem);
   }/*}}}*/
 
-	/** OCR queue **/
+  function write_to_ocr_queue(UrlModel & $url) {/*{{{*/
 
-	static function get_ocr_queue_stem(UrlModel & $url) {
-		$ocr_queue_file = $url->get_urlhash();
-		$ocr_queue_base = SYSTEM_BASE . '/../cache/ocr';
-		$ocr_queue_stem = "{$ocr_queue_base}/{$ocr_queue_file}/{$ocr_queue_file}";
-		return preg_replace('@/([^/]*)/\.\./@i','/', $ocr_queue_stem);
-	}
+    // Return 0 if a converted file exists
+    //        1 if the source file was successfully placed in the OCR queue
+    //        < 0 if an error occurred
 
-	function write_to_ocr_queue(UrlModel & $url) {/*{{{*/
+    if ( !(($content_type = $url->get_content_type()) == 'application/pdf') ) {
+      $urlstring = $url->get_url();
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) {$urlstring} file type is not 'application/pdf' (currently {$content_type}).");
+      return FALSE;
+    }
+    $ocr_queue_stem = static::get_ocr_queue_stem($url);
+    $ocr_queue_src  = "{$ocr_queue_stem}.pdf";
+    $ocr_queue_targ = "{$ocr_queue_stem}.txt";
+    $ocr_queue_base = dirname($ocr_queue_src);
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) Target path {$ocr_queue_base}");
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) Output path {$ocr_queue_targ}");
 
-		// Return 0 if a converted file exists
-		//        1 if the source file was successfully placed in the OCR queue
-		//        < 0 if an error occurred
+    if ( !file_exists($ocr_queue_base) ) mkdir($ocr_queue_base);
 
-		if ( !(($content_type = $url->get_content_type()) == 'application/pdf') ) {
-			$urlstring = $url->get_url();
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) {$urlstring} file type is not 'application/pdf' (currently {$content_type}).");
-			return FALSE;
-		}
-		$ocr_queue_stem = static::get_ocr_queue_stem($url);
-		$ocr_queue_src  = "{$ocr_queue_stem}.pdf";
-		$ocr_queue_targ = "{$ocr_queue_stem}.txt";
-		$ocr_queue_base = dirname($ocr_queue_src);
-		$this->syslog(__FUNCTION__,__LINE__,"(marker) Target path {$ocr_queue_base}");
-		$this->syslog(__FUNCTION__,__LINE__,"(marker) Output path {$ocr_queue_targ}");
-
-		if ( !file_exists($ocr_queue_base) ) mkdir($ocr_queue_base);
-
-		if ( !file_exists($ocr_queue_base) || !is_dir($ocr_queue_base) ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) Unable to create target output directory. Check filesystem permissions.");
-			return -1;
-		}
-		else if ( file_exists($ocr_queue_targ) ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
-			return 0;
-		}
-		else if ( file_exists($ocr_queue_src) ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Waiting for conversion in {$ocr_queue_base}.");
-			return -2;
-		}
-	 	else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
-			return -3;
-		}
-	 	else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
-			return -4;
-		}
-		else if (FALSE == unlink("{$ocr_queue_src}.tmp")) {
-			$this->syslog(__FUNCTION__,__LINE__,"(warning) Unable to unlink conversion source temporary file.");
-			return -5;
-		}
-		else {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Wrote file {$ocr_queue_src}, {$bytes_written} written.");
-			return 1;
-		}	
-		return TRUE;
-	}/*}}}*/
+    if ( !file_exists($ocr_queue_base) || !is_dir($ocr_queue_base) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) Unable to create target output directory. Check filesystem permissions.");
+      return -1;
+    }
+    else if ( file_exists($ocr_queue_targ) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
+      return 0;
+    }
+    else if ( file_exists($ocr_queue_src) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Waiting for conversion in {$ocr_queue_base}.");
+      return -2;
+    }
+     else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
+      return -3;
+    }
+     else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
+      return -4;
+    }
+    else if (FALSE == unlink("{$ocr_queue_src}.tmp")) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) Unable to unlink conversion source temporary file.");
+      return -5;
+    }
+    else {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Wrote file {$ocr_queue_src}, {$bytes_written} written.");
+      return 1;
+    }  
+    return TRUE;
+  }/*}}}*/
 
 }

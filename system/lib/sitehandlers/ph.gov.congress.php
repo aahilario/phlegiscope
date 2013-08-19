@@ -603,6 +603,13 @@ EOH;
 
   }/*}}}*/
 
+  /** PDF OCR handler **/
+
+  function seek_by_pathfragment_c3e10e96490c7d13052ea4f742707931(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/download/journals_16/J9-1RS.pdf and similar path tail.
+    $result = $this->write_to_ocr_queue($urlmodel);
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
+  }/*}}}*/
 
   /** Automatically matched parsers **/
 

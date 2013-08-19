@@ -567,7 +567,7 @@ EOH;
 		$containers = $this->get_containers();
 
     $link_generator = create_function('$a', <<<EOH
-return '<li><a class="legiscope-remote markable {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(\$a["text"]) ? \$a["text"] : '[Anchor]') . '</a></li>';
+return '<li><a class="legiscope-remote markable {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(trim(\$a["text"])) ? \$a["text"] : '[Anchor]') . '</a></li>';
 EOH
     );
     $hash_extractor = create_function('$a', <<<EOH

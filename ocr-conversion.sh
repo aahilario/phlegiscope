@@ -14,8 +14,8 @@ while true; do
     pdftotext -layout -raw "${SOURCENAME}" ${TARGETNAME}.tmp &&
     mv ${TARGETNAME}.tmp ${TARGETNAME}
     cat ${TARGETNAME}
-    rm -f ${SOURCENAME} ${TARGETNAME}
-    # rm -f ${SOURCENAME}
+    # rm -f ${SOURCENAME} ${TARGETNAME}
+    rm -f ${SOURCENAME}
     popd 2>&1 > /dev/null
 #    -f <int>          : first page to convert
 #    -l <int>          : last page to convert

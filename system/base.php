@@ -13,11 +13,11 @@ openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_USER );
 ini_set('include_path', join(':', array_filter(array_merge(explode(':', ini_get('include_path') . ':' . SYSTEM_BASE . ':' . SYSTEM_BASE . '/lib' ))))); 
 
 function array_element($a, $v, $defaultval = NULL) {
-	return (is_array($a) && array_key_exists($v, $a)) ? $a[$v] : $defaultval;
+  return (is_array($a) && array_key_exists($v, $a)) ? $a[$v] : $defaultval;
 }
 
 function nonempty_array_element($a, $v, $defaultval = NULL) {
-	return (is_array($a) && array_key_exists($v, $a) && !empty($a[$v])) ? $a[$v] : $defaultval;
+  return (is_array($a) && array_key_exists($v, $a) && !empty($a[$v])) ? $a[$v] : $defaultval;
 }
 
 function camelcase_to_array($classname) {
@@ -42,36 +42,37 @@ spl_autoload_register(function ($classname) {
   // to class filename czzz.byyy.axxx.php
   // syslog( LOG_INFO, "----- ---- --- -- - --------------- Finding class {$classname}");
 
-	$debug_method = FALSE;
+  $debug_method = FALSE;
+  $skip_load       = FALSE;
   $name_components = camelcase_to_array($classname);
   $target_filename = join('.', array_reverse(array_filter($name_components))) . '.php';
   $target_filename = preg_replace('@/^' . getcwd() . '/@', '', $target_filename);
   if ( file_exists( SYSTEM_BASE . "/lib/{$target_filename}" ) ) {/*{{{*/
     $target_filename = SYSTEM_BASE . "/lib/{$target_filename}";
-	}/*}}}*/
- 	else {/*{{{*/
-		$matches = array();
+  }/*}}}*/
+   else {/*{{{*/
+    $matches = array();
     if ( 1 == preg_match('/((.*)Rootnode(.*))/', $classname, $matches) ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/nodes/{$target_filename}";
       $base = 'extends GlobalRootnode';
-			$prefix = strtolower(array_element($matches,2,'action'));
+      $prefix = strtolower(array_element($matches,2,'action'));
       $classdef = <<<EOH
 class {$classname} {$base} {
   
   function __construct(\$request_uri) {
     \$this->syslog( __FUNCTION__, __LINE__, '(marker) Root node.' );
     parent::__construct(\$request_uri);
-		\$this->register_derived_class();
+    \$this->register_derived_class();
   }
 
 }
 
 EOH;
-		}/*}}}*/
-		else if ( 1 == preg_match('/((.*)Action(.*))/', $classname, $matches) ) {/*{{{*/
+    }/*}}}*/
+    else if ( 1 == preg_match('/((.*)Action(.*))/', $classname, $matches) ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/action/{$target_filename}";
       $base = 'extends LegiscopeBase';
-			$prefix = strtolower(array_element($matches,2,'action'));
+      $prefix = strtolower(array_element($matches,2,'action'));
       $classdef = <<<EOH
 class {$classname} {$base} {
   
@@ -97,8 +98,8 @@ class {$classname} {$base} {
 }
 
 EOH;
-		}/*}}}*/
-		else if ( 1 == preg_match('/(.*)Database(.*)/', $classname) ) {/*{{{*/
+    }/*}}}*/
+    else if ( 1 == preg_match('/(.*)Database(.*)/', $classname) ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/database/{$target_filename}";
       $base = 'implements DatabasePlugin';
       $classdef = <<<EOH
@@ -111,8 +112,8 @@ class {$classname} {$base} {
 }
 
 EOH;
-		}/*}}}*/
-	 	else if ( 1 == preg_match('/(.*)Utility$/i', $classname) && !file_exists(SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}") ) {/*{{{*/
+    }/*}}}*/
+     else if ( 1 == preg_match('/(.*)Utility$/i', $classname) && !file_exists(SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}") ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/{$target_filename}";
       $base = 'extends RawparseUtility';
       $classdef = <<<EOH
@@ -125,8 +126,8 @@ class {$classname} {$base} {
 }
 
 EOH;
-		}/*}}}*/
-	 	else if ( 1 == preg_match('@(.*)Join$@i', $classname) ) {/*{{{*/
+    }/*}}}*/
+     else if ( 1 == preg_match('@(.*)Join$@i', $classname) ) {/*{{{*/
       $components = array();
       $builtins = '';
       // syslog( LOG_INFO, "- Generating {$classname}");
@@ -163,10 +164,10 @@ EOH;
       $components = join("\n", $components);
       $target_filename = SYSTEM_BASE . "/lib/models/{$target_filename}";
 
-			if ( $debug_method ) {
-				syslog( LOG_INFO, "---- Target filename: {$target_filename}" );
-				syslog( LOG_INFO, "---- Final classname: {$classname}" );
-			}
+      if ( $debug_method ) {
+        syslog( LOG_INFO, "---- Target filename: {$target_filename}" );
+        syslog( LOG_INFO, "---- Final classname: {$classname}" );
+      }
 
       $base = 'extends DatabaseUtility';
       $classdef = <<<EOH
@@ -186,8 +187,8 @@ class {$classname} {$base} {
 }
 
 EOH;
-		}/*}}}*/
-	 	else if ( 1 == preg_match('/(.*)Model$/i', $classname) ) {/*{{{*/
+    }/*}}}*/
+     else if ( 1 == preg_match('/(.*)Model$/i', $classname) ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/models/{$target_filename}";
       $base = 'extends DatabaseUtility';
       $classdef = <<<EOH
@@ -200,8 +201,8 @@ class {$classname} {$base} {
 }
 
 EOH;
-		}/*}}}*/
-	 	else {/*{{{*/
+    }/*}}}*/
+     else if (!(1 == preg_match('@^pie.simple@i',$target_filename))) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}";
       $base = 'extends LegiscopeBase';
       $classdef = <<<EOH
@@ -231,7 +232,11 @@ class {$classname} {$base} {
 
 EOH;
     }/*}}}*/
-    if (!('LegiscopeBase' == $classname) && !C('DISABLE_CLASS_AUTOGENERATE') ) {
+    else {
+      $skip_load = TRUE;
+    }
+
+    if (!$skip_load && !('LegiscopeBase' == $classname) && !C('DISABLE_CLASS_AUTOGENERATE') ) {
       if ( ( FALSE == stripos($target_filename,'_') ) && !file_exists($target_filename) ) {/*{{{*/
         $class_skeleton = <<<EOH
 <?php

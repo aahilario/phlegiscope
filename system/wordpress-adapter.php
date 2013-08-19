@@ -5,16 +5,18 @@
  * WordPress adapter methods and classes, and initialization 
  */
 
-function legiscope_extend_include_path() {
+function legiscope_extend_include_path() {/*{{{*/
 
-  $debug_method = FALSE;
+  $debug_method = TRUE;
+
+  if ( defined('SYSTEM_BASE') ) return;
 
   $system_path = explode('/',__FILE__);
   array_pop($system_path);
   define('SYSTEM_BASE', join('/',$system_path));
   array_pop($system_path);
   define('LEGISCOPE_PLUGIN_NAME', array_pop($system_path));
-	array_push($system_path, LEGISCOPE_PLUGIN_NAME);
+  array_push($system_path, LEGISCOPE_PLUGIN_NAME);
   ini_set('include_path', join(':', array_filter(array_merge(explode(':', ini_get('include_path') . ':' . SYSTEM_BASE . ':' . SYSTEM_BASE . '/lib' ))))); 
 
   if ( $debug_method ) {
@@ -37,7 +39,7 @@ function legiscope_extend_include_path() {
 
   define('LEGISCOPE_CSS_PATH'        , join('/', $sub_path));
 
-}
+}/*}}}*/
 
 legiscope_extend_include_path();
 

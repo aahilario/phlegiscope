@@ -593,8 +593,15 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     foreach ( $membership_role as $role ) {/*{{{*/
       if ( array_key_exists($role['role'],$role_map) ) $role['role'] = $role_map[$role['role']];
       $CommitteeName = ucwords(strtolower($role['committee']));
+      $congress_tag = $role['congress_tag'];
+      $congress_indicator = "({$congress_tag}th Congress)"; 
+      $link_properties = array('legiscope-remote','no-autospider');
+      $properties = array('congress-roles-committees',"congress-{$congress_tag}");
+      if ( intval($congress_tag) != intval(C('LEGISCOPE_DEFAULT_CONGRESS')) ) $properties[] = 'hidden';
+      $properties      = join(' ', $properties);
+      $link_properties = join(' ', $link_properties);
       $pagecontent .= <<<EOH
-<span class="congress-roles-committees">{$role['role']} <a href="{$role['committee-url']}" class="legiscope-remote no-autospider">{$CommitteeName}</a> {$role['ref']}</span>
+<span class="{$properties}">{$role['role']} {$congress_indicator} <a href="{$role['committee-url']}" class="{$link_properties}">{$CommitteeName}</a> {$role['ref']}</span>
 EOH;
     }/*}}}*/
     return $pagecontent;
@@ -831,6 +838,7 @@ EOH
         $data = nonempty_array_element($committees,'data');
         $membership_role["{$join['role']}{$data['committee_name']}"] = array(
           'committee' => $data['committee_name'],
+          'congress_tag' => $join['congress_tag'],
           'committee-url' => $data['url'],
           'role' => $join['role'],
           'ref' => NULL,
@@ -910,7 +918,8 @@ EOH;
 
 EOH;
       $pagecontent .= $this->std_committee_detail_panel_js(); 
-      $pagecontent .= $this->trigger_default_tab('joint-author');
+      //$pagecontent .= $this->trigger_default_tab('joint-author');
+      $pagecontent .= $this->trigger_default_tab('authorship');
 
     }/*}}}*/
     else {

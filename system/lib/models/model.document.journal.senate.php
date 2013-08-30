@@ -33,6 +33,111 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
     // $this->dump_accessor_defs_to_syslog();
   }
 
+  function generate_child_collection(SenateJournalParseUtility & $document_parser) {/*{{{*/
+
+    // Extract parsed urls, for inclusion in the child collection.
+    $parsed_urls = $document_parser->filter_nested_array(
+      $document_parser->child_collection_source,
+      'children[tagname=div][id=lis_journal_table]',0
+    );
+    $parsed_urls = nonempty_array_element(array_shift($parsed_urls),'children');
+
+    // The Senate Journal parser returns only the set of tags and their children
+    // containing div#lis_journal_table, which contain Journal links 
+    $this->where(array('AND' => array('sn' => "REGEXP '(.*)'")))->recordfetch_setup();
+    $record = array();
+    $child_collection = array();
+    // Two passes.  Generate list of hashes from what's in the database.
+    // Then generate the final child collection array with URL state.
+    while ( $this->recordfetch($record,TRUE) ) {
+      extract($record); // It is safe to do this here, we control the database structure (as long as nobody has hacked in and created an attribute _SESSION in our backing store)
+      $child_collection[$record['hash']] = array_merge(
+        $record,
+        array(
+          'congress_tag' => preg_replace('@[^0-9]@i','',$congress_tag),
+          'hash' => UrlModel::get_url_hash($url),
+          'text' => "No. {$sn}",
+          'cached' => FALSE,
+        )
+      );
+    }
+
+    // Include parsed records
+    foreach ( $parsed_urls as $journal_entry ) {
+      $url  = preg_replace('@[^a-z0-9/:.&?=]@i','',$journal_entry['url']);
+      $text = preg_replace('@@i','',$journal_entry['text']);
+      $hash = UrlModel::get_url_hash($url);
+      if ( !array_key_exists($hash,$child_collection) ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) {$url}");
+        $sn = UrlModel::query_element('q',$url);
+        $child_collection[$hash] = array(
+          'url'          => $url,
+          'sn'           => "{$sn}",
+          'session_tag'  => UrlModel::query_element('session',$url),
+          'congress_tag' => UrlModel::query_element('congress',$url),
+          'hash'         => $hash,
+          'text'         => "No. {$sn}",
+          'cached'       => FALSE,
+          'title'        => preg_replace('@@i','',"Journal {$text}"),
+          'create_time'  => time(),
+        );
+        $this->recursive_dump($child_collection[$hash],"(marker)");
+      }
+    }
+    
+    $window_length = 20; // Sliding window
+    $n = count($child_collection);
+    $test_url = new UrlModel();
+    while ( $n > 0 ) {
+      // FIXME: Convert your earlier uses of array_shift() to this method.
+      $chunk = array_slice($child_collection,$offset,$window_length);
+      if ( count($chunk) == $window_length ) $n -= $window_length;
+      else {
+        $n = 0;
+      }
+      $condition = array('urlhash' => array_keys($chunk));
+      // $this->recursive_dump($condition,"(marker) {$n}");
+      $test_url->
+        where($condition)->
+        recordfetch_setup();
+      $record = array();
+      while ( $test_url->recordfetch($record) ) {
+        $urlhash = UrlModel::get_url_hash($record['url']);
+        $child_collection[$urlhash]['cached'] = TRUE;
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) CACHED {$urlhash} {$record['url']}");
+      }
+    }
+    $final_child_collection = array();
+    while ( 0 < count($child_collection) ) {
+      $record = array_shift($child_collection);
+      extract($record);
+      if ( empty($congress_tag) ) continue;
+      if ( empty($session_tag) ) continue;
+      if ( empty($sn) ) continue;
+      $final_child_collection[trim($congress_tag)][trim($session_tag)][intval($sn)] = array(
+        'url' => $record['url'],
+        'hash' => $record['hash'],
+        'text' => $record['text'],
+        'cached' => $record['cached'],
+      );
+    }
+    krsort($final_child_collection);
+    $this->recursive_dump($final_child_collection,"(marker) J");
+    return $final_child_collection; 
+    // Return a nested array with this structure:
+    // Array (
+    //   $congress_tag => Array(
+    //     $session_tag => Array(
+    //       $q => Array(
+    //         'url' => url,
+    //         'hash' => UrlModel::get_url_hash(url),
+    //         'text' => urltext
+    //       )
+    //     )
+    //   )
+    // )
+  }/*}}}*/
+  
 	function fetch_by_congress_sn( $congress, $house_session, $sn ) {/*{{{*/
 
 		$match = array(

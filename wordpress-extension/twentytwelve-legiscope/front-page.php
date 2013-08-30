@@ -18,21 +18,23 @@
       <!-- -->
       <?php wp_nav_menu( array( 'theme_location' => 'legiscope-header-menu' ) ); ?>
       <!-- -->
-      <form id="menubar-search">
-        <input type="text" class="menubar-input" id="menubar-search" />
+      <form id="menubar-search" method="post" action="/search/keyword">
+        <input type="text" class="menubar-input" id="search-string" name="s"/>
+        <input type="hidden" id="menubar-search-meta" name="m" />
+        <span id="search-wait"></span><span id="currenturl"></span>
       </form>
+      <script type="text/javascript">
+      jQuery(document).ready(function(){
+        initialize_hot_search('[id=search-string]','/keyword/');
+      });
+      </script>
       <!-- -->
     </div>
     <!-- main-content -->
     <div class="legiscope-debug legiscope-main-panel" id="legiscope-main-content">
 
-<h2>Republic Act 10175</h2>
-<pre>
-Latest bills from the legislature.
-Most recently pulled senate and house bills.
-Tag cloud for most recent 100 bills.
-RSS feed, iCal event service for committee meetings.
-</pre>
+<div id="news-leads"></div>
+<div id="subcontent"></div>
 
     </div>
     <!-- main-content -->
@@ -41,7 +43,14 @@ RSS feed, iCal event service for committee meetings.
       <div class="legiscope-debug legiscope-sidebar-widget">
         <div>
           <span>Recent Links</span>
-          COA Report
+<ul class="no-bullets">
+<li>COA Report</li>
+<li>Search results</li>
+<li>Latest bills from the legislature.</li>
+<li>Most recently pulled senate and house bills.</li>
+<li>Tag cloud for most recent 100 bills.</li>
+<li>RSS feed, iCal event service for committee meetings.</li>
+</ul>
         </div>
       </div>
       <!-- -->

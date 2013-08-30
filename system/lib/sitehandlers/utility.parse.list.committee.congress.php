@@ -165,13 +165,13 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
         $committee_count++;
         $class = array('legiscope-remote','no-autospider','matchable','listing-committee-name');
         $class = join(' ',$class);
+        $congress_tag = UrlModel::query_element('congress', $tag['url']);
         $committee_leader_boxes[$committee_count] = array(
           'hash' => $hash,
           'text' => <<<EOH
 <a href="{$tag['url']}" id="{$hash}" class="{$class}">{$tag['text']}</a>
 EOH
         );
-        $congress_tag = UrlModel::query_element('congress', $tag['url']);
         if ( empty($congress_tag) ) $congress_tag = C('LEGISCOPE_DEFAULT_CONGRESS');  
         $committees[$hash] = array(
           'url'            => $tag['url'],

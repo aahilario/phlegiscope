@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Class CongressRaListParseUtility
+ * Class CongressRaListParseUtility (DEPRECATED: 15th Congress site parser)
  * Legiscope - web site reflection framework
  *
  * Antonio A Hilario

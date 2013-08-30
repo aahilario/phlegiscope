@@ -873,7 +873,7 @@ EOH;
       $test_url->fetch($frame['frame-url'], 'url');
       if ( !$test_url->in_database() || $parser->from_network ) {
         $test_url->set_url($frame['frame-url']);
-        $this->perform_network_fetch($test_url, $urlmodel, $test_url->get_url(), NULL, NULL);
+        $this->perform_network_fetch($test_url, $urlmodel, $test_url->get_url(), NULL, $debug_method);
       }
       if ( $is_frameset_container ) {
         $frameset_link = <<<EOH

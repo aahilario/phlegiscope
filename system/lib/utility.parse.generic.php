@@ -272,16 +272,10 @@ class GenericParseUtility extends RawparseUtility {
   }/*}}}*/
 
   function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
-    return TRUE;
+    return $this->add_cdata_property();
   }  /*}}}*/
   function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
-    $this->push_tagstack();
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_p_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
@@ -391,32 +385,6 @@ EOH
     return $subject;
   }/*}}}*/
 
-  function standard_cdata_container_open() {/*{{{*/
-    if ( 0 < count($this->tag_stack) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'] = array();
-      $this->push_tagstack();
-    }
-  }/*}}}*/
-  function standard_cdata_container_cdata() {/*{{{*/
-    if ( !empty($cdata) && ( 0 < count($this->tag_stack) ) ) {
-      $this->pop_tagstack();
-      $this->current_tag['cdata'][] = str_replace("\n"," ",trim($cdata));
-      $this->push_tagstack();
-    }
-    return TRUE;
-  }/*}}}*/
-  function standard_cdata_container_close() {/*{{{*/
-    $this->current_tag();
-    $paragraph = array(
-      'text' => join('', $this->current_tag['cdata']),
-      'seq'  => $this->current_tag['attrs']['seq'],
-    );
-    if ( 0 < strlen($paragraph['text']) ) 
-    $this->add_to_container_stack($paragraph);
-    return TRUE;
-  }/*}}}*/
-
 	/** Miscellaneous utility methods used in one or more derived classes **/
 
   function reduce_containers_to_string($s) {/*{{{*/
@@ -427,17 +395,62 @@ EOH
   }/*}}}*/
 
 	function get_faux_url(UrlModel & $url, & $metalink) {
+    // METALINK_IMPL
 		return self::get_faux_url_s($url, $metalink);
 	}
 
 	static function decode_metalink_post(& $metalink) {
+    // METALINK_IMPL
+    // Merge POST['metalink'] value and provided $metalink array which may 
+    // contain runtime-added data.
 		$runtime_metalink_info = filter_post('LEGISCOPE', array());
 		if ( is_string($metalink) ) $metalink = json_decode(base64_decode($metalink), TRUE);
-		if ( is_array($runtime_metalink_info) && is_array($metalink) ) $metalink = array_merge($metalink, $runtime_metalink_info);
+    if ( is_array($runtime_metalink_info) && is_array($metalink) ) {
+      $metalink = array_merge($metalink, $runtime_metalink_info);
+    }
 		return $metalink;
 	}
 
+  static function url_plus_post_parameters(& $url, & $metalink) {/*{{{*/
+    // METALINK_IMPL
+    // Generate a URL from $url->get_url() which query parameters
+    // consist of POST key-value pairs including those from $metalink 
+    // Return the fake URL string (which has query parameters removed that exceed a fixed size). 
+    $faux_url = is_a($url,'UrlModel') ? $url->get_url() : $url;
+    if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
+      // The POST action may be a URL which permits a GET action,
+      // in which case we need to use a fake URL to store the results of 
+      // the POST.  We'll generate the fake URL here. 
+      $metalink = static::decode_metalink_post($metalink);
+      // Prepare faux metalink URL by combining the metalink components
+      // with POST target URL query components. After the POST, a new cookie
+      // may be returned; if so, it will be used to traverse sibling links
+      // which content hasn't yet been cached in the UrlModel backing store.
+      if ( $metalink == FALSE ) {
+        $metalink = NULL;
+      } else if ( 0 < count($metalink) ) {/*{{{*/
+
+        // FIXME: Input sanitization
+        // The output of construct_metalink_fake_url strips query values
+        // of length greater than 32.  Find out whether this causes any sort of security issue.
+        $faux_url = UrlModel::construct_metalink_fake_url($url, $metalink);
+
+      }/*}}}*/
+      else $metalink = NULL;
+    }/*}}}*/
+    return $faux_url;
+  }/*}}}*/
+
   static function get_faux_url_s(UrlModel & $url, & $metalink) {/*{{{*/
+    JoinFilterUtility::syslog(__FUNCTION__,__LINE__,"(warning) DEPRECATED"); 
+    return static::get_faux_url_s_old($url,$metalink);
+  }/*}}}*/
+
+  static function get_faux_url_s_old(UrlModel & $url, & $metalink) {/*{{{*/
+    // METALINK_IMPL
+    // Fill $url with metalink content (which will be form result data)
+    // if the POST request contains a LEGISCOPE key.
+    // Return the fake URL string (which has query parameters removed that exceed a fixed size). 
     $faux_url = NULL;
     if ( !is_null($metalink) ) {/*{{{*/// Modify $this->seek_cache_filename if POST data is received
       // The POST action may be a URL which permits a GET action,
@@ -452,14 +465,22 @@ EOH
         $metalink = NULL;
       } else if ( 0 < count($metalink) ) {/*{{{*/
 
-        $original_id  = $url->get_id();
-        $original_url = $url->get_url();
+        // FIXME: Input sanitization
+        // The output of construct_metalink_fake_url strips query values
+        // of length greater than 32.  Find out whether this causes any sort of security issue.
+        $in_database  = $url->in_database();
+        $original_id  = $in_database ? $url->get_id() : NULL;
+        $original_url = $url->get_url(); // This may be NULL
         $faux_url     = UrlModel::construct_metalink_fake_url($url, $metalink);
 				$url->fetch(UrlModel::get_url_hash($faux_url),'urlhash');
+
 				if ( $url->in_database() ) {
+          $faux_url_id = $url->get_id();
+          JoinFilterUtility::syslog(__FUNCTION__,__LINE__,"(marker) URL #{$original_id} {$original_url} <- #{$faux_url_id} {$faux_url}");
           $url->set_url_c($original_url,FALSE)->set_id($original_id);
         } else {
 					$url->fetch(UrlModel::get_url_hash($original_url),'urlhash');
+          JoinFilterUtility::syslog(__FUNCTION__,__LINE__,"(marker) Restore URL #{$original_id} {$original_url}");
 				}
 
       }/*}}}*/
@@ -827,11 +848,13 @@ EOH
 			'& $a, $k', '$matches = array(); if ( 1 == preg_match("@'.$fragment.'@i", array_element($a,"url"), $matches) ) $a["seq"] = array_element($matches,1); else $a["seq"] = 0;'  
 		));
 		// Reorder array
-		$q = array_combine(
-			array_map(create_function('$a','return array_element($a,"seq");'),$q),
-      array_map(create_function('$a','return array("url" => array_element($a,"url"), "text" => array_element($a,"text"), "cached" => array_element($a,"cached"), "inv" => array_element($a,"inv"));'),$q)
-		);
-		krsort($q);
+    if ( is_array($q) && (0 < count($q)) ) {
+      $q = array_combine(
+        array_map(create_function('$a','return array_element($a,"seq");'),$q),
+        array_map(create_function('$a','return array("url" => array_element($a,"url"), "text" => array_element($a,"text"), "cached" => array_element($a,"cached"), "inv" => array_element($a,"inv"));'),$q)
+      );
+      krsort($q);
+    }
 	}/*}}}*/
 
 	function partition_array( & $k_v_array, $n ) {/*{{{*/
@@ -856,4 +879,7 @@ EOH
 		return $partitioned_list;
 	}/*}}}*/
 
+	function extant_property_value($s) {
+		return property_exists($this,$s) ? $this->$s : NULL;
+	}
 }

@@ -8,23 +8,24 @@ class DatabaseUtility extends ReflectionClass {
   protected static $obj_attrdefs = array(); // Lookup table of class attributes and names. 
   protected static $obj_ondisk   = array();
 
-  protected $tablename           = NULL;
-  protected $query_conditions    = array();
-  protected $order_by_attrs      = array();
-  protected $join_props          = array();
-  protected $join_attrs          = array();
-  protected $join_instance_cache = array();
-  protected $join_value_cache    = array(); // Keyed with an object's name for a Join attribute
-  protected $join_value_fetched  = array(); // As retrieved from DB
-  protected $alias_map           = array();
-  protected $subject_fields      = array(); // Restrict UPDATE, SELECT, etc. to just these attributes.
-  protected $null_instance       = NULL;
-  protected $limit               = array();
-  protected $query_result        = NULL;
-  protected $attrlist            = NULL;
-  protected $debug_operators     = FALSE;
-  protected $debug_method        = FALSE;
+  protected $tablename             = NULL;
+  protected $query_conditions      = array();
+  protected $order_by_attrs        = array();
+  protected $join_props            = array();
+  protected $join_attrs            = array();
+  protected $join_instance_cache   = array();
+  protected $join_value_cache      = array(); // Keyed with an object's name for a Join attribute
+  protected $join_value_fetched    = array(); // As retrieved from DB
+  protected $alias_map             = array();
+  protected $subject_fields        = array(); // Restrict UPDATE, SELECT, etc. to just these attributes.
+  protected $null_instance         = NULL;
+  protected $limit                 = array();
+  protected $query_result          = NULL;
+  protected $attrlist              = NULL;
+  protected $debug_operators       = FALSE;
+  protected $debug_method          = FALSE;
   protected $suppress_reinitialize = FALSE; // One-shot flag: Causes calls to init_query_prereqs() and clear_query_prereqs() to be suppressed
+	protected $merge_query_conditions = FALSE;
   var $debug_final_sql             = FALSE;
 
   protected $disable_logging = array(
@@ -1544,6 +1545,11 @@ EOS;
 
   function fetch($attrval, $attrname = NULL) {/*{{{*/
     // See retrieve(), which invokes this method in an fcall wrapper
+		// It is possible to use a compound condition e.g.
+		// fetch( array(
+		//   'attr1' => <val1>,
+		//   'attr2' => <val2>,
+		// ), 'AND' )
     $this->id = NULL;
     if ( is_null($attrname) ) {
       $this->where(array('id' => $attrval))->select();
@@ -1558,6 +1564,11 @@ EOS;
     $this->alias_map = array(); 
     return $this->query_result;
   }/*}}}*/
+
+	function & check_extant(& $record_present, $record_id = FALSE) {
+		$record_present = $record_id ? ($this->in_database() ? $this->get_id() : NULL ) : $this->in_database();
+		return $this;
+	}
 
   function & retrieve($attrval, $attrname = NULL) {/*{{{*/
     // Continuation syntax call of fetch() 
@@ -1782,8 +1793,20 @@ EOS;
     return $this;
   }/*}}}*/
 
+	function & set_merge_wherecond() {
+		$this->merge_wherecond = TRUE;
+		return $this;
+	}
+
   function & where($conditions) {/*{{{*/
     // TODO: Append conditions to an existing set.  This is useful mainly in prepare_select_sql() (ca. SVN #562) where this method is used to capture JOIN conditions 
+		if ( $this->merge_wherecond ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) +++++++++ Existing conditions");
+			$this->recursive_dump($this->query_conditions,"(marker) +++++");
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) --------- Additional conditions");
+			$this->recursive_dump($conditions,"(marker) -----");
+			$this->merge_wherecond = FALSE;
+		}
     if ( is_array($conditions) ) { 
       $this->query_conditions = $conditions;
     }
@@ -1795,6 +1818,16 @@ EOS;
     return self::$dbhandle->resultset();
   }/*}}}*/
 
+	// End-user/admin formatter methods
+
+	function remap_url(& $url) {
+		// Use a per-Model URL mapper to convert links for use by either
+		// an admin (crawler) user or a site end-user.
+		return method_exists($this, "remap_url_links") 
+			? $this->remap_url_links($url)
+			: $url;
+	}
+
   // Experimental HTTP action adaptor methods
 
   function & get() { return $this; }
@@ -1805,6 +1838,8 @@ EOS;
   function & delete() { return $this; }
 
   final protected function logging_ok($prefix) {/*{{{*/
+    if ( TRUE == C('DEBUG_ONLY_ADMIN') && !C('CONTEXT_ADMIN') ) return FALSE;
+    if ( TRUE == C('DEBUG_ONLY_ENDUSER') && !C('CONTEXT_ENDUSER') ) return FALSE;
     if ( 1 == preg_match('@(WARNING|ERROR|MARKER)@i', $prefix) ) return TRUE;
     if ( TRUE === C('DEBUG_ALL') ) return TRUE;
     if ( 1 == preg_match('@([(]SKIP[)])@i', $prefix) ) return FALSE;
@@ -1849,7 +1884,7 @@ EOS;
     }
   }/*}}}*/
 
-  final protected function recursive_dump($a, $prefix = NULL) {/*{{{*/
+  final function recursive_dump($a, $prefix = NULL) {/*{{{*/
     if ( !is_array($a) ) return;
     if ( !$this->logging_ok($prefix) ) return;
     $this->recursive_dump_worker($a, 0, $prefix);

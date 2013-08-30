@@ -11,10 +11,11 @@
 class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256 = NULL;
+  var $sn_vc64 = NULL;
 	var $description_vc4096 = NULL;
   var $create_time_utx = NULL;
-  var $sn_vc64 = NULL;
   var $last_fetch_utx = NULL;
+  var $searchable_bool = NULL;
   var $congress_tag_vc8 = NULL;
   var $session_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
@@ -27,19 +28,25 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   var $invalidated_bool = NULL;
 	var $legislative_history_vc8192 = NULL;
 	var $filing_date_dtm = NULL;
-
+	var $significance_vc16 = NULL;
 
 	var $main_referral_comm_vc64 = NULL;
 	var $secondary_committee_vc64 = NULL;
-	var $significance_vc16 = NULL;
 
 	var $journal_SenateJournalDocumentModel = NULL;
   var $committee_SenateCommitteeModel = NULL;
   var $senator_SenatorDossierModel = NULL;
+  var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
 
   function __construct() {
     parent::__construct();
   }
+
+  function & set_ocrcontent($v) { $this->ocrcontent_ContentDocumentModel = $v; return $this; }
+  function get_ocrcontent($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->ocrcontent_ContentDocumentModel; }
+
+  function & set_searchable($v) { $this->searchable_bool = $v; return $this; }
+  function get_searchable($v = NULL) { if (!is_null($v)) $this->set_searchable($v); return $this->searchable_bool; }
 
 	function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
 	function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }
@@ -104,101 +111,27 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   function & set_significance($v) { $this->significance_vc16 = $v; return $this; }
   function get_significance($v = NULL) { if (!is_null($v)) $this->set_significance($v); return $this->significance_vc16; }
 
-	function generate_non_session_linked_markup() {/*{{{*/
-
-    $debug_method = FALSE;
-
-		$faux_url = new UrlModel();
-
-		$senatedoc = get_class($this);
-
-		if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Got #" . $this->get_id() . " " . get_class($this) );
-
-		$total_bills_in_system = $this->count();
-
-		$doc_url_attrs = array('legiscope-remote');
-		$faux_url_hash = UrlModel::get_url_hash($this->get_url()); 
-		if( $faux_url->retrieve($faux_url_hash,'urlhash')->in_database() ) {
-			$doc_url_attrs[] = 'cached';
-		}
-		$doc_url_attrs = join(' ', $doc_url_attrs);
-
-		$pagecontent = $this->substitute(<<<EOH
-Senate {$senatedoc}s in system: {$total_bills_in_system}
+  function single_record_markup_template_a() {/*{{{*/
+    $senatedoc = get_class($this);
+    $total_bills_in_system = $this->count();
+    return <<<EOH
+{$senatedoc} in system: {$total_bills_in_system}
 <span class="sb-match-item">{sn}.{congress_tag}</span>
-<span class="sb-match-item sb-match-subjects">{subjects}</span>
-<span class="sb-match-item sb-match-description">{description}</span>
+<h2>{title}</h2>
+<span class="sb-match-item sb-match-subjects"></span>
+<h3 class="sb-match-item">{subjects}</h3>
 <span class="sb-match-item sb-match-significance">Scope: {significance}</span>
 <span class="sb-match-item sb-match-status">Status: {status}</span>
-<span class="sb-match-item sb-match-doc-url">Document: <a class="{$doc_url_attrs}" href="{doc_url}">{sn}</a></span>
-<span class="sb-match-item sb-match-main-referral-comm">Committee: {main_referral_comm}</span>
-<span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committee}</span>
+<span class="sb-match-item sb-match-doc-url">Document: <a class="{doc_url_attrs}" href="{doc_url}" id="{doc_url_hash}">{sn}</a></span>
+<span class="sb-match-item sb-match-main-referral-comm">Committee: <a class="legiscope-remote" href="{main_referral_comm_url}">{main_referral_comm}</a></span>
+<span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committees}</span>
+<span class="sb-match-item sb-match-description">{description}</span>
+<pre>{ocrcontent.data}</pre>
+EOH;
+		$bloopers = <<<EOH
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
-<span class="sb-match-item sb-match-committee-filing-date">Date Filed: {filing_date}</span>
-EOH
-		);
-
-		$congress_tag = $this->get_congress_tag();
-
-		$this->debug_final_sql = FALSE;
-		$this->
-			join_all()->
-			where(array('AND' => array(
-				'`a`.`id`' => $this->get_id(),
-			)))->
-			recordfetch_setup();
-		$sb = array();
-		$this->debug_final_sql = FALSE;
-
-		$reading_state = array();
-
-		$reading_replace = array(
-			'@R1@' => 'First Reading',
-			'@R2@' => 'Second Reading',
-			'@R3@' => 'Third Reading',
-		);
-
-    // $n = 0;
-		while ( $this->recordfetch($sb) ) {
-      if ( $debug_method ) {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Got entry {$sb['id']}");
-        // $this->recursive_dump($sb['journal'],"(marker) - - - {$sb['id']} -");
-      }
-			$journal       = $sb['journal'];
-			$reading       = nonempty_array_element($journal['join'],'reading');
-			$reading_date  = nonempty_array_element(explode(' ',nonempty_array_element($journal['join'],'reading_date',' -')),0);
-			$journal_title = array_element($journal['data'],'title');
-			$journal_url   = nonempty_array_element($journal['data'],'url');
-			if ( is_null($reading) || is_null($journal_url) ) continue;
-			$reading_lbl   = preg_replace(
-				array_keys($reading_replace),
-				array_values($reading_replace),
-				$reading
-			);
-			$reading_state["{$reading}{$reading_date}"] = <<<EOH
-<li><a href="{$journal_url}" class="legiscope-remote suppress-reorder">{$reading_lbl} ({$reading_date})</a> {$journal_title}</li>
 EOH;
-      /*
-      $n++;
-      $this->recursive_dump($sb,"(marker) -- - -- {$n}");
-      */
-		}
-
-		if ( 0 < count($reading_state) ) {/*{{{*/
-			krsort($reading_state);
-			$reading_state = join(" ", $reading_state);
-			$reading_state = <<<EOH
-<ul>{$reading_state}</ul>
-
-EOH;
-			$pagecontent .= $reading_state;
-		}/*}}}*/
-
-		$pagecontent = str_replace('[BR]','<br/>', $pagecontent);
-
-		return $pagecontent;
-
-	}/*}}}*/
+  }/*}}}*/
 
   function stow_parsed_content($document_contents) {/*{{{*/
     // Accept an associative array that can be passed to 

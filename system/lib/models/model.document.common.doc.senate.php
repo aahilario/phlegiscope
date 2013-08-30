@@ -287,6 +287,132 @@ EOH
     }/*}}}*/
   }/*}}}*/
 
+  function get_doc_url_attributes(UrlModel & $faux_url) {/*{{{*/
+    // Returns an array of <A> tag {class} strings used by crawler JS.
+    // The UrlModel parameter is used in parent::generate_non_session_linked_markup()
+    // to retrieve the document URL record (including payload, last_fetch time, etc.)
+    // Data in that record is used to decorate source URL <A> tag attributes. 
+    //
+    // We want Senate bills to be marked "uncached" that either
+    // 1) Have not yet been retrieved to local storage, or
+    // 2) Do not have an OCR result record matching the PDF content.
+    //
+    $doc_url_attrs    = array('legiscope-remote');
+    $have_ocr         = $this->get_searchable();
+		$doc_url          = $this->get_doc_url();
+    $faux_url_hash    = UrlModel::get_url_hash($doc_url);
+    $url_stored       = $faux_url->retrieve($faux_url_hash,'urlhash')->in_database();
+
+    if ( $this->in_database() && is_null($this->get_ocrcontent()) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) No [content] attribute present for {$doc_url}. Default to {uncached} state.");
+    }
+    $doc_url_attrs[]  = $url_stored && $have_ocr ? 'cached' : 'uncached';
+
+		if ( !$faux_url->in_database() ) { 
+			$doc_url_attrs[] = 'uncached';
+		}
+		else {
+			if ( 0 < intval( $age = intval($faux_url->get_last_fetch()) ) ) {
+				$age = time() - intval($age);
+				$doc_url_attrs[] = ($age > ( 60 )) ? "uncached" : "cached";
+			}
+			$doc_url_attrs[] = $faux_url->get_logseconds_css();
+		}
+    return $doc_url_attrs;
+  }/*}}}*/
+
+  function test_document_ocr_result($url_accessor = NULL) {/*{{{*/
+
+    // Reload this SenateBillDocument and test for presence of OCR version of doc_url PDF.
+    // Return TRUE if the document is associated with at least one converted record (stored as a set of ContentDocuments)
+    //        NULL
+    //        FALSE 
+
+		if ( !$this->in_database() ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Model not loaded. Cannot proceed.");
+		 	return NULL;
+		}
+
+		if ( is_null($url_accessor) ) $url_accessor = 'get_doc_url';
+
+    $faux_url         = new UrlModel();
+		$document_source  = str_replace(' ','%20',$this->$url_accessor());
+    $faux_url_hash    = UrlModel::get_url_hash($document_source);
+    $url_stored       = $faux_url->retrieve($faux_url_hash,'urlhash')->in_database();
+    $pdf_content_hash = $faux_url->get_content_hash();
+		$this->syslog(__FUNCTION__,__LINE__,"(marker) Using contents of UrlModel #" . $faux_url->get_id() . " {$document_source}");
+    // Retrieve all OCR content records associated with this Senate document.
+    $document_id      = $this->get_id();
+    $this->
+      join(array('ocrcontent'))->
+      where(array('AND' => array(
+        'id' => $document_id,
+        '{ocrcontent}.`source_contenthash`' => $pdf_content_hash,
+      )))->
+      recordfetch_setup();
+
+    $matched = 0;
+    while ( $this->recordfetch($r,TRUE) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Record #{$r['id']} {$r['sn']}.{$r['congress_tag']}");
+      $ocrcontent = $this->get_ocrcontent();
+      $this->recursive_dump($ocrcontent,"(marker) ->");
+      $matched++;
+    }
+    if ( 0 == $matched ) {/*{{{*/
+      // No record matched
+      $ocr_result_file = LegiscopeBase::get_ocr_queue_stem($faux_url) . '.txt';
+      if ( file_exists($ocr_result_file) && is_readable($ocr_result_file) ) {/*{{{*/
+
+        $properties = stat($ocr_result_file);
+        $properties['sha1'] = hash_file('sha1', $ocr_result_file);
+
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR output file {$ocr_result_file} present.");
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR output file size: {$properties['size']}" );
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR data model: " .
+          get_class($this->get_join_instance('ocrcontent')));
+
+        $ocr_data = new ContentDocumentModel();
+        $ocr_data_id = $ocr_data->retrieve($properties['sha1'],'content_hash')->get_id();
+
+        if ( is_null($ocr_data_id) ) {/*{{{*/
+          $data = array(
+            'data' => file_get_contents($ocr_result_file),
+            'content_hash' => $properties['sha1'],
+            'content_type' => 'ocr_result',
+            'content_meta' => '',
+            'last_fetch' => $this->get_last_fetch(),
+            'create_time' => time(),
+          );
+          $ocr_data_id = $ocr_data->
+            set_contents_from_array($data)->
+            fields(array_keys($data))->
+            stow();
+        }/*}}}*/
+
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR data record ID: #" . $ocr_data_id  );
+
+        if ( 0 < intval($ocr_data_id) ) {/*{{{*/
+          $join = array( $ocr_data_id => array(
+            'source_contenthash' => $pdf_content_hash,
+            'last_update' => time(),
+            'create_time' => time(),
+          ));
+          $join_result = $this->create_joins('ContentDocumentModel',$join);
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) Created Join: #" . $join_result  );
+        }/*}}}*/
+
+      }/*}}}*/
+    }/*}}}*/
+    else {
+      if ( !$this->get_searchable() ) {
+        $this->set_searchable(TRUE)->fields(array('searchable'))->stow();
+      }
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Found {$matched} Join objects for OCR source " . $faux_url->get_url());
+    }
+
+    return $matched > 0;
+  }/*}}}*/
+
   function generate_non_session_linked_markup() {/*{{{*/
 
     $debug_method = FALSE || (property_exists($this,'debug_method') && $this->debug_method);
@@ -312,6 +438,8 @@ EOH
     }
 
     if ( method_exists($this,'get_doc_url_attributes') ) {
+      $faux_url_hash = UrlModel::get_url_hash($this->get_doc_url()); 
+			$faux_url->retrieve($faux_url_hash,'urlhash');
       $doc_url_attrs = $this->get_doc_url_attributes($faux_url);
     } else {
       $doc_url_attrs = array('legiscope-remote');
@@ -442,14 +570,22 @@ EOH;
 
       krsort($reading_state);
       $reading_state = join(" ", $reading_state);
-      $pagecontent .= <<<EOH
+			$reading_state = <<<EOH
 <br/>
 <br/>
 <span>Reading</span>
 <ul>{$reading_state}</ul>
 
 EOH;
+			if ( 1 == preg_match('@{reading_state}@i',$pagecontent) ) {
+				$pagecontent = str_replace('{reading_state}',$reading_state,$pagecontent);
+			} else {
+				$pagecontent .= $reading_state;
+			}
     }/*}}}*/
+		else {
+				$pagecontent = str_replace('{reading_state}','',$pagecontent);
+		}
 
     if ( 0 < count($secondary_committees) ) {
       $secondary_committees = join(', ', $secondary_committees);
@@ -461,14 +597,24 @@ EOH;
     if ( 0 < count($committee_referrals) ) {/*{{{*/
       ksort($committee_referrals);
       $committee_referrals = join(" ", $committee_referrals);
-      $pagecontent .= <<<EOH
+      $committee_referrals = <<<EOH
 <br/>
 <br/>
 <span>Referred to</span>
 <ul>{$committee_referrals}</ul>
 
 EOH;
+			if ( 1 == preg_match('@{committee_referrals}@i',$pagecontent) ) {
+				$pagecontent = str_replace('{committee_referrals}',$committee_referrals,$pagecontent);
+			} else {
+				$pagecontent .= $committee_referrals;
+			}
+
     }/*}}}*/
+		else {
+			$pagecontent = str_replace('{committee_referrals}','',$pagecontent);
+		}
+
 
     // Generate legislative history
     if ( method_exists($this,'get_legislative_history') ) {/*{{{*/
@@ -512,29 +658,36 @@ EOH;
           if ( $debug_method ) $this->recursive_dump($history,"(marker) -- FH --");
         }/*}}}*/
 
+				$history_tabulation = '';
         if ( is_array($history) ) foreach ( $history as $date => $actions ) {/*{{{*/
           $date_element = DateTime::createFromFormat('m/d/Y H:i:s', "{$date} 00:00:00");
           $timestamp    = $date_element->getTimestamp();
           $date         = $date_element->format('F j, Y');
           $day          = $date_element->format('l');
-          $pagecontent .= <<<EOH
+          $history_tabulation .= <<<EOH
 <div class="process-date" id="ts-{$timestamp}"> 
 <span class="process-date">{$date}<br/>{$day}</span>
 <ul class="process-description">
 
 EOH;
           foreach ( $actions as $action ) {
-            $pagecontent .= <<<EOH
+            $history_tabulation .= <<<EOH
 <li class="process-actions">{$action}</li>
 
 EOH;
           }
 
-          $pagecontent .= <<<EOH
+          $history_tabulation .= <<<EOH
 </ul>
 </div>
 EOH;
         }/*}}}*/
+
+				if ( 1 == preg_match('@{history_tabulation}@i',$pagecontent) ) {
+					$pagecontent = str_replace('{history_tabulation}',$history_tabulation,$pagecontent);
+				} else {
+					$pagecontent .= $history_tabulation;
+				}
 
       }/*}}}*/
     }/*}}}*/
@@ -569,7 +722,7 @@ function load_uncached_links() {
         }),
         success  : (function(data, httpstatus, jqueryXHR) {
           jQuery(self).addClass('cached').removeClass('uncached');
-          if ( data && data.hoststats ) replace_contentof('hoststats',data.hoststats);
+					if ( data && data.hoststats ) set_hoststats(data.hoststats);
           if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
           if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           update_a_age(data);

@@ -7,7 +7,7 @@
 
 function legiscope_extend_include_path() {/*{{{*/
 
-  $debug_method = TRUE;
+  $debug_method = FALSE;
 
   if ( defined('SYSTEM_BASE') ) return;
 

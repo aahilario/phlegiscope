@@ -10,8 +10,6 @@
 
 class SenatorBioParseUtility extends SenateCommonParseUtility {
   
-  var $in_table_cell    = FALSE;
-  var $have_image_entry = FALSE;
   var $senator_bricks   = array();
   var $senator_entry    = NULL;
 
@@ -21,12 +19,20 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     parent::__construct();
   }
 
-  function ru_table_open(& $parser, & $attrs, $tag) {/*{{{*/
+  function ru_div_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->push_container_def($tag, $attrs);
     return TRUE;
   }/*}}}*/
-  function ru_table_close(& $parser, $tag) {/*{{{*/
-    $this->stack_to_containers();
+  function ru_div_close(& $parser, $tag) {/*{{{*/
+    $this->current_tag();
+    if (1 == preg_match('@(' . join('|',array(
+      'xhtml-nav',
+      'nav-top',
+    )) . ')@', array_element($this->current_tag['attrs'],'CLASS'))) {
+      $this->pop_container_stack();
+      return FALSE;
+    }
+    $content = $this->stack_to_containers(TRUE);
     return TRUE;
   }/*}}}*/
 
@@ -35,49 +41,38 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
   }/*}}}*/
 
   function ru_td_open(& $parser, & $attrs, $tag) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
+    $this->add_cdata_property();
     $this->push_container_def($tag, $attrs);
-    $this->have_image_entry = FALSE;
-    $this->in_table_cell = TRUE;
+    if ( !is_null($this->senator_entry) && ( 1 == preg_match('@senators/images/@i',$this->senator_entry['realsrc']) ) ) {
+      if ( $this->debug_tags ) {/*{{{*/
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) {$tag} +++++++++-- UNPROCESSED --+++++++" );
+        $this->recursive_dump($this->senator_entry,"(marker) {$tag}");
+      }/*}}}*/
+      $this->senator_entry['link']['text'] = $this->senator_entry['alt'];
+      $this->senator_bricks[] = $this->senator_entry;
+    }
     $this->senator_entry = NULL;
     return TRUE;
   }/*}}}*/
   function ru_td_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_td_close(& $parser, $tag) {/*{{{*/
 
     $debug_method = FALSE;
+    $this->pop_tagstack();
+    $this->embed_nesting_placeholders();
+    $this->push_tagstack();
     $this->current_tag();
     $content = $this->stack_to_containers();
     $paragraph = join('', str_replace("\n"," ",$this->current_tag['cdata']));
 
-    $skip_bio_override = property_exists($this,'skip_bio_override') && $this->skip_bio_override;
+    if ( 0 < count(nonempty_array_element($content,'children',array())) ) {
+      // $content captures common Senator members' records
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) {$tag} ---------------------" );
+      $content = nonempty_array_element($content,'children');
+      $this->recursive_dump($content,"(marker) {$tag}");
 
-    if ( $this->have_image_entry ) {
-      if (!$skip_bio_override && (0 == strlen(array_element($this->senator_entry['link'],'url')))) {
-        // THIS IS A DUMB, DUMB HACK.  The bio text for Senator Ramon Revilla Jr
-        // (16th Congress) is curiously formatted, with body text contained in
-        // a table at nest depth > 2
-        $paragraphs = preg_split('@(\n|\t)@i', $paragraph, NULL, PREG_SPLIT_NO_EMPTY );
-        $this->senator_entry['bio'] = $paragraphs;
-        if ( $debug_method ) {
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) --------------------- " . count($content) . "/" . ($this->have_image_entry ? "TRUE" : "FALSE") . "/" . (is_null($this->senator_entry) ? "Empty" : "+") );
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$paragraph}"); 
-          $this->recursive_dump($this->senator_entry,"(marker) - --");
-        }
-      }
-      else if (!(0 < strlen($this->senator_entry['link']['text']))) {
-        $this->senator_entry['link']['text'] = preg_replace('@[^-A-Zñ.“”" ]@i','',$paragraph);
-      }
-      $this->senator_bricks[] = $this->senator_entry;
-    }
-    else {
       $td = array(
         'cell' => $paragraph,
         'seq' => $this->current_tag['attrs']['seq'],
@@ -89,9 +84,7 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
         $this->recursive_dump($content,"(marker) - --");
       }
     }
-    $this->senator_entry = NULL;
-    $this->have_image_entry = FALSE;
-    $this->in_table_cell = FALSE;
+
     return TRUE;
   }/*}}}*/
 
@@ -113,7 +106,7 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
       'text' => join('', str_replace("\n"," ",$this->current_tag['cdata'])),
       'seq'  => $this->current_tag['attrs']['seq'],
     );
-    if ( $this->in_table_cell && !is_null($this->senator_entry) ) {
+    if ( !is_null($this->senator_entry) ) {
       if (!(0 < strlen($this->senator_entry['link']['text'])))
       $this->senator_entry['link']['text'] = $paragraph['text'];
     }
@@ -121,67 +114,59 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     return TRUE;
   }/*}}}*/
 
-  function ru_p_open(& $parser, & $attrs, $tag) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
-    return TRUE;
-  }  /*}}}*/
-  function ru_p_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    return TRUE;
-  }/*}}}*/
-  function ru_p_close(& $parser, $tag) {/*{{{*/
-    $this->current_tag();
-    $paragraph = array(
-      'text' => join('', str_replace("\n"," ",$this->current_tag['cdata'])),
-      'seq'  => $this->current_tag['attrs']['seq'],
-    );
-    $this->add_to_container_stack($paragraph);
-    return TRUE;
-  }/*}}}*/
-
   function ru_a_open(& $parser, & $attrs, $tag) {/*{{{*/
+    $this->add_cdata_property();
     $this->pop_tagstack();
     $this->update_current_tag_url('HREF');
-    $this->current_tag['cdata'] = array();
     $this->push_tagstack();
-    $this->push_container_def($tag, $attrs);
+    $this->push_container_def($tag, $this->current_tag['attrs']);
     return TRUE;
   }/*}}}*/
   function ru_a_cdata(& $parser, & $cdata) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'][] = $cdata;
-    $this->push_tagstack();
-    return TRUE;
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_a_close(& $parser, $tag) {/*{{{*/
     $this->pop_tagstack();
+    $this->embed_nesting_placeholders();
     $this->current_tag['cdata'] = trim(join('', $this->current_tag['cdata']));
     $this->push_tagstack();
-    $content = $this->stack_to_containers();
-    if ( $this->in_table_cell && !is_null($this->senator_entry) ) {
-      if (!(0 < strlen($this->senator_entry['link']['text'])))
-      $this->senator_entry['link']['text']    = $this->current_tag['cdata'];
-      $this->senator_entry['link']['url']     = $this->current_tag['attrs']['HREF'];
-      $this->senator_entry['link']['urlhash'] = UrlModel::get_url_hash($this->senator_entry['link']['url']); 
-    } else {
-      $link = array(
-        'url'  => $this->current_tag['attrs']['HREF'],
-        'text' => $this->current_tag['cdata'],
-        'seq'  => $this->current_tag['attrs']['seq'],
+    $content = $this->pop_container_stack();
+    // $content captures common Senator members' records
+    if ( 0 < count(nonempty_array_element($content,'children',array())) ) {/*{{{*/
+      $content = array_merge(
+        $content['children'],
+        array($content['attrs'])
       );
-      $this->add_to_container_stack($link);
-    }
+      $this->reorder_with_sequence_tags($content);
+      $this->senator_entry = array();
+      while ( 0 < count($content) ) {
+        $this->senator_entry = array_merge(
+          $this->senator_entry,
+          array_shift($content)
+        );
+      }
+      $this->senator_entry['link']['text']    = $this->senator_entry['text'];
+      $this->senator_entry['link']['url']     = $this->senator_entry['HREF'];
+      $this->senator_entry['link']['urlhash'] = UrlModel::get_url_hash($this->senator_entry['link']['text']); 
+      unset($this->senator_entry['HREF']);
+      unset($this->senator_entry['text']);
+      $this->senator_entry = array_filter($this->senator_entry);
+      if ( 1 == preg_match('@senators/images/@i',$this->senator_entry['realsrc']) ) {
+        $this->senator_bricks[] = $this->senator_entry;
+        if ( $this->debug_tags ) {/*{{{*/
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) {$tag} ---------------------" );
+          $this->recursive_dump($this->senator_entry,"(marker) {$tag}");
+        }/*}}}*/
+      }
+
+    }/*}}}*/
+    $this->senator_entry = NULL; 
     return TRUE;
   }/*}}}*/
 
   function ru_img_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->pop_tagstack();
     $this->update_current_tag_url('SRC');
-    $this->have_image_entry = $this->in_table_cell && (1 == preg_match('@senators/images/@i',$this->current_tag['attrs']['SRC']));
     $this->push_tagstack();
     return TRUE;
   }  /*}}}*/
@@ -200,32 +185,22 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
     } else {
       $this->current_tag['attrs']['CLASS'] .= ' legiscope-remote';
     }
-    if ( $this->have_image_entry && $this->in_table_cell ) {
-      $image = array(
-        'image'    => $this->current_tag['attrs']['SRC'],
-        'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
-        'realsrc'  => $this->current_tag['attrs']['FAUXSRC'],
-        'class'    => $this->current_tag['attrs']['CLASS'],
-        "link" => array( 
-          "url"     => NULL,
-          "urlhash" => NULL,
-          "text"    => NULL,
-        ),
-        'seq'      => $this->current_tag['attrs']['seq'],
-      );
-      $this->senator_entry = $image;
-    } else {
-      $image = array(
-        'image'    => $this->current_tag['attrs']['SRC'],
-        'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
-        'realsrc'  => $this->current_tag['attrs']['FAUXSRC'],
-        'class'    => $this->current_tag['attrs']['CLASS'],
-        'alt'      => $this->current_tag['attrs']['ALT'],
-        'width'    => $this->current_tag['attrs']['WIDTH'],
-        'height'   => $this->current_tag['attrs']['HEIGHT'],
-        'seq'      => $this->current_tag['attrs']['seq'],
-      );
-    }
+    $image = array(
+      'image'    => $this->current_tag['attrs']['SRC'],
+      'fauxuuid' => $this->current_tag['attrs']['FAKEID'],
+      'realsrc'  => $this->current_tag['attrs']['FAUXSRC'],
+      'class'    => $this->current_tag['attrs']['CLASS'],
+      'alt'      => $this->current_tag['attrs']['ALT'],
+      'width'    => $this->current_tag['attrs']['WIDTH'],
+      'height'   => $this->current_tag['attrs']['HEIGHT'],
+      "link" => array( 
+        "url"     => NULL,
+        "urlhash" => NULL,
+        "text"    => NULL,
+      ),
+      'seq' => $this->current_tag['attrs']['seq'],
+    );
+    $this->senator_entry = $image;
     $this->add_to_container_stack($image);
     $this->push_tagstack();
     return TRUE;
@@ -259,7 +234,10 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
 
     $dossier = new SenatorDossierModel();
 
-    // $this->recursive_dump($this->senator_bricks,"(marker) --");
+    if ( $this->debug_tags ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Parsed Senator information 'bricks'");
+      $this->recursive_dump($this->senator_bricks,"(marker) --");
+    }/*}}}*/
 
     while ( 0 < count($this->senator_bricks) ) {/*{{{*/
 
@@ -312,7 +290,10 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
       $difference = NULL;
 
       if ( is_array($dossier_record) && (0 < count($dossier_record)) ) {/*{{{*/
+        ksort($dossier_record);
+        ksort($dossier_delta);
         $intersection = array_intersect_key($dossier_record,$dossier_delta); // From  
+        ksort($intersection);
         $difference   = array_diff_assoc($intersection,$dossier_delta);
         if ( 0 < count($difference) ) {
           $this->recursive_dump($dossier_record, "(marker) --------");
@@ -357,7 +338,7 @@ class SenatorBioParseUtility extends SenateCommonParseUtility {
             set_contents_from_array($difference)->
             fields(array_keys($difference))->
             stow();
-          $this->syslog(__FUNCTION__,__LINE__, "(marker) ----- ++ {$member_id}");
+          $this->syslog(__FUNCTION__,__LINE__, "(marker) ----- ++ Updated {$member_id}");
         }
         $member_fullname      = $dossier->get_fullname();
         $member_uuid          = $dossier->get_member_uuid();
@@ -428,7 +409,7 @@ EOH
         $urlmodel->get_response_header()
       );
 
-    $main_text          = $this->get_containers('children[tagname=td][id=content]',0);
+    $main_text          = $this->get_containers('children[tagname=td]',0);
     $pagecontent        = '';
     $have_avatar        = FALSE;
     $fullname_candidate = NULL;
@@ -501,7 +482,7 @@ EOH;
     $dossier_match_conds = array_filter(array(
       'bio_url' => $urlmodel->get_url(),
       'fullname' => is_null($fullname_candidate) ? NULL : "REGEXP '({$fullname_regex})'",
-      '{committee}.`target_congress`' => C('LEGISCOPE_DEFAULT_CONGRESS'),
+      // '{committee}.`target_congress`' => C('LEGISCOPE_DEFAULT_CONGRESS'),
     ));
 
     if ( $debug_method )
@@ -518,22 +499,35 @@ EOH;
     $committee_item = array();
     $committee_membership_markup = ''; 
 
-    while ( $dossier->recordfetch($dossier_entry,TRUE) ) {
-      if ( is_array($committee_entry = nonempty_array_element($dossier_entry,'committee')) ) {
+    while ( $dossier->recordfetch($dossier_entry,TRUE) ) {/*{{{*/
+      if ( is_array($committee_entry = nonempty_array_element($dossier_entry,'committee')) ) {/*{{{*/
         // Fetch Congress-specific committee links
+        $join = nonempty_array_element($committee_entry, 'join');
+        $committee_congress_tag = nonempty_array_element($join,'target_congress');
         $committee_data = $committee_entry['data'];
+        if ( is_null($committee_data) ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) Invalid or missing commmittee record for join #{$join['id']}");
+          continue;
+        }
         $committee_id = nonempty_array_element($committee_data,'id');
         $committee_name = nonempty_array_element($committee_data,'committee_name');
         $committee_list[$committee_id] = $committee_name;
         $committee_name_link = SenateCommitteeListParseUtility::get_committee_permalink_uri($committee_name);
+        $properties = array('legiscope-remote',"congress-{$committee_congress_tag}");
+        $container_properties = array();
+        if ( intval($committee_congress_tag) != C('LEGISCOPE_DEFAULT_CONGRESS') ) {
+          $container_properties[] = 'hidden';
+        }
+        $properties = join(' ',$properties);
+        $container_properties = join(' ',$container_properties);
         $committee_membership_markup .= <<<EOH
-<li><a class="legiscope-remote" href="/{$committee_name_link}">{$committee_name}</a></li>
+<li class="{$container_properties}"><a class="{$properties}" href="/{$committee_name_link}">{$committee_name}</a> ({$committee_congress_tag}th Congress)</li>
 EOH;
-      }
+      }/*}}}*/
       $matches_found++;
       $this->recursive_dump($dossier_entry,"(marker) --- ---");
       if ( $matches_found > 100 ) break;
-    }
+    }/*}}}*/
     $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Matches found: {$matches_found}.  Name regex {$fullname_regex} <- {$fullname_candidate}");
 
     if ( !$dossier->in_database() ) {/*{{{*/

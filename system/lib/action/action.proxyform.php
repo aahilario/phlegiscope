@@ -52,10 +52,8 @@ class ProxyformAction extends LegiscopeBase {
 
     $this->recursive_dump($form_data,'(marker) ----- ---- --- -- -');
 
-    $faux_url     = $target_url;
-
     $fetch_result = $network_fetch
-      ? $this->perform_network_fetch( $url, $referrer, $target_url, $faux_url, $form_data, ($debug_dump = TRUE) )
+      ? $this->perform_network_fetch( $url, $referrer, $target_url, $form_data, ($debug_dump = TRUE) )
       : $url->in_database()
       ;
 

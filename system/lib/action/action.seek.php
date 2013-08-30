@@ -33,19 +33,25 @@ class SeekAction extends LegiscopeBase {
     $metalink        = $this->filter_post('metalink');
     $linktext        = $this->filter_post('linktext');
     $target_url      = $this->filter_post('url','');
+    $target_url_hash = UrlModel::get_url_hash($target_url); 
     $freeze_referrer = $this->filter_post('fr'); // Freeze referrer
     $cache_force     = $this->filter_post('cache');
     $referrer        = $this->filter_session('referrer');
     $url             = new UrlModel();
+
+		if ( !is_null($metalink) ) $metalink = @json_decode(base64_decode($metalink),TRUE);
 
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
       $this->recursive_dump($_POST,'(marker) -- - -- INPOST');
     }
 
-    $target_url_hash = UrlModel::get_url_hash($target_url); 
+    if ( 0 < strlen($target_url) ) {
+      $url->fetch($target_url_hash,'urlhash');
+      $url->set_url($target_url,FALSE); // fetch() clears the URL string if the UrlModel is not yet in DB.
+    }
 
-    if ( 0 < strlen($target_url) ) $url->fetch($target_url_hash,'urlhash');
+    $force_custom_parse = method_exists($this, 'must_custom_parse') && $this->must_custom_parse($url); 
 
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
 
@@ -68,54 +74,68 @@ class SeekAction extends LegiscopeBase {
     );
 
     $content_hash   = $url->get_content_hash();
-
-    $faux_url       = GenericParseUtility::get_faux_url_s($url, $metalink);
-
+    $age            = intval($url->get_last_fetch());
     $urlhash        = $url->get_urlhash();
-    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || ((0 < strlen($target_url)) && !$url->in_database());
     $content_length = $url->get_content_length();
+    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || ((0 < strlen($target_url)) && !$url->in_database());
     $retrieved      = $url->in_database();
     $action         = $retrieved && !$network_fetch
       ? "DB Retrieved {$content_length} octets"
       : "Reloading"
       ;
 
+    $process_despite_fetch_failure = FALSE;
+
     if ( $network_fetch ) {/*{{{*/
+
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Network fetch {$target_url}" );
 
       $retrieved = $this->perform_network_fetch( 
         $url     , $referrer, $target_url  ,
-        $faux_url, $metalink, $debug_method
-       );
+        $metalink, $debug_method //  | $network_fetch
+			);
 
       $action = $retrieved
         ? "Retrieved " . $url->get_content_length() . ' octet ' . $url->get_content_type()
         : "WARNING Failed to retrieve"
         ;
 
-      if (!$retrieved) {/*{{{*/
+			$process_despite_fetch_failure = FALSE;
 
-        $json_reply['error']          = CurlUtility::$last_error_number;
-        $json_reply['message']        = CurlUtility::$last_error_message;
-        $json_reply['responseheader'] = CurlUtility::$last_transfer_info;
-        $json_reply['defaulttab']     = 'content';
-        $json_reply['retainoriginal'] = TRUE;
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING: Failed to retrieve {$target_url}" );
-        $this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
+			if (!$retrieved) {/*{{{*/
 
-      }/*}}}*/
+				$json_reply['error']          = CurlUtility::$last_error_number;
+				$json_reply['message']        = CurlUtility::$last_error_message;
+				$json_reply['responseheader'] = CurlUtility::$last_transfer_info;
+				$json_reply['defaulttab']     = 'content';
+				$json_reply['retainoriginal'] = TRUE;
+				$this->syslog( __FUNCTION__, __LINE__, "WARNING: Failed to retrieve {$target_url}" );
+				$this->recursive_dump(CurlUtility::$last_transfer_info,'(error) ');
+
+				$process_despite_fetch_failure = ($url->is_custom_parse() || $force_custom_parse);
+
+				if ( $process_despite_fetch_failure ) {
+					$this->syslog( __FUNCTION__, __LINE__, "WARNING: Invoking handlers despite failure to retrieve {$target_url}" );
+				}
+				else {
+					$this->syslog( __FUNCTION__, __LINE__, "WARNING: Retrieve failure. Not invoking handlers {$target_url}. " . 
+						" Custom_parse " . ($url->is_custom_parse ? "TRUE" : "FALSE") .
+						" Force parse " . ($force_custom_parse ? "TRUE" : "FALSE") .
+						" Retrieved " . ($retrieved ? "TRUE" : "FALSE")
+					);
+				}
+			}/*}}}*/
 
     }/*}}}*/
 
-    if ( $debug_method /*|| !is_null($faux_url)*/ ) {/*{{{*/
+    if ( $debug_method ) {/*{{{*/
 
       $cached_before_retrieval = $retrieved ? "existing" : "uncached";
       $this->syslog( __FUNCTION__, __LINE__, "(marker) " . ($network_fetch ? "Network Fetch" : "Parse") . " {$cached_before_retrieval} link, invoked from {$_SERVER['REMOTE_ADDR']} " . session_id() . " <- {$target_url} ('{$linktext}') [{$session_has_cookie}]" );
 
       $in_db = $retrieved ? 'in DB' : 'uncached';
-      $faux_url_type = gettype($faux_url);
 
-      $this->syslog(__FUNCTION__,__LINE__, "(marker)  Created fake URL ({$in_db}) ({$faux_url_type}){$faux_url}" );
-      $this->syslog(__FUNCTION__,__LINE__, "(marker)   Mapped real URL {$target_url} -> faux URL {$faux_url}" );
+      $this->syslog(__FUNCTION__,__LINE__, "(marker)          Real URL {$target_url}" );
       $this->syslog(__FUNCTION__,__LINE__, "(marker) Instance contains " . $url->get_url() );
       $this->syslog(__FUNCTION__,__LINE__, "(marker)  Instance content " . $url->get_content_hash() );
       $this->syslog(__FUNCTION__,__LINE__, "(marker)  Original content " . $content_hash );
@@ -140,7 +160,7 @@ class SeekAction extends LegiscopeBase {
       $retrieved = FALSE;
     }/*}}}*/
 
-    if ( !$retrieved ) {/*{{{*/
+    if ( !$retrieved && !$process_despite_fetch_failure ) {/*{{{*/
 
       // Unsuccessful fetch attempt
       $cache_filename = $url->get_cache_filename();
@@ -165,23 +185,11 @@ class SeekAction extends LegiscopeBase {
       $json_reply  = array(); // May be overridden by per-site handler, see below
 
       $contenttype = array_element($headers,'content-type','unspecified');
-      $subject_url = is_null($faux_url) ? $target_url : $faux_url;
 
       if ( $debug_method || ( $network_fetch && !$retrieved ) ) {/*{{{*/
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response (content-type: {$contenttype}) from {$subject_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) - Subject URL: {$subject_url}"); 
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) -    Faux URL: {$faux_url}"); 
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) -  Target URL: {$target_url}"); 
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) {$action} response (content-type: {$contenttype}) from {$target_url} <- '{$referrer}' for {$_SERVER['REMOTE_ADDR']}:{$this->session_id}");
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) - Subject URL: {$target_url}"); 
         $this->syslog( __FUNCTION__, __LINE__, "(marker) - Working URL: " . $url->get_url());
-      }/*}}}*/
-
-      if ( !(0 < strlen($url->get_url())) && (0 < strlen($subject_url))) $url->set_url($subject_url,FALSE);
-
-      if ( !is_null($faux_url) && !empty($target_url) ) {/*{{{*/
-        // If we've loaded content from an ephemeral URL, 
-        // use the POST target page action for generating links,
-        // rather than the fake URL.
-        $url->set_url($target_url,FALSE);
       }/*}}}*/
 
       $responseheader = $url->get_response_header(FALSE,'<br/>');
@@ -190,7 +198,7 @@ class SeekAction extends LegiscopeBase {
 
       $url->increment_hits(TRUE);
 
-      if ( array_key_exists('content-type', $headers) ) {/*{{{*/
+      if ( array_key_exists('content-type', $headers) || $process_despite_fetch_failure ) {/*{{{*/
 
         if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker)  - - - - Content-Type: {$headers['content-type']}");
 
@@ -199,11 +207,7 @@ class SeekAction extends LegiscopeBase {
         // documents are of secondary importance to end-users. 
 
         // Speed up parsing by skipping generic parser
-        if ( method_exists($this, 'must_custom_parse') ) {
-          if ( !$url->is_custom_parse() && $this->must_custom_parse($url) ) {
-            $url->ensure_custom_parse();
-          }
-        }
+        if ( $force_custom_parse ) $url->ensure_custom_parse();
 
         $is_custom_parse = $url->is_custom_parse();
 
@@ -212,7 +216,7 @@ class SeekAction extends LegiscopeBase {
         $is_pdf  = (1 == preg_match('@^application/pdf@i', $headers['content-type']));
         $is_html = (1 == preg_match('@^text/html@i', $headers['content-type']));
 
-        if ( $is_pdf && !$is_custom_parse ) {/*{{{*/
+        if ( $is_pdf && !$is_custom_parse && !$force_custom_parse ) {/*{{{*/
           $body_content = 'PDF';
           $body_content_length = $url->get_content_length();
           $this->syslog( __FUNCTION__, __LINE__, "(marker) PDF fetch {$body_content_length} from " . $url->get_url());
@@ -225,7 +229,7 @@ class SeekAction extends LegiscopeBase {
           $json_reply = array('retainoriginal' => 'true');
           if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) PDF loader, retain original frame");
         }/*}}}*/
-        else if ( $is_html || ($is_pdf && $is_custom_parse) ) {/*{{{*/
+        else if ( $is_html || ($is_pdf && $is_custom_parse) || $force_custom_parse) {/*{{{*/
 
           $headers['legiscope-regular-markup'] = $is_html;
 
@@ -273,7 +277,7 @@ class SeekAction extends LegiscopeBase {
               $parser->update_existing  = $this->update_existing;
               $parser->json_reply       = $json_reply;
               $parser->target_url       = $target_url;
-              $parser->metalink_url     = $faux_url; 
+              $parser->metalink_url     = $target_url; 
               $parser->metalink_data    = array_element($metalink,'_LEGISCOPE_');
 
               $parser->linkset          = $linkset;
@@ -285,9 +289,9 @@ class SeekAction extends LegiscopeBase {
               }
               $this->$method_name($parser, $body_content, $url);
 
-              $linkset        = $parser->linkset;
-              $json_reply     = $parser->json_reply; // Merged with response JSON
-              $target_url     = $parser->target_url;
+              $linkset    = $parser->linkset;
+              $json_reply = $parser->json_reply; // Merged with response JSON
+              $target_url = $parser->target_url;
 
               break;
             }/*}}}*/
@@ -367,7 +371,6 @@ class SeekAction extends LegiscopeBase {
         ? 'processed'
         : 'responseheader'
         ;
-      $age = intval($url->get_last_fetch());
       if ( 0 < ($age) ) {
         $age = time() - $age; // Seconds delta
         $minutes = intval($age / 60);
@@ -396,10 +399,10 @@ class SeekAction extends LegiscopeBase {
           'lastupdate'     => $age,
           'hoststats'      => $this->get_hostmodel()->substitute(<<<EOH
 
-<ul class="link-cluster">
-<li><b>Host</b>: {hostname}</li>
-<li><b>Hits</b>: {hits}</li>
-<li><b>Last Update</b>: {$age}</li>
+<ul id="wp-admin-bar-root-legiscope" class="ab-top-secondary ab-top-menu">
+<li class="wp-admin-bar-indicator"><b>Host</b>: {hostname}</li>
+<li class="wp-admin-bar-indicator"><b>Hits</b>: {hits}</li>
+<li class="wp-admin-bar-indicator"><b>Last Update</b>: {$age}</li>
 </ul>
 
 EOH
@@ -439,6 +442,53 @@ EOH
     // $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
+  /** Standard home page **/
+
+  function generate_home_page(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // HOME PAGE OVERRIDDEN BY NODE GRAPH
+    // http://www.senate.gov.ph
+    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
+
+    $map_url = LEGISCOPE_ADMIN_IMAGES_URLBASE . "/philippines-4c.svg"; 
+
+    $svg_inline = $this->transform_svgimage(SYSTEM_BASE . "/../images/admin/philippines-4c.svg"); 
+
+    // Transform geomap into regular, embeddable SVG
+    // Transform geomap into interactive object (clickable)
+    // Create geomap animation methods
+    // Generate static Legiscope object map, rooted at SenateBillDocumentModel
+    // Generate node animation methods
+    // Generate interactive LOM (clickable nodes)
+    // Generate LOM clickable edges
+
+    $altcontent = str_replace(
+      array(
+        '{alternate-content}',
+        '{initial-load-content}',
+      ),
+      array(
+        $pagecontent,
+        str_replace(
+          array(
+            '{svg_inline}',
+            '{scale}'
+          ),
+          array(
+            $svg_inline,
+            '2.4' 
+          ),
+          $this->get_template('map.html','global')
+        ),
+      ),
+      $this->get_template('index.html')
+    );
+    $pagecontent = <<<EOH
+{$altcontent}
+EOH;
+    $parser->json_reply = array(
+      'rootpage' => TRUE
+    );
+  }/*}}}*/
 
   /** Republic Act PDF intercept **/
 

@@ -22,10 +22,15 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     // This method fills (array) $this->filtered_content with parsed information,
     // suitable to be passed directly to method set_contents_from_array() 
     // Return value should be the contents of $this->filtered_content 
+    $debug_method = FALSE;
 
+    if ( $debug_method )
     $this->syslog(__FUNCTION__,__LINE__,"(marker) --[".get_class($this)."]--");
 
     parent::parse_html($content, $response_headers);
+
+    if ( $debug_method )
+    $this->recursive_dump($this->get_containers(),"(marker) " . get_class($this));
 
     // Clean up containers
     $containers = $this->get_containers();
@@ -70,7 +75,6 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     $this->filter_nested_array($downloadable,'children[tagname=div][id=lis_download]',0);
     $downloadable = array_element($downloadable,0,array());
 
-    // $this->recursive_dump($downloadable,"(marker) Downloadable ---");
 
     // Table rows containing extended information about Senate Bill
     $extended = $containers;
@@ -120,9 +124,10 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     $senate_bill_recordparts['sn'] = $sn; 
 
     // Obtain doc_url entry from $downloadable using SN
-    $doc_url = $downloadable;
-    $this->filter_nested_array($doc_url,"url[text*={$sn}]",0);
-    $senate_bill_recordparts['doc_url'] = nonempty_array_element($doc_url,0);
+    $doc_url = nonempty_array_element(array_values($downloadable),0);
+    $this->recursive_dump($downloadable,"(marker) Downloadable --- {$doc_url['url']} {$sn}");
+    //$this->filter_nested_array($doc_url,"url[text*={$sn}]",0);
+    $senate_bill_recordparts['doc_url'] = $doc_url['url']; 
 
     // Obtain Senator bio URLs following 'Filed by' entry
     $filing_date = $extended;

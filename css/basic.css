@@ -226,10 +226,15 @@ span.search-hit-url, a.search-match-url {
   clear: both;
   color: green;
 }
-span.search-hit-desc {
+span.search-hit-desc, span.search-hit-title {
   display: block;
   margin-left: 30px;  
 }
+span.search-hit-title {
+	font-weight: bold;
+}
+
+
 
 span.link-faux-menuitem {
   background-color: #DDD;

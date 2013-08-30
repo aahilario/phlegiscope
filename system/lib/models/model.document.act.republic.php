@@ -22,16 +22,19 @@ class RepublicActDocumentModel extends SenateDocCommonDocumentModel {
   var $url_vc4096 = NULL;
   var $content_json_vc65535 = NULL;
   var $content_blob = NULL;
+	var $public_title_vc256 = NULL;
 
-  var $sb_precursors_SenateBillDocumentModel; // TODO: Link Republic Act records to precursor Senate Bills
-  var $hb_precursors_HouseBillDocumentModel; // TODO: Link Republic Act records to precursor Congress House Bills
-  var $versions_UrlModel;
+  var $sb_precursors_SenateBillDocumentModel;
+  var $hb_precursors_HouseBillDocumentModel;
+  var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
 
   function __construct() {
     parent::__construct();
   }
 
-	// set_data_ setters are used by get_stuffed_join()
+  function & set_ocrcontent($v) { $this->ocrcontent_ContentDocumentModel = $v; return $this; }
+  function get_ocrcontent($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->ocrcontent_ContentDocumentModel; }
+
   function & set_data_sb_precursors($v) { $this->sb_precursors_SenateBillDocumentModel['data'] = $v; return $this; }
   function & set_data_hb_precursors($v) { $this->hb_precursors_HouseBillDocumentModel['data']  = $v; return $this; }
 
@@ -162,7 +165,7 @@ class RepublicActDocumentModel extends SenateDocCommonDocumentModel {
     $this->recursive_dump($legislation_precursors,"(marker) ---");
 
     // There are at most two precursor documents 
-		$updated = 0;
+    $updated = 0;
     foreach ( $legislation_precursors as $id => $p ) {
       $this->set_contents_from_array($p['data'],TRUE);
       $this->syslog(__FUNCTION__,__LINE__,"(marker) {$p['data']['id']} v. " . $this->get_id());
@@ -216,10 +219,149 @@ class RepublicActDocumentModel extends SenateDocCommonDocumentModel {
       if ( 0 < intval($result) ) {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Commit changes to these attrs");
         $this->recursive_dump($precursor,"(marker) -+-+-+-+-");  
-				$updated++;
+        $updated++;
       }
     }  
-		return $updated;
+    return $updated;
   }/*}}}*/
 
+  function final_cleanup_parsed_housebill_cache(& $a, $k) {/*{{{*/
+
+		// Document-specific attribute remapping (parsed -> displayed) 
+		// Must generate output suitable for use in CongressCommonParseUtility::seek_postparse() 
+
+    $debug_method = FALSE;
+    // Move nested array elements into place, to allow use of 
+    // set_contents_from_array()
+    $links = array_element($a,"links",array());
+    $meta  = array_element($a,"meta",array());
+
+    $a["url"]           = array_shift($links);
+    $a["origin"]        = array_element($meta,"origin");
+		$a["approval_date"] = array_element($meta,"approval-date");
+    $a["create_time"]   = time();
+		$a["std_sn"]        = static::standard_sn($a["sn"]);
+
+		if ( empty($a["url"]) ) $a["url"] = '--'; // Replace these with extant Republic Act document model URLs
+
+		return TRUE;
+
+		// Obtain principal author record ID.
+		// It is possible to map this using the Republic Act [origin] attribute,
+		// by finding Senate Bill / House Bill principal authors.
+    if ( !is_null(($principal_author = array_element($meta,'principal-author'))) ) {/*{{{*/
+      $original_name = $principal_author;
+      $mapped = $this->
+        get_foreign_obj_instance('representative')->
+        replace_legislator_names_hotlinks($principal_author);
+      $mapped = !is_null($mapped) ? array_element($principal_author,'id') : NULL;
+      if ( !is_null($mapped) ) {
+        $a['representative'] = array(
+          'relation_to_bill' => 'principal-author',
+        );
+        $a['meta']['principal-author'] = array(
+          'raw' => $original_name,
+          'new' => "{$original_name} ({$principal_author['fullname']})",
+          'parse' => $principal_author,
+          'mapped' => $mapped,
+        );
+      }
+    }/*}}}*/
+
+    return TRUE;
+  }/*}}}*/
+
+	static function standard_sn($s) {/*{{{*/
+		$c = array();
+		if ( !(1 == preg_match('@^RA[0]*([0-9]*)@i',$s,$c)) ) {
+			return NULL; 
+		}
+		else if ( !array_key_exists(1,$c) || (intval($c[1]) != intval(ltrim(preg_replace('@[^0-9]@i','',$s),'0'))) ) {
+			return NULL;
+		}
+		return "RA" . str_pad($c[1],5,'0',STR_PAD_LEFT);
+	}/*}}}*/
+
+	function cache_parsed_records(& $bill_cache_source, $congress_tag, $from_network) {/*{{{*/
+
+		// WARNING: Do not use this method to cache more than a handful of
+		// records at a time.  The array $bill_cache_source is processed in memory,
+		// and executes a database cursor to rectify missing URLs.
+		$this->committee_regex_lookup = array();
+
+		$debug_method = FALSE;
+
+		if ( !is_array($bill_cache_source) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Nothing parsed. Leaving.");
+			return;
+		}
+
+		$bill_cache = array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source);
+
+		if (is_array($bill_cache) && (0 < count($bill_cache))) {
+			$bill_cache = array_combine(
+				$bill_cache,
+				$bill_cache_source
+			);
+		} else return;
+
+		// Add last_fetch and congress_tag attributes
+		array_walk($bill_cache,create_function(
+			'& $a, $k, $s', 'if ( $s["n"] ) $a["last_fetch"] = time(); if ( is_null(array_element($a,"congress_tag"))) $a["congress_tag"] = $s["c"];'
+		),array('n' => $from_network, 'c' => intval($congress_tag)));
+
+		// Cleanup (remap array elements) before testing for omitted,
+		// preexisting records
+		array_walk($bill_cache,create_function(
+			'& $a, $k, $s', '$s->final_cleanup_parsed_housebill_cache($a,$k);'
+		), $this);
+
+		$sns = join('|',array_keys($bill_cache));
+		$this->
+			join_all()->
+			where(array('AND' => array('`a`.sn' => "REGEXP '({$sns})'")))->
+			recordfetch_setup();
+
+		$bill_cache_source = $bill_cache;
+		$bill_cache = NULL;
+
+		while ( $this->recordfetch($sns,TRUE) ) {
+			$std_sn = static::standard_sn($sns['sn']); // Ensure we get a key match
+			// Add URLs missing from the parsed document source.
+			$bill_cache_source[$std_sn]['url'] = str_replace('--' , $sns['url'], $bill_cache_source[$std_sn]['url']);
+			$bill_cache_source[$std_sn]['links']['filed'] = $sns['url'];
+			$this->find_unresolved_origin_joins($sns);
+			$origins = array();
+			if ( 1 == preg_match('@^([^ (]*)[ (]*(.*)/(.*)[)]@i', $bill_cache_source[$std_sn]['meta']['origin'], $origins)) {
+				// Decompose the [origin] string, to extract the chamber name (Senate / House).
+				// Then simply use the sb_precursor / hb_precursor attributes to reconstitute the string
+				// with embedded URLs
+		    $origin = array_element($origins,1);
+				$origins = array_filter(array(
+					'sb_precursors' => nonempty_array_element($sns['sb_precursors'],'data'),
+					'hb_precursors' => nonempty_array_element($sns['hb_precursors'],'data')
+				));
+				array_walk($origins,create_function(
+					'& $a, $k, $s', '$a = $s->create_sn_url($a, $k);'
+				),$this);
+				$origins = join(' / ',$origins);
+				$bill_cache_source[$std_sn]['meta']['origin'] = "{$origin} ({$origins})";
+			}
+		}
+
+	}/*}}}*/
+
+	function create_sn_url($a, $k) {/*{{{*/
+		return $k == 'hb_precursors' 
+			? <<<EOH
+<a class="legiscope-remote" href="/contents/legislative-executive-catalog/house-bills/document/{$a['sn']}">{$a['sn']}</a>
+EOH
+		 	: <<<EOH
+<a class="legiscope-remote" href="{$a['url']}">{$a['sn']}</a>
+EOH;
+	}/*}}}*/
+
+  function remap_url($url) {
+    return $url;
+  }
 }

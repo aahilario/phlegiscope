@@ -52,6 +52,11 @@ class CongressGovPh extends SeekAction {
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
+  function seek_postparse_bypath_plus_queryvars_2ac6215e6619296ce3f28b184962b8a2(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->seek_postparse_ra_hb($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
   function seek_postparse_ra_hb(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/download/index.php?d=ra
 
@@ -85,11 +90,23 @@ class CongressGovPh extends SeekAction {
 
   }/*}}}*/
 
+  function seek_by_pathfragment_06c9f7df4253e828b9e2923ade26c602(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $result = $this->write_to_ocr_queue($urlmodel);
+    $ra_parser = new RepublicActParseUtility(); 
+    $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
+    $ra_parser = NULL;
+    unset($ra_parser);
+
+  }/*}}}*/
+
   function seek_postparse_ra(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $document_parser = new CongressRepublicActCatalogParseUtility();
+    $document_model  = new RepublicActDocumentModel();
 
-    $document_parser->seek_postparse_ra($parser,$pagecontent,$urlmodel);
+    $document_parser->debug_method = FALSE;
+    $document_parser->seek_postparse_ra($parser,$pagecontent,$urlmodel,$document_model);
 
     $document_parser = NULL;
     unset($document_parser);
@@ -348,266 +365,38 @@ EOH;
 
   function seek_postparse_d_billstext(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
-    // House Bills
-    // Partition large list into multiple processable chunks, transmit
-    // these in bulk to the client browser as JSON fragments.
-
-    $debug_method = FALSE;
-
-    $own_url = $urlmodel->get_url();
-
-    if ( $debug_method ) {/*{{{*/
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() . ". Length: " . $urlmodel->get_content_length() . ". Memory load: " . memory_get_usage(TRUE) );
-      $this->recursive_dump($_POST,"(marker) --");
-    }/*}}}*/
-
-    $urlmodel->ensure_custom_parse();
-
-    $parser->reset(TRUE)->structure_reinit();
-
-    $pagecontent = NULL;
-
-    // Perform actual parse operation
-
     $hb_listparser = new CongressHbListParseUtility();
-
-    $hb_listparser->debug_method = $debug_method;
-
-    $congress_tag = $hb_listparser->seek_postparse_d_billstext_preprocess($parser,$pagecontent,$urlmodel);
-
-    $urlmodel->set_content(NULL)->set_id(NULL);
-
-    $house_bills = new HouseBillDocumentModel();
-    $cached      = NULL;
-    $emit_frame  = FALSE; 
-
-    $house_bills->cache_parsed_housebill_records(
-      $hb_listparser->container_buffer['parsed_bills'],
-      $congress_tag,
-      $parser->from_network
-    );
-
-    if ( 'fetch' == $this->filter_post('catalog') ) {
-      $parser->json_reply['catalog'] = nonempty_array_element($hb_listparser->container_buffer,'parsed_bills');
-      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'),"(marker) --- A --");
-      $parser->json_reply['division'] = 'A';
-    } else {
-      $cached = addslashes($this->safe_json_encode(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'))); 
-      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($hb_listparser->container_buffer,'parsed_bills'),"(marker) --- B --");
-      $emit_frame = TRUE;
-      $parser->json_reply['division'] = 'B';
-    }
-
-    // Store records not yet recorded in HouseBillDocumentModel backing store.
-    // Generate POST links
-
-    $actions        = nonempty_array_element($hb_listparser->container_buffer,'form');
-    $action         = nonempty_array_element($actions,'action');
-    $trigger_pull   = NULL;
-    $generated_link = array();
-
-    if ( $debug_method ) $this->recursive_dump(nonempty_array_element($actions,'form_controls'),"(marker) -- - --");
-
-    // This code depends on successful extraction of form_controls in
-    // CongressHbListParseUtility
-    $form_controls = nonempty_array_element($actions,'form_controls',nonempty_array_element($actions,'userset',array()));
-
-    if ( $debug_method ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) -+-+-+-+-+-- {$congress_tag}");
-      $this->recursive_dump($actions,"(marker) -+-+-+-+-+--");
-    }/*}}}*/
-    foreach ( $form_controls as $k => $v ) {/*{{{*/
-      $v = array_keys($v);
-      foreach ( $v as $val ) {
-        $link_class_selector = array('fauxpost');
-        $link_class_selector = join(' ', $link_class_selector);
-        $control_set = array(
-          '_' => 'SKIPGET',
-          $k => $val
-        );
-        $metalink_source = UrlModel::create_metalink("{$val}", $action, $control_set, $link_class_selector, TRUE);
-
-        if ( $debug_method )
-        $this->recursive_dump($metalink_source,"(marker) --+-+-+-+-+- {$val}");
-
-        extract($metalink_source);
-        $generated_link[$hash] = $metalink;
-        if ( is_null($congress_tag) ) $congress_tag = $val;
-        if ( $congress_tag == $val ) $trigger_pull = "switch-{$hash}";
-      }
-    }/*}}}*/
-
-    $generated_link = join('&nbsp;', $generated_link);
-    $entries        = array_element($hb_listparser->container_buffer,'entries');
-    $bills          = NULL;
-    $system_stats   = NULL;
-    $parse_offset   = intval($this->filter_post('parse_offset',0));
-    $parse_limit    = intval($this->filter_post('parse_limit',20));
-
-    $parser->json_reply['parse_offset'] = $parse_offset + $parse_limit;
-
-    $emit_frame     = $emit_frame || ($parse_offset == 0);
-
-    // FIXME: Use per-method session store
-    $last_fetch     = $this->filter_post('last_fetch', $parser->from_network ? time() : 'null');
-
-    if ( $debug_method /*|| $emit_frame*/ ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Offset: {$parse_offset}. " . ($emit_frame ? "Emitting" : "Not emitting") . " frame");
-
-    // Send markup container and script 
-    if ( $emit_frame ) $pagecontent = <<<EOH
-
-<div class="float-left" id="system-stats">
-  <span>House Bills Page Loader (Congress {$congress_tag}): {$entries} {$generated_link}</span>
-  <input class="reset-cached-links" type="button" value="Clear"> 
-  <input class="reset-cached-links" type="button" value="Reset"> 
-  {$system_stats}
-</div>
-
-<div class="float-left" id="listing">
-</div>
-
-<script type="text/javascript">
-
-var parse_offset = 0;
-var parse_limit = {$parse_limit};
-var cached = jQuery.parseJSON("{$cached}");
-
-function emit_bill_entries(entries) {
-  for ( var p in entries ) {
-    var entry = entries[p];
-    var links = entry && entry.links ? entry.links : null;
-    var representative = entry && entry.representative ? entry.representative : null;
-    var committee = entry && entry.committee ? entry.committee : null;
-    jQuery('#listing').append(
-      jQuery(document.createElement('DIV'))
-        .addClass('bill-container')
-        .addClass('clear-both')
-        .attr('id',entry.sn)
-        .append(
-          jQuery(document.createElement('HR'))
-        )
-        .append(
-          jQuery(document.createElement('SPAN'))
-            .addClass('republic-act-heading')
-            .addClass('clear-both')
-            .append(links && links.filed
-              ? jQuery(document.createElement('A'))
-                .attr('href',links.filed)
-                .addClass('legiscope-remote')
-                .html(entry.sn)
-              : jQuery(document.createElement('B')).html(entry.sn)
-            )
-        )
-        .append(
-          jQuery(document.createElement('SPAN'))
-            .addClass('republic-act-desc')
-            .addClass('clear-both')
-            .html(entry.description)
-        )
-        .append(
-          jQuery(document.createElement('SPAN'))
-            .addClass('republic-act-meta')
-            .addClass('clear-both')
-            .append(jQuery(document.createElement('B')).html('Status: '))
-            .append(
-              entry.meta && entry.meta.status
-              ? entry.meta.status.original 
-                ? entry.meta.status.original
-                : entry.meta.status
-              : ''
-            )
-        )
-        .append(committee
-          ? jQuery(document.createElement('SPAN'))
-            .addClass('republic-act-meta')
-            .addClass('clear-both')
-            .append(jQuery(document.createElement('B')).html('Committee: '))
-            .append(jQuery(document.createElement('A'))
-              .attr('href',committee.url)
-              .addClass('legiscope-remote')
-              .html(committee.committee_name)
-            )
-          : entry.meta 
-              ? jQuery(entry.meta).prop('main-committee') 
-              : ''
-        )
-        .append(
-          jQuery(document.createElement('SPAN'))
-            .addClass('republic-act-meta')
-            .addClass('clear-both')
-            .append(jQuery(document.createElement('B')).html('Principal Author: '))
-            .attr('title',(representative && representative.url) ? '' : 'Representative not recorded in database.')
-            .append( (representative && representative.url)
-              ? jQuery(document.createElement('A'))
-                .attr('href',representative.url)
-                .addClass('legiscope-remote')
-                .html(representative.fullname)
-              : ( entry.meta
-                  ? jQuery(entry.meta).prop('principal-author')
-                  : ''
-                )
-            )
-        )
-      );
-  }
-}
-
-function pull() {
-  var trigger_pull = '{$trigger_pull}';
-  if ( !(trigger_pull.length > 0) ) return;
-  var active = jQuery('[id='+trigger_pull+']').attr('id').replace(/^switch-/,'content-');
-  var linkurl = jQuery('[id='+trigger_pull+']').attr('href');
-  jQuery.ajax({
-    type     : 'POST',
-    url      : '/seek/',
-    data     : { url : linkurl, catalog : 'fetch', last_fetch : {$last_fetch}, parse_offset : parse_offset, parse_limit : parse_limit, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true, metalink : jQuery('#'+active).html() },
-    cache    : false,
-    dataType : 'json',
-    async    : true,
-    beforeSend : (function() {
-      display_wait_notification();
-    }),
-    complete : (function(jqueryXHR, textStatus) {
-      remove_wait_notification();
-    }),
-    success  : (function(data, httpstatus, jqueryXHR) {
-      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-      if ( data && data.state ) {
-        if ( 0 == parseInt(data.state) ) {
-          jQuery('#spider').prop('checked',null);
-        }  
-      }
-      parse_offset = ( data && data.parse_offset ) ? data.parse_offset : 0;
-      if ( data && data.catalog ) emit_bill_entries(data.catalog);
-      jQuery('#seek').prop('checked',null);
-      if ( jQuery('#spider').prop('checked') ) {
-        setTimeout((function(){ pull(); }),500);
-      }
-    })
-  });
-}
-
-jQuery(document).ready(function(){
-  jQuery('#subcontent').children().remove();
-  if ( !jQuery('#spider').prop('checked') ) {
-    emit_bill_entries(cached);
-    return; 
-  }
-  pull();
-});
-</script>
-
-EOH;
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    $hb_docmodel   = new HouseBillDocumentModel();
+    $hb_listparser->seek_postparse_d_billstext($parser,$pagecontent,$urlmodel,$hb_docmodel);
 
   }/*}}}*/
 
   /** PDF OCR handler **/
 
+  function seek_by_pathfragment_d01dbc5f89e3b7471ee48dea98fcc98e(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/download/ra_12/RA09332.pdf
+    $result = $this->write_to_ocr_queue($urlmodel);
+    $ra_parser = new RepublicActParseUtility(); 
+    $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
+    $ra_parser = NULL;
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
+  }/*}}}*/
+
+  function seek_by_pathfragment_929471d53c7813f310ddd6f92563eae0(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/download/ra_12/RA09332.pdf
+    $result = $this->write_to_ocr_queue($urlmodel);
+    $ra_parser = new RepublicActParseUtility(); 
+    $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
+    $ra_parser = NULL;
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
+  }/*}}}*/
+
   function seek_by_pathfragment_c3e10e96490c7d13052ea4f742707931(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/download/journals_16/J9-1RS.pdf and similar path tail.
     $result = $this->write_to_ocr_queue($urlmodel);
+    $ra_parser = new RepublicActParseUtility(); 
+    $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
+    $ra_parser = NULL;
     $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
   }/*}}}*/
 
@@ -718,28 +507,7 @@ EOH;
   function seek_postparse_bypathonly_0808b3565dcaac3a9ba45c32863a4cb5(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // HOME PAGE OVERRIDDEN BY NODE GRAPH
     // http://www.congress.gov.ph
-    $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
-
-    $full_url = 'http://www.congress.gov.ph/';
-    $full_url_p = UrlModel::parse_url($full_url);
-    $action  = '?d=billstext';
-    $action_p = UrlModel::parse_url($action);
-    $action_q = parse_url($action);
-
-    $this->recursive_dump($full_url_p,"(marker) -- {$full_url}");
-    $this->recursive_dump($action_p,"(marker) +- {$action}");
-    $this->recursive_dump($action_q,"(marker) -+ {$action}");
-
-    $pagecontent = "Congress Data Object Nodes";
-    $pagecontent = str_replace(
-      '{alternate-content}',
-      $pagecontent,
-      $this->get_template('index.html')
-    );
-    $parser->json_reply = array(
-      'retainoriginal' => FALSE,
-      'rootpage' => TRUE
-    );
+    $this->generate_home_page($parser,$pagecontent,$urlmodel);
   }/*}}}*/
            
   function representative_bio_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/

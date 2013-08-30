@@ -21,7 +21,7 @@ class RawparseUtility extends SystemUtility {/*{{{*/
   protected $content_type              = NULL;
   protected $freewheel                 = FALSE; // TRUE to prevent execution of parser callbacks
   protected $terminated                = FALSE; // TRUE to end piecewise parsing
-	protected $no_store                  = FALSE; // TRUE to prevent populating stacks
+  protected $no_store                  = FALSE; // TRUE to prevent populating stacks
 
   /*
    * HTML document XML parser class
@@ -32,13 +32,13 @@ class RawparseUtility extends SystemUtility {/*{{{*/
     $this->initialize();
   }/*}}}*/
 
-	function __destruct() {/*{{{*/
-		if ( !is_null($this->parser) ) {
+  function __destruct() {/*{{{*/
+    if ( !is_null($this->parser) ) {
       xml_parser_free($this->parser);
-		}
-		$this->parser = NULL;
-		$this->structure_reinit();
-	}/*}}}*/
+    }
+    $this->parser = NULL;
+    $this->structure_reinit();
+  }/*}}}*/
   
   protected function initialize() {/*{{{*/
 
@@ -60,29 +60,29 @@ class RawparseUtility extends SystemUtility {/*{{{*/
 
   }/*}}}*/
 
-	function structure_reinit() {/*{{{*/
-		$this->headerset              = array();
-		$this->parser                 = NULL;
-		$this->current_tag            = NULL;
-		$this->tag_stack              = array();
-		$this->links                  = array();
-		$this->container_stack        = array();
-		$this->containers             = array();
-		$this->filtered_doc           = array();
-		$this->page_url_parts         = array();
-		$this->removable_containers   = array();
-		$this->hash_generator_counter = 0;
-		$this->tag_counter            = 0;
-		$this->promise_stack          = array();
-	}/*}}}*/
+  function structure_reinit() {/*{{{*/
+    $this->headerset              = array();
+    $this->parser                 = NULL;
+    $this->current_tag            = NULL;
+    $this->tag_stack              = array();
+    $this->links                  = array();
+    $this->container_stack        = array();
+    $this->containers             = array();
+    $this->filtered_doc           = array();
+    $this->page_url_parts         = array();
+    $this->removable_containers   = array();
+    $this->hash_generator_counter = 0;
+    $this->tag_counter            = 0;
+    $this->promise_stack          = array();
+  }/*}}}*/
 
-	function & clear_containers() {/*{{{*/
-		$this->containers = NULL;
-		$this->filtered_containers = NULL;
-		gc_collect_cycles();
-		$this->structure_reinit();
-		return $this;
-	}/*}}}*/
+  function & clear_containers() {/*{{{*/
+    $this->containers = NULL;
+    $this->filtered_containers = NULL;
+    gc_collect_cycles();
+    $this->structure_reinit();
+    return $this;
+  }/*}}}*/
 
   function & enable_filtered_doc($b) {/*{{{*/
     $this->enable_filtered_doc_cache = $b;
@@ -94,8 +94,8 @@ class RawparseUtility extends SystemUtility {/*{{{*/
       $this->containers = $c;
     else {
       $this->containers = $c[$reduce_to_element];
-		}
-		gc_collect_cycles();
+    }
+    gc_collect_cycles();
     return $this->containers;
   }/*}}}*/
 
@@ -126,25 +126,30 @@ EOH;
     return $this;
   }/*}}}*/
 
-	function & pop_from_containers(& $container) {/*{{{*/
-		$container = NULL;
-		$container = array_pop($this->containers);
+  function & pop_from_containers(& $container) {/*{{{*/
+    $container = NULL;
+    $container = array_pop($this->containers);
     reset($this->containers);
-		return $this;
-	}/*}}}*/
+    return $this;
+  }/*}}}*/
+
+  function & replace_containers($c) {
+    $this->containers = $c;
+    return $this->containers;
+  }
 
   function & containers_r() {/*{{{*/
     return $this->containers;
   }/*}}}*/
 
-	function clear_temporaries() {/*{{{*/
-		$this->filtered_containers = NULL;
-		$this->removable_containers = NULL;
-	}/*}}}*/
+  function clear_temporaries() {/*{{{*/
+    $this->filtered_containers = NULL;
+    $this->removable_containers = NULL;
+  }/*}}}*/
 
   function get_containers($docpath = NULL, $reduce_to_element = FALSE) {/*{{{*/
     $this->filtered_containers = array();
-		if ( is_array($this->removable_containers) )
+    if ( is_array($this->removable_containers) )
     foreach ( $this->removable_containers as $remove ) {
       unset($this->containers[$remove]);
     }
@@ -152,7 +157,7 @@ EOH;
 
     if ( !is_null($docpath) ) {
       $this->filtered_containers = $this->containers;
-			return $this->filter_nested_array($this->filtered_containers, $docpath, $reduce_to_element);
+      return $this->filter_nested_array($this->filtered_containers, $docpath, $reduce_to_element);
     }
     return $this->containers;
   }/*}}}*/
@@ -218,36 +223,36 @@ EOH;
       xml_parser_free($this->parser);
       $this->parser = NULL;
     }
-		if ( !$skip_alloc ) $this->initialize();
+    if ( !$skip_alloc ) $this->initialize();
     $this->current_tag     = NULL;
     $this->tag_stack       = array();
     $this->links           = array();
     $this->container_stack = array();
-		if ( $clear_containers )
+    if ( $clear_containers )
     $this->containers      = array();
     $this->filtered_doc    = array();
     return $this;
   }/*}}}*/
 
-	function standard_parse(UrlModel & $urlmodel) {/*{{{*/
-		return $this->
-			set_parent_url($urlmodel->get_url())->
-			parse_html(
-				$urlmodel->get_pagecontent(),
-				$urlmodel->get_response_header()
-			);
-	}/*}}}*/
+  function standard_parse(UrlModel & $urlmodel) {/*{{{*/
+    return $this->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $urlmodel->get_pagecontent(),
+        $urlmodel->get_response_header()
+      );
+  }/*}}}*/
 
   function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {/*{{{*/
 
-		$debug_method = FALSE;
+    $debug_method = FALSE;
 
     $this->reset();
 
-		if ( empty($raw_html) ) {
-			$this->syslog(__FUNCTION__,__LINE__, "(warning) Nothing to parse. Returning NULL");
-			return NULL;
-		}
+    if ( empty($raw_html) ) {
+      $this->syslog(__FUNCTION__,__LINE__, "(warning) Nothing to parse. Returning NULL");
+      return NULL;
+    }
 
     libxml_use_internal_errors(TRUE);
     libxml_clear_errors();
@@ -305,7 +310,7 @@ EOH;
           '',
           '',
         ),
-				$this->iconv($raw_html)
+        $this->iconv($raw_html)
       )
     ))));
 
@@ -315,17 +320,17 @@ EOH;
 
     if ( !$loadresult ) $this->syslog( __FUNCTION__, __LINE__, "-- WARNING: Failed to filtering HTML as XML, load result FAIL" );
 
-		$full_length  = mb_strlen($dom->saveXML());
-		$chunk_length = 16384;
+    $full_length  = mb_strlen($dom->saveXML());
+    $chunk_length = 16384;
     if ($debug_method) $this->syslog(__FUNCTION__,__LINE__, "(marker) --------------------------- mb_strlen " . $full_length );
-		for ( $offset = 0 ; $offset < $full_length ; $offset += $chunk_length ) {
-			$is_final = ($offset + $chunk_length) >= $full_length;
-			xml_parse($this->parser, mb_substr($dom->saveXML(), $offset, $chunk_length), $is_final);
-			if ( $this->terminated ) {
-				$this->syslog(__FUNCTION__,__LINE__,"(warning) Terminated.");
-				break;
-			}
-		}
+    for ( $offset = 0 ; $offset < $full_length ; $offset += $chunk_length ) {
+      $is_final = ($offset + $chunk_length) >= $full_length;
+      xml_parse($this->parser, mb_substr($dom->saveXML(), $offset, $chunk_length), $is_final);
+      if ( $this->terminated ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) Terminated.");
+        break;
+      }
+    }
     $xml_errno = xml_get_error_code($this->parser);
 
     if ( $xml_errno == 0 ) {
@@ -353,7 +358,7 @@ EOH;
     // Postprocessing
 
     // Add unprocessed container stack entries to $this->containers
-    while ( 0 < count($this->container_stack) ) $this->stack_to_containers();
+    while ( 0 < count($this->container_stack) ) $this->stack_to_containers(TRUE);
 
     $only_non_empty = create_function('$a', 'return 0 < count(array_element($a,"children")) ? $a : NULL;');
     $this->containers = array_filter(array_map($only_non_empty,$this->containers));
@@ -366,11 +371,11 @@ EOH;
     // Process deferred tag operations ("promises")
     $this->process_promise_stack();
   
-		$dom = NULL;
-		unset($dom);
-		$this->promise_stack = NULL;
-		gc_collect_cycles();
-		$this->promise_stack = array();
+    $dom = NULL;
+    unset($dom);
+    $this->promise_stack = NULL;
+    gc_collect_cycles();
+    $this->promise_stack = array();
 
     return $this->containers;
 
@@ -378,7 +383,7 @@ EOH;
 
   function process_promise_stack() {/*{{{*/
     // Process deferred tag operations ("promises")
-		$debug_method = FALSE;
+    $debug_method = FALSE;
     if ( 0 < count($this->promise_stack) ) {
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Handle stacked tag promises: " . count($this->promise_stack) . " for " . get_class($this));
       $containerset =& $this->get_containers();
@@ -394,7 +399,7 @@ EOH;
       $seq = NULL;
       $this->process_promise_stack_worker($seq,$containerset);
     } else {
-			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) No post-processing promises stacked for " . get_class($this));
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) No post-processing promises stacked for " . get_class($this));
     }
   }/*}}}*/
 
@@ -485,23 +490,23 @@ EOH;
     $this->syslog(__FUNCTION__,__LINE__,"(marker) ENs {$open_entity_names} Base {$base} SID {$system_id} PID {$public_id}" );
   }/*}}}*/
 
-	function tag_stack_parent(& $e) {/*{{{*/
-		$e = NULL;
-		if ( empty($this->tag_stack) || 2 > count($this->tag_stack) ) return FALSE;
-		$top = array_pop($this->tag_stack);
-		$e = array_pop($this->tag_stack);
-		array_push($this->tag_stack, $e);
-		array_push($this->tag_stack, $top);
-		return TRUE;
-	}/*}}}*/
+  function tag_stack_parent(& $e) {/*{{{*/
+    $e = NULL;
+    if ( empty($this->tag_stack) || 2 > count($this->tag_stack) ) return FALSE;
+    $top = array_pop($this->tag_stack);
+    $e = array_pop($this->tag_stack);
+    array_push($this->tag_stack, $e);
+    array_push($this->tag_stack, $top);
+    return TRUE;
+  }/*}}}*/
 
   function ru_tag_open($parser, $tag, $attrs) {/*{{{*/
-		if ( $this->freewheel ) return TRUE;
+    if ( $this->freewheel ) return TRUE;
     if ( $tag == 'HTTP:' ) return; 
     $tag = str_replace(':','_',strtoupper($tag));
-		// if ( $this->debug_tags ) $this->syslog(__FUNCTION__,__LINE__,"(marker) >>>>>>>>>>>>>>>> {$tag}" );
+    // if ( $this->debug_tags ) $this->syslog(__FUNCTION__,__LINE__,"(marker) >>>>>>>>>>>>>>>> {$tag}" );
     $tag_handler = strtolower("ru_{$tag}_open");
-		$seq = intval($this->tag_counter);
+    $seq = intval($this->tag_counter);
     $current_tag = array(
       "tag" => $tag, 
       'attrs' => is_array($attrs) ? array_merge( $attrs, array('seq' => $seq) ) : array('seq' => $seq),
@@ -527,21 +532,21 @@ EOH;
     }
     $this->current_tag['position'] = count($this->filtered_doc);
     $this->push_tagstack();
-		$this->tag_counter = intval($this->tag_counter) + 1;
+    $this->tag_counter = intval($this->tag_counter) + 1;
     return TRUE;
   }/*}}}*/
 
-	function get_container_by_hashid($container_id_hash, $key = NULL) {/*{{{*/
-		return array_key_exists($container_id_hash,$this->containers)
-			? is_null($key) 
-			  ? $this->containers[$container_id_hash]
-				: $this->containers[$container_id_hash][$key]
-			: NULL
-			;
-	}/*}}}*/
+  function get_container_by_hashid($container_id_hash, $key = NULL) {/*{{{*/
+    return array_key_exists($container_id_hash,$this->containers)
+      ? is_null($key) 
+        ? $this->containers[$container_id_hash]
+        : $this->containers[$container_id_hash][$key]
+      : NULL
+      ;
+  }/*}}}*/
 
   function ru_tag_close($parser, $tag) {/*{{{*/
-		if ( $this->freewheel ) return TRUE;
+    if ( $this->freewheel ) return TRUE;
     $debug_method = FALSE;
     $tag = str_replace(':','_',strtoupper($tag));
     $tag_handler = strtolower("ru_{$tag}_close");
@@ -566,7 +571,7 @@ EOH;
             $sethash = array_element($postproc_data,'__SETHASH__','- - - -');
             if ( array_key_exists($sethash, $this->containers) ) {
               unset($postproc_data['__SETHASH__']);
-							$this->containers[$sethash]['__POSTPROC__'] = $postproc_data;
+              $this->containers[$sethash]['__POSTPROC__'] = $postproc_data;
             }
             break;
           case 'title':
@@ -626,7 +631,7 @@ EOH;
   }/*}}}*/
 
   function ru_cdata($parser, $cdata) {/*{{{*/
-		if ( $this->freewheel ) return TRUE;
+    if ( $this->freewheel ) return TRUE;
     // Character data will always be contained within a parent container.
     // If there is no handler specified for a given tag, the topmost 
     // tag on the tag stack receives link content.
@@ -648,10 +653,72 @@ EOH;
   }/*}}}*/
 
   function ru_default($parser, & $cdata) {/*{{{*/
-		if ( $this->freewheel ) return TRUE;
+    if ( $this->freewheel ) return TRUE;
     // $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$cdata}" );
     // $cdata = NULL;
     return FALSE;
+  }/*}}}*/
+
+
+  // Nested tag embedding: Placeholder cleanup 
+
+  function cleanup_article(& $a, $k) {/*{{{*/
+    // Invoked to clean up placeholders for embedded tags 
+    // Requires use of this->append_cdata() in ru_x_cdata() parser callbacks
+    // where placeholders need to be embedded.
+    //
+    // The container for placeholder-embedded lines must be marked 
+    // as containers using this->push_container_def($tag,$attrs).
+    //
+    // Lines must be contained in "text" entries
+    // <seq> =>
+    //   "text" => "<string containing placeholder '{{<seq>}}'>"
+    //
+    if ( array_key_exists("text",$a) ) {
+      // Remove self-referencing placeholders
+      $a["text"] = str_replace("{{{$k}}}","",$a["text"]);
+      if (1 == preg_match("@\{\{([0-9]{1,})\}\}@i",$a["text"])) {
+        $m = array(); 
+        if ( 0 < intval(preg_match_all("@\{\{([0-9]{1,})\}\}@i",$a["text"],$m)) ) {
+          $m = array_combine($m[1],$m[0]);
+          $a["matches"] = $m;
+          $keys = array_flip(array_pop($this->article));
+          $a["matches"] = array();
+          foreach ( $m as $index => $placeholder ) {
+            if ( array_key_exists($index, $keys) ) {
+              $a["matches"][$index] = $placeholder;
+              continue;
+            }
+            $a["text"] = str_replace($placeholder,'',$a["text"]);
+          }
+          if ( !(0 < count($a["matches"]))) unset($a["matches"]);
+          array_push($this->article,array_flip($keys));
+        }
+      }
+    }
+    else if ( array_key_exists("children", $a) ) {
+      array_push($this->article,array_keys($a['children']));
+      array_walk($a['children'], create_function('& $a, $k, $s', '$s->cleanup_article($a, $k);'), $this);
+      array_pop($this->article);
+    }
+  }/*}}}*/
+
+  function mark_container_placeholders(& $data) {/*{{{*/
+
+    $this->article = array();
+
+    $this->reorder_with_sequence_tags($data);
+    array_walk($data,create_function(
+      '& $a, $k, $s', 'if ( is_array($a) && array_key_exists("children",$a) ) $s->reorder_with_sequence_tags($a["children"]);'
+    ),$this);
+
+    array_push($this->article,array_keys($data['children']));
+    array_walk($data['children'], create_function(
+      '& $a, $k, $s', '$s->cleanup_article($a, $k);'
+    ), $this);
+
+    $this->article = array();
+
   }/*}}}*/
 
   function add_to_container_stack(& $link_data, $target_tag = NULL) {/*{{{*/
@@ -672,10 +739,10 @@ EOH;
     if ( is_null($target_tag) ) {
       $container = array_pop($this->container_stack);
       $container['children'][] = $link_data; 
-			$link_data['sethash'] = array_element($container,'sethash');
-			$link_data['found_index'] = NULL;
+      $link_data['sethash'] = array_element($container,'sethash');
+      $link_data['found_index'] = NULL;
       array_push($this->container_stack, $container);
-			return TRUE;
+      return TRUE;
     }
     $found_index = NULL;
     foreach( $this->container_stack as $stack_index => $stacked_element ) {
@@ -683,14 +750,14 @@ EOH;
       $found_index = $stack_index; // Continue; find the uppermost tag
     }
     if ( !is_null($found_index) ) {
-			$link_data['found_index'] = $found_index;
-			$link_data['sethash'] = array_element($this->container_stack[$found_index],'sethash');
+      $link_data['found_index'] = $found_index;
+      $link_data['sethash'] = array_element($this->container_stack[$found_index],'sethash');
       $this->container_stack[$found_index]['children'][] = $link_data;
-			return TRUE;
+      return TRUE;
     } else {
       if (C('DEBUG_'.get_class($this))) $this->syslog( __FUNCTION__, __LINE__, "(marker) Lost tag content" );
     }
-		return FALSE;
+    return FALSE;
   }/*}}}*/
 
   function push_container_def($tagname, & $attrs) {/*{{{*/
@@ -722,7 +789,7 @@ EOH;
       $url = UrlModel::normalize_url($this->page_url_parts, $fixurl, $trim_path_slashes);
       $url = str_replace('/?','?',$url);
       $this->current_tag['attrs'][$k] = $url;
-      // $this->syslog( __FUNCTION__, __LINE__, "(marker) Updated {$this->current_tag['attrs'][$k]} <- {$prev_url}");
+      if ( $this->debug_tags ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Updated {$this->current_tag['tag']} {$this->current_tag['attrs'][$k]} <- {$prev_url}");
     }
     return $this;
   }/*}}}*/
@@ -753,30 +820,30 @@ EOH;
       $extract_text_input   = create_function('$a','return strtoupper(array_element($a,"tag")) == "INPUT" && is_array(array_element($a,"attrs")) && strtoupper(array_element($a["attrs"],"TYPE")) == "TEXT"   ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "value" => array_element(array_element($a,"attrs",array()),"VALUE")) : NULL;');
       $extract_select       = create_function('$a','return strtoupper(array_element($a,"tagname")) == "SELECT" ? array("name" => array_element(array_element($a,"attrs",array()),"NAME"), "keys" => array_element($a,"children")) : NULL;');
 
-			$radio_options  = array_values(array_filter(array_map($extract_radio_input,$form_control_source)));
+      $radio_options  = array_values(array_filter(array_map($extract_radio_input,$form_control_source)));
 
       foreach ( array_merge(
         array_values(array_filter(array_map($extract_hidden_input,$form_control_source))),
-				array_values(array_filter(array_map($extract_text_input, $form_control_source)))
+        array_values(array_filter(array_map($extract_text_input, $form_control_source)))
       ) as $form_control ) {
         $form_controls[$form_control['name']] = $form_control['value'];
       };
 
-			foreach ( $radio_options as $radio ) {
-				if ( !array_key_exists($radio['name'],$form_controls) ) $form_controls[$radio['name']] = array();
-				$form_controls[$radio['name']][] = $radio['value'];
-			}
+      foreach ( $radio_options as $radio ) {
+        if ( !array_key_exists($radio['name'],$form_controls) ) $form_controls[$radio['name']] = array();
+        $form_controls[$radio['name']][] = $radio['value'];
+      }
 
       $select_options = array_values(array_filter(array_map($extract_select, $form_control_source)));
 
       $userset = array();
-			$selected = NULL;
+      $selected = NULL;
       foreach ( $select_options as $select_option ) {
         //$this->recursive_dump($select_options,__LINE__);
         $select_name    = $select_option['name'];
         $select_option  = $select_option['keys'];
         foreach ( $select_option as $option ) {
-					if ( is_null($selected) && (1 == intval(array_element($option,'selected')))) $selected = $option['value']; 
+          if ( is_null($selected) && (1 == intval(array_element($option,'selected')))) $selected = $option['value']; 
           if ( empty($option['value']) ) continue;
           $userset[$select_name][$option['value']] = $option['text'];
         }
@@ -788,96 +855,137 @@ EOH;
       'form_controls'  => $form_controls,
       'select_name'    => $select_name,
       'select_options' => $select_option,
-			'select_active'  => $selected,
+      'select_active'  => $selected,
     );
   }/*}}}*/
 
-	function fetch_body_generic_cleanup($pagecontent) {/*{{{*/
-		return preg_replace(
-			array(
-				'@^(.*)\<body([^>]*)\>(.*)\<\/body\>(.*)@mi',
-				// Remove mouse event handlers
-				'@(onmouseover|onmouseout)="([^"]*)"@',
-				"@(onmouseover|onmouseout)='([^']*)'@",
-			),
-			array(
-				'$3', 
-				'',
-				'',
-			),
-			$pagecontent
-		);
-	}/*}}}*/
-	
-	function current_tag_cdata() {
-		$cdata = nonempty_array_element($this->current_tag,'cdata',array());
-		$cdata = array_values(array_filter(explode('[BR]',trim(join('',$cdata)))));
-		return is_array($cdata) ? $cdata : array();
-	}
+  function fetch_body_generic_cleanup($pagecontent) {/*{{{*/
+    return preg_replace(
+      array(
+        '@^(.*)\<body([^>]*)\>(.*)\<\/body\>(.*)@mi',
+        // Remove mouse event handlers
+        '@(onmouseover|onmouseout)="([^"]*)"@',
+        "@(onmouseover|onmouseout)='([^']*)'@",
+      ),
+      array(
+        '$3', 
+        '',
+        '',
+      ),
+      $pagecontent
+    );
+  }/*}}}*/
+  
+  function current_tag_cdata() {
+    $cdata = nonempty_array_element($this->current_tag,'cdata',array());
+    $cdata = array_values(array_filter(explode('[BR]',trim(join('',$cdata)))));
+    return is_array($cdata) ? $cdata : array();
+  }
 
-	function embed_container_in_parent(& $parser,$tag) {/*{{{*/
-		$keep_container = TRUE;
-		$this->pop_tagstack();
-		if ( array_key_exists('CONTAINER',$this->current_tag) ) {
-			$content = $this->stack_to_containers();
-			$container_hash = $content['hash_value'];
-			$attrs = nonempty_array_element($this->current_tag,'attrs',array());
-			$cdata = array_filter(nonempty_array_element($this->current_tag,'cdata',array()));
-			if ( $container_hash == nonempty_array_element($this->current_tag,'sethash') ) {
-
-				$this->syslog(__FUNCTION__,__LINE__,"(marker) -- WARNING: Prevented container duplication. Double-check your parser output");
-				$this->recursive_dump($this->current_tag,"(marker) +-");
-				$this->recursive_dump($content,"(marker) -+");
-
-			} else {
-				$cdata = $this->current_tag_cdata();
-				$this->current_tag = array_merge(
-					array(
-						'cdata' => $cdata,
-					),
-					$content['container']
-				);
-				// Remove processed container
-				if (0) if ( array_key_exists($content['hash_value'], $this->containers) ) {
-					unset($this->containers[$content['hash_value']]);
-				}
-				unset($attrs['seq']);
-				$this->current_tag['attrs'] = array_merge(
-					$this->current_tag['attrs'],
-					$attrs
-				);
-			}
-			$keep_container = FALSE;
-		}
-		$this->add_to_container_stack($this->current_tag);
-		$this->push_tagstack();
-		// $this->recursive_dump($content,"(marker) {$tag}");
-		return $keep_container;
-	}/*}}}*/
-
-	function add_cdata_property() {/*{{{*/
-		$this->pop_tagstack();
-		$this->current_tag['cdata'] = array();
-		$this->push_tagstack();
-	}/*}}}*/
-
-	function append_cdata($cdata) {/*{{{*/
-		$this->pop_tagstack();
-		if (0 < mb_strlen(trim($cdata)))
-		$this->current_tag['cdata'][] = $cdata;
-		$this->push_tagstack();
-		return TRUE;
-	}/*}}}*/
-
-	function add_current_tag_to_container_stack() {
+  function embed_container_in_parent(& $parser,$tag,$remove_processed_container = FALSE) {/*{{{*/
+    $keep_container = TRUE;
     $this->pop_tagstack();
-		$this->add_to_container_stack(array_filter(array_merge(
-			$this->current_tag,
-			array('seq' => nonempty_array_element($this->current_tag['attrs'],'seq')) 
-		)));
+    if ( array_key_exists('CONTAINER',$this->current_tag) ) {
+      $content = $this->stack_to_containers(TRUE);
+      $container_hash = $content['hash_value'];
+      $attrs = nonempty_array_element($this->current_tag,'attrs',array());
+      $cdata = array_filter(nonempty_array_element($this->current_tag,'cdata',array()));
+      if ( $container_hash == nonempty_array_element($this->current_tag,'sethash') ) {
+
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- WARNING: Prevented container duplication. Double-check your parser output");
+        $this->recursive_dump($this->current_tag,"(marker) +-");
+        $this->recursive_dump($content,"(marker) -+");
+
+      } else {
+        $cdata = $this->current_tag_cdata();
+        $this->reorder_with_sequence_tags($content['container']);
+        if ( array_key_exists('children', $content['container']) ) {
+          $this->reorder_with_sequence_tags($content['container']['children']);
+        }
+        $this->current_tag = array_merge(
+          ((0 < count($cdata)) ? array('cdata' => $cdata) : array()),
+          $content['container']
+        );
+        // Remove processed container
+        if ( $remove_processed_container && array_key_exists($content['hash_value'], $this->containers) ) {
+          unset($this->containers[$container_hash]);
+        }
+        unset($attrs['seq']);
+        $this->current_tag['attrs'] = array_merge(
+          $this->current_tag['attrs'],
+          $attrs
+        );
+      }
+      $keep_container = FALSE;
+    }
+    $this->add_to_container_stack(array_filter($this->current_tag));
+    $this->push_tagstack();
+    return $keep_container;
+  }/*}}}*/
+
+  function add_cdata_property() {/*{{{*/
+    $this->pop_tagstack();
+    $this->current_tag['cdata'] = array();
+    $this->current_tag['_cdata_next_'] = $this->tag_counter;
     $this->push_tagstack();
     return TRUE;
-	}
+  }/*}}}*/
+
+  function embed_nesting_placeholders() {/*{{{*/
+    // Method is called from two locations: 
+    //   ru_tag_cdata, and ru_tag_close
+    // BEFORE a tag is placed into a parent container
+    // by invoking add_to_container_stack(childtag)
+    if ( !is_null(nonempty_array_element($this->current_tag,'_cdata_next_'))) {
+      // Insert placeholders for inserted tags
+      if ( $this->tag_counter > intval($this->current_tag['_cdata_next_']) ) {
+        // $this->syslog(__FUNCTION__,__LINE__,"(marker) [{$this->tag_counter},{$this->current_tag['_cdata_next_']}] {$this->current_tag['tag']}");
+        while ( ( $this->current_tag['_cdata_next_'] + 1 ) < $this->tag_counter ) {
+          $i = $this->current_tag['_cdata_next_'];
+          $this->current_tag['_cdata_next_']++;
+          if ( !array_key_exists($this->current_tag['_cdata_next_'],$this->current_tag['cdata']) ) {
+            $this->current_tag['cdata'][$this->current_tag['_cdata_next_']] = "{{{$i}}}";
+          }
+        }
+      }
+    }
+  }/*}}}*/
+
+  function append_cdata($cdata) {/*{{{*/
+    $this->pop_tagstack();
+    if (0 < mb_strlen(trim($cdata))) {
+      $this->embed_nesting_placeholders();
+      $this->tag_counter++;
+      $this->current_tag['cdata'][$this->tag_counter] = $cdata;
+      $this->current_tag['_cdata_next_'] = $this->tag_counter;
+    }
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
+
+  function standard_cdata_container_close() {/*{{{*/
+    $this->pop_tagstack();
+    $this->embed_nesting_placeholders();
+    $this->push_tagstack();
+    if ( is_array(nonempty_array_element($this->current_tag,'cdata')) ) {
+      $paragraph = array(
+        'text' => join('', $this->current_tag['cdata']),
+        'seq'  => $this->current_tag['attrs']['seq'],
+      );
+      if ( 0 < strlen($paragraph['text']) ) $this->add_to_container_stack($paragraph);
+    }
+    return TRUE;
+  }/*}}}*/
+
+  function add_current_tag_to_container_stack() {/*{{{*/
+    $this->pop_tagstack();
+    $this->add_to_container_stack(array_filter(array_merge(
+      $this->current_tag,
+      array('seq' => nonempty_array_element($this->current_tag['attrs'],'seq')) 
+    )));
+    $this->push_tagstack();
+    return TRUE;
+  }/*}}}*/
 
   // ------------ Specific HTML tag handler methods -------------
 
@@ -896,7 +1004,15 @@ EOH;
     return TRUE;
   }/*}}}*/
 
-  function stack_to_containers() {/*{{{*/
+  function pop_container_stack() {/*{{{*/
+    $content = $this->stack_to_containers();
+    $this->unset_container_by_hash(nonempty_array_element($content,'hash_value'));
+    $content = nonempty_array_element($content,'container');
+    unset($content['sethash']);
+    return $content;
+  }/*}}}*/
+
+  function stack_to_containers($execute_cleanup = FALSE) {/*{{{*/
     $container = array_pop($this->container_stack);
     $hash_value = (is_array($container) && array_key_exists('sethash',$container)) ? nonempty_array_element( $container,'sethash' ) : NULL;
     if ( is_null($hash_value) ) {
@@ -904,44 +1020,45 @@ EOH;
       $this->recursive_dump($container, "(warning) " . __METHOD__);
     } else if ( !is_array($container) ) {
       $this->syslog(__FUNCTION__, __LINE__, "(warning) - Got non-container item from container stack! " . print_r($containers));
-			$hash_value = NULL;
+      $hash_value = NULL;
     } else if ( array_key_exists($hash_value,$this->containers) ) {
       $this->syslog(__FUNCTION__, __LINE__, "(warning) - Hash collision on tag {$container['tagname']} - {$hash_value}");
-			$hash_value = NULL;
-		} else if ( $this->no_store ) {
-			// We are disallowed from placing nodes into the container list
-			$hash_value = NULL;
-		} else {
+      $hash_value = NULL;
+    } else if ( $this->no_store ) {
+      // We are disallowed from placing nodes into the container list
+      $hash_value = NULL;
+    } else {
+      if ( $execute_cleanup ) $this->mark_container_placeholders($container);
       $this->containers[$hash_value] = $container;
     }
-		return is_null($hash_value)
-			? NULL
-			: array(
-					'hash_value' => $hash_value,
-					'container' => $container,
-				);
+    return is_null($hash_value)
+      ? NULL
+      : array(
+          'hash_value' => $hash_value,
+          'container' => $container,
+        );
   }/*}}}*/
 
-	function unset_container_by_hash($hash_value) {
-		if (!is_array($this->containers)) return;
-		if ( array_key_exists($hash_value, $this->containers) ) {
-			unset($this->containers[$hash_value]);
-		}
-	}
+  function unset_container_by_hash($hash_value) {/*{{{*/
+    if (!is_array($this->containers)) return;
+    if ( array_key_exists($hash_value, $this->containers) ) {
+      unset($this->containers[$hash_value]);
+    }
+  }/*}}}*/
 
-	function & set_freewheel($v = TRUE) {/*{{{*/
-		// Suspend parsing when $v := TRUE
-		$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - freewheel = " . ($v ? "TRUE" : "FALSE"));
-		$this->freewheel = $v;
-		return $this;
-	}/*}}}*/
+  function & set_freewheel($v = TRUE) {/*{{{*/
+    // Suspend parsing when $v := TRUE
+    $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - freewheel = " . ($v ? "TRUE" : "FALSE"));
+    $this->freewheel = $v;
+    return $this;
+  }/*}}}*/
 
-	function & set_terminated($v = TRUE) {/*{{{*/
-		// Suspend parsing when $v := TRUE
-		$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - terminated = " . ($v ? "TRUE" : "FALSE"));
-		$this->terminated = $v;
-		return $this;
-	}/*}}}*/
+  function & set_terminated($v = TRUE) {/*{{{*/
+    // Suspend parsing when $v := TRUE
+    $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - - Parse switch - terminated = " . ($v ? "TRUE" : "FALSE"));
+    $this->terminated = $v;
+    return $this;
+  }/*}}}*/
 
 
   function & current_tag() {/*{{{*/

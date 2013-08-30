@@ -31,10 +31,10 @@ class RepublicActParseUtility extends SenateCommonParseUtility {
   function ru_span_close(& $parser, $tag) {/*{{{*/
     return $this->embed_cdata_in_parent();
     $this->pop_tagstack();
-		$text = array(
-			'text' => str_replace(array('[BR]',"\n"),array(''," "),join('',$this->current_tag['cdata'])),
-		);
-		$this->add_to_container_stack($text);
+    $text = array(
+      'text' => str_replace(array('[BR]',"\n"),array(''," "),join('',$this->current_tag['cdata'])),
+    );
+    $this->add_to_container_stack($text);
     $this->push_tagstack();
     if ($this->debug_tags) $this->syslog( __FUNCTION__, __LINE__, "--- {$this->current_tag['tag']}" );
     return TRUE;
@@ -42,8 +42,8 @@ class RepublicActParseUtility extends SenateCommonParseUtility {
 
   function non_session_linked_document_prepare_content(& $uncached_document_content) {/*{{{*/
     // Method called from non_session_linked_content_parser
-		$debug_method = FALSE;
-		if ($debug_method) $this->syslog(__FUNCTION__,__LINE__, "(marker) Preparing markup" ); 
+    $debug_method = FALSE;
+    if ($debug_method) $this->syslog(__FUNCTION__,__LINE__, "(marker) Preparing markup" ); 
     // $this->recursive_dump($uncached_document_content,"(marker) - - -");
     // The Republic Act document pager returns a minimal amount of information.
     // - Republic Act No.
@@ -214,11 +214,16 @@ class RepublicActParseUtility extends SenateCommonParseUtility {
     // http://www.senate.gov.ph/lis/pdf_sys.aspx?congress=15&type=republic_act 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for {$urlmodel} ---------------------------------------" );
 
-    $republic_act  = new RepublicActDocumentModel();
-    $ra_parser_alt = new SenateRaListParseUtility();
-    $test_url      = new UrlModel();
+    $republic_act = new RepublicActDocumentModel();
+    $ra_parser    = new RepublicActParseUtility();
+    $test_url     = new UrlModel();
 
-    $ra_parser->set_parent_url($urlmodel->get_url())->parse_html($pagecontent,$urlmodel->get_response_header());
+    $ra_parser->
+      set_parent_url($urlmodel->get_url())->
+      parse_html(
+        $pagecontent,
+        $urlmodel->get_response_header()
+      );
 
     $pagetitle    = 'Republic Acts'; 
     $pagecontent  = ''; // join('',$ra_parser->get_filtered_doc());
@@ -330,6 +335,182 @@ jQuery(document).ready(function(){ jQuery('#doctitle').html('{$pagetitle}');});
 </script>
 EOH;
 
+
+  }/*}}}*/
+
+  function republic_act_user_template() {/*{{{*/
+    return <<<EOH
+<h1>{sn}</h1>
+<h2>{title}</h2>
+<span><b>Source: </b>{url}</span>
+<h2>{description}</h2>
+<hr/>
+<div>{content}</div>
+<span>Toink</span>
+EOH;
+  }/*}}}*/
+
+  function republic_act_user_template_ocrcap() {/*{{{*/
+    return <<<EOH
+<h1>{sn}</h1>
+<h2>{title}</h2>
+<span><b>Source: </b>{url}</span>
+<h2>{description}</h2>
+<hr/>
+<div>{ocrcontent.data}</div>
+EOH;
+  }/*}}}*/
+
+  function line_formatter($s) {
+    return preg_replace(
+      array(
+        "@\s@",
+        '@\[([ ]*)(.*)([ ]*)\]@i',
+        '@^[ ]*(BOOK|TITLE|CHAPTER)([ ]*)(.*)@i',
+        '@^[ ]*ART(ICLE)*([ ]*)(.*)@i',
+
+        '@^[ ]*(SEC(TION|\.)([ ]*)([0-9]*)[.]*)@i',
+        '@^[ ]*\(([a-z]{1}|[ivx]{1,4}|[0-9]{1,})[.]?\)([\s]*)@i',
+        '@^[ ]*([0-9]{1,})([.])@i',
+        '@^[ ]*([a-z])([.][\s])@i',
+
+        '@(Republic Act N(o.|umber)([ ]*)([0-9]{4,}))@i',
+        '@(Senate Bill N(o.|umber)([ ]*)([0-9]{4,}))@i',
+        '@(House Bill N(o.|umber)([ ]*)([0-9]{4,}))@i',
+      ),
+      array(
+        ' ',
+        '<span class="document-section document-heading-1">$2</span>',
+        '<span class="document-section document-heading-1">$1 $3</span>',
+        '<span class="document-section document-heading-1">Article $3</span>',
+
+        '<span class="document-section document-heading-2">Section $4</span>.',
+        '<span class="document-section document-heading-3">($1) </span>',
+        '<span class="document-section document-heading-4">$1. </span>',
+        '<span class="document-section document-heading-4">$1. </span>',
+
+        '[{RA-$4}]',
+        '[{SB-$4}]',
+        '[{HB-$4}]',
+      ),
+      $this->iconv($s)
+    );
+  }
+
+  function generate_admin_content(RepublicActDocumentModel & $republic_act) {/*{{{*/
+
+    // Convert [content] or [ocrcontent.data] field to paragraphs
+		$ocrcontent = nonempty_array_element($republic_act->get_ocrcontent(),'data',array());
+		$ocrcontent = nonempty_array_element($ocrcontent,'data');
+		$no_local_content = json_encode(array(
+			0 => array('text' => 'No Data for ' . $republic_act->get_sn()),
+			1 => array('text' => 'Only the original document is available at {{2}}'),
+			2 => array(
+				'url' => $republic_act->get_url(),
+				'text' => $republic_act->get_url(),
+			),
+		));	
+
+		if ( !is_null($republic_act->get_content()) ) {
+			$content = @json_decode($republic_act->get_content(),TRUE);
+		} else if ( !is_null($ocrcontent) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Using OCR version");
+			$content = explode("\n", str_replace(array("\r\n"),array("\n"),$ocrcontent));
+		} else {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) NO CONTENT. Using placeholder.");
+			$content = $no_local_content;
+		}
+
+    if (is_array($content) && (0 < count($content))) {
+      $content = array_values(array_filter(array_map(create_function(
+        '$a', 'return str_replace("[BR]","<br/>",nonempty_array_element($a,"text"));'
+      ),$content)));
+      // Replace line headings
+      array_walk($content,create_function(
+        '& $a, $k, $s', '$a = $s->line_formatter($a);'
+      ), $this);
+      $content = array_filter(array_map(create_function(
+        '$a', 'return "<p>{$a}</p>";'
+      ),$content));
+      $content = join("\n",$content);
+      $republic_act->set_content($content);
+      $content = NULL;
+      unset($content);
+    }  
+		return $republic_act->substitute($this->republic_act_user_template());
+  }/*}}}*/
+
+  function generate_descriptive_markup(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+		// Generate descriptive markup for an already-stored RA/Act record.
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+
+    $pagecontent = NULL;
+
+    if ( !$urlmodel->in_database() ) $urlmodel->stow();
+
+    $urlpath = urldecode($urlmodel->get_url());
+    $urlpath = explode('/',UrlModel::parse_url($urlpath,PHP_URL_PATH));
+    $ra = strtoupper(preg_replace('@[^RA0-9]@i','',array_pop($urlpath))); 
+    $match = array();
+    if ( 1 == preg_match('@([A-Z]{1,})([0-9]{1,})@i',$ra,$match) ) {
+      $republic_act = new RepublicActDocumentModel();
+      array_shift($match);
+      $match = array_values($match);
+      $match[1] = ltrim($match[1],'0'); 
+      $ra_regex = join('(.*)',$match);
+      $republic_act->
+        join_all()->
+        where(array('AND' => array('`a`.sn' => "REGEXP '({$ra_regex})'")))->
+        recordfetch_setup();
+      $record = array();
+			$ocr_queue_list = array();
+      while ( $republic_act->recordfetch($record,TRUE) ) {
+        if ( is_null($pagecontent) ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Republic Act {$ra} #{$record['id']}" );
+          if ( $debug_method ) $this->recursive_dump($record,"(marker)");
+          $pagecontent = $this->generate_admin_content($republic_act);
+        }
+				if ( is_array($record['content']) ) {
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) Document already stored.");
+					if ( $debug_method ) $this->recursive_dump($record['content'],"(marker)");
+				} 
+				else if ( FALSE == @json_decode(nonempty_array_element($record,'content'),TRUE) ) {
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) Enqueue.");
+					$ocr_queue_list[UrlModel::get_url_hash($record['url'])] = $record['id'];
+				}
+      }
+			$ocr_dequeue_method = 'test_document_ocr_result';
+			if ( method_exists($republic_act,$ocr_dequeue_method) ) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) OCR queue check. Elements: " . count($ocr_queue_list));
+				$this->recursive_dump($ocr_queue_list,"(marker)");
+				while ( 0 < count($ocr_queue_list) ) {
+					$ocr_item = array_shift($ocr_queue_list);
+					if ( $republic_act->set_id(NULL)->retrieve($ocr_item,'id')->in_database() ) {
+						$republic_act->$ocr_dequeue_method('get_url');
+					}
+				}
+			}
+			else {
+					$this->syslog( __FUNCTION__, __LINE__, "(marker) No method {$ocr_dequeue_method}.");
+			}
+    }
+
+		if ( $debug_method ) {/*{{{*/
+			$urlhash = UrlModel::get_url_hash($urlmodel->get_url());
+			$urlmodel->
+				where(array('AND' => array('urlhash' => $urlhash)))->
+				recordfetch_setup();
+
+			while ( $urlmodel->recordfetch($urlhash,TRUE) ) {
+				$this->recursive_dump($urlhash,"(marker) + UrlModel ");
+			}
+		}/*}}}*/
+
+    $parser->json_reply['httpcode'] = 200;
+    $parser->json_reply['contenttype'] = 'text/html';
+    $parser->json_reply['subcontent'] = $pagecontent;
+    $pagecontent = NULL;
 
   }/*}}}*/
 

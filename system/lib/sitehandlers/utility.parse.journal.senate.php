@@ -11,9 +11,24 @@
 class SenateJournalParseUtility extends SenateDocAuthorshipParseUtility {
   
   var $activity_summary = array();
+  var $child_collection_source = array();
 
   function __construct() {
     parent::__construct();
+  }
+
+  function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {
+
+    $debug_method = FALSE;
+
+    $parse_result = parent::parse_html($raw_html, $response_headers, $only_scrub);
+
+    $this->child_collection_source = $this->get_containers('children[tagname=form][class*=lis_div]',0);
+    $this->reorder_with_sequence_tags($this->child_collection_source);
+
+    if ( $debug_method ) $this->recursive_dump($this->get_containers(),"(marker)");
+
+    return $parse_result;
   }
 
   function parse_activity_summary(array & $journal_data) {/*{{{*/
@@ -236,9 +251,7 @@ EOH;
   }/*}}}*/
 
   function ru_td_open(& $parser, & $attrs, $tag) {/*{{{*/
-    $this->pop_tagstack();
-    $this->current_tag['cdata'] = array();
-    $this->push_tagstack();
+    $this->add_cdata_property();
     $this->push_container_def($tag, $attrs);
     return TRUE;
   }/*}}}*/
@@ -286,23 +299,25 @@ EOH;
       )));
     }
     $this->add_to_container_stack($paragraph);
-    if ( $this->debug_tags) 
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']} {$text}" );
+    if ( $this->debug_tags ) $this->syslog( __FUNCTION__, __LINE__, "(marker) --- {$this->current_tag['tag']} {$text}" );
     $this->push_tagstack();
-    $this->stack_to_containers();
+    $this->stack_to_containers(TRUE);
     return TRUE;
   }/*}}}*/
 
   function ru_div_open(& $parser, & $attrs, $tag) {/*{{{*/
-    return parent::ru_div_open($parser,$attrs,$tag);
+    $this->add_cdata_property();
+    $this->push_container_def($tag, $attrs);
+    return TRUE; 
   }  /*}}}*/
   function ru_div_cdata(& $parser, & $cdata) {/*{{{*/
-    return parent::ru_div_cdata($parser,$cdata);
+    return $this->append_cdata($cdata);
   }/*}}}*/
   function ru_div_close(& $parser, $tag) {/*{{{*/
-    $this->current_tag();
-    $parent_result = parent::ru_div_close($parser,$tag);
-    return $parent_result;
+    //$content = $this->pop_container_stack();
+    //$this->stack_to_containers();
+    //return TRUE;
+    return $this->embed_container_in_parent($parser,$tag,TRUE);
   }/*}}}*/
 
   function ru_small_open(& $parser, & $attrs, $tag) {/*{{{*/
@@ -453,6 +468,10 @@ EOH;
   }/*}}}*/
 
   /** Higher-level page parsers **/
+
+  function generate_parser_linkset(& $urlmodel) {
+    return NULL;
+  }
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 

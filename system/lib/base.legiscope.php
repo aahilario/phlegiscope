@@ -352,7 +352,7 @@ class LegiscopeBase extends SystemUtility {
     }
   }/*}}}*/
 
-  function safe_json_encode($s) {/*{{{*/
+  static function safe_json_encode($s) {/*{{{*/
 
     $pagecontent     = json_encode($s);
     $json_last_error = json_last_error();
@@ -366,10 +366,10 @@ class LegiscopeBase extends SystemUtility {
       ));
       $pagecontent = json_encode($s);
       $json_last_error = json_last_error();
-      $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
+      //$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
       break;
     default:
-      $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
+      //$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
       break;
     }  
     return $pagecontent;
@@ -379,7 +379,7 @@ class LegiscopeBase extends SystemUtility {
   function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
       $cache_force = $this->filter_post('cache');
-      $pagecontent = $this->safe_json_encode($json_reply);
+      $pagecontent = static::safe_json_encode($json_reply);
       header('Content-Type: application/json');
       header('Content-Length: ' . strlen($pagecontent));
       $this->flush_output_buffer();
@@ -491,6 +491,7 @@ class LegiscopeBase extends SystemUtility {
     }/*}}}*/ 
 
     $method_map = array(
+			'by-wpdate'    => NULL,
       'by-fullpath'  => $seek_postparse_method,
       'by-query'     => $seek_postparse_querytype_method,
       'by-noquery'   => $seek_postparse_path_method,
@@ -521,6 +522,23 @@ class LegiscopeBase extends SystemUtility {
       }
     }/*}}}*/
 
+		// Now try to construct a Y/M/D path handler
+		$dir_sans_path = explode('/',$url_components['path']);
+		$tail = array_pop($dir_sans_path);
+		array_walk($dir_sans_path,create_function(
+			'& $a, $k', '$a = preg_replace("@([0-9]{1,})@","([0-9]{1,".strlen($a)."})",$a);'
+		));
+		$pathregex = join('/', $dir_sans_path); 
+		array_push($dir_sans_path, $tail);
+		$test_url = $url_components;
+		unset($test_url['query']);
+		unset($test_url['fragment']);
+		$test_url['path'] = $pathregex;
+		$test_url = UrlModel::recompose_url($test_url);
+		if ( 1 == preg_match("@^{$test_url}@", $url->get_url()) ) {
+			$method_map['by-wpdate'] = 'seek_wpdate_' . md5($test_url);
+		}
+
     $method_map['generic'] = 'common_unhandled_page_parser';
 
     $method_list = array();
@@ -549,25 +567,92 @@ class LegiscopeBase extends SystemUtility {
   }/*}}}*/
 
   function perform_network_fetch(
-    & $url   , $referrer, $target_url        ,
-    $faux_url, $metalink, $debug_dump = FALSE
+    & $url   , $referrer          , $target_url,
+    $metalink, $debug_dump = FALSE
   ) {/*{{{*/
+
+    $successful_fetch   = FALSE;
+    $post_response_data = array();
+		$captured_response  = 'POST';
+
+    // I want to be able to wrap information in the fake POST action data
+    // that can be used by site-specific handlers.  This information is not
+    // forwarded to the target host, but instead held back, removed from the
+    // POST data before the POST is actually executed, but remains available
+    // to other methods that pass around the POST data.
+
+    $skip_get           = FALSE;
+		$skip_post          = FALSE;
+
+    if ( is_array($metalink) ) {/*{{{*/
+
+			$metalink_parameters = nonempty_array_element($metalink,'_LEGISCOPE_');
+
+      if ( array_key_exists('_LEGISCOPE_', $metalink) ) {/*{{{*/
+        if ( $debug_dump ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Code provides a _LEGISCOPE_ POST parameter" );
+          $this->recursive_dump($metalink_parameters,'(marker) -');
+        }/*}}}*/
+        unset($metalink['_LEGISCOPE_']);
+      }/*}}}*/
+			if ( nonempty_array_element($metalink_parameters,'add_trailing_queryslash') ) {/*{{{*/
+				// The Congress CMS is sensitive to trailing slashes before query params.
+				// We need to modify BOTH the target URL and referrers to ensure we get
+				// the response we expect.
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Modifying {$target_url}" );
+				$target_url = preg_replace('@([^/])\?@i','$1/?', $target_url);
+				$referrer   = preg_replace('@([^/])\?@i','$1/?', $referrer);
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Trailing slash before query part: {$target_url}" );
+			}/*}}}*/
+			if ( nonempty_array_element($metalink_parameters,'skip_get') ) {/*{{{*/
+        if ( $debug_dump ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
+        }/*}}}*/
+        $skip_get = TRUE;
+			}/*}}}*/
+			if ( nonempty_array_element($metalink_parameters,'no_skip_get') ) {/*{{{*/
+        if ( $debug_dump ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
+        }/*}}}*/
+        $skip_get = FALSE;
+			}/*}}}*/
+      // FIXME:  SECURITY DEFECT: Don't forward user-submitted input 
+      if ( 'SKIPGET' == nonempty_array_element($metalink,'_') ) {/*{{{*/
+        if ( $debug_dump ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) DEPRECATED Execute only a POST to {$target_url}" );
+          $this->recursive_dump($metalink,'(marker)');
+        }/*}}}*/
+        $skip_get = TRUE;
+        unset($metalink['_']);
+      }/*}}}*/
+      if ( 'NOSKIPGET' == nonempty_array_element($metalink,'_') ) {/*{{{*/
+        if ( $debug_dump ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute POST, then GET, to {$target_url}" );
+          $this->recursive_dump($metalink,'(marker)');
+        }/*}}}*/
+        $skip_get = FALSE;
+        unset($metalink['_']);
+      }/*}}}*/
+      if ( nonempty_array_element($metalink,'_') == 1 ) {/*{{{*/
+				// If $metalink['_'] == 1 then a GET operation is executed, skipping the POST action below.
+        // Pager or other link whose behavior depends on antecedent state.
+        // See GenericParseUtility::extract_pager_links(): param 4, when present, causes this key to be assigned 
+        if ( $debug_dump ) {/*{{{*/
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Skip POST to {$target_url}" );
+          $this->recursive_dump($metalink,'(marker)');
+        }/*}}}*/
+        $skip_get = FALSE;
+				$skip_post = TRUE;
+        unset($metalink['_']);
+			}/*}}}*/
+
+		}/*}}}*/
 
     $modifier           = TRUE; // TRUE to execute HEAD instead of GET
     $session_cookie     = $this->filter_session("CF{$this->subject_host_hash}");
     $session_has_cookie = !is_null($session_cookie);
-
-    if ( $debug_dump ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)          Referrer: {$referrer}");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)        Target URL: {$target_url}");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Metalink/faux URL: {$faux_url}");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)     Metalink data: " . gettype($metalink));
-      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) - - ->');
-    }/*}}}*/
-
-    $cookie_from_store = NULL;
-
-    $cookiestore = SYSTEM_BASE . "/../cache/legiscope.{$this->subject_host_hash}.cookiejar";
+    $cookie_from_store  = NULL;
+    $cookiestore        = SYSTEM_BASE . "/../cache/legiscope.{$this->subject_host_hash}.cookiejar";
 
     if ( !$session_has_cookie && file_exists($cookiestore) ) {/*{{{*/
       // If a cookie has NOT yet been set, we need to make sure we don't 
@@ -583,75 +668,60 @@ class LegiscopeBase extends SystemUtility {
       CURLINFO_HEADER_OUT    => TRUE,
       CURLOPT_MAXREDIRS      => 5,
     );
-    if ( $session_has_cookie ) {
+    if ( $session_has_cookie ) {/*{{{*/
       if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(warning) Setting cookie '{$session_cookie}'");
       $curl_options[CURLOPT_COOKIE] = $session_cookie;
-    }
-    if ( !is_null(C('LEGISCOPE_CURLOPT_PROXY')) && $this->enable_proxy ) {
+    }/*}}}*/
+    if ( !is_null(C('LEGISCOPE_CURLOPT_PROXY')) && $this->enable_proxy ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) --- HACK: Enable proxy " . LEGISCOPE_CURLOPT_PROXY);
       $curl_options[CURLOPT_HTTPPROXYTUNNEL] = TRUE;
       $curl_options[CURLOPT_PROXY] = LEGISCOPE_CURLOPT_PROXY;
       $curl_options[CURLOPT_PROXYPORT] = LEGISCOPE_CURLOPT_PROXYPORT;
       $curl_options[CURLOPT_PROXYTYPE] = LEGISCOPE_CURLOPT_PROXYTYPE;
-    }
+    }/*}}}*/
     $url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
 
-    $skip_get         = FALSE;
-    $successful_fetch = FALSE;
-
-    // I want to be able to wrap information in the fake POST action data
-    // that can be used by site-specific handlers.  This information is not
-    // forwarded to the target host, but instead held back, removed from the
-    // POST data before the POST is actually executed, but remains available
-    // to other methods that pass around the POST data.
-
-    if ( is_array($metalink) ) {/*{{{*/
-
-      if ( array_key_exists('_LEGISCOPE_', $metalink) ) {
-        unset($metalink['_LEGISCOPE_']);
-      }
-      // FIXME:  SECURITY DEFECT: Don't forward user-submitted input 
-      if ( 'SKIPGET' == nonempty_array_element($metalink,'_') ) {
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute POST to {$url_copy}" );
-          $this->recursive_dump($metalink,'(marker)');
-        }/*}}}*/
-        $skip_get = TRUE;
-        unset($metalink['_']);
-      }
-      if ( 'NOSKIPGET' == nonempty_array_element($metalink,'_') ) {
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute POST, then GET, to {$url_copy}" );
-          $this->recursive_dump($metalink,'(marker)');
-        }/*}}}*/
-        $skip_get = FALSE;
-        unset($metalink['_']);
-      }
-      if ( nonempty_array_element($metalink,'_') == 1 ) {
-        // Pager or other link whose behavior depends on antecedent state.
-        // See GenericParseUtility::extract_pager_links(): param 4, when present, causes this key to be assigned 
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute GET to {$url_copy}" );
-          $this->recursive_dump($metalink,'(marker)');
-        }/*}}}*/
-        $skip_get = FALSE;
-      } else {
-        $response = CurlUtility::post($url_copy, $metalink, $curl_options);
-        $url_copy = str_replace(' ','%20',$target_url); // Restore URL; CurlUtility methods modify the URL parameter (passed by ref)
-        // $skip_get = $this->get_after_post();
-        $successful_fetch = CurlUtility::$last_error_number == 0;
-        if ( $debug_dump ) {
-          $fetch_state = $successful_fetch ? "OK" : "FAILED";
-          $skipping    = $skip_get ? "Skipping GET" : "Will GET";
-          $this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) POST {$fetch_state} {$skipping} transfer info");
-        }
-      }
+    if ( $debug_dump ) {/*{{{*/
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)          Referrer: {$referrer}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)        Target URL: {$target_url}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Metalink/faux URL: {$target_url}");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker)     Metalink data: " . gettype($metalink));
+      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) - - ->');
     }/*}}}*/
+
+		$post_faux_url = NULL;
+		if ( is_array($metalink) && !$skip_post ) {/*{{{*/
+			$post_faux_url = GenericParseUtility::url_plus_post_parameters($url_copy, $metalink);
+			$response      = CurlUtility::post($url_copy, $metalink, $curl_options);
+			$transfer_info = CurlUtility::$last_transfer_info;
+			$http_code     = intval(array_element($transfer_info,'http_code',400));
+			$url_copy      = str_replace(' ','%20',$target_url); // Restore URL; CurlUtility methods modify the URL parameter (passed by ref)
+			// Capture POST response
+			$post_response_data[$captured_response] = array(
+				'post_target'  => str_replace(' ','%20',$target_url),
+				'content_hash' => sha1($response),
+				'post_faux_url' => $post_faux_url, 
+				'META' => array(
+					'http_code'      => $http_code,
+					'content_length' => nonempty_array_element($transfer_info,'download_content_length'),
+					'content_type'   => nonempty_array_element($transfer_info,'content_type'),
+					'request_header' => nonempty_array_element($transfer_info,'request_header'),
+				),
+				'response'     => $response, // Raw cURL output, including cURL headers 
+			);
+			$successful_fetch = CurlUtility::$last_error_number == 0;
+			if ( $debug_dump ) {
+				$fetch_state = $successful_fetch ? "OK" : "FAILED";
+				$skipping    = $skip_get ? "Skipping GET" : "Will GET";
+				$this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) POST {$fetch_state} {$skipping} transfer info");
+			}
+		}/*}}}*/
 
     if ( !$skip_get ) {/*{{{*/
       if ( $debug_dump ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute GET/HEAD to {$url_copy}" );
       }/*}}}*/
+			$captured_response = 'GET';
       $response = ($modifier == 'true')
         ? CurlUtility::head($url_copy, $curl_options)
         : CurlUtility::get($url_copy, $curl_options)
@@ -666,22 +736,31 @@ class LegiscopeBase extends SystemUtility {
 
     if ( $successful_fetch ) {/*{{{*/
 
-      // Skip updating fake UrlModel if fake and real URLs are not the same.
-      $skip_fake_url_update = !($faux_url == $target_url);
-
-      // If we used a metalink to specify POST action parameters, change to the faux URL first
-      if ( is_array($metalink) && !$skip_fake_url_update && (0 < strlen($faux_url)) ) {
-        // Note that the faux URL isn't validated; the second parameter indicates that
-        // the URL is not to be retrieved from backing store, so that it's database id remains the same.
-        $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Temporarily replacing URL '" . $url->get_url() . ". with '{$faux_url}'");
-        $url->set_is_fake(TRUE)->set_url($faux_url,FALSE);
-      }
-
-      // Split response into header and content parts
       $transfer_info = CurlUtility::$last_transfer_info;
       $http_code = intval(array_element($transfer_info,'http_code',400));
 
-      if ( 400 <= $http_code && $http_code < 600 ) {/*{{{*/
+			// If we used a metalink to specify POST action parameteers, we need to 
+			// attach the response to the action URL.
+      if ( is_array($metalink) && (0 < strlen($target_url)) ) {/*{{{*/
+				// $captured_response is either 'POST' or 'GET', depending on whether we do POST or POST+GET
+				if ( array_key_exists($captured_response, $post_response_data) ) $captured_response = "{$captured_response}_2";
+				$post_response_data[$captured_response] = array(
+					'post_target'   => $url_copy,
+					'content_hash'  => sha1($response),
+					'post_faux_url' => $post_faux_url,
+					'get_url'       => TRUE,
+					'META' => array(
+						'http_code'      => $http_code,
+						'content_length' => nonempty_array_element($transfer_info,'download_content_length'),
+						'content_type'   => nonempty_array_element($transfer_info,'content_type'),
+						'request_header' => nonempty_array_element($transfer_info,'request_header'),
+					),
+					'response' => $response, // Raw cURL output, including cURL headers 
+				);
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Generated POST response data");
+      }/*}}}*/
+
+      if ( (400 <= $http_code && $http_code < 500) || (500 < $http_code && $http_code < 600)  ) {/*{{{*/
 
         $this->syslog( __FUNCTION__, __LINE__, "(warning) cURL last_transfer_info" );
         $this->recursive_dump($transfer_info, "(warning) HTTP {$http_code}");
@@ -689,11 +768,6 @@ class LegiscopeBase extends SystemUtility {
 
       }/*}}}*/
       else {
-
-        $url->
-          set_pagecontent_c($response)->
-          set_last_fetch(time())->
-          increment_hits(); // This only updates the 'hits' attribute
 
         // Take cookie jar contents and place them in our per-host session cookie store
         if ( file_exists($cookiestore) ) {/*{{{*/
@@ -703,51 +777,39 @@ class LegiscopeBase extends SystemUtility {
           }
         }/*}}}*/
 
-        if ( $debug_dump ) {
-          $this->syslog(__FUNCTION__, __LINE__, "(warning) --- -- - - Faux URL: {$faux_url}");
-          $this->syslog(__FUNCTION__, __LINE__, "(warning) --- -- - - Real URL: {$target_url}");
-        }
-
-        if ( !(is_array($metalink) && $skip_fake_url_update) ) {
+        if ( !is_array($metalink) ) {
+					$url->set_pagecontent_c($response);
           if (!(0 < strlen($url->get_url()))) $url->set_url($target_url,FALSE);
+					$url->increment_hits(); // This only sets the 'hits' and 'last_fetch' attribute
           $url_id = $url->stow();
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - #{$url_id} {$target_url}");
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) PF - - - #{$url_id} {$target_url}");
         }
         else {/*{{{*/
 
           $contenthash = sha1($response);
-          $faux_url_instance = new UrlModel($faux_url,TRUE);
-          $faux_stow = $faux_url_instance->
-            set_pagecontent_c($response)->
-            set_is_fake(TRUE)->
-            stow();
 
-          if ( $debug_dump ) {
-            $this->syslog( __FUNCTION__, __LINE__, "(marker) Stow faux URL content " . (0 < intval($faux_stow) ? "OK (id #{$faux_stow})" : "FAILED") . " [content hash {$contenthash}] fake URL {$faux_url}" );
-          }
+					$action = $url->in_database() ? "Matched" : "Created";
 
-          // Override content of target URL (possibly a FORM POST action URL) 
-          // with response content.
+					$url_id = $url->
+						set_url_c($target_url,FALSE)->
+						set_content_hash(sha1($response))->
+						set_pagecontent_c($response)->
+						attach_post_response($post_response_data)->
+						increment_hits()->
+						fields(array('pagecontent','update_time','content_length','content_hash','last_modified','content_type','hits','response_header'))->
+						// get_id();
+						stow();
 
-          $prior_url_id = $url->get_id();
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Prior ID #{$prior_url_id} " . $url->get_url());
+					$successful_fetch = ( ( 0 < intval($url_id) ) &&
+						( 0 < intval(nonempty_array_element($post_response_data,'id')) ) &&
+						( 0 < intval(nonempty_array_element($post_response_data,'join_id')) )
+				 	);
 
-          // Reload content of original URL object from DB
-          $url->set_id(NULL)->fetch(UrlModel::get_url_hash($target_url),'urlhash');
-
-          if ( !$url->in_database() ) {
-            $url_id = $url->set_url_c($target_url,FALSE)->set_pagecontent_c($response)->stow();
-            $action = "Created";
-          } else {
-            $url_id = $url->
-              set_url_c($target_url,FALSE)->
-              set_pagecontent_c($response)->
-              increment_hits()->
-              fields(array('pagecontent','update_time','content_length','content_hash','last_modified','content_type','hits','response_header'))->
-              stow();
-            $action = "Matched";
-          }
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - {$action} #{$url_id} {$target_url}");
+					if ( $debug_dump || !$successful_fetch ) {
+						$this->syslog(__FUNCTION__,__LINE__,"(marker) MF - - - {$action} #{$url_id} {$target_url}");
+						$this->syslog(__FUNCTION__,__LINE__,"(marker) Stow URL content " . ($successful_fetch ? "OK (id #{$post_response_data['id']})" : "FAILED") . " [content hash {$contenthash}]" );
+						$this->recursive_dump($post_response_data,"(marker) ?" );
+					}
 
         }/*}}}*/
       }
@@ -1046,25 +1108,18 @@ class LegiscopeBase extends SystemUtility {
 
 		$debug_method = FALSE;
 
-		$plugins_url = plugins_url();
-		$themes_uri  = get_template_directory_uri(); 
+		$plugins_url   = plugins_url();
+		$themes_uri    = get_template_directory_uri();
+		$spider_js_url = plugins_url('legiscope.js', LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
 
-		$spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
-		$pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
-
-		wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-		wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
-
-		wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-		wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+		wp_register_script('legiscope-spider', $spider_js_url, array('jquery'), NULL);
+		wp_enqueue_script('legiscope-spider' , $spider_js_url, array('jquery'), NULL);
 
 		static::register_userland_menus();
 
-		$inline_script = <<<EOH
-<script type="text/javascript">
-	PDFJS.workerSrc = 'js/pdf.js';
-</script>
-EOH;
+		syslog( LOG_INFO, "- - - - -- - - - -- - - - -- - - - - END-USER   - - - - - " . $plugins_url);
+
+		define('CONTEXT_ENDUSER',TRUE);
 
 		if ( $debug_method ) {/*{{{*/
 			syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
@@ -1103,6 +1158,8 @@ EOH;
 	PDFJS.workerSrc = 'js/pdf.js';
 </script>
 EOH;
+
+		syslog( LOG_INFO, "- - - - -- - - - -- - - - -- - - - - ADMINISTRATOR   - - - - - " . $plugins_url);
 
 		if ( $debug_method ) {/*{{{*/
 			syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
@@ -1158,11 +1215,11 @@ EOH;
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Waiting for conversion in {$ocr_queue_base}.");
       return -2;
     }
-     else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
+		else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
       return -3;
     }
-     else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
+		else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
       $this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
       return -4;
     }

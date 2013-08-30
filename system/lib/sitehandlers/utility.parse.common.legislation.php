@@ -20,7 +20,7 @@ class LegislationCommonParseUtility extends GenericParseUtility {
 
   function get_per_congress_pager(UrlModel & $urlmodel, & $session, $q, $session_select, $pager_uuid = '1cb903bd644be9596931e7c368676982') {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     if ( $debug_method ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
@@ -92,15 +92,22 @@ class LegislationCommonParseUtility extends GenericParseUtility {
         // parameters.
         ///*}}}*/
         if ( is_array($cluster_urls) ) 
+					$session_data_copy = $session_data;
+					if ( $active ) {
+						if ( array_key_exists('_LEGISCOPE_', $session_data) ) {
+							$session_data_copy['_LEGISCOPE_']['no_skip_get'] = TRUE;
+						}
+					}
           $per_congress_pager = $this->extract_pager_links(
             $extracted_links,
             $cluster_urls,
             $pager_uuid,
-            // Set _ := NOSKIPGET to execute a POST and then a GET
-            //       := SKIPGET to execute just a POST action
-            //       := 1 to execute just a GET action
-            array_merge($session_data,$active ? array() : array('_' => 'NOSKIPGET')),
-            TRUE // 
+            // Set _LEGISCOPE_['no_skip_get'] := TRUE to execute a POST and then a GET
+            //     _LEGISCOPE_['skip_get']    := TRUE to execute just a POST action
+            //     _ := 1 to execute just a GET action
+            // array_merge($session_data,$active ? array() : array('_' => 'NOSKIPGET')),
+            $session_data_copy,
+            TRUE
           );
         $per_congress_pager = join('', $per_congress_pager);
         $linktext = array_values($linktext);
@@ -438,6 +445,7 @@ EOH;
 
     $congress_change_link = $this->construct_congress_change_link($pager_regex_uid);
 
+    // NOTE: initialize_filter is defined in spider.js
     $pagecontent = <<<EOH
 
 <div class="senate-journal">
@@ -746,7 +754,7 @@ EOH;
     return $search_name;
   }/*}}}*/
 
-  static function permalinkify_name($name) {
+  static function permalinkify_name($name) {/*{{{*/
     // Manipulate name to allow it's use as a URL component
     $name = preg_replace(array('@[^a-zñ ]@i','@ñ@i'), array('','n'),strtolower($name));
     $name = explode(' ', $name);
@@ -755,6 +763,6 @@ EOH;
     ));
     $name = array_filter($name);
     return join('-', $name); 
-  }
+  }/*}}}*/
 
 }

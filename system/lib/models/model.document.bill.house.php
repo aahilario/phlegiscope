@@ -365,25 +365,25 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     return TRUE;
   }/*}}}*/
 
-  function cache_parsed_housebill_records(& $bill_cache_source, $congress_tag, $from_network) {/*{{{*/
+  function cache_parsed_records(& $bill_cache_source, $congress_tag, $from_network) {/*{{{*/
 
     $this->committee_regex_lookup = array();
 
     $debug_method = FALSE;
 
-		if ( !is_array($bill_cache_source) ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Nothing parsed. Leaving.");
-		 	return;
-		}
+    if ( !is_array($bill_cache_source) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Nothing parsed. Leaving.");
+       return;
+    }
 
-		$bill_cache = array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source);
+    $bill_cache = array_map(create_function('$a','return array_element($a,"sn");'),$bill_cache_source);
 
-		if (is_array($bill_cache) && (0 < count($bill_cache))) {
-			$bill_cache = array_combine(
-				$bill_cache,
-				$bill_cache_source
-			);
-		} else return;
+    if (is_array($bill_cache) && (0 < count($bill_cache))) {
+      $bill_cache = array_combine(
+        $bill_cache,
+        $bill_cache_source
+      );
+    } else return;
 
     // Transform [meta] records, by moving their content into appropriate
     // Join property containers.

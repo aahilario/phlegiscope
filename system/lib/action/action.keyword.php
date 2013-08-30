@@ -17,8 +17,9 @@ class KeywordAction extends LegiscopeBase {
 
   function keyword() {/*{{{*/
 
-    $this->syslog( '----', __LINE__, "----------------------------------");
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked from {$_SERVER['REMOTE_ADDR']}" );
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) ----------------------------------");
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked from {$_SERVER['REMOTE_ADDR']}" );
+		$this->recursive_dump($_POST,"(marker)");
 
     ob_start();
 
@@ -35,6 +36,8 @@ class KeywordAction extends LegiscopeBase {
     $match_result = preg_match_all($decomposer, $fragment, $components);
     $records      = array();
 
+		$limit_per_document = 100;
+
     if ( !(array_element($_SESSION,'last_fragment') == $fragment) && count($components) > 0 ) {
 
       $this->recursive_dump($components,__LINE__);
@@ -45,25 +48,27 @@ class KeywordAction extends LegiscopeBase {
       $iterator->
         where(array('OR' => array(
           'description' => "REGEXP '({$components})'",
+          'title'  => "REGEXP '({$components})'",
           'sn'     => "REGEXP '({$components})'",
         )))->
         recordfetch_setup();
       $record = array();
       $count = 0;
       while ( $iterator->recordfetch($record) ) {
-        $records[$record['sn']] = array(
+        $records["Z1{$record['sn']}.{$record['congress_tag']}"] = array(
+          'title'       => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['title']),
           'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
           'sn'          => $record['sn'],
           'hash'        => UrlModel::get_url_hash($record['url']),
           'category'    => 'Republic Acts',
-          'url'         => $record['url'],
+          'url'         => $iterator->remap_url($record['url']),
         );
- 				if ($count++ > 100) {
+ 				if ($count++ > $limit_per_document) {
 					krsort($records);
 					break;
 				}
       }
-      $this->syslog( '----', __LINE__, "Republic Acts found: {$count}");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Republic Acts found: {$count}");
       /////////////////////////////////////////////////
       $iterator = new HouseBillDocumentModel();
       $iterator->
@@ -76,53 +81,142 @@ class KeywordAction extends LegiscopeBase {
       $record = array();
       $count = 0;
       while ( $iterator->recordfetch($record) ) {
-        $records[$record['sn']] = array(
+        $records["{$record['sn']}.{$record['congress_tag']}"] = array(
+          'title'       => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['title']),
           'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
           'sn'          => $record['sn'],
           'hash'        => UrlModel::get_url_hash($record['url']),
           'category'    => 'House Bills',
-          'url'         => $record['url'],
+          'url'         => $iterator->remap_url($record['url']),
         );
- 				if ($count++ > 20) {
+ 				if ($count++ > $limit_per_document) {
 					krsort($records);
 					break;
 				}
       }
-      $this->syslog( '----', __LINE__, "House Bills found: {$count}");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) House Bills found: {$count}");
       /////////////////////////////////////////////////
       $iterator = new SenateBillDocumentModel();
       $iterator->
         where(array('OR' => array(
-          'description' => "REGEXP '({$components})'",
-          'comm_report_info' => "REGEXP '({$components})'",
+          'description'        => "REGEXP '({$components})'",
+          'comm_report_info'   => "REGEXP '({$components})'",
           'main_referral_comm' => "REGEXP '({$components})'",
-          'subjects' => "REGEXP '({$components})'",
-          'sn'     => "REGEXP '({$components})'",
+          'subjects'           => "REGEXP '({$components})'",
+          'title'              => "REGEXP '({$components})'",
+          'sn'                 => "REGEXP '({$components})'",
         )))->
 				order(array('create_time' => 'DESC'))->
         recordfetch_setup();
       $record = array();
       $count = 0;
       while ( $iterator->recordfetch($record) ) {
-        $records[$record['sn']] = array(
+        $records["{$record['sn']}"."{$record['congress_tag']}"] = array(
+          'title'       => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['title']),
           'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
           'sn'          => $record['sn'],
           'hash'        => UrlModel::get_url_hash($record['url']),
           'category'    => 'Senate Bills',
-          'url'         => $record['url'],
+          'url'         => $iterator->remap_url($record['url']),
         );
-				if ($count++ > 20) {
+				if ($count++ > $limit_per_document) {
 					krsort($records);
 					break;
 				}
       }
-      $this->syslog( '----', __LINE__, "Senate Bills found: {$count}");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Senate Bills found: {$count}");
+      /////////////////////////////////////////////////
+      $iterator = new SenateResolutionDocumentModel();
+      $iterator->
+        where(array('OR' => array(
+          'description' => "REGEXP '({$components})'",
+          'subjects' => "REGEXP '({$components})'",
+          'legislative_history' => "REGEXP '({$components})'",
+          'title' => "REGEXP '({$components})'",
+          'sn'                 => "REGEXP '({$components})'",
+        )))->
+				order(array('create_time' => 'DESC'))->
+        recordfetch_setup();
+      $record = array();
+      $count = 0;
+      while ( $iterator->recordfetch($record) ) {
+        $records["{$record['sn']}"] = array(
+          'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
+          'sn'          => $record['sn'],
+          'hash'        => UrlModel::get_url_hash($record['url']),
+					'category'    => 'Senate Resolutions',
+          'url'         => $iterator->remap_url($record['url']),
+        );
+				if ($count++ > $limit_per_document) {
+					krsort($records);
+					break;
+				}
+      }
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Resolutions found: {$count}");
+      /////////////////////////////////////////////////
+      $iterator = new SenatorDossierModel();
+      $iterator->
+        where(array('OR' => array(
+          'fullname' => "REGEXP '({$components})'",
+        )))->
+				order(array('create_time' => 'DESC'))->
+        recordfetch_setup();
+      $record = array();
+      $count = 0;
+      while ( $iterator->recordfetch($record) ) {
+				// Remap a Representative name
+				$record = array(
+					'description' => "Senator {$record['fullname']}",
+					'sn'          => $record['fullname'],
+          'hash'        => UrlModel::get_url_hash($record['bio_url']),
+					'url'         => $iterator->remap_url($record['bio_url']),
+				);
+        $records["A0-{$record['sn']}"] = array(
+          'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
+          'sn'          => $record['sn'],
+          'hash'        => UrlModel::get_url_hash($record['url']),
+					'category'    => 'Senators',
+          'url'         => $iterator->remap_url($record['url']),
+        );
+				if ($count++ > $limit_per_document) {
+					krsort($records);
+					break;
+				}
+      }
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Senators found: {$count}");
+      /////////////////////////////////////////////////
+      $iterator = new RepresentativeDossierModel();
+      $iterator->
+        where(array('OR' => array(
+          'fullname' => "REGEXP '({$components})'",
+        )))->
+				order(array('create_time' => 'DESC'))->
+        recordfetch_setup();
+      $record = array();
+      $count = 0;
+      while ( $iterator->recordfetch($record) ) {
+				// Remap a Representative name
+				$record = array(
+					'description' => "Congressman, {$record['bailiwick']}",
+					'sn'          => $record['fullname'],
+          'hash'        => UrlModel::get_url_hash($record['bio_url']),
+					'url'         => $iterator->remap_url($record['bio_url']),
+				);
+        $records["A0-{$record['sn']}"] = array(
+          'description' => preg_replace('@('.$components.')@i','<span class="hilight">$1</span>', $record['description']),
+          'sn'          => $record['sn'],
+          'hash'        => UrlModel::get_url_hash($record['url']),
+					'category'    => 'Representatives',
+          'url'         => $iterator->remap_url($record['url']),
+        );
+				if ($count++ > $limit_per_document) {
+					krsort($records);
+					break;
+				}
+      }
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Representatives found: {$count}");
       /////////////////////////////////////////////////
 
-      if (0) foreach ( $records as $dummyindex => $record ) {
-        $referrers->fetch($record['url'],'url');
-        $records[$dummyindex]['referrers'] = $referrers->referrers('url');
-      }
     }
 
     $_SESSION['last_fragment'] = $fragment;

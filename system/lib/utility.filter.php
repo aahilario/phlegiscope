@@ -137,7 +137,7 @@ abstract class FilterUtility {
 		return TRUE;
   }/*}}}*/
 
-  static protected function syslog($fxn, $line, $message) {/*{{{*/
+  static function syslog($fxn, $line, $message) {/*{{{*/
     if ( self::logging_ok($message) ) { 
       syslog( LOG_INFO, self::syslog_preamble($fxn, $line) . " {$message}" );
       if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));

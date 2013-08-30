@@ -5,6 +5,9 @@ li > a {
   margin-right: 0;
   padding-right: 0;
 }
+h1, h2 {
+  line-height: 120%;
+}
 hr {
   outline-style: none;
 }
@@ -217,7 +220,7 @@ a.legiscope-remote:hover + span.legiscope-refresh {
   background-color: #DFD !important;
 }
 .hidden {
-  display: none;
+  display: none !important;
 }
 .center {
   margin-left: 50%;
@@ -264,6 +267,21 @@ div.float-left {
   max-width: 49%;
 	clip: auto;
 	overflow: hidden;
+}
+
+div.flattened-post-forms {
+  display: block;
+  clear: both;
+  width: auto;
+}
+
+div.flattened-post-forms ul {
+  display: inline;
+}
+
+input.reset-cached-links {
+  display: inline;
+  margin: 0 0 0 5px;
 }
 
 img.representative-avatar {
@@ -334,7 +352,7 @@ div.congress-doc-item > span {
 	float: left;
 	clear: none;
 	max-width: 32%;
-  min-width: 168px;
+  min-width: 24%;
 	clip: auto;
 	overflow: hidden;
 }
@@ -602,6 +620,7 @@ span.congress-member-source-links {
 ul.tab-links li {
   padding: 4px;
   background-color: #DDD;
+  display: inline;
 }
 
 ul.tab-links li.active {
@@ -618,6 +637,11 @@ ul.tab-links li.active a:active {
   outline-style: none;
 }
 
+li.wp-admin-bar-indicator {
+  margin: 0 5px 0 5px !important;
+  padding: 0 5px 0 5px !important;
+}
+
 a.age-newfetch { color: #0000A0 !important; }
 a.age-recent { color: #0000D0 !important; }
 a.age-10 { color: #00B000 !important; }
@@ -630,3 +654,22 @@ a.age-1m { color: #E00000 !important; }
 a.age-10m { color: #F00000 !important; }
 a.age-100m { color: #FF0000 !important; }
 
+
+/** OCRd / original digital document content **/
+span.document-section {
+  font-weight: bold;
+}
+span.document-heading-1 {
+  font-size: 120%;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+span.document-heading-2 {
+  font-size: 110%;
+  display: inline;
+}
+span.document-heading-3 {
+  font-weight: bold;
+  text-indent: 5em;
+}

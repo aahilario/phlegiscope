@@ -1838,6 +1838,7 @@ EOS;
   function & delete() { return $this; }
 
   final protected function logging_ok($prefix) {/*{{{*/
+    if ( 1 == preg_match('@(ERROR)@i', $prefix) ) return TRUE;
     if ( TRUE == C('DEBUG_ONLY_ADMIN') && !C('CONTEXT_ADMIN') ) return FALSE;
     if ( TRUE == C('DEBUG_ONLY_ENDUSER') && !C('CONTEXT_ENDUSER') ) return FALSE;
     if ( 1 == preg_match('@(WARNING|ERROR|MARKER)@i', $prefix) ) return TRUE;

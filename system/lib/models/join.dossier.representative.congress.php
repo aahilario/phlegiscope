@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class CongressRepresentativeDossierJoin extends DatabaseUtility {
+class CongressRepresentativeDossierJoin extends ModelJoin {
   
   // Join table model
   var $congress_CongressDocumentModel;

@@ -198,13 +198,14 @@ class GovPh extends SeekAction {
 
 					$data = array_filter(array(
 						'sn'            => $sn,
-						'congress_tag'  => $data['congress_tag'],
+						'congress_tag'  => nonempty_array_element($data,'congress_tag','###'),
 						'url'           => $data['url'],
+            'content_json'  => '{}',
 						'last_fetch'    => time(),
 						'create_time'   => time(),
-						'content'       => $data['document'],
-						'title'         => $data['title'],
-						'description'   => $data['description'],
+						'content'       => nonempty_array_element($data,'document','###'),
+						'title'         => nonempty_array_element($data,'title',"Republic Act No. " . preg_replace('@[^0-9]@i','',$sn)),
+						'description'   => nonempty_array_element($data,'description','###'),
 						'sb_precursors' => array_element($data,'sb_precursor'),
 						'hb_precursors' => array_element($data,'hb_precursor'),
 					));
@@ -212,10 +213,12 @@ class GovPh extends SeekAction {
 					$id = $republic_act->
 						set_id(NULL)->
 						set_contents_from_array($data,TRUE)->
+            fields(array_keys($data))->
 						stow();
 					if ( 0 < intval($id) ) {
 						$gazette->articles_found[$index]['id'] = $id;
 						$this->syslog(__FUNCTION__,__LINE__,"(marker) -- Stowed #{$id} {$sn}.{$data['congress_tag']}");
+            $this->recursive_dump($data,"(marker) {$id}");
 					} else {
 						$this->syslog(__FUNCTION__,__LINE__,"(marker) -- {$sn} Failed to stow record.");
 						$this->recursive_dump($data,"(marker) --");
@@ -273,6 +276,7 @@ class GovPh extends SeekAction {
 						}
 						$id = $republic_act->
 							set_contents_from_array($data,TRUE)->
+							fields(array_keys($data))->
 							stow();
 						if ( $id != $gazette->articles_found[$index]['id'] ) {
 							$this->syslog(__FUNCTION__,__LINE__,"(marker) -- {$sn} Failed to update parsed content blob.");
@@ -475,13 +479,13 @@ EOH
 		: $markup_current
 		;
 
+    $this->json_reply['subcontent'] = $pagecontent;
 		if ( $this->emit_full_frame )
 		$this->json_reply['retainoriginal'] = TRUE;
 		else {
-			$this->json_reply['subcontent'] = $pagecontent;
 			$pagecontent = NULL;
 		}
-		$this->syslog( __FUNCTION__, __LINE__, "- Finally done.");
+		$this->syslog( __FUNCTION__, __LINE__, "(marker) - Finally done.");
 
 	}/*}}}*/
 
@@ -489,6 +493,7 @@ EOH
     $ra_parser = new RepublicActParseUtility(); 
     $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
     $ra_parser = NULL;
+    $this->json_reply['subcontent'] = $pagecontent;
     unset($ra_parser);
 	}/*}}}*/
 

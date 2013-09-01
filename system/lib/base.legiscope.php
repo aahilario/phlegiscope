@@ -1183,6 +1183,14 @@ EOH;
     return preg_replace('@/([^/]*)/\.\./@i','/', $ocr_queue_stem);
   }/*}}}*/
 
+	function test_ocr_result($fn) {
+		// Determine whether the OCR result file $fn contains usable text 
+		$s = stat($fn);
+		if ( FALSE == $s ) return FALSE;
+		if ( intval($s['size']) < 512 ) return FALSE;
+		return TRUE;
+	}
+
   function write_to_ocr_queue(UrlModel & $url) {/*{{{*/
 
     // Return 0 if a converted file exists
@@ -1208,8 +1216,13 @@ EOH;
       return -1;
     }
     else if ( file_exists($ocr_queue_targ) ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
-      return 0;
+			if ( $this->test_ocr_result($ocr_queue_targ) ) {
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
+				return 0;
+			}
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Removing invalid conversion result file {$ocr_queue_targ}");
+			unlink($ocr_queue_targ);
+			return -6;
     }
     else if ( file_exists($ocr_queue_src) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Waiting for conversion in {$ocr_queue_base}.");

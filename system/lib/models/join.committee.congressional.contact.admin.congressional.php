@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class CongressionalAdminContactCongressionalCommitteeJoin extends DatabaseUtility {
+class CongressionalAdminContactCongressionalCommitteeJoin extends ModelJoin {
   
   // Join table model
   var $congressional_admin_contact_CongressionalAdminContactDocumentModel;

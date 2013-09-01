@@ -96,6 +96,9 @@ class CongressGovPh extends SeekAction {
     $ra_parser = new RepublicActParseUtility(); 
     $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
     $ra_parser = NULL;
+    if ( !(0 < mb_strlen(nonempty_array_element($parser->json_reply,'subcontent'))) ) {
+      $parser->json_reply['subcontent'] = "<h2>OCR Target</h2>";
+    }
     unset($ra_parser);
 
   }/*}}}*/
@@ -371,6 +374,7 @@ EOH;
 
   }/*}}}*/
 
+
   /** PDF OCR handler **/
 
   function seek_by_pathfragment_d01dbc5f89e3b7471ee48dea98fcc98e(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -399,6 +403,7 @@ EOH;
     $ra_parser = NULL;
     $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Enqueue result: {$result}");
   }/*}}}*/
+
 
   /** Automatically matched parsers **/
 

@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class ContentSenateResolutionJoin extends DatabaseUtility {
+class ContentSenateResolutionJoin extends ModelJoin {
   
   // Join table model
   var $content_ContentDocumentModel;

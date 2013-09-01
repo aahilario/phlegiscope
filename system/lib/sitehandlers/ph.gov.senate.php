@@ -632,7 +632,10 @@ EOH;
     $url_checker = new UrlModel();
 
     // Key-value pairs { SN => URL hash }
-    $urls_only = array_map(create_function('$a', 'return UrlModel::get_url_hash($a["url"]);'), $uncached_documents);
+    $urls_only = is_array($uncached_documents)
+      ? array_map(create_function('$a', 'return UrlModel::get_url_hash($a["url"]);'), $uncached_documents)
+      : array()
+      ;
     $markup_tabulation_urls = (is_array($urls_only) && (count($uncached_documents) == count($urls_only)) && (0 < count($urls_only))) 
       ? array_combine(
         array_keys($uncached_documents),
@@ -687,7 +690,7 @@ EOH;
 
     // Stow these nonexistent records
 
-    $uncached_documents = array_values($uncached_documents);
+    $uncached_documents = is_array($uncached_documents) ? array_values($uncached_documents) : array();
 
     if ( $debug_method ) $this->recursive_dump($uncached_documents,"(marker) -- Documents to store");
 

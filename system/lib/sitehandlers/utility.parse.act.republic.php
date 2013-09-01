@@ -343,10 +343,13 @@ EOH;
 <h1>{sn}</h1>
 <h2>{title}</h2>
 <span><b>Source: </b>{url}</span>
+<hr/>
 <h2>{description}</h2>
 <hr/>
 <div>{content}</div>
-<span>Toink</span>
+<div>
+  <pre>{ocrcontent.data}</pre>
+</div>
 EOH;
   }/*}}}*/
 
@@ -412,7 +415,11 @@ EOH;
 		));	
 
 		if ( !is_null($republic_act->get_content()) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Content found, length " . mb_strlen($republic_act->get_content()));
 			$content = @json_decode($republic_act->get_content(),TRUE);
+      if ( FALSE == $content ) {
+        $content = "No parsed content.";
+      }
 		} else if ( !is_null($ocrcontent) ) {
 			$this->syslog(__FUNCTION__,__LINE__,"(marker) Using OCR version");
 			$content = explode("\n", str_replace(array("\r\n"),array("\n"),$ocrcontent));
@@ -420,6 +427,22 @@ EOH;
 			$this->syslog(__FUNCTION__,__LINE__,"(marker) NO CONTENT. Using placeholder.");
 			$content = $no_local_content;
 		}
+
+    if (!is_null($republic_act->get_ocrcontent())) {
+      $ocrcontent = $republic_act->get_ocrcontent();
+      $ocrcontent = nonempty_array_element($ocrcontent,'data');
+      $ocr_record_id = nonempty_array_element($ocrcontent,'id');
+      if ( is_null($ocr_record_id) ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) No OCR result available.");
+        $republic_act->set_ocrcontent('No OCR available');
+      }
+      else {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) OCR content record #{$ocr_record_id} available.");
+      }
+    }
+    else {
+      $republic_act->set_ocrcontent('No OCR conversion available.');
+    }
 
     if (is_array($content) && (0 < count($content))) {
       $content = array_values(array_filter(array_map(create_function(
@@ -437,6 +460,9 @@ EOH;
       $content = NULL;
       unset($content);
     }  
+    else {
+      $republic_act->set_content('No parsed content.');
+    }
 		return $republic_act->substitute($this->republic_act_user_template());
   }/*}}}*/
 
@@ -459,6 +485,7 @@ EOH;
       $match = array_values($match);
       $match[1] = ltrim($match[1],'0'); 
       $ra_regex = join('(.*)',$match);
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Seek Republic Act {$ra} {$ra_regex}" );
       $republic_act->
         join_all()->
         where(array('AND' => array('`a`.sn' => "REGEXP '({$ra_regex})'")))->
@@ -482,8 +509,10 @@ EOH;
       }
 			$ocr_dequeue_method = 'test_document_ocr_result';
 			if ( method_exists($republic_act,$ocr_dequeue_method) ) {
-				$this->syslog( __FUNCTION__, __LINE__, "(marker) OCR queue check. Elements: " . count($ocr_queue_list));
-				$this->recursive_dump($ocr_queue_list,"(marker)");
+        if ( $debug_method ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) OCR queue check. Elements: " . count($ocr_queue_list));
+          $this->recursive_dump($ocr_queue_list,"(marker)");
+        }
 				while ( 0 < count($ocr_queue_list) ) {
 					$ocr_item = array_shift($ocr_queue_list);
 					if ( $republic_act->set_id(NULL)->retrieve($ocr_item,'id')->in_database() ) {

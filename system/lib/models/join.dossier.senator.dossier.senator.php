@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenatorDossierSenatorDossierJoin extends DatabaseUtility {
+class SenatorDossierSenatorDossierJoin extends ModelJoin {
   
   // Join table model
   var $left_senator_dossier_SenatorDossierModel;

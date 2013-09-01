@@ -206,11 +206,11 @@ EOH
       // Select these records from the database
       $committee = array();
       $committee_match->where(array('AND' => array(
-        'committee_name' => "REGEXP '(".join('|',$referring_committees).")'"
+        'committee_name' => "REGEXP '(".join('|',array_filter($referring_committees)).")'"
       )))->recordfetch_setup();
 
       // Regex => Original name 
-      $referring_committees = array_flip($referring_committees);
+      $referring_committees = array_flip(array_filter($referring_committees));
 
       while ( $committee_match->recordfetch($committee) ) {
         $committee_id   = $committee['id'];
@@ -328,8 +328,10 @@ EOH
     //        NULL
     //        FALSE 
 
+    $debug_method = FALSE;
+
 		if ( !$this->in_database() ) {
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Model not loaded. Cannot proceed.");
+			$this->syslog(__FUNCTION__,__LINE__,"(warning) Model not loaded. Cannot proceed.");
 		 	return NULL;
 		}
 
@@ -340,7 +342,7 @@ EOH
     $faux_url_hash    = UrlModel::get_url_hash($document_source);
     $url_stored       = $faux_url->retrieve($faux_url_hash,'urlhash')->in_database();
     $pdf_content_hash = $faux_url->get_content_hash();
-		$this->syslog(__FUNCTION__,__LINE__,"(marker) Using contents of UrlModel #" . $faux_url->get_id() . " {$document_source}");
+		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Using contents of UrlModel #" . $faux_url->get_id() . " {$document_source}");
     // Retrieve all OCR content records associated with this Senate document.
     $document_id      = $this->get_id();
     $this->
@@ -352,11 +354,44 @@ EOH
       recordfetch_setup();
 
     $matched = 0;
+    $remove_entries = array();
     while ( $this->recordfetch($r,TRUE) ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Record #{$r['id']} {$r['sn']}.{$r['congress_tag']}");
+      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Record #{$r['id']} {$r['sn']}.{$r['congress_tag']}");
       $ocrcontent = $this->get_ocrcontent();
       $this->recursive_dump($ocrcontent,"(marker) ->");
-      $matched++;
+      $data = nonempty_array_element($ocrcontent,'data');
+      $meta = nonempty_array_element($data,'content_meta');
+      $data = nonempty_array_element($data,'data');
+      
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Test data = {$data}");
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Test meta = {$meta}");
+      }
+      // Both the content and content_meta document source must be nonempty
+      if ( (0 < mb_strlen(preg_replace('@[^-A-Z0-9.,: ]@i', '', $data))) && (0 < strlen($meta)) ) {
+        $matched++;
+      }
+      else {
+        // Otherwise both the Join and ContentDocument records are removed.
+        $remove_entry = array_filter(array(
+          'join' => nonempty_array_element($ocrcontent['join'],'id'),
+          'data' => nonempty_array_element($ocrcontent['data'],'id'),
+        ));
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Marking invalid Join {$r['sn']}.{$r['congress_tag']}");
+        $this->recursive_dump($remove_entry,"(marker)");
+        if ( 0 < count($remove_entry) ) $remove_entries[] = $remove_entry;
+      }
+    }
+    while ( 0 < count($remove_entries) ) {
+      $remove_entry = array_shift($remove_entries);
+      if ( !is_null(nonempty_array_element($remove_entry,'join')))
+      $this->get_join_instance('ocrcontent')->
+        retrieve($remove_entry['join'],'id')->
+        remove();
+      if ( !is_null(nonempty_array_element($remove_entry,'data')))
+      $this->get_foreign_obj_instance('ocrcontent')->
+        retrieve($remove_entry['data'],'id')->
+        remove();
     }
     if ( 0 == $matched ) {/*{{{*/
       // No record matched
@@ -366,10 +401,12 @@ EOH
         $properties = stat($ocr_result_file);
         $properties['sha1'] = hash_file('sha1', $ocr_result_file);
 
-        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR output file {$ocr_result_file} present.");
-        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR output file size: {$properties['size']}" );
-        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR data model: " .
-          get_class($this->get_join_instance('ocrcontent')));
+        if ( $debug_method ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR output file {$ocr_result_file} present.");
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR output file size: {$properties['size']}" );
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR data model: " .
+            get_class($this->get_join_instance('ocrcontent')));
+        }
 
         $ocr_data = new ContentDocumentModel();
         $ocr_data_id = $ocr_data->retrieve($properties['sha1'],'content_hash')->get_id();
@@ -379,7 +416,7 @@ EOH
             'data' => file_get_contents($ocr_result_file),
             'content_hash' => $properties['sha1'],
             'content_type' => 'ocr_result',
-            'content_meta' => '',
+            'content_meta' => $document_source,
             'last_fetch' => $this->get_last_fetch(),
             'create_time' => time(),
           );
@@ -387,9 +424,8 @@ EOH
             set_contents_from_array($data)->
             fields(array_keys($data))->
             stow();
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) Created OCR data record ID: #" . $ocr_data_id  );
         }/*}}}*/
-
-        $this->syslog(__FUNCTION__,__LINE__,"(warning) OCR data record ID: #" . $ocr_data_id  );
 
         if ( 0 < intval($ocr_data_id) ) {/*{{{*/
           $join = array( $ocr_data_id => array(

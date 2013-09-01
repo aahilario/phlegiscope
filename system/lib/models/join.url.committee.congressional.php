@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class CongressionalCommitteeUrlJoin extends DatabaseUtility {
+class CongressionalCommitteeUrlJoin extends ModelJoin {
   
   // Join table model
   var $congressional_committee_CongressionalCommitteeDocumentModel = NULL;

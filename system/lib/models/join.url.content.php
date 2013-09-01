@@ -10,7 +10,7 @@
 define('CONTENT_TYPE_PREPARSED'       , 'preparsed');
 define('CONTENT_TYPE_RESPONSE_CONTENT', 'raw');
 
-class ContentUrlJoin extends DatabaseUtility {
+class ContentUrlJoin extends ModelJoin {
   
   // Join table model
   var $content_ContentDocumentModel;

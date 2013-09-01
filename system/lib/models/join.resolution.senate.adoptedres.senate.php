@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class SenateAdoptedresSenateResolutionJoin extends DatabaseUtility {
+class SenateAdoptedresSenateResolutionJoin extends ModelJoin {
   
   // Join table model
   var $senate_adoptedres_SenateAdoptedresDocumentModel;

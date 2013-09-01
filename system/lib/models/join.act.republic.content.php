@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class ContentRepublicActJoin extends DatabaseUtility {
+class ContentRepublicActJoin extends ModelJoin {
   
   // Join table model
   var $content_ContentDocumentModel;

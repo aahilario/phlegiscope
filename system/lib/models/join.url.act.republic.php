@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class RepublicActUrlJoin extends DatabaseUtility {
+class RepublicActUrlJoin extends ModelJoin {
   
   // Join table model
   var $republic_act_RepublicActDocumentModel;

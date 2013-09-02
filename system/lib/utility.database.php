@@ -145,8 +145,16 @@ class DatabaseUtility extends ReflectionClass {
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- {$joinattr} {$referent} {$property} = {$value}");
       $regex_match[] = "@(" . nonempty_array_element($component,0) . ")@imU";
       // Strip HTML tag delimiters
-      $regex_replace[] = preg_replace('@[><^]@i','?',$value);
+      if ( !property_exists($this,"permit_html_tag_delimiters") || ($this->permit_html_tag_delimiters == FALSE) ) {
+        $regex_replace[] = preg_replace('@[><^]@i','?',$value);
+      }
+      else {
+        $regex_replace[] = $value;
+      }
+      
+
     }/*}}}*/
+    if ( property_exists($this,"permit_html_tag_delimiters") ) $this->permit_html_tag_delimiters = FALSE;
     if ( $debug_method ) {/*{{{*/
       $this->recursive_dump($matches, "(marker) " . __METHOD__ . " (" . gettype($matches) . ")'{$result}'");
       $this->recursive_dump($this->query_result, "(marker) " . __METHOD__ . " Joins");
@@ -2237,5 +2245,13 @@ EOP
   }/*}}}*/
 
   function & set_id($v) { $this->id = $v; return $this; }
+
+	function iconv($s) {/*{{{*/
+		return iconv( strtoupper($this->content_type), 'UTF-8//TRANSLIT', $s );
+	}/*}}}*/
+
+	function reverse_iconv($s) {/*{{{*/
+		return iconv( 'UTF-8', strtoupper($this->content_type), $s );
+	}/*}}}*/
 
 }

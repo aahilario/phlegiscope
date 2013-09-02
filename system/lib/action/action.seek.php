@@ -25,7 +25,7 @@ class SeekAction extends LegiscopeBase {
 
     $invocation_delta = microtime(TRUE);
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     $json_reply   = array();
     $this->update_existing = $this->filter_post('update') == 'true'; 
@@ -77,7 +77,8 @@ class SeekAction extends LegiscopeBase {
     $age            = intval($url->get_last_fetch());
     $urlhash        = $url->get_urlhash();
     $content_length = $url->get_content_length();
-    $network_fetch  = ($modifier == 'reload' || $modifier == 'true') || ((0 < strlen($target_url)) && !$url->in_database());
+    $force_netfetch = ($modifier == 'reload' || $modifier == 'true'); 
+    $network_fetch  = $force_netfetch || ((0 < strlen($target_url)) && !$url->in_database());
     $retrieved      = $url->in_database();
     $action         = $retrieved && !$network_fetch
       ? "DB Retrieved {$content_length} octets"
@@ -88,7 +89,7 @@ class SeekAction extends LegiscopeBase {
 
     if ( $network_fetch ) {/*{{{*/
 
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Network fetch {$target_url}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Network fetch {$target_url}" );
 
       $retrieved = $this->perform_network_fetch( 
         $url     , $referrer, $target_url  ,

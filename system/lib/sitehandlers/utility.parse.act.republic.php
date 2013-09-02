@@ -348,7 +348,8 @@ EOH;
 <hr/>
 <div>{content}</div>
 <div>
-  <pre>{ocrcontent.data}</pre>
+<h2>OCR Content</h2>
+{ocrcontent.data}
 </div>
 EOH;
   }/*}}}*/
@@ -363,42 +364,6 @@ EOH;
 <div>{ocrcontent.data}</div>
 EOH;
   }/*}}}*/
-
-  function line_formatter($s) {
-    return preg_replace(
-      array(
-        "@\s@",
-        '@\[([ ]*)(.*)([ ]*)\]@i',
-        '@^[ ]*(BOOK|TITLE|CHAPTER)([ ]*)(.*)@i',
-        '@^[ ]*ART(ICLE)*([ ]*)(.*)@i',
-
-        '@^[ ]*(SEC(TION|\.)([ ]*)([0-9]*)[.]*)@i',
-        '@^[ ]*\(([a-z]{1}|[ivx]{1,4}|[0-9]{1,})[.]?\)([\s]*)@i',
-        '@^[ ]*([0-9]{1,})([.])@i',
-        '@^[ ]*([a-z])([.][\s])@i',
-
-        '@(Republic Act N(o.|umber)([ ]*)([0-9]{4,}))@i',
-        '@(Senate Bill N(o.|umber)([ ]*)([0-9]{4,}))@i',
-        '@(House Bill N(o.|umber)([ ]*)([0-9]{4,}))@i',
-      ),
-      array(
-        ' ',
-        '<span class="document-section document-heading-1">$2</span>',
-        '<span class="document-section document-heading-1">$1 $3</span>',
-        '<span class="document-section document-heading-1">Article $3</span>',
-
-        '<span class="document-section document-heading-2">Section $4</span>.',
-        '<span class="document-section document-heading-3">($1) </span>',
-        '<span class="document-section document-heading-4">$1. </span>',
-        '<span class="document-section document-heading-4">$1. </span>',
-
-        '[{RA-$4}]',
-        '[{SB-$4}]',
-        '[{HB-$4}]',
-      ),
-      $this->iconv($s)
-    );
-  }
 
   function generate_admin_content(RepublicActDocumentModel & $republic_act) {/*{{{*/
 
@@ -420,42 +385,18 @@ EOH;
       if ( FALSE == $content ) {
         $content = "No parsed content.";
       }
-		} else if ( !is_null($ocrcontent) ) {
+    }
+    else if ( !is_null($ocrcontent) ) {
 			$this->syslog(__FUNCTION__,__LINE__,"(marker) Using OCR version");
 			$content = explode("\n", str_replace(array("\r\n"),array("\n"),$ocrcontent));
-		} else {
+    } 
+    else {
 			$this->syslog(__FUNCTION__,__LINE__,"(marker) NO CONTENT. Using placeholder.");
 			$content = $no_local_content;
 		}
 
-    if (!is_null($republic_act->get_ocrcontent())) {
-      $ocrcontent = $republic_act->get_ocrcontent();
-      $ocrcontent = nonempty_array_element($ocrcontent,'data');
-      $ocr_record_id = nonempty_array_element($ocrcontent,'id');
-      if ( is_null($ocr_record_id) ) {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) No OCR result available.");
-        $republic_act->set_ocrcontent('No OCR available');
-      }
-      else {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) OCR content record #{$ocr_record_id} available.");
-      }
-    }
-    else {
-      $republic_act->set_ocrcontent('No OCR conversion available.');
-    }
-
     if (is_array($content) && (0 < count($content))) {
-      $content = array_values(array_filter(array_map(create_function(
-        '$a', 'return str_replace("[BR]","<br/>",nonempty_array_element($a,"text"));'
-      ),$content)));
-      // Replace line headings
-      array_walk($content,create_function(
-        '& $a, $k, $s', '$a = $s->line_formatter($a);'
-      ), $this);
-      $content = array_filter(array_map(create_function(
-        '$a', 'return "<p>{$a}</p>";'
-      ),$content));
-      $content = join("\n",$content);
+      $content = $republic_act->format_document($content);
       $republic_act->set_content($content);
       $content = NULL;
       unset($content);
@@ -463,6 +404,41 @@ EOH;
     else {
       $republic_act->set_content('No parsed content.');
     }
+
+    if ( method_exists($republic_act,'prepare_ocrcontent') ) {
+      $republic_act->prepare_ocrcontent();
+      if (0) {
+        $ocrcontent = $republic_act->get_ocrcontent();
+        $content = nonempty_array_element($ocrcontent,'data');
+        $content = nonempty_array_element($content,'data');
+        $content = $republic_act->format_document($content);
+        if ( !is_null($content) ) {
+          $ocrcontent['data']['data'] = $content;
+          $republic_act->set_ocrcontent($ocrcontent);
+        }
+        $content = NULL;
+        $ocrcontent = NULL;
+      }
+    }
+    else {/*{{{*/
+      if (!is_null($republic_act->get_ocrcontent())) {
+        $ocrcontent = $republic_act->get_ocrcontent();
+        $ocrcontent = nonempty_array_element($ocrcontent,'data');
+        $ocr_record_id = nonempty_array_element($ocrcontent,'id');
+        if ( is_null($ocr_record_id) ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) No OCR result available.");
+          $republic_act->set_ocrcontent('No OCR available');
+        }
+        else {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) OCR content record #{$ocr_record_id} available.");
+        }
+      }
+      else {
+        $republic_act->set_ocrcontent('No OCR conversion available.');
+      }
+    }/*}}}*/
+
+    $republic_act->permit_html_tag_delimiters = TRUE;
 		return $republic_act->substitute($this->republic_act_user_template());
   }/*}}}*/
 

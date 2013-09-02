@@ -137,12 +137,4 @@ class SystemUtility extends DatabaseUtility {
 		return $n;
 	}/*}}}*/
 
-	function iconv($s) {/*{{{*/
-		return iconv( strtoupper($this->content_type), 'UTF-8//TRANSLIT', $s );
-	}/*}}}*/
-
-	function reverse_iconv($s) {/*{{{*/
-		return iconv( 'UTF-8', strtoupper($this->content_type), $s );
-	}/*}}}*/
-
 }

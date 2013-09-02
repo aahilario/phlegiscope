@@ -114,6 +114,10 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
 
   function single_record_markup_template_a() {/*{{{*/
+
+    $this->prepare_ocrcontent();
+    $this->permit_html_tag_delimiters = TRUE;
+
     $senatedoc = get_class($this);
     $total_bills_in_system = $this->count();
     return <<<EOH
@@ -128,10 +132,11 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 <span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committees}</span>
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 <span class="sb-match-item sb-match-description">{description}</span>
+<hr/>
+{ocrcontent.data}
 {reading_state}
 {committee_referrals}
 {history_tabulation}
-<pre>{ocrcontent.data}</pre>
 EOH;
   }/*}}}*/
 

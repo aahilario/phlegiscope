@@ -588,7 +588,7 @@ EOH;
 		$containers = $this->get_containers();
 
     $link_generator = create_function('$a', <<<EOH
-return '<li><a class="legiscope-remote markable {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(trim(\$a["text"])) ? \$a["text"] : '[Anchor]') . '</a></li>';
+return '<li><a class="legiscope-remote markable {is-source-root-' . \$a["urlhash"] . '} {cached-' . \$a["urlhash"] . '}" id="' . \$a["urlhash"] . '" href="' . \$a["url"] . '" title="'.\$a["origpath"] . ' ' . md5(\$a["url"]) . '" target="legiscope">' . (0 < strlen(trim(\$a["text"])) ? \$a["text"] : '[Anchor]') . '</a></li>';
 EOH
     );
     $hash_extractor = create_function('$a', <<<EOH
@@ -762,6 +762,7 @@ EOH
         $cluster_urls[$cluster_url_uid]['whole_url'] = UrlModel::recompose_url($urlparts);
       }
     }/*}}}*/
+
     // Initial implementation of recordset iterator (not from in-memory array)
     $this->syslog( __FUNCTION__, __LINE__, "-- Selecting a cluster of URLs associated with {$url}" );
     $record = array();
@@ -788,26 +789,35 @@ EOH
         where(array('urlhash' => array_keys($partition)))->
         recordfetch_setup();
       $hashlist = array();
+			$rootlist = array();
       // Collect all URL hashes. Obtain link age from last-fetch time.
       $now = time();
       while ( $url_cache_iterator->recordfetch($result,TRUE) ) {/*{{{*/
         // Compute hours since last fetch
         $hashlist[$result['urlhash']] = $url_cache_iterator->get_logseconds_since_last_fetch($now);
+        $rootlist[$result['urlhash']] = $result['is_source_root']; 
+				// $this->syslog(__FUNCTION__,__LINE__,"(critical) {$result['urlhash']} {$result['is_source_root']}");
         $n++;
       }/*}}}*/
       array_walk($hashlist,create_function('& $a, $k, $s', '$a = $s->get_logseconds_css($a);'),$url_cache_iterator);
       // $this->recursive_dump($hashlist,"(marker)");
-      // Add 'cached' and 'refresh' class to selectors
+      // Add 'cached', 'is_source_root' and 'refresh' class to selectors
       $linkset = preg_replace(
         array_map(create_function('$a','return "@\{cached-({$a})\}@";'),array_keys($hashlist)),
         array_map(create_function('$a','return "cached {$a}";'),$hashlist),
         $linkset
       );
+      $linkset = preg_replace(
+        array_map(create_function('$a','return "@\{is-source-root-({$a})\}@";'),array_keys($rootlist)),
+        array_map(create_function('$a','return 1 == intval($a) ? "is-source-root" : "";'),$rootlist),
+        $linkset
+      );
+
 			if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "-- Marker {$n}/{$partition_index} links on {$url} as being 'cached'" );
     }/*}}}*/
 
     // Remove unmatched selectors 
-    $linkset = preg_replace('@\{(cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
+    $linkset = preg_replace('@\{(is-source-root|cached|refresh)-([0-9a-z]*)\}@i','', $linkset);
 
     $return_value = array(
       'linkset'      => $linkset,

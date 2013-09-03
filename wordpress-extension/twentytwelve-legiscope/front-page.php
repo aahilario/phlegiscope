@@ -6,7 +6,7 @@
   <div class="legiscope-debug legiscope-header-container">
     <!-- header-brick -->
     <div class="legiscope-debug" id="legiscope-header-brick">
-      <h1>Legiscope</h1>
+      <h1>Boozeet!</h1>
       <span>Tracking Lawmakers' Work-in-Progress</span>
     </div>
     <!-- header-brick -->

@@ -361,6 +361,7 @@ EOH;
 <span><b>Source: </b>{url}</span>
 <h2>{description}</h2>
 <hr/>
+<h2>OCR Content</h2>
 <div>{ocrcontent.data}</div>
 EOH;
   }/*}}}*/

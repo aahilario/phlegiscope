@@ -22,7 +22,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     // This method fills (array) $this->filtered_content with parsed information,
     // suitable to be passed directly to method set_contents_from_array() 
     // Return value should be the contents of $this->filtered_content 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     if ( $debug_method )
     $this->syslog(__FUNCTION__,__LINE__,"(marker) --[".get_class($this)."]--");

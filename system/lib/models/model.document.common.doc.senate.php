@@ -343,7 +343,7 @@ EOH
         $this->set_ocrcontent($ocrcontent);
         return FALSE;
       }
-      $this->syslog(__FUNCTION__,__LINE__,"(error) OCR content record #{$ocr_record_id} available.");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) OCR content record #{$ocr_record_id} available.");
       $ocrcontent = NULL;
       unset($ocrcontent);
       $this->reconstitute_ocr_text();
@@ -986,7 +986,6 @@ EOH;
     $ocrcontent = $this->get_ocrcontent();
     $ocrcontent['data']['data'] = $t;
     $this->set_ocrcontent($ocrcontent);
-      $this->recursive_dump($this->get_ocrcontent(),"(error)+");
   }/*}}}*/
   
   function line_formatter($s) {/*{{{*/

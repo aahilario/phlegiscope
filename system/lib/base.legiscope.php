@@ -152,7 +152,7 @@ class LegiscopeBase extends SystemUtility {
 
   final private function handle_plugin_context() {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = $this->debug_handle_model_action;
     // Modify $_REQUEST by extracting an action value from the request URI 
     if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Not a plugin context. Leaving" );
@@ -171,6 +171,7 @@ class LegiscopeBase extends SystemUtility {
     $actions_match  = array();
     $actions_lookup = array(
       'seek',
+			'link',
       'reorder',
       'keyword',
       'fetchpdf',
@@ -265,6 +266,7 @@ class LegiscopeBase extends SystemUtility {
 
     if ( !is_null( $controller ) ) {/*{{{*/
 
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Controller non-empty" );
 
     }/*}}}*/
     else if ( !is_null($action) && class_exists($action_hdl) ) {/*{{{*/

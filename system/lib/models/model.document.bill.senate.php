@@ -29,16 +29,18 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $legislative_history_blob = NULL;
   var $significance_vc16 = NULL;
 
+
   var $main_referral_comm_vc64 = NULL;
   var $secondary_committee_vc128 = NULL;
 
   var $journal_SenateJournalDocumentModel = NULL; // Referring journals
   var $committee_SenateCommitteeModel = NULL;
   var $senator_SenatorDossierModel = NULL;
+  var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
+
   var $housebill_HouseBillDocumentModel = NULL;
   var $republic_act_RepublicActDocumentModel = NULL;
   var $bill_info_SenateBillDocumentModel = NULL;
-  var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
 
   function __construct() {
     parent::__construct();
@@ -133,10 +135,12 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>
 <span class="sb-match-item sb-match-description">{description}</span>
 <hr/>
-{ocrcontent.data}
 {reading_state}
 {committee_referrals}
 {history_tabulation}
+<hr/>
+<h2>OCR Content</h2>
+{ocrcontent.data}
 EOH;
   }/*}}}*/
 

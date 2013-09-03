@@ -1343,6 +1343,7 @@ EOH;
     // Workaround to force POST without GET, when retrieving detail pages.
     if ( $parser->update_existing ) {
       $parser->network_fetch_skip_get = TRUE;
+      // Force network fetch when the curator enables the 'Update' switch
       $parser->from_network = TRUE;
     }
 
@@ -1361,7 +1362,8 @@ EOH;
     // Workaround to force POST without GET, when retrieving detail pages.
     if ( $parser->update_existing ) {
       $parser->network_fetch_skip_get = TRUE;
-      $parser->from_network = TRUE;
+      // Force network fetch when the curator enables the 'Update' switch
+      //$parser->from_network = TRUE;
     }
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SBN', $parser, $pagecontent, $urlmodel );
@@ -1429,6 +1431,9 @@ EOH;
 
     if ( (FALSE == $traversal_resultarray) || !(2 == count($traversal_resultarray) ) ) {/*{{{*/
       // Try it again.
+
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) Force reload of " . $urlmodel->get_url() );
+
       $parser->from_network    = TRUE;
       $parser->update_existing = TRUE;
       $ok                      = FALSE;
@@ -1557,11 +1562,12 @@ EOH;
 
         if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - - - - - - - - - - - - - - V" );
 
-        $senate_document_id = $senate_document->get_id();
-        $remove_invalidated = C('REMOVE_INVALIDATED_DOCUMENTS');
-        $can_invalidate = !C('SUPPRESS_MALFORMED_DOC_INVALIDATION') && method_exists($senate_document,'set_invalidated');
+        $senate_document_id  = $senate_document->get_id();
+        $remove_invalidated  = C('REMOVE_INVALIDATED_DOCUMENTS');
+        $can_invalidate      = !C('SUPPRESS_MALFORMED_DOC_INVALIDATION') && method_exists($senate_document,'set_invalidated');
         $invalidation_action = $can_invalidate ? "Invalidating" : ($remove_invalidated ? "Removing" : "Retaining INVALIDATED");
         $this->syslog(__FUNCTION__,__LINE__,"(warning) - - - - - !!!!   {$invalidation_action} entry #{$senate_document_id} " . get_class($senate_document));
+
         if ( $can_invalidate ) {
           $senate_document->
             set_invalidated(TRUE)->

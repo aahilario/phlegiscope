@@ -26,7 +26,7 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   var $comm_report_url_vc256 = NULL;
   var $comm_report_info_vc256 = NULL;
   var $invalidated_bool = NULL;
-	var $legislative_history_vc8192 = NULL;
+  var $legislative_history_blob = NULL;
 	var $filing_date_dtm = NULL;
 	var $significance_vc16 = NULL;
 
@@ -105,13 +105,110 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
 	function & set_secondary_committee($v) { $this->secondary_committee_vc64 = $v; return $this; }
 	function get_secondary_committee($v = NULL) { if (!is_null($v)) $this->set_secondary_committee($v); return $this->secondary_committee_vc64; }
 
-	function & set_legislative_history($v) { $this->legislative_history_vc8192 = $v; return $this; }
-	function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_vc8192; }
+  function & set_legislative_history($v) { $this->legislative_history_blob = $v; return $this; }
+  function get_legislative_history($v = NULL) { if (!is_null($v)) $this->set_legislative_history($v); return $this->legislative_history_blob; }
 
   function & set_significance($v) { $this->significance_vc16 = $v; return $this; }
   function get_significance($v = NULL) { if (!is_null($v)) $this->set_significance($v); return $this->significance_vc16; }
 
+  function reconstitute_ocr_text() {/*{{{*/
+    $t = nonempty_array_element($this->get_ocrcontent(),'data');
+    if ( is_null($t) || !is_array($t) ) return FALSE;
+    $t = nonempty_array_element($t,'data');
+    if ( !is_string($t) ) return FALSE;
+    $t = preg_split('@(\n|\f|\r)@i', $t);
+    $this->syslog( __FUNCTION__,__LINE__, "(marker) Result of split: " . gettype($t));
+    if ( !is_array($t) ) return FALSE;
+    $final = array();
+
+    $whole_line = array();
+    $last_line  = 0;
+    $current_line = 0;
+
+    while ( 0 < count($t) ) {/*{{{*/
+
+      $line = array_shift($t);
+
+      // Strip trailing noise
+      $line = preg_replace('@([^A-Z0-9;:,.-]{1,})$@i','', $line);
+
+      $non_alnum        = mb_strlen(preg_replace('@[^A-Z0-9;:,. -]@i','',$line));
+      $just_alnum       = mb_strlen(preg_replace('@[A-Z0-9. ]@i','',$line));
+      $ratio = 1.0;
+      if ( 0 < mb_strlen($line) ) {
+        $ratio = ( floatval($just_alnum) / floatval(mb_strlen($line)) );
+        if ( $ratio > 0.2 ) $line = "[noise]";
+      }
+
+      $maybe_pagenumber = 1 == preg_match('@^([0-9]{1,})$@', $line);
+      $line_number = array();
+      $is_numbered_line = 1 == preg_match('@^([0-9]{1,}[ ]{1,})@i',$line,$line_number);
+
+      if ( $maybe_pagenumber ) {
+        $replacement = ' ';//'---------- [Page $2] --------'
+        $line = preg_replace('@^(([0-9]{1,})[ ]*)$@i', $replacement, $line);
+      }
+      else if ( $is_numbered_line ) {
+        $replacement = ' ';//'[Line $2]'
+        $line = preg_replace('@^(([0-9]{1,})[ ]*)@i', $replacement, $line);
+      }
+
+      $is_end_of_line   = 1 == preg_match('@([:;. -]{1,}|([:;,][ ]{1,}(or|and))|[.][0-9]{1,})$@i', $line);
+      $is_section_head  = 1 == preg_match('@^(Whereas|Now|Resolved|Article|[0-9]{1,}[.])@i', $line);
+      $introduction     = 1 == preg_match('@^(Introduced by|Article|RESOLUTION)@i',$line);
+
+			$introduction |= ( $line == strtoupper($line) ) || (!$is_end_of_line && (6 >= count(explode(' ',$line)))); 
+
+      if ( $line == '[noise]' ) {
+        $is_end_of_line |= TRUE;
+      } else
+        $whole_line[] = $line;
+
+      $add_space_beforeline = ( $is_section_head || $introduction );
+      $add_space_afterline  = ( $is_end_of_line || $introduction );
+
+      if ( $add_space_afterline || $add_space_afterline ) {
+        $line = trim(join(' ',$whole_line));
+        for ( $p = $last_line ; $p < $last_line ; $p++ ) {
+          $final[$p] = NULL;
+        }
+        $last_line = $current_line ;
+        $whole_line = array();
+      }
+			else {
+				$line = NULL;
+			}
+
+      if ( $add_space_beforeline ) $final[$current_line++] = '[emptyline]';
+      $final[$current_line++] = $line;
+      if ( $add_space_afterline ) $final[$current_line++] = '[emptyline]';
+
+    }/*}}}*/
+
+    // Remove multiple adjacent [emptyline] entries.
+    $final      = array_filter($final);
+    $prev_empty = FALSE;
+    $t          = array();
+    while ( 0 < count($final) ) {
+      $line = array_shift($final);
+      if ( $line == '[emptyline]' ) {
+        if ( $prev_empty ) continue;
+        $prev_empty = TRUE;
+        $line = '';
+      }
+      else $prev_empty = FALSE;
+      $t[] = array('text' => $line);
+    }
+    $ocrcontent = $this->get_ocrcontent();
+    $ocrcontent['data']['data'] = $t;
+    $this->set_ocrcontent($ocrcontent);
+  }/*}}}*/
+
   function single_record_markup_template_a() {/*{{{*/
+
+    $this->prepare_ocrcontent();
+    $this->permit_html_tag_delimiters = TRUE;
+
     $senatedoc = get_class($this);
     $total_bills_in_system = $this->count();
     return <<<EOH
@@ -126,7 +223,13 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
 <span class="sb-match-item sb-match-main-referral-comm">Committee: <a class="legiscope-remote" href="{main_referral_comm_url}">{main_referral_comm}</a></span>
 <span class="sb-match-item sb-match-main-referral-comm">Secondary Committee: {secondary_committees}</span>
 <span class="sb-match-item sb-match-description">{description}</span>
-<pre>{ocrcontent.data}</pre>
+<hr/>
+{reading_state}
+{committee_referrals}
+{history_tabulation}
+<hr/>
+<h2>OCR Content</h2>
+{ocrcontent.data}
 EOH;
 		$bloopers = <<<EOH
 <span class="sb-match-item sb-match-committee-report-info">Committee Report: <a class="legiscope-remote" href="{comm_report_url}">{comm_report_info}</a></span>

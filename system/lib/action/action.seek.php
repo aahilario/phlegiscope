@@ -25,7 +25,7 @@ class SeekAction extends LegiscopeBase {
 
     $invocation_delta = microtime(TRUE);
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     $json_reply   = array();
     $this->update_existing = $this->filter_post('update') == 'true'; 
@@ -35,7 +35,9 @@ class SeekAction extends LegiscopeBase {
     $target_url      = $this->filter_post('url','');
     $target_url_hash = UrlModel::get_url_hash($target_url); 
     $freeze_referrer = $this->filter_post('fr'); // Freeze referrer
-    $cache_force     = $this->filter_post('cache');
+    $cache_force     = NULL;
+    $force_log       = $this->filter_post('cache');
+    if ( $force_log == 'true' ) DatabaseUtility::$force_log = TRUE;
     $referrer        = $this->filter_session('referrer');
     $url             = new UrlModel();
 
@@ -77,19 +79,20 @@ class SeekAction extends LegiscopeBase {
     $age            = intval($url->get_last_fetch());
     $urlhash        = $url->get_urlhash();
     $content_length = $url->get_content_length();
-    $force_netfetch = ($modifier == 'reload' || $modifier == 'true'); 
-    $network_fetch  = $force_netfetch || ((0 < strlen($target_url)) && !$url->in_database());
+    $network_fetch  = $network_fetch || ((0 < strlen($target_url)) && !$url->in_database());
     $retrieved      = $url->in_database();
     $action         = $retrieved && !$network_fetch
       ? "DB Retrieved {$content_length} octets"
       : "Reloading"
       ;
 
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(critical) ". ($retrieved ? "In Database" : "MISSING") . " {$target_url}" );
+
     $process_despite_fetch_failure = FALSE;
 
     if ( $network_fetch ) {/*{{{*/
 
-      $this->syslog( __FUNCTION__, __LINE__, "(warning) Network fetch {$target_url}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(critical) Network fetch {$target_url}" );
 
       $retrieved = $this->perform_network_fetch( 
         $url     , $referrer, $target_url  ,
@@ -286,7 +289,7 @@ class SeekAction extends LegiscopeBase {
               $parser->urlhashes        = $urlhashes;
 
               if ( $this->debug_memory_usage_delta ) {
-                $this->syslog(__FUNCTION__,__LINE__,"(warning) Invoking {$method_name} - Memory usage " . memory_get_usage(TRUE) . ' for ' . $url->get_url() );
+                $this->syslog(__FUNCTION__,__LINE__,"(marker) Invoking {$method_name} - Memory usage " . memory_get_usage(TRUE) . ' for ' . $url->get_url() );
               }
               $this->$method_name($parser, $body_content, $url);
 
@@ -302,7 +305,7 @@ class SeekAction extends LegiscopeBase {
           $json_reply['timedelta'] = $invocation_delta;
 
           if ( $this->debug_memory_usage_delta ) {
-            $this->syslog(__FUNCTION__,__LINE__,"(warning)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) . " delta {$invocation_delta}" );
+            $this->syslog(__FUNCTION__,__LINE__,"(marker)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) . " delta {$invocation_delta}" );
           }
 
           if ( !$matched ) {
@@ -384,6 +387,7 @@ class SeekAction extends LegiscopeBase {
       } else {
         $age = '--';
       }
+
       $json_reply = array_merge(
         array(
           'url'            => $displayed_target_url,
@@ -589,6 +593,5 @@ EOH;
       'contenttype' => 'text/html'
     );
   }/*}}}*/
-
 
 }

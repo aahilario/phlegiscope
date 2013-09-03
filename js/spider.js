@@ -6,10 +6,10 @@ var preload_a = null;
 var preload_n = 0;
 
 function set_hoststats(m) {
-	jQuery('ul[id=wp-admin-bar-root-legiscope]').remove();
-	jQuery(m).insertAfter(
-		jQuery('div[id=wp-toolbar]').find('ul[class*=ab-top-menu]').last()
-	);
+  jQuery('ul[id=wp-admin-bar-root-legiscope]').remove();
+  jQuery(m).insertAfter(
+    jQuery('div[id=wp-toolbar]').find('ul[class*=ab-top-menu]').last()
+  );
 }
 
 function replace_contentof(a,c) {
@@ -131,7 +131,7 @@ function preload_worker_unconditional() {
       if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
       else
       if ( data && data.content ) replace_contentof(data && data.rootpage ? 'processed' : 'content',data.content);
-			if ( data && data.hoststats ) set_hoststats(data.hoststats);
+      if ( data && data.hoststats ) set_hoststats(data.hoststats);
       if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
       update_a_age(data);
@@ -160,7 +160,7 @@ function preload(components) {
     success  : (function(data, httpstatus, jqueryXHR) {
       var uncached_entries = data.count ? data.count : 0;
       var uncached_list = data.uncached ? data.uncached : [];
-			if ( data && data.hoststats ) set_hoststats(data.hoststats);
+      if ( data && data.hoststats ) set_hoststats(data.hoststats);
       if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
       update_a_age(data);
@@ -177,14 +177,54 @@ function preload(components) {
   });
 }
 
+function handle_link_marker_click(m) {
+  jQuery.ajax({
+    type     : 'POST',
+    url      : '/link/',
+    data     : { url : jQuery('[id=currenturl-reflexive]').html(), link : jQuery(m).attr('id'), cache : jQuery('#cache').prop('checked') },
+    cache    : false,
+    dataType : 'json',
+    async    : true,
+    beforeSend : (function() {
+      display_wait_notification();
+    }),
+    complete : (function(jqueryXHR, textStatus) {
+      remove_wait_notification();
+    }),
+    success  : (function(data, httpstatus, jqueryXHR) {
+      var linkset = data.linkset ? data.linkset : null;
+			var state = data.state ? (parseInt(data.state) == 1 ? true : false) : false;
+			if ( 'strings' == typeof linkset ) {
+				replace_contentof('linkset', linkset);
+        initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
+			}
+			jQuery(m).prop('checked', state);
+			if ( state ) {
+				jQuery(m)
+					.parentsUntil('div[class*=linkset]')
+			    .parent()
+					.children('ul[class*=link-cluster]')
+					.first()
+					.prepend(jQuery(m).parent().detach());
+		  }
+			else {
+				jQuery(m)
+					.parentsUntil('div[class*=linkset]')
+			    .parent()
+					.children('ul[class*=link-cluster]')
+					.last()
+					.append(jQuery(m).parent().detach());
+			}
+    })
+  });
+  return false;
+}
+
 function initialize_linkset_clickevents(linkset,childtag) {
   var child_tags = typeof childtag == 'undefined' ? 'li' : childtag;
   jQuery(linkset).on('contextmenu',function(){
     return false;
   }).unbind('click').click(function(e){
-
-    e.stopPropagation();
-    e.preventDefault();
 
     if (!jQuery('#spider').prop('checked')) {
       window.alert("Enable 'Spider' option to trigger preload");
@@ -209,6 +249,7 @@ function initialize_linkset_clickevents(linkset,childtag) {
       var link_id = jQuery(this).attr('id');
       if ( jQuery(this).parentsUntil('ul').first().parent().attr('id') == 'systemrootlinks' ) return true;
       if ( link_id.length > 0 && jQuery(this).hasClass('markable') ) {
+				var link_marked = jQuery(this).hasClass('is-source-root');
         jQuery(this).parent().first().each(function(){
           jQuery(this).children('input[id=m-'+link_id+']').remove();
           jQuery(this).prepend(
@@ -217,6 +258,7 @@ function initialize_linkset_clickevents(linkset,childtag) {
               .attr('value','1')
               .attr('id','m-'+link_id)
               .addClass('link-marker')
+							.prop('checked',link_marked)
           );
         });
       }
@@ -234,10 +276,20 @@ function initialize_linkset_clickevents(linkset,childtag) {
   jQuery('input[class*=link-marker]')
     .unbind('click')
     .on('click',function(e){
-			e.stopPropagation();
-			e.preventDefault();
-      return false;
-    });
+      e.stopPropagation();
+      e.preventDefault();
+      return handle_link_marker_click(jQuery(this)); 
+    })
+	  .each(function(){
+			if ( jQuery(this).prop('checked') ) {
+				jQuery(this)
+					.parentsUntil('div[class*=linkset]')
+			    .parent()
+					.children('ul[class*=link-cluster]')
+					.first()
+					.prepend(jQuery(this).parent().detach());
+		  }
+		});
 }
 
 function std_seek_response_handler(data, httpstatus, jqueryXHR) {
@@ -265,7 +317,7 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
     return true;
   });
 
-	if ( data && data.hoststats ) set_hoststats(data.hoststats);
+  if ( data && data.hoststats ) set_hoststats(data.hoststats);
   if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
   if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
   if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
@@ -307,7 +359,8 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
         return true;
       });
     }
-  } else {
+  }
+ 	else {
     if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
     else
     replace_contentof(rootpage ? 'processed' : 'content', data.content);
@@ -327,6 +380,7 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
       jQuery(document.createElement('A'))
       .attr('href', data.url)
       .attr('target','blank')
+			.attr('id','currenturl-reflexive')
       .append(data.url)
     );
     initialize_authentication_inputs();
@@ -529,15 +583,15 @@ function initialize_hot_search(s,url) {
           var records = data.records ? data.records : [];
           var returns = data.count ? data.count : 0;
           var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
-					if ( data && data.hoststats ) set_hoststats(data.hoststats);
+          if ( data && data.hoststats ) set_hoststats(data.hoststats);
           if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
           if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           update_a_age(data);
           jQuery('#currenturl').html((0 < returns) ? ("Matches: "+returns) : "");
           if ( !(0 < returns) ) {
-						replace_contentof('subcontent',"<h2>No matches</h2>");
-						return;
-					}
+            replace_contentof('subcontent',"<h2>No matches</h2>");
+            return;
+          }
           replace_contentof('subcontent',jQuery(document.createElement('UL')).attr('id','searchresults'));
           for ( var r in records ) {
             var record = records[r];
@@ -700,14 +754,13 @@ function initialize_dossier_triggers() {
       remove_wait_notification();
     }),
     success : (function(data, httpstatus, jqueryXHR) {
-      var response = data.error ? data.message : data.linkset;
       var referrer = data.referrer;
       var url = data.url;
       var contenttype = data.contenttype ? data.contenttype : '';
       var linkset = data.linkset ? data.linkset : null;
       jQuery('#doctitle').html("Legiscope");
 
-			if ( data && data.hoststats ) set_hoststats(data.hoststats);
+      if ( data && data.hoststats ) set_hoststats(data.hoststats);
       if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
       if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
@@ -727,6 +780,7 @@ function initialize_dossier_triggers() {
         jQuery(document.createElement('a'))
         .attr('href', url)
         .attr('target','blank')
+				.attr('id','currenturl-reflexive')
         .html(url)
       );
 
@@ -763,7 +817,7 @@ function update_representatives_avatars() {
         var altmarkup = data.altmarkup ? data.altmarkup : null;
         var total_image_width = 0;
         jQuery('img[id='+alt_name+']').attr('src', altmarkup);
-				if ( data && data.hoststats ) set_hoststats(data.hoststats);
+        if ( data && data.hoststats ) set_hoststats(data.hoststats);
         if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
         if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
         if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);

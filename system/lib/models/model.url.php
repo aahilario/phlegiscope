@@ -29,7 +29,7 @@ class UrlModel extends DatabaseUtility {
   var $is_fake_bool = NULL;
   var $custom_parse_bool = NULL;
   var $pregenerated_bool = NULL;
-  var $source_root_bool = NULL;
+  var $is_source_root_bool = NULL;
   // END ModelFields
 
   var $a_UrlModel = NULL;
@@ -481,8 +481,8 @@ class UrlModel extends DatabaseUtility {
   function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
   function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
 
-  function & set_source_root($v) { $this->source_root_bool = $v; return $this; }
-  function get_source_root($v = NULL) { if (!is_null($v)) $this->set_source_root($v); return $this->source_root_bool; }
+  function & set_is_source_root($v) { $this->is_source_root_bool = $v; return $this; }
+  function get_is_source_root($v = NULL) { if (!is_null($v)) $this->set_is_source_root($v); return $this->is_source_root_bool; }
 
   function & set_last_modified($v) { $this->last_modified_utx = $v; return $this; }
   function get_last_modified($v = NULL) { if (!is_null($v)) $this->set_last_modified($v); return $this->last_modified_utx; }

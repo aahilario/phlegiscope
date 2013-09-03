@@ -7,6 +7,7 @@ class DatabaseUtility extends ReflectionClass {
   // TODO:  Implement reference counter?
   protected static $obj_attrdefs = array(); // Lookup table of class attributes and names. 
   protected static $obj_ondisk   = array();
+  static $force_log = FALSE;
 
   protected $tablename             = NULL;
   protected $query_conditions      = array();
@@ -1846,7 +1847,8 @@ EOS;
   function & delete() { return $this; }
 
   final protected function logging_ok($prefix) {/*{{{*/
-    if ( 1 == preg_match('@(ERROR)@i', $prefix) ) return TRUE;
+    if ( static::$force_log ) return TRUE; 
+    if ( 1 == preg_match('@(ERROR|CRITICAL)@i', $prefix) ) return TRUE;
     if ( TRUE == C('DEBUG_ONLY_ADMIN') && !C('CONTEXT_ADMIN') ) return FALSE;
     if ( TRUE == C('DEBUG_ONLY_ENDUSER') && !C('CONTEXT_ENDUSER') ) return FALSE;
     if ( 1 == preg_match('@(WARNING|ERROR|MARKER)@i', $prefix) ) return TRUE;

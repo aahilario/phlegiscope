@@ -13,23 +13,28 @@ function tesseract_convert() {
   touch ${BASENAME}.txt
 
   while [ $P -le $PAGECOUNT ]; do
-    rm -f *.pbm
+    rm -f *.p?m
     ROTATION=`pdfinfo -f $P -l $P $FILE | tr '\t' ' ' | tr -s ' ' | grep "rot:" | cut -f2 -d: | sed -E -e 's@[^0-9]@@g'`
     [ $ROTATION == 270 ] && ROTATION=-90 
     ROTATION=`echo "${ROTATION} * -1" | bc`
     echo "Rotate ${P}/${PAGECOUNT} ${ROTATION}"
     SUFFIX=`printf "%03d" $P`
     pdfimages -f $P -l $P $FILE $BASENAME && { 
-      cat ${BASENAME}*.pbm | pnmrotate -noantialias ${ROTATION} > ${BASENAME}.rot
+      [ $ROTATION == -180 ] && {
+        cat ${BASENAME}*.p?m | pnmrotate -noantialias -90 | pnmrotate -noantialias -90 > ${BASENAME}.rot
+      } || {
+        cat ${BASENAME}*.p?m | pnmrotate -noantialias ${ROTATION} > ${BASENAME}.rot
+      }
       mv ${BASENAME}.rot ${BASENAME}.pbm
       ppm2tiff ${BASENAME}.pbm ${BASENAME}-${SUFFIX}.tif
-      rm -f *.pbm
+      rm -f *.p?m
       tesseract ${BASENAME}-${SUFFIX}.tif result -l eng -psm 1 ${TESS_CONFIG}
       cat result.txt >> ${BASENAME}.txt
       rm -f result.txt
     }
     P=`echo "${P}" + 1 | bc`
   done
+  cat ${BASENAME}.txt
   rm -f *.ppm *.pbm *.tif
 }
 

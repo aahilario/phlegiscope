@@ -27,7 +27,7 @@ define('LEGISCOPE_CURLOPT_PROXYTYPE',  CURLPROXY_SOCKS5);
 define('DEBUG_ONLY_ADMIN',FALSE);
 define('DEBUG_ONLY_ENDUSER',TRUE);
 define('DEBUGLOG_FILENAME', TRUE);
-define('DEBUG_HANDLER_NAMES', TRUE);
+define('DEBUG_HANDLER_NAMES', FALSE);
 define('DEBUG_DatabaseUtility', FALSE);
 define('DEBUG_LegiscopeBase', FALSE);
 define('DEBUG_CongressGovPh', FALSE);

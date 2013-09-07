@@ -120,6 +120,13 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
     $this->prepare_ocrcontent();
     $this->permit_html_tag_delimiters = TRUE;
 
+    $subjects = $this->get_subjects();
+    if ( !(FALSE == ($subjects = @json_decode($subjects,TRUE))) ) {
+      $this->recursive_dump($subjects,"(critical) + + + =");
+      $subjects = join('[BR]', $subjects);
+      $this->set_subjects($subjects);
+    }
+
     $senatedoc = get_class($this);
     $total_bills_in_system = $this->count();
     return <<<EOH

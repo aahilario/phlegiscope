@@ -464,16 +464,6 @@ function initialize_remote_links() {
     return false;
   });
 
-  jQuery('a[class*=fauxpost]').unbind('click').click(function(e){
-    var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
-    var content = jQuery('span[id='+content_id+']').html();
-    jQuery('#metalink').html(content);
-    e.stopPropagation();
-    load_content_window(jQuery(this).attr('href'), jQuery(e).attr('metaKey') || jQuery('#seek').prop('checked'), jQuery(this));
-    jQuery('#metalink').html('');
-    return false;
-  });
-
   jQuery('span[class*=legiscope-refresh]').unbind('mouseout');
   jQuery('span[class*=legiscope-refresh]').mouseout(function(){
     jQuery(this).parent().children('span[class*=legiscope-refresh]').each(function(){
@@ -495,6 +485,16 @@ function initialize_remote_links() {
   });
 
   enable_proxied_links('legiscope-remote');
+
+  jQuery('a[class*=fauxpost]').unbind('click').click(function(e){
+    var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
+    var content = jQuery('span[id='+content_id+']').html();
+    jQuery('#metalink').html(content);
+    e.stopPropagation();
+    load_content_window(jQuery(this).attr('href'), jQuery(e).attr('metaKey') || jQuery('#seek').prop('checked'), jQuery(this));
+    jQuery('#metalink').html('');
+    return false;
+  });
 
   return true;
 }

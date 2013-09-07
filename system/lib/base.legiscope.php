@@ -38,7 +38,7 @@ class LegiscopeBase extends SystemUtility {
     // defining class SubDomainPh (derived from (www.)*sub.domain.tld),
     // then that class (which extends LegiscopeBase) is generated, 
     // instead of LegiscopeBase.
-		$debug_method = FALSE;
+    $debug_method = FALSE;
     $request_url = filter_post('url');
     $hostname    = @UrlModel::parse_url($request_url, PHP_URL_HOST);
     $matches     = array();
@@ -171,7 +171,7 @@ class LegiscopeBase extends SystemUtility {
     $actions_match  = array();
     $actions_lookup = array(
       'seek',
-			'link',
+      'link',
       'reorder',
       'keyword',
       'fetchpdf',
@@ -493,7 +493,7 @@ class LegiscopeBase extends SystemUtility {
     }/*}}}*/ 
 
     $method_map = array(
-			'by-wpdate'    => NULL,
+      'by-wpdate'    => NULL,
       'by-fullpath'  => $seek_postparse_method,
       'by-query'     => $seek_postparse_querytype_method,
       'by-noquery'   => $seek_postparse_path_method,
@@ -511,6 +511,7 @@ class LegiscopeBase extends SystemUtility {
       $test_url_components = $url_components;
       unset($test_url_components['query']);
       unset($test_url_components['fragment']);
+      $handler_queue = array();
       foreach ( explode('/', $test_url_components['path']) as $path_part ) {
         $method_name = NULL;
         if ( empty($path_part) ) continue;
@@ -520,26 +521,33 @@ class LegiscopeBase extends SystemUtility {
         $test_url['path'] = $test_path;
         $test_url = UrlModel::recompose_url($test_url);
         $test_path = str_replace('/','-',$test_path);
-        $method_map['by-path-' . count($url_map) . "{$test_path}"] = 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url);
+        $handler_queue[] = array(
+          'handler_alias' => 'by-path-' . count($url_map) . "{$test_path}",
+          'handler_name'  => 'seek_by_pathfragment_' . UrlModel::get_url_hash($test_url),
+        );
+      }
+      while ( 0 < count($handler_queue) ) {
+        extract( array_pop($handler_queue) );
+        $method_map[$handler_alias] = $handler_name;
       }
     }/*}}}*/
 
-		// Now try to construct a Y/M/D path handler
-		$dir_sans_path = explode('/',$url_components['path']);
-		$tail = array_pop($dir_sans_path);
-		array_walk($dir_sans_path,create_function(
-			'& $a, $k', '$a = preg_replace("@([0-9]{1,})@","([0-9]{1,".strlen($a)."})",$a);'
-		));
-		$pathregex = join('/', $dir_sans_path); 
-		array_push($dir_sans_path, $tail);
-		$test_url = $url_components;
-		unset($test_url['query']);
-		unset($test_url['fragment']);
-		$test_url['path'] = $pathregex;
-		$test_url = UrlModel::recompose_url($test_url);
-		if ( 1 == preg_match("@^{$test_url}@", $url->get_url()) ) {
-			$method_map['by-wpdate'] = 'seek_wpdate_' . md5($test_url);
-		}
+    // Now try to construct a Y/M/D path handler
+    $dir_sans_path = explode('/',$url_components['path']);
+    $tail = array_pop($dir_sans_path);
+    array_walk($dir_sans_path,create_function(
+      '& $a, $k', '$a = preg_replace("@([0-9]{1,})@","([0-9]{1,".strlen($a)."})",$a);'
+    ));
+    $pathregex = join('/', $dir_sans_path); 
+    array_push($dir_sans_path, $tail);
+    $test_url = $url_components;
+    unset($test_url['query']);
+    unset($test_url['fragment']);
+    $test_url['path'] = $pathregex;
+    $test_url = UrlModel::recompose_url($test_url);
+    if ( 1 == preg_match("@^{$test_url}@", $url->get_url()) ) {
+      $method_map['by-wpdate'] = 'seek_wpdate_' . md5($test_url);
+    }
 
     $method_map['generic'] = 'common_unhandled_page_parser';
 
@@ -575,7 +583,8 @@ class LegiscopeBase extends SystemUtility {
 
     $successful_fetch   = FALSE;
     $post_response_data = array();
-		$captured_response  = 'POST';
+    $captured_response  = 'POST';
+		$get_before_post    = NULL;
 
     // I want to be able to wrap information in the fake POST action data
     // that can be used by site-specific handlers.  This information is not
@@ -584,11 +593,11 @@ class LegiscopeBase extends SystemUtility {
     // to other methods that pass around the POST data.
 
     $skip_get           = FALSE;
-		$skip_post          = FALSE;
+    $skip_post          = FALSE;
 
     if ( is_array($metalink) ) {/*{{{*/
 
-			$metalink_parameters = nonempty_array_element($metalink,'_LEGISCOPE_');
+      $metalink_parameters = nonempty_array_element($metalink,'_LEGISCOPE_');
 
       if ( array_key_exists('_LEGISCOPE_', $metalink) ) {/*{{{*/
         if ( $debug_dump ) {/*{{{*/
@@ -597,33 +606,40 @@ class LegiscopeBase extends SystemUtility {
         }/*}}}*/
         unset($metalink['_LEGISCOPE_']);
       }/*}}}*/
-			if ( nonempty_array_element($metalink_parameters,'add_trailing_queryslash') ) {/*{{{*/
-				// The Congress CMS is sensitive to trailing slashes before query params.
-				// We need to modify BOTH the target URL and referrers to ensure we get
-				// the response we expect.
-        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Modifying {$target_url}" );
-				$target_url = preg_replace('@([^/])\?@i','$1/?', $target_url);
-				$referrer   = preg_replace('@([^/])\?@i','$1/?', $referrer);
-        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Trailing slash before query part: {$target_url}" );
-			}/*}}}*/
-			if ( nonempty_array_element($metalink_parameters,'skip_get') ) {/*{{{*/
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
-        }/*}}}*/
+      if ( nonempty_array_element($metalink_parameters,'referrer') ) {/*{{{*/
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Force referrer {$referrer} for cURL action on {$target_url}" );
         $skip_get = TRUE;
-			}/*}}}*/
-			if ( nonempty_array_element($metalink_parameters,'no_skip_get') ) {/*{{{*/
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
-        }/*}}}*/
+      }/*}}}*/
+      if ( nonempty_array_element($metalink_parameters,'add_trailing_queryslash') ) {/*{{{*/
+        // The Congress CMS is sensitive to trailing slashes before query params.
+        // We need to modify BOTH the target URL and referrers to ensure we get
+        // the response we expect.
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Modifying {$target_url}" );
+        $target_url = preg_replace('@([^/])\?@i','$1/?', $target_url);
+        $referrer   = preg_replace('@([^/])\?@i','$1/?', $referrer);
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Trailing slash before query part: {$target_url}" );
+      }/*}}}*/
+      if ( nonempty_array_element($metalink_parameters,'get_before_post') ) {/*{{{*/
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Reverse click traversal: GET before doing a POST action {$target_url}" );
+        $get_before_post = TRUE;
+				$skip_get = FALSE;
+				$skip_post = FALSE;
+				unset($metalink_parameters['skip_get']);
+				unset($metalink_parameters['_']);
+      }/*}}}*/
+      if ( nonempty_array_element($metalink_parameters,'skip_get') ) {/*{{{*/
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
+        $skip_get = TRUE;
+      }/*}}}*/
+      if ( nonempty_array_element($metalink_parameters,'no_skip_get') ) {/*{{{*/
+        if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
         $skip_get = FALSE;
-			}/*}}}*/
+      }/*}}}*/
+
       // FIXME:  SECURITY DEFECT: Don't forward user-submitted input 
       if ( 'SKIPGET' == nonempty_array_element($metalink,'_') ) {/*{{{*/
-        if ( $debug_dump ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) DEPRECATED Execute only a POST to {$target_url}" );
-          $this->recursive_dump($metalink,'(marker)');
-        }/*}}}*/
+				$this->syslog( __FUNCTION__, __LINE__, "(critical) DEPRECATED Execute only a POST to {$target_url}" );
+        if ( $debug_dump ) $this->recursive_dump($metalink,'(marker)');
         $skip_get = TRUE;
         unset($metalink['_']);
       }/*}}}*/
@@ -636,7 +652,7 @@ class LegiscopeBase extends SystemUtility {
         unset($metalink['_']);
       }/*}}}*/
       if ( nonempty_array_element($metalink,'_') == 1 ) {/*{{{*/
-				// If $metalink['_'] == 1 then a GET operation is executed, skipping the POST action below.
+        // If $metalink['_'] == 1 then a GET operation is executed, skipping the POST action below.
         // Pager or other link whose behavior depends on antecedent state.
         // See GenericParseUtility::extract_pager_links(): param 4, when present, causes this key to be assigned 
         if ( $debug_dump ) {/*{{{*/
@@ -644,13 +660,13 @@ class LegiscopeBase extends SystemUtility {
           $this->recursive_dump($metalink,'(marker)');
         }/*}}}*/
         $skip_get = FALSE;
-				$skip_post = TRUE;
+        $skip_post = TRUE;
         unset($metalink['_']);
-			}/*}}}*/
+      }/*}}}*/
 
-		}/*}}}*/
+    }/*}}}*/
 
-    $modifier           = TRUE; // TRUE to execute HEAD instead of GET
+    $modifier           = TRUE; // 'true' to execute HEAD instead of GET
     $session_cookie     = $this->filter_session("CF{$this->subject_host_hash}");
     $session_has_cookie = !is_null($session_cookie);
     $cookie_from_store  = NULL;
@@ -691,47 +707,61 @@ class LegiscopeBase extends SystemUtility {
       $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) - - ->');
     }/*}}}*/
 
-		$post_faux_url = NULL;
-		if ( is_array($metalink) && !$skip_post ) {/*{{{*/
-			$post_faux_url = GenericParseUtility::url_plus_post_parameters($url_copy, $metalink);
-			$response      = CurlUtility::post($url_copy, $metalink, $curl_options);
-			$transfer_info = CurlUtility::$last_transfer_info;
-			$http_code     = intval(array_element($transfer_info,'http_code',400));
-			$url_copy      = str_replace(' ','%20',$target_url); // Restore URL; CurlUtility methods modify the URL parameter (passed by ref)
-			// Capture POST response
-			$post_response_data[$captured_response] = array(
-				'post_target'  => str_replace(' ','%20',$target_url),
-				'content_hash' => sha1($response),
-				'post_faux_url' => $post_faux_url, 
-				'META' => array(
-					'http_code'      => $http_code,
-					'content_length' => nonempty_array_element($transfer_info,'download_content_length'),
-					'content_type'   => nonempty_array_element($transfer_info,'content_type'),
-					'request_header' => nonempty_array_element($transfer_info,'request_header'),
-				),
-				'response'     => $response, // Raw cURL output, including cURL headers 
-			);
-			$successful_fetch = CurlUtility::$last_error_number == 0;
-			if ( $debug_dump ) {
-				$fetch_state = $successful_fetch ? "OK" : "FAILED";
-				$skipping    = $skip_get ? "Skipping GET" : "Will GET";
-				$this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) POST {$fetch_state} {$skipping} transfer info");
+    $post_faux_url = NULL;
+
+    if ( is_array($metalink) && !$skip_post ) {/*{{{*/
+      $post_faux_url = GenericParseUtility::url_plus_post_parameters($url_copy, $metalink);
+			$response      = NULL;
+			if ( TRUE == $get_before_post ) {
+				$captured_response = 'GET';
+				$response = CurlUtility::get($url_copy, $curl_options);
+			} else {
+				$response = CurlUtility::post($url_copy, $metalink, $curl_options);
 			}
-		}/*}}}*/
+      $transfer_info = CurlUtility::$last_transfer_info;
+      $http_code     = intval(array_element($transfer_info,'http_code',400));
+      $url_copy      = str_replace(' ','%20',$target_url); // Restore URL; CurlUtility methods modify the URL parameter (passed by ref)
+      // Capture POST response
+      $post_response_data[$captured_response] = array(
+        'post_target'  => str_replace(' ','%20',$target_url),
+        'content_hash' => sha1($response),
+        'post_faux_url' => $post_faux_url, 
+        'META' => array(
+          'http_code'      => $http_code,
+          'content_length' => nonempty_array_element($transfer_info,'download_content_length'),
+          'content_type'   => nonempty_array_element($transfer_info,'content_type'),
+          'request_header' => nonempty_array_element($transfer_info,'request_header'),
+        ),
+        'response'     => $response, // Raw cURL output, including cURL headers 
+      );
+      $successful_fetch = CurlUtility::$last_error_number == 0;
+      if ( $debug_dump ) {
+				$next        = $get_before_post ? "POST" : "GET";
+        $fetch_state = $successful_fetch ? "OK" : "FAILED";
+        $skipping    = $skip_get ? "Skipping {$next}" : "Will {$next}";
+        $this->recursive_dump(CurlUtility::$last_transfer_info, "(critical) {$captured_response} {$fetch_state} {$skipping} transfer info");
+      }
+    }/*}}}*/
 
     if ( !$skip_get ) {/*{{{*/
       if ( $debug_dump ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute GET/HEAD to {$url_copy}" );
       }/*}}}*/
-			$captured_response = 'GET';
-      $response = ($modifier == 'true')
-        ? CurlUtility::head($url_copy, $curl_options)
-        : CurlUtility::get($url_copy, $curl_options)
-        ;
+			$response = NULL;
+			if ( TRUE == $get_before_post ) {
+				$captured_response = 'POST';
+				$response = CurlUtility::post($url_copy, $metalink, $curl_options);
+			} else {
+				$captured_response = 'GET';
+				$response = ($modifier == 'true')
+					? CurlUtility::head($url_copy, $curl_options)
+					: CurlUtility::get($url_copy, $curl_options)
+					;
+			}
       if ( $debug_dump ||
         !array_key_exists('http_code',CurlUtility::$last_transfer_info) ||
         !(200 == intval(CurlUtility::$last_transfer_info['http_code'])) ) {
-           $this->recursive_dump(CurlUtility::$last_transfer_info, "(marker) GET/HEAD " . __LINE__ );
+           $this->recursive_dump(CurlUtility::$last_transfer_info, "(critical) {$captured_response} " . CurlUtility::$last_transfer_info['http_code'] );
         }
       $successful_fetch = CurlUtility::$last_error_number == 0;
     }/*}}}*/
@@ -741,31 +771,31 @@ class LegiscopeBase extends SystemUtility {
       $transfer_info = CurlUtility::$last_transfer_info;
       $http_code = intval(array_element($transfer_info,'http_code',400));
 
-			// If we used a metalink to specify POST action parameteers, we need to 
-			// attach the response to the action URL.
+      // If we used a metalink to specify POST action parameteers, we need to 
+      // attach the response to the action URL.
       if ( is_array($metalink) && (0 < strlen($target_url)) ) {/*{{{*/
-				// $captured_response is either 'POST' or 'GET', depending on whether we do POST or POST+GET
-				if ( array_key_exists($captured_response, $post_response_data) ) $captured_response = "{$captured_response}_2";
-				$post_response_data[$captured_response] = array(
-					'post_target'   => $url_copy,
-					'content_hash'  => sha1($response),
-					'post_faux_url' => $post_faux_url,
-					'get_url'       => TRUE,
-					'META' => array(
-						'http_code'      => $http_code,
-						'content_length' => nonempty_array_element($transfer_info,'download_content_length'),
-						'content_type'   => nonempty_array_element($transfer_info,'content_type'),
-						'request_header' => nonempty_array_element($transfer_info,'request_header'),
-					),
-					'response' => $response, // Raw cURL output, including cURL headers 
-				);
+        // $captured_response is either 'POST' or 'GET', depending on whether we do POST or POST+GET
+        if ( array_key_exists($captured_response, $post_response_data) ) $captured_response = "{$captured_response}_2";
+        $post_response_data[$captured_response] = array(
+          'post_target'   => $url_copy,
+          'content_hash'  => sha1($response),
+          'post_faux_url' => $post_faux_url,
+          'get_url'       => TRUE,
+          'META' => array(
+            'http_code'      => $http_code,
+            'content_length' => nonempty_array_element($transfer_info,'download_content_length'),
+            'content_type'   => nonempty_array_element($transfer_info,'content_type'),
+            'request_header' => nonempty_array_element($transfer_info,'request_header'),
+          ),
+          'response' => $response, // Raw cURL output, including cURL headers 
+        );
         $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Generated POST response data");
       }/*}}}*/
 
       if ( (400 <= $http_code && $http_code < 500) || (500 < $http_code && $http_code < 600)  ) {/*{{{*/
 
-        $this->syslog( __FUNCTION__, __LINE__, "(warning) cURL last_transfer_info" );
-        $this->recursive_dump($transfer_info, "(warning) HTTP {$http_code}");
+        $this->syslog( __FUNCTION__, __LINE__, "(critical) cURL last_transfer_info" );
+        $this->recursive_dump($transfer_info, "(critical) HTTP {$http_code}");
         $successful_fetch = FALSE;
 
       }/*}}}*/
@@ -780,9 +810,9 @@ class LegiscopeBase extends SystemUtility {
         }/*}}}*/
 
         if ( !is_array($metalink) ) {
-					$url->set_pagecontent_c($response);
+          $url->set_pagecontent_c($response);
           if (!(0 < strlen($url->get_url()))) $url->set_url($target_url,FALSE);
-					$url->increment_hits(); // This only sets the 'hits' and 'last_fetch' attribute
+          $url->increment_hits(); // This only sets the 'hits' and 'last_fetch' attribute
           $url_id = $url->stow();
           $this->syslog(__FUNCTION__,__LINE__,"(marker) PF - - - #{$url_id} {$target_url}");
         }
@@ -790,28 +820,27 @@ class LegiscopeBase extends SystemUtility {
 
           $contenthash = sha1($response);
 
-					$action = $url->in_database() ? "Matched" : "Created";
+          $action = $url->in_database() ? "Matched" : "Created";
 
-					$url_id = $url->
-						set_url_c($target_url,FALSE)->
-						set_content_hash(sha1($response))->
-						set_pagecontent_c($response)->
-						attach_post_response($post_response_data)->
-						increment_hits()->
-						fields(array('pagecontent','update_time','content_length','content_hash','last_modified','content_type','hits','response_header'))->
-						// get_id();
-						stow();
+          $url_id = $url->
+            set_url_c($target_url,FALSE)->
+            set_content_hash(sha1($response))->
+            set_pagecontent_c($response)->
+            attach_post_response($post_response_data)->
+            increment_hits()->
+            fields(array('pagecontent','update_time','content_length','content_hash','last_modified','content_type','hits','response_header'))->
+            stow();
 
-					$successful_fetch = ( ( 0 < intval($url_id) ) &&
-						( 0 < intval(nonempty_array_element($post_response_data,'id')) ) &&
-						( 0 < intval(nonempty_array_element($post_response_data,'join_id')) )
-				 	);
+          $successful_fetch = ( ( 0 < intval($url_id) ) &&
+            ( 0 < intval(nonempty_array_element($post_response_data,'id')) ) &&
+            ( 0 < intval(nonempty_array_element($post_response_data,'join_id')) )
+           );
 
-					if ( $debug_dump || !$successful_fetch ) {
-						$this->syslog(__FUNCTION__,__LINE__,"(marker) MF - - - {$action} #{$url_id} {$target_url}");
-						$this->syslog(__FUNCTION__,__LINE__,"(marker) Stow URL content " . ($successful_fetch ? "OK (id #{$post_response_data['id']})" : "FAILED") . " [content hash {$contenthash}]" );
-						$this->recursive_dump($post_response_data,"(marker) ?" );
-					}
+          if ( $debug_dump || !$successful_fetch ) {
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) MF - - - {$action} #{$url_id} {$target_url}");
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) Stow URL content " . ($successful_fetch ? "OK (id #{$post_response_data['id']})" : "FAILED") . " [content hash {$contenthash}]" );
+            $this->recursive_dump($post_response_data,"(marker) ?" );
+          }
 
         }/*}}}*/
       }
@@ -1033,8 +1062,8 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
-	static function include_map() {
-	}
+  static function include_map() {
+  }
 
   static function phlegiscope_main() {/*{{{*/
 
@@ -1042,7 +1071,7 @@ class LegiscopeBase extends SystemUtility {
     syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
       " Loading main template " );
 
-		$map_image = static::emit_basemap(1.4,TRUE);
+    $map_image = static::emit_basemap(1.4,TRUE);
 
     include_once(static::$singleton->get_template_filename('index.html','global'));
 
@@ -1080,7 +1109,7 @@ class LegiscopeBase extends SystemUtility {
     exit(0);
   }/*}}}*/
 
-	public static function emit_basemap($scale = NULL, $return = FALSE) {
+  public static function emit_basemap($scale = NULL, $return = FALSE) {
     $m = str_replace(
       array(
         '{svg_inline}',
@@ -1092,89 +1121,89 @@ class LegiscopeBase extends SystemUtility {
       ),
       static::$singleton->get_template('map.html','global')
     );
-		if ( $return ) return $m;
-		echo $m;
-	}
+    if ( $return ) return $m;
+    echo $m;
+  }
 
-	static function register_userland_menus() {
+  static function register_userland_menus() {
 
-		register_nav_menus(
-			array(
-				'legiscope-header-menu' => __( 'Header Menu' ),
-			)
-		);
+    register_nav_menus(
+      array(
+        'legiscope-header-menu' => __( 'Header Menu' ),
+      )
+    );
 
-	}
+  }
 
-	static function wordpress_enqueue_scripts() {/*{{{*/
+  static function wordpress_enqueue_scripts() {/*{{{*/
 
-		$debug_method = FALSE;
+    $debug_method = FALSE;
 
-		$plugins_url   = plugins_url();
-		$themes_uri    = get_template_directory_uri();
-		$spider_js_url = plugins_url('legiscope.js', LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
+    $plugins_url   = plugins_url();
+    $themes_uri    = get_template_directory_uri();
+    $spider_js_url = plugins_url('legiscope.js', LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
 
-		wp_register_script('legiscope-spider', $spider_js_url, array('jquery'), NULL);
-		wp_enqueue_script('legiscope-spider' , $spider_js_url, array('jquery'), NULL);
+    wp_register_script('legiscope-spider', $spider_js_url, array('jquery'), NULL);
+    wp_enqueue_script('legiscope-spider' , $spider_js_url, array('jquery'), NULL);
 
-		static::register_userland_menus();
+    static::register_userland_menus();
 
-		syslog( LOG_INFO, "- - - - -- - - - -- - - - -- - - - - END-USER   - - - - - " . $plugins_url);
+    syslog( LOG_INFO, "- - - - -- - - - -- - - - -- - - - - END-USER   - - - - - " . $plugins_url);
 
-		define('CONTEXT_ENDUSER',TRUE);
+    define('CONTEXT_ENDUSER',TRUE);
 
-		if ( $debug_method ) {/*{{{*/
-			syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
-			syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
-			syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
-			syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
-			syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
-			syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
-			syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
-		}/*}}}*/
+    if ( $debug_method ) {/*{{{*/
+      syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
+      syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
+      syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
+      syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
+      syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
+      syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
+      syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
+    }/*}}}*/
 
-	}/*}}}*/
+  }/*}}}*/
 
-	static function wordpress_enqueue_admin_scripts() {/*{{{*/
+  static function wordpress_enqueue_admin_scripts() {/*{{{*/
 
-		$debug_method = FALSE;
+    $debug_method = FALSE;
 
-		$plugins_url = plugins_url();
-		$themes_uri  = get_template_directory_uri(); 
+    $plugins_url = plugins_url();
+    $themes_uri  = get_template_directory_uri(); 
 
-		$spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
-		$pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
-		$admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+    $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
+    $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+    $admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
 
-		wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
-		wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
+    wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
+    wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
 
-		wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-		wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+    wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
 
-		wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-		wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
 
-		$inline_script = <<<EOH
+    $inline_script = <<<EOH
 <script type="text/javascript">
-	PDFJS.workerSrc = 'js/pdf.js';
+  PDFJS.workerSrc = 'js/pdf.js';
 </script>
 EOH;
 
-		syslog( LOG_INFO, "- - - - -- - - - -- - - - -- - - - - ADMINISTRATOR   - - - - - " . $plugins_url);
+    syslog( LOG_INFO, "- - - - -- - - - -- - - - -- - - - - ADMINISTRATOR   - - - - - " . $plugins_url);
 
-		if ( $debug_method ) {/*{{{*/
-			syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
-			syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
-			syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
-			syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
-			syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
-			syslog( LOG_INFO, "- - - - -  Styles: " . $admin_css_url);
-			syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
-			syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
-		}/*}}}*/
+    if ( $debug_method ) {/*{{{*/
+      syslog( LOG_INFO, "- - - - -  Plugin: " . LEGISCOPE_PLUGIN_NAME);
+      syslog( LOG_INFO, "- - - - - Basenam: " . plugin_basename(__FILE__));
+      syslog( LOG_INFO, "- - - - - Plugins: " . $plugins_url);
+      syslog( LOG_INFO, "- - - - -  Themes: " . $themes_uri);
+      syslog( LOG_INFO, "- - - - -  Spider: " . $spider_js_url);
+      syslog( LOG_INFO, "- - - - -  Styles: " . $admin_css_url);
+      syslog( LOG_INFO, "- - - - -      JS: " . LEGISCOPE_JS_PATH);
+      syslog( LOG_INFO, "- - - - -     CSS: " . LEGISCOPE_CSS_PATH);
+    }/*}}}*/
 
-	}/*}}}*/
+  }/*}}}*/
 
   /** OCR queue **/
 
@@ -1185,13 +1214,13 @@ EOH;
     return preg_replace('@/([^/]*)/\.\./@i','/', $ocr_queue_stem);
   }/*}}}*/
 
-	function test_ocr_result($fn) {
-		// Determine whether the OCR result file $fn contains usable text 
-		$s = stat($fn);
-		if ( FALSE == $s ) return FALSE;
-		if ( intval($s['size']) < 512 ) return FALSE;
-		return TRUE;
-	}
+  function test_ocr_result($fn) {/*{{{*/
+    // Determine whether the OCR result file $fn contains usable text 
+    $s = stat($fn);
+    if ( FALSE == $s ) return FALSE;
+    if ( intval($s['size']) < 512 ) return FALSE;
+    return TRUE;
+  }/*}}}*/
 
   function write_to_ocr_queue(UrlModel & $url) {/*{{{*/
 
@@ -1218,23 +1247,23 @@ EOH;
       return -1;
     }
     else if ( file_exists($ocr_queue_targ) ) {
-			if ( $this->test_ocr_result($ocr_queue_targ) ) {
-				$this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
-				return 0;
-			}
-			$this->syslog(__FUNCTION__,__LINE__,"(marker) Removing invalid conversion result file {$ocr_queue_targ}");
-			unlink($ocr_queue_targ);
-			return -6;
+      if ( $this->test_ocr_result($ocr_queue_targ) ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) Conversion complete. Target file {$ocr_queue_targ} exists.");
+        return 0;
+      }
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Removing invalid conversion result file {$ocr_queue_targ}");
+      unlink($ocr_queue_targ);
+      return -6;
     }
     else if ( file_exists($ocr_queue_src) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Waiting for conversion in {$ocr_queue_base}.");
       return -2;
     }
-		else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
+    else if ( FALSE == ($bytes_written = file_put_contents("{$ocr_queue_src}.tmp", $url->get_pagecontent())) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
       return -3;
     }
-		else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
+    else if (FALSE == link("{$ocr_queue_src}.tmp", $ocr_queue_src)) {
       $this->syslog(__FUNCTION__,__LINE__,"(warning) Failed to write conversion source file {$ocr_queue_src}");
       return -4;
     }
@@ -1247,6 +1276,40 @@ EOH;
       return 1;
     }  
     return TRUE;
+  }/*}}}*/
+
+  function get_doc_url_attributes(UrlModel & $faux_url) {/*{{{*/
+    // Returns an array of <A> tag {class} strings used by crawler JS.
+    // The UrlModel parameter is used in parent::generate_non_session_linked_markup()
+    // to retrieve the document URL record (including payload, last_fetch time, etc.)
+    // Data in that record is used to decorate source URL <A> tag attributes. 
+    //
+    // We want Senate bills to be marked "uncached" that either
+    // 1) Have not yet been retrieved to local storage, or
+    // 2) Do not have an OCR result record matching the PDF content.
+    //
+    $doc_url_attrs    = array('legiscope-remote');
+    $have_ocr         = $this->get_searchable();
+    $doc_url          = $this->get_doc_url();
+    $faux_url_hash    = UrlModel::get_url_hash($doc_url);
+    $url_stored       = $faux_url->retrieve($faux_url_hash,'urlhash')->in_database();
+
+    if ( $this->in_database() && is_null($this->get_ocrcontent()) ) {
+      $this->syslog(__FUNCTION__,__LINE__,"(warning) No [content] attribute present for {$doc_url}. Default to {uncached} state.");
+    }
+    $doc_url_attrs[]  = $url_stored && $have_ocr ? 'cached' : 'uncached';
+
+    if ( !$faux_url->in_database() ) { 
+      $doc_url_attrs[] = 'uncached';
+    }
+    else {
+      if ( 0 < intval( $age = intval($faux_url->get_last_fetch()) ) ) {
+        $age = time() - intval($age);
+        $doc_url_attrs[] = ($age > ( 60 )) ? "uncached" : "cached";
+      }
+      $doc_url_attrs[] = $faux_url->get_logseconds_css();
+    }
+    return $doc_url_attrs;
   }/*}}}*/
 
 }

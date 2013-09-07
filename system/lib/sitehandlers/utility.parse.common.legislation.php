@@ -287,7 +287,6 @@ class LegislationCommonParseUtility extends GenericParseUtility {
           ),
           $url_template
         );
-        // if ( !array_key_exists($p,$child_collection[intval($congress_tag)]['ALLSESSIONS']) && (0 < strlen($url)) )
         if ( 0 < strlen($url) )
         $child_collection[intval($congress_tag)]['ALLSESSIONS'][$p] = array(
           'url'       => $url,
@@ -352,21 +351,28 @@ class LegislationCommonParseUtility extends GenericParseUtility {
         $url_query_parts      = array_combine($url_query_components[1],$url_query_components[2]);
         $linktext = "No. {$url_query_parts['q']}";
       }
-      $link_class = array('legiscope-remote','suppress-reorder','indent-3','matchable');
+			$child_link['text'] = $linktext;
+      $link_class   = array('legiscope-remote','suppress-reorder','indent-3','matchable');
       $link_class[] = ( array_element($child_link,'cached') == TRUE ) ? "cached" : "uncached";
-      $li_class = array('no-bullets');
-      $invalidated = 1 == nonempty_array_element($child_link,'inv',0);
+      $li_class     = array('no-bullets');
+      $invalidated  = 1 == nonempty_array_element($child_link,'inv',0);
       if ( $invalidated ) $li_class[] = 'invalidated';
-      $title = join(' ', array_keys($child_link));
-      $link_class = join(' ', $link_class);
-      $li_class = join(' ',$li_class);
+			$child_link['class'] = $link_class;
+      $link_class   = join(' ', $link_class);
+      $li_class     = join(' ',$li_class);
+			// Permit the link markup to be overridden by any derived ParseUtility
+			$link         = method_exists($this,'congress_session_column_link')
+				? $this->congress_session_column_link($child_link)
+				: <<<EOH
+<a class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$child_link['text']}</a>
+EOH;
       $pagecontent .= $invalidated
         ? <<<EOH
-<li class="{$li_class}">{$linktext}</li>
+<li class="{$li_class}">{$child_link['text']}</li>
 
 EOH
         : <<<EOH
-<li class="no-bullets" id="line-{$child_link['hash']}"><a title="{$title}" class="{$link_class}" id="{$child_link['hash']}" href="{$child_link['url']}">{$linktext}</a></li>
+<li class="no-bullets" id="line-{$child_link['hash']}">{$link}</li>
 
 EOH;
       if ( !is_null($this->restrict_length) ) if ( $nq++ > $this->restrict_length ) break;
@@ -764,5 +770,206 @@ EOH;
     $name = array_filter($name);
     return join('-', $name); 
   }/*}}}*/
+
+	// Standard templates overridden by document parsers.
+	// These next two generate markup for a single document.
+
+  function legislative_doc_user_template() {/*{{{*/
+    return <<<EOH
+<h1>{sn}</h1>
+<h2>{title}</h2>
+<span><b>Source: </b>{url}</span>
+<hr/>
+<h2>{description}</h2>
+<hr/>
+<div>{content}</div>
+<div>
+<h2>OCR Content</h2>
+{ocrcontent.data}
+</div>
+EOH;
+  }/*}}}*/
+
+  function legislative_doc_user_template_ocrcap() {/*{{{*/
+    return <<<EOH
+<h1>{sn}</h1>
+<h2>{title}</h2>
+<span><b>Source: </b>{url}</span>
+<h2>{description}</h2>
+<hr/>
+<h2>OCR Content</h2>
+<div>{ocrcontent.data}</div>
+EOH;
+  }/*}}}*/
+
+
+  function generate_admin_content(LegislativeCommonDocumentModel & $legislative_document) {/*{{{*/
+
+    // Convert [content] or [ocrcontent.data] field to paragraphs
+		$ocrcontent = nonempty_array_element($legislative_document->get_ocrcontent(),'data',array());
+		$ocrcontent = nonempty_array_element($ocrcontent,'data');
+		$no_local_content = json_encode(array(
+			0 => array('text' => 'No Data for ' . $legislative_document->get_sn()),
+			1 => array('text' => 'Only the original document is available at {{2}}'),
+			2 => array(
+				'url' => $legislative_document->get_url(),
+				'text' => $legislative_document->get_url(),
+			),
+		));	
+
+		if ( !is_null($legislative_document->get_content()) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Content found, length " . mb_strlen($legislative_document->get_content()));
+			$content = @json_decode($legislative_document->get_content(),TRUE);
+      if ( FALSE == $content ) {
+        $content = "No parsed content.";
+      }
+    }
+    else if ( !is_null($ocrcontent) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Using OCR version");
+			$content = explode("\n", str_replace(array("\r\n"),array("\n"),$ocrcontent));
+    } 
+    else {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) NO CONTENT. Using placeholder.");
+			$content = $no_local_content;
+		}
+
+    if (is_array($content) && (0 < count($content))) {
+      $content = $legislative_document->format_document($content);
+      $legislative_document->set_content($content);
+      $content = NULL;
+      unset($content);
+    }  
+    else {
+      $legislative_document->set_content('No parsed content.');
+    }
+
+    if ( method_exists($legislative_document,'prepare_ocrcontent') ) {
+      $legislative_document->prepare_ocrcontent();
+      if (0) {
+        $ocrcontent = $legislative_document->get_ocrcontent();
+        $content = nonempty_array_element($ocrcontent,'data');
+        $content = nonempty_array_element($content,'data');
+        $content = $legislative_document->format_document($content);
+        if ( !is_null($content) ) {
+          $ocrcontent['data']['data'] = $content;
+          $legislative_document->set_ocrcontent($ocrcontent);
+        }
+        $content = NULL;
+        $ocrcontent = NULL;
+      }
+    }
+    else {/*{{{*/
+      if (!is_null($legislative_document->get_ocrcontent())) {
+        $ocrcontent = $legislative_document->get_ocrcontent();
+        $ocrcontent = nonempty_array_element($ocrcontent,'data');
+        $ocr_record_id = nonempty_array_element($ocrcontent,'id');
+        if ( is_null($ocr_record_id) ) {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) No OCR result available.");
+          $legislative_document->set_ocrcontent('No OCR available');
+        }
+        else {
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) OCR content record #{$ocr_record_id} available.");
+        }
+      }
+      else {
+        $legislative_document->set_ocrcontent('No OCR conversion available.');
+      }
+    }/*}}}*/
+
+    $legislative_document->permit_html_tag_delimiters = TRUE;
+
+		return $legislative_document->substitute($this->legislative_doc_user_template());
+  }/*}}}*/
+
+	function get_document_sn_match_from_urlpath(UrlModel & $urlmodel) {/*{{{*/
+		// Obtain SN filter condition from the last component of a [PDF] URL.
+    $urlpath = urldecode($urlmodel->get_url());
+    $urlpath = explode('/',UrlModel::parse_url($urlpath,PHP_URL_PATH));
+		$sn = method_exists($this,"get_urlpath_tail_sn_filter")
+			? $this->get_urlpath_tail_sn_filter($urlpath)
+			: strtoupper(preg_replace('@[^RA0-9]@i','',array_pop($urlpath)))
+			; 
+
+    $match = array();
+
+    if ( 1 == preg_match('@([A-Z]{1,})[-]?([0-9]{1,})@i',$sn,$match) ) {
+
+      array_shift($match);
+      $match    = array_values($match);
+      $match[1] = ltrim($match[1],'0');
+      $ra_regex = join('(.*)',$match);
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Seek document {$sn} {$ra_regex}" );
+			$conditions = array('AND' => array('`a`.sn' => "REGEXP '({$ra_regex})'"));
+
+			return $conditions;
+
+    }
+		return FALSE;
+	}/*}}}*/
+
+
+	function generate_pagecontent_using_ocr(& $pagecontent, $record_filter_conds, $legislative_document_type = NULL) {/*{{{*/
+		// Expect to retrieve exactly ONE document record (as the [sn] attribute should be unique)
+		// with possibly zero or several joined records depending on the type
+		// of document. 
+		$debug_method = FALSE;
+		$legislative_document = new $legislative_document_type();
+		$legislative_document->
+			join_all()->
+			where($record_filter_conds)->
+			recordfetch_setup();
+
+		$record = array();
+		$ocr_queue_list = array();
+		while ( $legislative_document->recordfetch($record,TRUE) ) {
+			$ra = $record['sn'];
+			if ( is_null($pagecontent) ) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) {$legislative_document_type} {$ra} #{$record['id']}" );
+				if ( $debug_method ) $this->recursive_dump($record,"(marker)");
+				$pagecontent = $this->generate_admin_content($legislative_document);
+			}
+			if ( is_array($record['content']) ) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) Document already stored.");
+				if ( $debug_method ) $this->recursive_dump($record['content'],"(marker)");
+			} 
+			else if ( FALSE == @json_decode(nonempty_array_element($record,'content'),TRUE) ) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) Enqueue.");
+				$ocr_queue_list[UrlModel::get_url_hash($record['url'])] = $record['id'];
+			}
+		}
+		$ocr_dequeue_method = 'test_document_ocr_result';
+		if ( method_exists($legislative_document,$ocr_dequeue_method) ) {/*{{{*/
+			if ( $debug_method ) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) OCR queue check. Elements: " . count($ocr_queue_list));
+				$this->recursive_dump($ocr_queue_list,"(marker)");
+			}
+			while ( 0 < count($ocr_queue_list) ) {
+				$ocr_item = array_shift($ocr_queue_list);
+				if ( $legislative_document->set_id(NULL)->retrieve($ocr_item,'id')->in_database() ) {
+					$legislative_document->$ocr_dequeue_method('get_url');
+				}
+			}
+		}/*}}}*/
+		else {
+			$this->syslog( __FUNCTION__, __LINE__, "(critical) No method {$ocr_dequeue_method}.");
+		}
+
+	}	/*}}}*/
+
+	// POST wall traversal (converting POST actions to proxied GET)
+	function test_form_traversal_network_fetch(UrlModel & $form_action) {/*{{{*/
+		// Method invoked from execute_document_form_traversal()
+		// to cause a POST action to be executed, to the given FORM action,
+		// depending only upon the contents of the UrlModel container or
+		// the ContentDocumentModel which stores the content of a server response. 
+		$this->syslog(__FUNCTION__, __LINE__, "(critical) Unimplemented method called while processing " . $form_action->get_url() );
+		return FALSE;
+	}/*}}}*/
+
+	function site_form_traversal_controls(UrlModel & $action_url, $form_controls ) {
+		$this->syslog(__FUNCTION__, __LINE__, "(critical) Unimplemented method called while processing " . $form_action->get_url() );
+		return NULL;
+	}
+
 
 }

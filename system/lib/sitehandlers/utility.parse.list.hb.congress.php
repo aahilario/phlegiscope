@@ -310,5 +310,67 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
 
   }/*}}}*/
 
+  function seek_postparse_hb_history(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    // Parse and use content of History links
+    $url = $urlmodel->get_url();
+    $parser->json_reply['subcontent'] = <<<EOH
+<span class="error">Parser error treating <a href="{$url}" class="legiscope-remote" target="_blank">{$url}</a></span>
+EOH;
+    $document     = new HouseBillDocumentModel();
+    $bill_number  = $urlmodel->get_query_element('bill_no');
+    $congress_tag = $urlmodel->get_query_element('congress');
+    $content      = $urlmodel->get_pagecontent();
+
+    $joins = $document->get_joins();
+    $this->syslog(__FUNCTION__,__LINE__,"(marker) Joins for " . get_class($document));
+    $this->recursive_dump($joins,"(marker)"); 
+
+    // Fetch the document (which must be preparsed, else we trigger a fetch)
+    $document->
+      join_all()->
+      where(array('AND' => array(
+        'congress_tag' => $congress_tag,
+        'sn' => $bill_number
+      )))->
+      recordfetch_setup();
+    $hb = NULL;
+    while ( $document->recordfetch($hb,TRUE) ) {
+      $sn = $hb['sn'];
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) Item {$sn} url {$hb['url']} " );
+      $this->recursive_dump($hb,"(marker) {$sn}"); 
+    }
+
+    $parser->json_reply['subcontent'] = "House Bill {$bill_number}";
+
+  }/*}}}*/
+
+	function get_urlpath_tail_sn_filter($urlpath) {/*{{{*/
+		// Invoked from get_document_sn_match_from_urlpath(UrlModel & $urlmodel)
+		return strtoupper(preg_replace('@[^HB0-9]@i','',array_pop($urlpath)));
+	}/*}}}*/
+
+  function generate_descriptive_markup(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+		// Generate descriptive markup for an already-stored RA/Act record.
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+
+    $pagecontent = NULL;
+
+    if ( !$urlmodel->in_database() ) $urlmodel->stow();
+
+		if (!(FALSE == ($conditions = $this->get_document_sn_match_from_urlpath($urlmodel)))) {
+			$this->generate_pagecontent_using_ocr($pagecontent, $conditions, 'HouseBillDocumentModel');
+		}
+
+    $parser->json_reply['httpcode'] = 200;
+    $parser->json_reply['contenttype'] = 'text/html';
+    $parser->json_reply['subcontent'] = $pagecontent;
+    $pagecontent = NULL;
+
+  }/*}}}*/
+
+
+
 }
 

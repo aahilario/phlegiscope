@@ -379,19 +379,41 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     // This default displays House Bill information, and must be
     // overridden for other document types.
     return <<<EOJ
+
 function emit_document_entries(entries) {
+
   for ( var p in entries ) {
     var entry = entries[p];
-    var links = (entry && entry.links) ? entry.links : { default : '' };
-    var doc_url = links.filed ? links.filed : ( links.url_history ? links.url_history : ( links.engrossed ? links.engrossed : links.default ) );
+    var links = entry && entry.links ? entry.links : {};
     var representative = entry && entry.representative ? entry.representative : null;
     var committee = entry && entry.committee ? entry.committee : null;
+    var linktype_map = {
+      'url_history' : 'History',
+      'url_engrossed' : 'Engrossed',
+      'filed' : 'Filed' 
+    };
 
-    if ( !(doc_url && doc_url.length > 0) ) {
-      for ( var u in links ) {
-        doc_url = links[u];
-        break;
-      } 
+    jQuery('div[id='+entry.sn+']').children().remove();
+
+    var link_container = jQuery(document.createElement('SPAN'))
+      .addClass('republic-act-heading')
+      .addClass('clear-both')
+			.append(jQuery(document.createElement('B')).append(entry.sn))
+			.append(': ')
+			;
+
+    for ( var t in links ) {
+      var l = links[t];
+			var cl = entry && entry.linkstate ? entry.linkstate[t] : 'uncached';
+      jQuery(link_container)
+        .append(jQuery(document.createElement('A'))
+          .attr('href',l)
+          .addClass('legiscope-remote')
+					.addClass(cl)
+          .append(linktype_map[t])
+        )
+				.append('&nbsp;')
+				;
     }
 
     jQuery('#listing').append(
@@ -402,18 +424,7 @@ function emit_document_entries(entries) {
         .append(
           jQuery(document.createElement('HR'))
         )
-        .append(
-          jQuery(document.createElement('SPAN'))
-            .addClass('republic-act-heading')
-            .addClass('clear-both')
-            .append(doc_url && doc_url.length > 0
-              ? jQuery(document.createElement('A'))
-                .attr('href',doc_url)
-                .addClass('legiscope-remote')
-                .html(entry.sn)
-              : jQuery(document.createElement('B')).html(entry.sn)
-            )
-        )
+        .append(link_container)
         .append(
           jQuery(document.createElement('SPAN'))
             .addClass('republic-act-desc')
@@ -421,6 +432,8 @@ function emit_document_entries(entries) {
             .html(entry.description)
         )
       );
+
+    
     for ( var m in entry.meta ) {
       var v = entry.meta[m];
       jQuery('div[id='+entry.sn+']')
@@ -470,8 +483,9 @@ function emit_document_entries(entries) {
   }
 }
 
+
 EOJ
-    ;
+  ;
   }/*}}}*/
 
   function seek_postparse_preprocess(& $parser, & $pagecontent, & $urlmodel, $document_type ) {/*{{{*/
@@ -652,6 +666,71 @@ EOJ
 
   }/*}}}*/
 
+  function add_document_urlcaching_cssclass(& $pregenerated_list, $key = NULL, $depth = 0) {
+    if ( $depth == 0 ) {
+      $this->url_state_cache = array();
+      $depth++;
+      array_walk($pregenerated_list, create_function(
+        '& $a, $k, $s', '$s->add_document_urlcaching_cssclass($a,$k,1);'
+      ),$this);
+
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Done with walk --");
+      $updatable  = array();
+      $chunk_size = 10;
+      $urlmodel   = new UrlModel();
+      while ( 0 < count($this->url_state_cache) ) {/*{{{*/
+        $elements = array();
+        while ( ( 0 < count($this->url_state_cache) ) && ( count($elements) < $chunk_size ) ) {/*{{{*/
+          extract( array_shift($this->url_state_cache) );
+          $elements[$urlhash] = array(
+            'urlkind' => $urlkind,
+            'sn'      => $sn,
+            'cached'  => FALSE,
+            'class'   => 'uncached',
+          ); 
+        }/*}}}*/
+        $url = NULL;
+        $urlmodel->
+          where(array('AND' => array(
+            'urlhash' => array_keys($elements),
+          )))->
+          recordfetch_setup();
+        while ( $urlmodel->recordfetch($url,TRUE) ) {
+          $urlhash = $url['urlhash'];
+          $elements[$urlhash]['cached'] = TRUE;
+          $elements[$urlhash]['class'] = $urlmodel->get_logseconds_css();
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Got URL {$url['url']} {$elements[$urlhash]['class']} --");
+        }
+        foreach ( $elements as $urlhash => $urlstate ) {
+          extract($urlstate);
+          $pregenerated_list[$sn]['linkstate'][$urlkind] = $class;
+        }
+        $reordered = $pregenerated_list[$sn]['links'];
+        $pregenerated_list[$sn]['links'] = array_filter(array(
+          'filed'             => nonempty_array_element($reordered,'filed'),
+          'url_engrossed'     => nonempty_array_element($reordered,'url_engrossed'),
+          'url_history'       => nonempty_array_element($reordered,'url_history'),
+        ));
+
+      }/*}}}*/
+      unset($this->url_state_cache);
+      return;
+    }
+    if ( $depth == 1 ) {
+      $url_set = nonempty_array_element($pregenerated_list,'links',array());
+      foreach ( $url_set as $url_kind => $url ) {
+        $urlhash = UrlModel::get_url_hash($url);
+        $this->url_state_cache[] = array(
+          'urlhash' => $urlhash,
+          'urlkind' => $url_kind,
+          'sn' => $key,
+        ); 
+      } 
+      return;
+    }
+    return;
+  }
+
   function seek_postparse(& $parser, & $pagecontent, & $urlmodel, & $document_model, $document_type ) {
 
     // Partition large list into multiple processable chunks, transmit
@@ -722,7 +801,8 @@ EOH;
 		}
 	 	else {
       $pregenerated_list = nonempty_array_element($this->container_buffer,'parsed_bills');
-      if ( $debug_method ) $this->recursive_dump($this->container_buffer,"(marker) -- B --");
+      $this->add_document_urlcaching_cssclass($pregenerated_list);
+      if ( TRUE || $debug_method ) $this->recursive_dump($pregenerated_list,"(marker) -- B --");
       $pregenerated_list = addslashes(LegiscopeBase::safe_json_encode($pregenerated_list)); 
       $emit_frame = TRUE;
       $parser->json_reply['division'] = 'B';

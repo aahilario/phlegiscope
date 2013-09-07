@@ -52,6 +52,33 @@ class CongressGovPh extends SeekAction {
     $parser->json_reply = array('retainoriginal' => TRUE);
   }/*}}}*/
 
+  /** House Bills **/
+
+  function seek_postparse_hb_history(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/legis/search/hist_show.php?congress=16&save=1&journal=&switch=0&bill_no=HB00485
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $hb_parser = new CongressHbListParseUtility();
+    $hb_parser->seek_postparse_hb_history($parser,$pagecontent,$urlmodel);
+    $hb_parser = NULL;
+  }/*}}}*/
+
+  function seek_by_pathfragment_43c81bac990cafa5d9a1d772f89a4488(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/legis/search/hist_show.php?congress=16&save=1&journal=&switch=0&bill_no=HB00485
+    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
+    $this->seek_postparse_hb_history($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_by_pathfragment_e4b820a97cc20aae3d312cf6d3a3c2ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // http://www.congress.gov.ph/download/basic_16/HB01450.pdf
+    $result = $this->write_to_ocr_queue($urlmodel);
+    $hb_parser = new CongressHbListParseUtility();
+    $hb_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
+    unset($hb_parser);
+
+  }/*}}}*/
+
+  /** **/
+
   function seek_postparse_bypath_plus_queryvars_2ac6215e6619296ce3f28b184962b8a2(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
     $this->seek_postparse_ra_hb($parser,$pagecontent,$urlmodel);
@@ -59,7 +86,6 @@ class CongressGovPh extends SeekAction {
 
   function seek_postparse_ra_hb(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/download/index.php?d=ra
-
     $match_urlpart = array();
     $element = $urlmodel->get_query_element('d');
     if ( !is_null($element) ) {
@@ -97,7 +123,7 @@ class CongressGovPh extends SeekAction {
     $ra_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
     $ra_parser = NULL;
     if ( !(0 < mb_strlen(nonempty_array_element($parser->json_reply,'subcontent'))) ) {
-      $parser->json_reply['subcontent'] = "<h2>OCR Target</h2>";
+      $parser->json_reply['subcontent'] = "<h2>OCR Target</h2>" . $pagecontent;
     }
     unset($ra_parser);
 

@@ -318,7 +318,7 @@ EOH;
 
     $dom->normalizeDocument();
 
-    if ( !$loadresult ) $this->syslog( __FUNCTION__, __LINE__, "-- WARNING: Failed to filtering HTML as XML, load result FAIL" );
+    if ( !$loadresult ) $this->syslog( __FUNCTION__, __LINE__, "(critical) -- WARNING: Failed to filtering HTML as XML, load result FAIL" );
 
     $full_length  = mb_strlen($dom->saveXML());
     $chunk_length = 16384;
@@ -365,8 +365,12 @@ EOH;
     if ( $debug_method ) $this->recursive_dump($this->containers,'(marker)');
 
     if ( method_exists($this, 'promise_prepare_state') ) {
+			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) Preparing promise states.");
       $this->promise_prepare_state();
     }
+		else {
+			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) No promise state prep done.");
+		}
 
     // Process deferred tag operations ("promises")
     $this->process_promise_stack();

@@ -33,7 +33,7 @@ class UrlModel extends DatabaseUtility {
   // END ModelFields
 
   var $a_UrlModel = NULL;
-	var $urlcontent_ContentDocumentModel = NULL; // Replacement for pagecontent
+  var $urlcontent_ContentDocumentModel = NULL; // Replacement for pagecontent
 
   function __construct($url = NULL, $load = FALSE) {
     parent::__construct();
@@ -329,6 +329,7 @@ class UrlModel extends DatabaseUtility {
     // );
     //
     // Accept cURL output
+    $debug_method            = FALSE;
     $content_length          = mb_strlen($t);
     $header_regex            = '@^HTTP/1.@';
     $response_headers        = '';
@@ -339,16 +340,18 @@ class UrlModel extends DatabaseUtility {
 
     if ( 1 == preg_match($header_regex, $t) ) {/*{{{*/
 
-      $matches       = array();
+      $matches        = array();
+      $matched_header = array();
 
-      $matched_header = NULL;
-      if ( 1 == preg_match('@^HTTP/([0-9.]+) ([0-9]+)@', substr($t,0,32), $matched_header) ) {
+      if ( !(FALSE == preg_match_all('@^HTTP/([0-9.]+) ([0-9]+) (.*)$@mi', substr($t,0,1024), $matched_header, PREG_SET_ORDER) ) ) {
+        $matched_header = array_pop($matched_header);
+        if ( $debug_method ) $this->recursive_dump($matched_header, "(marker) HEADERS");
         $http_response_code = intval($matched_header[2]); 
       }
 
       $line_regex    = '@^([-a-z0-9_]{1,32}):(.*)$@mi';
       if ( !(FALSE == preg_match_all($line_regex, $t, $matches, PREG_SET_ORDER)) ) {
-        $this->syslog( __FUNCTION__, __LINE__, "Raw header line matches" );
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Raw header line matches" );
         foreach ( $matches as $set ) {
           $final_headers[strtolower($set[1])] = trim($set[2]);
         }
@@ -356,7 +359,6 @@ class UrlModel extends DatabaseUtility {
         $final_headers['http-response-code'] = $http_response_code;
         $final_headers['legiscope-regular-markup'] = $response_regular_markup ? 1 : 0;
         $this->set_response_header($final_headers);
-        // $this->recursive_dump($matches, __LINE__);
       }  
       if ( array_key_exists('content-type', $final_headers) ) {
         $this->set_content_type($final_headers['content-type']);
@@ -365,7 +367,7 @@ class UrlModel extends DatabaseUtility {
         $content_length = intval($final_headers['content-length']);
         $t = substr( $t, - $content_length );
         $bulk_length = strlen($t);
-        $this->syslog( __FUNCTION__, __LINE__, "Stripped header, length {$bulk_length} -> {$content_length}" );
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Stripped header, length {$bulk_length} -> {$content_length}" );
       } else {
         // FIXME: Deal with missing Content-Length key, or Transfer-Encoding: chunked 
       }
@@ -830,7 +832,6 @@ EOH;
     $self_url        = $this->get_url();
     $hits            = 0;
     $changed_records = array();
-
     $url             = array();
     while ( $this->recordfetch($url, TRUE) ) {/*{{{*/
       $hits++;
@@ -866,6 +867,7 @@ EOH;
 
     // Restore content
     $url_id = $this->
+      join(array('urlcontent'))->
       retrieve(UrlModel::get_url_hash($self_url), 'urlhash')->
       get_id();
 
@@ -887,12 +889,14 @@ EOH;
         'data'            => nonempty_array_element($urlcontent,'data'),
       );
 
-      // Ensure that $content_document['data'] only contains the HTTP request reponse body (exclude headers) 
-      $raw_content_length = mb_strlen($content_document['data']);
-      $content_length     = intval(nonempty_array_element($urlcontent,'content_length'));
-      if ( ( 0 < $content_length ) && ( $raw_content_length > $content_length ) ) {
-        $content_document['data'] = mb_substr($content_document['data'],$raw_content_length - $content_length,$content_length);
-      }
+			if ( C('ATTACH_POST_RESPONSE_RAW') ) {
+				// Ensure that $content_document['data'] only contains the HTTP request reponse body (exclude headers) 
+				$raw_content_length = mb_strlen($content_document['data']);
+				$content_length     = intval(nonempty_array_element($urlcontent,'content_length'));
+				if ( ( 0 < $content_length ) && ( $raw_content_length > $content_length ) ) {
+					$content_document['data'] = mb_substr($content_document['data'],$raw_content_length - $content_length,$content_length);
+				}
+			}
 
       $content_document_present = NULL;
 
@@ -907,7 +911,6 @@ EOH;
         check_extant($content_document_present,TRUE)->
         set_contents_from_array($content_document)->
         fields(array_keys($content_document))->
-        //get_id();
         stow();
 
       $stow_status_ok = 0 < intval($urlcontent['id']);
@@ -926,7 +929,37 @@ EOH;
         // an integer; we assume that the corresponding Join record exists.
         if ( 0 < intval($content_document_present) ) {/*{{{*/
           $this->syslog(__FUNCTION__,__LINE__,"(warning) Updated ContentDocument #{$content_document_present} joined to UrlModel #{$url_id} {$self_url}");
-          $this->set_urlcontent(array('data' => $content_document));
+          // Retrieve the complete record given this UrlModel ID and the ContentDocument ID
+          $c = $this->
+            join(array('urlcontent'))->
+            retrieve(array(
+              '`a`.`id`' => $url_id,
+              '{urlcontent_content_document_model}.`id`' => $content_document_present,
+            ),'AND')->
+            get_urlcontent();
+          $c = nonempty_array_element($c,'join');
+          // If a Join does not exist linking this UrlModel to the just-saved
+          // ContentDocumentModel, then we create it. 
+          if ( is_null($urlcontent['join_id'] = nonempty_array_element($c,'id')) ) {/*{{{*/
+            $data = array(
+              'content_type' => $content_type,
+              'content' => $urlcontent['id'],
+              'url' => $url_id,
+              'urlhash' => UrlModel::get_url_hash($urlcontent['content_meta']),
+            );
+            $urlcontent['join_id'] = $this->
+              get_join_instance('urlcontent')->
+              set_contents_from_array($data)->
+              fields(array_keys($data))->
+              stow();
+            $c = $this->
+              join(array('urlcontent'))->
+              retrieve(array(
+                '`a`.`id`' => $this->get_id(),
+                '{urlcontent_content_document_model}.`id`' => $content_document_present,
+              ),'AND')->
+              get_urlcontent();
+          }/*}}}*/
         }/*}}}*/
         else {/*{{{*/
           $join = array(

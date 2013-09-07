@@ -67,7 +67,7 @@ class DatabaseUtility extends ReflectionClass {
 
   function __destruct() {/*{{{*/
 
-    if ( $this->debug_method ) {
+    if ( FALSE && $this->debug_method ) {
       $this->syslog(__FUNCTION__,__LINE__,"(warning) Objects on disk array: ");
       $this->recursive_dump(self::$obj_ondisk);
       $this->syslog(__FUNCTION__,__LINE__,"(warning) Object attrdefs: ");

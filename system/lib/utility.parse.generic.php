@@ -541,7 +541,12 @@ EOH
               }
             }/*}}}*/
             if ( !is_null($parent_state) ) {/*{{{*/
-              // Client-side JS sees a selector class attribute 'fauxpost'
+              // Client-side JS sees a selector class 'fauxpost'.
+							// A tags with this class attribute cause additional POST
+							// data to be submitted with the link.  This additional data
+							// is typically used to control the behavior of 
+							// perform_network_fetch, and/or pass additional POST
+							// data to curl_execute().
               $link_class = array("fauxpost");
               $link_components = UrlModel::parse_url($href);
               $query_parameters = array_merge(
@@ -550,7 +555,6 @@ EOH
                 UrlModel::decompose_query_parts($link_components['query'])
               ); 
               $senate_bill_url->set_url($href,FALSE);
-              // $this->recursive_dump($query_parameters,"(marker) A");
               $link = $this->get_faux_url($senate_bill_url,$query_parameters);
               $links[UrlModel::get_url_hash($link)] = $link;  
               $link = UrlModel::create_metalink($parameter, $href, $query_parameters, join(' ', $link_class));

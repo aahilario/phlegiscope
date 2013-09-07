@@ -41,7 +41,10 @@ class SeekAction extends LegiscopeBase {
     $referrer        = $this->filter_session('referrer');
     $url             = new UrlModel();
 
-		if ( !is_null($metalink) ) $metalink = @json_decode(base64_decode($metalink),TRUE);
+    if ( !is_null($metalink) ) {
+      $metalink = @json_decode(base64_decode($metalink),TRUE);
+      $this->recursive_dump($metalink,'(marker) -- - - - metalink ');
+    }
 
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__,__LINE__,"(marker) cache[{$cache_force}] url[{$target_url}] ------------------------------------------------------------------------------------------------");
@@ -96,7 +99,7 @@ class SeekAction extends LegiscopeBase {
 
       $retrieved = $this->perform_network_fetch( 
         $url     , $referrer, $target_url  ,
-        $metalink, $debug_method //  | $network_fetch
+        $metalink, $debug_method
 			);
 
       $action = $retrieved

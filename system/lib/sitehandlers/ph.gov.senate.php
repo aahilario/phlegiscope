@@ -778,7 +778,6 @@ EOH;
         for ( $p = $pageinfo['min'] ; $p <= $pageinfo['max'] ; $p++ ) {
           $link_class = array('legiscope-remote');
           $link_class[] = array_key_exists($p, $pageinfo['pages']) ? 'cached' : 'uncached';
-          $link_class = join(' ', $link_class);
           $url = str_replace(
             array(
               '{congress_tag}',
@@ -790,28 +789,38 @@ EOH;
             ),
             $pager_template_url
           );
-          $urlhash = UrlModel::get_url_hash($url);
-          $link = <<<EOH
-<a id="{$urlhash}" href="{$url}" class="{$link_class}">{$p} </a>
-EOH;
-          $pagers[$congress_tag]['pages'][$p] = <<<EOH
-<span>{$link}</span>
-EOH;
-          if ( $congress_tag == $target_congress ) {
-          // Also create links in control pane (prepend to $parser->linkset)
+
+          if ( method_exists($document_parser, 'generate_document_list_pager_entry') ) {/*{{{*/
+            $link = $document_parser->generate_document_list_pager_entry(
+              $url,
+              $link_class,
+              $p
+            );
+          }/*}}}*/
+          else {/*{{{*/
+            $link_class = join(' ', $link_class);
+            $urlhash = UrlModel::get_url_hash($url);
             $link = <<<EOH
-<a id="{$urlhash}" href="{$url}" class="{$link_class}" target="legiscope">{$p} </a>
+<a id="{$urlhash}" href="{$url}" class="{$link_class}" {target}>{$p} </a>
 EOH;
-            $linkset_links[$p] = <<<EOH
+          }/*}}}*/
+          $pagers[$congress_tag]['pages'][$p] = str_replace('{target}','', <<<EOH
+<span>{$link}</span>
+EOH
+          );
+          if ( $congress_tag == $target_congress ) {
+            // Also create links in control pane (prepend to $parser->linkset)
+            $linkset_links[$p] = str_replace('{target}','target="legiscope"', <<<EOH
 <li>{$link}</li>
-EOH;
+EOH
+            );
           }
         }
         krsort($pagers[$congress_tag]['pages']);
         $pagers[$congress_tag]['pages'] = join('<span class="wrap-content"> </span>', $pagers[$congress_tag]['pages']);
       }/*}}}*/
 
-      if ( 0 < count($linkset_links) ) {
+      if ( 0 < count($linkset_links) ) {/*{{{*/
         krsort($linkset_links);
         $linkset_links = join("\n",$linkset_links);
         $linkset_links = <<<EOH
@@ -821,7 +830,7 @@ EOH;
 
 EOH;
         $parser->linkset = $linkset_links . (is_array($parser->linkset) ? join("\n",$parser->linkset) : $parser_linkset);
-      }
+      }/*}}}*/
 
       if ( $debug_method ) $this->recursive_dump($pagers,"(marker) -- - -- Pagers");
 
@@ -1000,7 +1009,7 @@ EOH;
 
   function session_linked_content_parser($caller, $prefix, & $parser, & $pagecontent, & $urlmodel ) {/*{{{*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     $method_infix = '@^senate_(.*)_content_parser$@i';
     $senatedoc = ucfirst(strtolower(preg_replace($method_infix,'$1', $caller)));
@@ -1083,7 +1092,7 @@ EOH;
     if ( $debug_method ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Document SN: {$sbn_regex_result}");
       $this->syslog(__FUNCTION__,__LINE__,"(marker)    Congress: {$target_congress}");
-      $this->recursive_dump($stowable_content,"(marker) -- DC -- SB {$sbn_regex_result}.{$target_congress}");
+      $this->recursive_dump($stowable_content,"(marker) -- DC -- SB A {$sbn_regex_result}.{$target_congress}");
     }/*}}}*/
 
     $stowable_content['congress_tag'] = $target_congress;
@@ -1101,7 +1110,7 @@ EOH;
     $force_update  = $parser->update_existing;
 
     // Stow flat document (Join record updates/stow will need to be handled by the *DocumentModel)
-    if ( $missing || $newly_fetched || ($force_update && (0 < count($difference))) ) {/*{{{*/
+    if ( $missing || $newly_fetched || $force_update || (0 < count($difference)) ) {/*{{{*/
 
       $stowable_content['url'] = $action_url->get_url();
       krsort($stowable_content);
@@ -1353,17 +1362,18 @@ EOH;
 
   function senate_bill_content_parser(& $parser, & $pagecontent, & $urlmodel) { /*{{{*/
 
-    $this->append_filtered_doc = FALSE;
-    $this->debug_method        = FALSE;
     $urlmodel->ensure_custom_parse();
 
-    $content = new ContentDocumentModel();
+    $this->append_filtered_doc  = FALSE;
+    $this->debug_method         = FALSE;
+    $parser->debug_tags         = FALSE;
+    $parser->post_from_referrer = TRUE;
 
     // Workaround to force POST without GET, when retrieving detail pages.
     if ( $parser->update_existing ) {
       $parser->network_fetch_skip_get = TRUE;
       // Force network fetch when the curator enables the 'Update' switch
-      //$parser->from_network = TRUE;
+      $parser->from_network = TRUE;
     }
 
     $this->non_session_linked_content_parser(__FUNCTION__, 'SBN', $parser, $pagecontent, $urlmodel );
@@ -1405,7 +1415,7 @@ EOH;
 
     $senate_document                      = new $documents();
     $senate_document_parser               = new $document_parser();
-    $senate_document_parser->debug_tags   = FALSE;
+    $senate_document_parser->debug_tags   = $parser->debug_tags;
     $senate_document_parser->from_network = $parser->from_network;
 
     $stowable_content = $senate_document_parser->
@@ -1414,6 +1424,11 @@ EOH;
         $urlmodel->get_pagecontent(),
         $urlmodel->get_response_header()
       );
+
+		if ( $debug_method ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) Stowable content " . $urlmodel->get_url() );
+			$this->recursive_dump($stowable_content,"(marker) +++");
+		}
 
     $urlmodel->ensure_custom_parse();
 
@@ -1427,6 +1442,11 @@ EOH;
       $debug_method
     ); 
 
+		if ( $debug_method ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) Initial parse result " . $urlmodel->get_url() );
+			$this->recursive_dump($traversal_resultarray,"(marker) +++");
+		}
+
     $pagecontent = "";
 
     if ( (FALSE == $traversal_resultarray) || !(2 == count($traversal_resultarray) ) ) {/*{{{*/
@@ -1437,6 +1457,7 @@ EOH;
       $parser->from_network    = TRUE;
       $parser->update_existing = TRUE;
       $ok                      = FALSE;
+
       if ( $this->perform_network_fetch( 
         $urlmodel, NULL         , $urlmodel->get_url(),
         NULL     , $debug_method
@@ -1474,6 +1495,30 @@ EOH;
       }
     }/*}}}*/
 
+		if ( property_exists($action_url,'content_overridden') && $action_url->content_overridden ) {
+
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) Reparsing " . $action_url->get_url() );
+
+			$senate_document_parser->debug_tags   = FALSE;
+			$senate_document_parser->debug_method = FALSE;
+
+			$stowable_content = $senate_document_parser->
+				reset()->
+				set_parent_url($action_url->get_url())->
+				parse_single_document_html(
+					$action_url->get_pagecontent(),
+					$action_url->get_response_header()
+				);
+
+			$senate_document_parser->debug_tags   = FALSE;
+			$senate_document_parser->debug_method = FALSE;
+
+			if ( $debug_method ) {
+				$this->recursive_dump($stowable_content,"(critical) +++");
+				$this->recursive_dump($senate_document_parser->get_containers(),"(critical) +--");
+			}
+		}
+
     extract($traversal_resultarray); // $target_congress, $sbn_regex_result
 
     if ( array_key_exists('comm_report_url', $stowable_content) ) { $u = array('url' => $stowable_content['comm_report_url']); $l = UrlModel::parse_url($action_url->get_url()); $stowable_content['comm_report_url'] = UrlModel::normalize_url($l, $u); }
@@ -1482,7 +1527,7 @@ EOH;
     if ( $debug_method ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Document SN: {$sbn_regex_result}");
       $this->syslog(__FUNCTION__,__LINE__,"(marker)    Congress: {$target_congress}");
-      $this->recursive_dump($stowable_content,"(marker) -- DC -- SB {$sbn_regex_result}.{$target_congress}");
+      $this->recursive_dump($stowable_content,"(marker) -- DC -- SB B {$sbn_regex_result}.{$target_congress}");
     }/*}}}*/
 
     $stowable_content['congress_tag'] = $target_congress;
@@ -1500,7 +1545,7 @@ EOH;
     $force_update  = $parser->update_existing;
 
     // Stow flat document (Join record updates/stow will need to be handled by the *DocumentModel)
-    if ( $missing || $newly_fetched || ($force_update && (0 < count($difference))) ) {/*{{{*/
+    if ( $missing || $newly_fetched || $force_update || (0 < count($difference)) ) {/*{{{*/
 
       $stowable_content['url'] = $action_url->get_url();
       krsort($stowable_content);
@@ -1513,8 +1558,8 @@ EOH;
         ;
 
       if ( $debug_method || (0 < count($difference)) ) {
-        $this->syslog(__FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
-        $this->recursive_dump($difference,"(marker) Difference: ");
+        $this->syslog(__FUNCTION__, __LINE__, "(critical) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
+        $this->recursive_dump($difference,"(critical) Difference: ");
       }
 
     }/*}}}*/
@@ -1746,18 +1791,83 @@ EOH;
     $parent      = UrlModel::parse_url($urlmodel->get_url());
     $form_action = UrlModel::normalize_url($parent, $link);
 
-    if ( $debug_method ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- -- - - Target action: {$form_action}" );
-      $this->recursive_dump($paginator_form,'(warning) - -- --- FORM --');
-      $this->recursive_dump($paginator_controls,'(warning) --- --- CONTROLS');
-    }
     $returnset = $parser->extract_form_controls($paginator_controls);
     if ( is_null($returnset['select_options']) ) {
       $returnset['select_options'] = array();
       $returnset['select_name'] = NULL;
     }
-    // $this->recursive_dump($returnset,'(warning)');
     $returnset['action'] = $form_action;
+
+    $form_action_url = new UrlModel();
+    $form_action_url->set_url($form_action,FALSE);
+
+    if ( 0 < count(nonempty_array_element($returnset,'form_controls')) ) {
+      $test_url              = new UrlModel();
+      $returnset['faux_url'] = GenericParseUtility::url_plus_post_parameters($form_action_url,$returnset['form_controls']);
+      $faux_url_hash         = UrlModel::get_url_hash($returnset['faux_url']);
+      $action_url_hash       = UrlModel::get_url_hash($returnset['action']);
+      $response_in_db        = $form_action_url->
+        join(array('urlcontent'))->
+        where(array('AND' => array(
+          '`a`.`urlhash`' => $action_url_hash,
+        )))->
+        recordfetch_setup();
+      $returnset['docs'] = array();
+      while ( $form_action_url->recordfetch($url,TRUE) ) {
+
+        $content_document = $form_action_url->get_urlcontent();
+
+        $test_url->
+          set_content(NULL)->
+          set_pagecontent(nonempty_array_element($content_document['data'],'data'));
+
+				// if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(warning) - - - - - Testing content " . nonempty_array_element($content_document['data'],'data'));
+
+        $result = array(
+          'join'         => nonempty_array_element($content_document['join'],'id'),
+          'data'         => nonempty_array_element($content_document['data'],'id'),
+          'content_type' => nonempty_array_element($content_document['join'],'content_type'),
+          'response'     => $test_url->get_response_header(),
+        );
+
+        if ( is_null($result['join']) && is_null($result['data']) ) {
+          continue;
+        }
+				else if ( !(200 == nonempty_array_element($result['response'],'http-response-code')) ) {
+          $this->syslog( __FUNCTION__, __LINE__, "(critical) Removing invalid '{$result['content_type']}' content");
+          $this->recursive_dump($result,"(warning)");
+          if ( !is_null($result['data']) ) $test_url->get_foreign_obj_instance('urlcontent')->
+            retrieve($result['data'],'id')->
+            remove();
+          if ( !is_null($result['join']) ) $test_url->get_join_instance('urlcontent')->
+            retrieve($result['join'],'id')->
+            remove();
+        } 
+        else {
+          $returnset['docs'][] = $result;
+        }
+      }
+
+      if ( !$response_in_db || ( 0 == count($returnset['docs']) ) ) {
+        // A UrlModel was not found corresponding to the form action.
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) Form not yet requested or stored: {$returnset['faux_url']} {$form_action}"); 
+      }
+      else {
+				$url_id = $form_action_url->get_id();
+				if ( $debug_method ) {
+					$this->syslog(__FUNCTION__,__LINE__,"(marker) Transfer response to form POST URL " . $form_action_url->get_url() ); 
+					$this->syslog(__FUNCTION__,__LINE__,"(marker) UrlModel #{$url_id} {$form_action} content: " . $form_action_url->get_pagecontent() ); 
+					$this->recursive_dump($form_action_url->get_urlcontent(),"(marker) JUC");
+				}
+      }
+    }
+
+    if ( $debug_method ) {
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- -- - - Target action: {$form_action}" );
+      $this->recursive_dump($paginator_form,'(warning) - -- --- FORM --');
+      $this->recursive_dump($paginator_controls,'(warning) --- --- CONTROLS');
+      $this->recursive_dump($returnset,'(warning) - -- - -- Returning');
+    }
     return $returnset;
   }/*}}}*/
 
@@ -1826,19 +1936,19 @@ EOH;
     // The form action URL is assumed to be the parent URL of all relative URLs on the page
     $target_action_url = nonempty_array_element($form_attributes,'action');
 
-    if ( empty($target_action_url) ) {
+    if ( empty($target_action_url) ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) - - No FORM action extracted from document. action_url = '{$action_url}', invoked for " . (is_a($urlmodel,'UrlModel') ? $urlmodel->get_url() : '<Unknown URL>')  );
       return FALSE;
-    }
+    }/*}}}*/
 
     $target_action = UrlModel::parse_url($target_action_url);
     $prefix_hyphen = 0 < strlen($prefix) ? '-' : '';
 
-    if ( !(1 == preg_match('@(.*)' . $prefix . $prefix_hyphen . '([0-9]*)(.*)@', $target_action['query'])) ) {
+    if ( !(1 == preg_match('@(.*)' . $prefix . $prefix_hyphen . '([0-9]*)(.*)@', $target_action['query'])) ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Unable to comprehend query part '{$target_action['query']}' of URL '" . (is_a($action_url,'UrlModel') ? $action_url->get_url() : '<Unknown URL>') . "'");
       $this->recursive_dump($target_action,"(marker) -- - --");
       return FALSE;
-    }
+    }/*}}}*/
 
     $action_url = new UrlModel();
     $action_url->fetch(UrlModel::get_url_hash($target_action_url),'urlhash');
@@ -1852,19 +1962,23 @@ EOH;
 
     if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Real post action {$sbn_regex_result} URL {$action_url} Faux cacheable {$faux_url_in_db} url: {$action_url}" );
 
+		$force_network_fetch = method_exists($senate_document_parser, "test_form_traversal_network_fetch")
+			? $senate_document_parser->test_form_traversal_network_fetch($action_url)
+			: FALSE;
+
     // If the full document hasn't yet been fetched, execute a fake POST
-    if ( $not_in_database || $parser->from_network ) {/*{{{*/
-      $form_controls = $form_attributes['form_controls'];
-      $form_controls['__EVENTTARGET'] = 'lbAll';
-      $form_controls['__EVENTARGUMENT'] = NULL;
+    if ( $force_network_fetch || $not_in_database || $parser->from_network ) {/*{{{*/
+			$form_controls = $senate_document_parser->site_form_traversal_controls(
+				$action_url, $form_attributes['form_controls'] 
+			);
       if ( property_exists( $parser, 'network_fetch_skip_get' ) && $parser->network_fetch_skip_get ) {
         $form_controls['_LEGISCOPE_']['skip_get'] = TRUE;
       }
-      if ( $debug_method ) {
-				$this->syslog(__FUNCTION__, __LINE__, "(marker) Fetching POST result to {$target_action_url} <- {$form_attributes['action']}" );
-				$this->syslog(__FUNCTION__, __LINE__, "(marker) --- - -- FORM controls to be sent");
-				$this->recursive_dump($form_controls, "(marker) --- - --");
-      }
+      if ( $debug_method ) {/*{{{*/
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) Fetching POST result to {$target_action_url} <- {$form_attributes['action']}" );
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) --- - -- FORM controls to be sent");
+        $this->recursive_dump($form_controls, "(marker) --- - --");
+      }/*}}}*/
       $successful_fetch = $this->perform_network_fetch( 
         $action_url   , $urlmodel->get_url(), $form_attributes['action'],
         $form_controls, $debug_method

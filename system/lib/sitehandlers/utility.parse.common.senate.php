@@ -157,6 +157,13 @@ class SenateCommonParseUtility extends LegislationCommonParseUtility {
     $control_set['__EVENTARGUMENT'] = NULL;
   }/*}}}*/
 
+	// POST wall traversal (converting POST actions to proxied GET)
+	function site_form_traversal_controls(UrlModel & $action_url, $form_controls ) {
+		$form_controls['__EVENTTARGET'] = 'lbAll';
+		$form_controls['__EVENTARGUMENT'] = NULL;
+		return $form_controls;
+	}/*}}}*/
+
   function jquery_seek_missing_journal_pdf() {/*{{{*/
     return <<<EOH
 

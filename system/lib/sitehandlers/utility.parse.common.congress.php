@@ -491,19 +491,20 @@ EOJ
   function seek_postparse_preprocess(& $parser, & $pagecontent, & $urlmodel, $document_type ) {/*{{{*/
 
     $debug_method = $this->extant_property_value('debug_method');
-		$debug_method = FALSE;
 
 		if ( !$urlmodel->in_database() || !(0 < strlen($urlmodel->get_url())) ) {
 			return NULL;
 		}
 
 		extract($urlmodel->load_url_from_metalink_data(
-			$this->filter_post('metalink')
+      $this->filter_post('metalink'),
+      $parser->update_existing ? CONTENT_TYPE_RESPONSE_CONTENT : NULL
 		)); // $congress_tag, $fake_url_str, $have_parsed_data
 
 		if ( $debug_method ) {
-			$this->syslog( __FUNCTION__, __LINE__, "(marker) Source URL: " . $urlmodel->get_urlhash() . " " . $urlmodel->get_url() );
-			$this->syslog( __FUNCTION__, __LINE__, "(marker)        Age: " . intval(time() - $urlmodel->get_last_fetch()) / 3600 );
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) Have parsed data: " . ($have_parsed_data ? "TRUE" : "FALSE") );
+			$this->syslog( __FUNCTION__, __LINE__, "(marker)       Source URL: " . $urlmodel->get_urlhash() . " " . $urlmodel->get_url() );
+			$this->syslog( __FUNCTION__, __LINE__, "(marker)              Age: " . intval(time() - $urlmodel->get_last_fetch()) / 3600 );
 		}
 
     $this->start_offset = $this->filter_post('parse_offset',0);
@@ -514,6 +515,7 @@ EOJ
       if ( $debug_method ) {/*{{{*/
         $state = $have_parsed_data ? "existing" : "de novo";
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Regenerating {$state}: " . $urlmodel->get_url() );
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) " .  $urlmodel->get_pagecontent() );
       }/*}}}*/
 
       $this->start_offset = NULL;

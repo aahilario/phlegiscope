@@ -28,4 +28,17 @@ class SenateResolutionParseUtility extends SenateDocAuthorshipParseUtility {
     return parent::generate_congress_session_column_markup($q, $query_regex);
   }/*}}}*/
 
+	// POST wall traversal (converting POST actions to proxied GET)
+	function site_form_traversal_controls(UrlModel & $action_url, $form_controls ) {/*{{{*/
+		$form_controls = parent::site_form_traversal_controls($action_url, $form_controls);
+		// Senate Bill details include a legislative history summary table,
+		// which is only returned after a POST action with 'magic' form controls
+		// (filled in by the overridden parent method).
+		$form_controls['_LEGISCOPE_']['skip_get'] = FALSE;
+		$form_controls['_LEGISCOPE_']['get_before_post'] = TRUE;
+		$form_controls['_LEGISCOPE_']['force_referrer'] = $action_url->get_url();
+		return $form_controls;
+	}/*}}}*/
+
+
 }

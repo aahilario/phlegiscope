@@ -171,11 +171,17 @@ class UrlModel extends DatabaseUtility {
           $q['path'] = preg_replace('@[/]{2,}@','/',"{$path_sans_script}/{$q['path']}");
         }
       }
-
-      if ( $trim_path_slashes ) $q['path'] = trim($q['path'],'/');
+      if (!C('RETAIN_TRAILING_URL_SLASH')) {
+				if ( $trim_path_slashes ) $q['path'] = trim($q['path'],'/');
+			}
     }
 
-    $normalized_link = rtrim(self::recompose_url($q, $link_item),'/');
+		if (C('RETAIN_TRAILING_URL_SLASH')) {
+			$normalized_link = self::recompose_url($q, $link_item);
+		} else {
+			$normalized_link = rtrim(self::recompose_url($q, $link_item),'/');
+		}
+
     $link_item['urlparts'] = self::parse_url($normalized_link);
 
     return $normalized_link;
@@ -663,10 +669,13 @@ EOH;
     //
     // Legacy UrlModel documents are removed.
     //
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) Parameter type: " . gettype($metalink));
-    $this->syslog(__FUNCTION__,__LINE__,"(marker)    Current URL: " . $this->get_url());
-    $this->syslog(__FUNCTION__,__LINE__,"(marker)       Fake URL: " . $fake_url_str);
-    $this->syslog(__FUNCTION__,__LINE__,"(marker)  Fake URL hash: " . UrlModel::get_url_hash($fake_url_str));
+	  $debug_method = FALSE;
+		if ( $debug_method ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Parameter type: " . gettype($metalink));
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)    Current URL: " . $this->get_url());
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)       Fake URL: " . $fake_url_str);
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)  Fake URL hash: " . UrlModel::get_url_hash($fake_url_str));
+		}
     // Compute URL hashes for the fake POST URL string, and the preparsed content URL.
     // Fetch both. 
     $test_url = new UrlModel($this->get_url(),FALSE);
@@ -693,36 +702,45 @@ EOH;
       recordfetch_setup();
     $url = array();
     while ( $test_url->recordfetch($url,TRUE) ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)++ Found {$url_hashes["{$url['urlhash']}"]} {$url['urlhash']} {$url['pagecontent']}");
+			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)++ Found {$url_hashes["{$url['urlhash']}"]} {$url['urlhash']} UrlModel #{$url['id']}");
       $removable_legacy_urlmodel[] = array('id' => $url['id'], 'urlhash' => $url['urlhash']);
     }
 
-    if ( is_array($metalink) ) {
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) ++++++++++++++++++++++++++++++ ");
-      $this->recursive_dump($metalink,"(marker)");
-    }
+		if ( $debug_method ) { 
+			if ( is_array($metalink) ) {
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) ++++++++++++++++++++++++++++++ ");
+				$this->recursive_dump($metalink,"(marker)");
+			}
+		}
 
+		$removal_hits = 0;
     if ( 0 < count($removable_legacy_urlmodel) ) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) ++++++++++++++++++++++++++++++ ");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Removing legacy content. My ID = #".$this->get_id()." (".$this->get_url().")");
-      $this->recursive_dump($removable_legacy_urlmodel,"(marker)");
       while ( 0 < count($removable_legacy_urlmodel) ) {
         extract(array_shift($removable_legacy_urlmodel));
         if ( $this->get_id() == $id ) continue;
-        $test_url->set_id('id')->remove();
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Remove UrlModel #{$id} (urlhash {$urlhash})");
+        $removal_result = $test_url->retrieve($id,'id')->remove();
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Remove UrlModel #{$id} (urlhash {$urlhash}) : " . gettype($removal_result) . " {$removal_resuls}");
+				$removal_hits++;
       }
+			if ( $removal_hits > 0 ) {
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) Removed legacy content. My ID = #".$this->get_id()." (".$this->get_url().")");
+			}
     }
     else {
       $id      = $this->get_id();
       $url     = $this->get_url();
       $urlhash = $this->get_urlhash();
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Clean. No legacy records for UrlModel #{$id} ({$url} urlhash {$urlhash})");
     }
+		if ( $removal_hits == 0 ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) -- Clean. No legacy records for UrlModel #{$id} ({$url} urlhash {$urlhash})");
+		}
 
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) Current content: ". $this->get_pagecontent());
-    $this->syslog(__FUNCTION__,__LINE__,"(marker)    Content hash: ". $this->get_content_hash());
-    $this->syslog(__FUNCTION__,__LINE__,"(marker)   Computed hash: ". sha1($this->get_pagecontent()));
+		if ( $debug_method ) { 
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) Current content: ". $this->get_pagecontent());
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)    Content hash: ". $this->get_content_hash());
+			$this->syslog(__FUNCTION__,__LINE__,"(marker)   Computed hash: ". sha1($this->get_pagecontent()));
+		}
 
     return 0 < mb_strlen($this->get_pagecontent());
   }/*}}}*/
@@ -778,7 +796,7 @@ EOH;
       return $this;
     }/*}}}*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     // If perform_network_fetch() causes MORE than one record to be added,
     // we take the last-retrieved record to attach to this UrlModel
@@ -808,10 +826,11 @@ EOH;
 
     $filter_conditions = array(
       '`a`.`urlhash`' => $this->get_urlhash(),
-      '{urlcontent}.`content_type`' => $content_type,
-      '{urlcontent}.`urlhash`'      => UrlModel::get_url_hash($urlcontent['content_meta']),
-      '{urlcontent_content_document_model}.`content_type`' => $content_type,
+      //'{urlcontent}.`content_type`' => $content_type,
+      //'{urlcontent}.`urlhash`'      => UrlModel::get_url_hash($urlcontent['content_meta']),
+      '{urlcontent_content_document_model}.`content_type`' => $urlcontent['content_type'],
       '{urlcontent_content_document_model}.`content_meta`' => $urlcontent['content_meta'],
+      '{urlcontent_content_document_model}.`content_hash`' => $urlcontent['content_hash'],
     );
 
     if ( $debug_method ) {/*{{{*/
@@ -829,10 +848,11 @@ EOH;
       recordfetch_setup();
     $this->debug_final_sql = FALSE;
 
-    $self_url        = $this->get_url();
-    $hits            = 0;
-    $changed_records = array();
-    $url             = array();
+    $self_url            = $this->get_url();
+    $hits                = 0;
+    $changed_records     = array();
+    $last_matched_record = NULL;
+    $url                 = array();
     while ( $this->recordfetch($url, TRUE) ) {/*{{{*/
       $hits++;
       $url_id = nonempty_array_element($url,'id');
@@ -841,6 +861,7 @@ EOH;
         // $this->recursive_dump($url,"(marker)");
       }
       $urlcontent_data       = nonempty_array_element($url,'urlcontent');
+			$last_matched_record   = $urlcontent_data;
       $urlcontent['id']      = nonempty_array_element($urlcontent_data['data'],'id');
       $urlcontent['join_id'] = nonempty_array_element($urlcontent_data['join'],'id');
       $db_content_type       = nonempty_array_element($urlcontent_data['join'],'content_type');
@@ -902,7 +923,6 @@ EOH;
 
       $urlcontent['id'] = $this->
         get_foreign_obj_instance('urlcontent')->
-        join(array('url'))->
         set_id(NULL)->
         retrieve(array(
           'content_type' => $content_document['content_type'],
@@ -919,7 +939,7 @@ EOH;
         $action_taken = $stow_status_ok 
           ? ((0 < intval($content_document_present)) ? "Updated existing" : "Created") 
           : "Failed to attach";
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) {$action_taken} {$content_type} record +++++++++++++++++++");
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) {$action_taken} {$content_type} record #{$content_document_present} (ContentDocumentModel #{$urlcontent['id']}) with origin {$content_document['content_meta']} +++++++++++++++++++");
         $this->recursive_dump($content_document,"(marker)");
       }
 
@@ -929,37 +949,50 @@ EOH;
         // an integer; we assume that the corresponding Join record exists.
         if ( 0 < intval($content_document_present) ) {/*{{{*/
           $this->syslog(__FUNCTION__,__LINE__,"(warning) Updated ContentDocument #{$content_document_present} joined to UrlModel #{$url_id} {$self_url}");
+					$reload_conditions = array(
+						'`a`.`id`' => $url_id,
+						'{urlcontent_content_document_model}.`content_type`' => $content_document['content_type'],
+						'{urlcontent_content_document_model}.`content_meta`' => $content_document['content_meta'],
+					);
+					$this->recursive_dump($reload_conditions,"(warning) Reload conditions:");
           // Retrieve the complete record given this UrlModel ID and the ContentDocument ID
-          $c = $this->
+					$this->debug_final_sql = TRUE;
+          $cs = $this->
             join(array('urlcontent'))->
-            retrieve(array(
-              '`a`.`id`' => $url_id,
-              '{urlcontent_content_document_model}.`id`' => $content_document_present,
-            ),'AND')->
+            retrieve($reload_conditions,'AND')->
             get_urlcontent();
-          $c = nonempty_array_element($c,'join');
+					$this->debug_final_sql = FALSE;
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) Reload: ContentDocument #{$cs['data']['id']} vs. #{$content_document_present} joined to UrlModel #{$url_id} {$self_url}");
+					$this->recursive_dump($cs,"(warning) Reload:");
+          $c = nonempty_array_element($cs,'join');
           // If a Join does not exist linking this UrlModel to the just-saved
           // ContentDocumentModel, then we create it. 
-          if ( is_null($urlcontent['join_id'] = nonempty_array_element($c,'id')) ) {/*{{{*/
+					$urlcontent['join_id'] = nonempty_array_element($c,'id',NULL);
+          if ( is_null($urlcontent['join_id']) || !(nonempty_array_element($cs['data'],'id') == $content_document_present) ) {/*{{{*/
+						$this->syslog(__FUNCTION__,__LINE__,"(warning) Join: ContentDocument #{$content_document_present} joined to UrlModel #{$url_id} {$self_url}");
             $data = array(
               'content_type' => $content_type,
               'content' => $urlcontent['id'],
               'url' => $url_id,
-              'urlhash' => UrlModel::get_url_hash($urlcontent['content_meta']),
+              'urlhash' => UrlModel::get_url_hash($content_document['content_meta']),
             );
             $urlcontent['join_id'] = $this->
               get_join_instance('urlcontent')->
               set_contents_from_array($data)->
               fields(array_keys($data))->
               stow();
-            $c = $this->
+            $cs = $this->
               join(array('urlcontent'))->
               retrieve(array(
-                '`a`.`id`' => $this->get_id(),
+                '`a`.`id`' => $url_id,
+								'{urlcontent_content_document_model}.`content_meta`' => $content_document['content_meta'], 
                 '{urlcontent_content_document_model}.`id`' => $content_document_present,
               ),'AND')->
               get_urlcontent();
           }/*}}}*/
+					$this->set_urlcontent($cs);
+          $this->syslog(__FUNCTION__,__LINE__,"(warning) Assigned ContentDocument #{$cs['data']['id']} joined to UrlModel #{$url_id} {$self_url}");
+					$this->recursive_dump($cs,"(marker)--");
         }/*}}}*/
         else {/*{{{*/
           $join = array(
@@ -1018,7 +1051,7 @@ EOH;
         if ( $id == $stow_id ) {
           $this->set_urlcontent(array('data' => $updated_attributes));
           if ( $debug_method ) {
-            $this->syslog(__FUNCTION__,__LINE__,"(marker) Update {$content_type} {$id}");
+            $this->syslog(__FUNCTION__,__LINE__,"(marker) Update {$content_type} ContentDocumentModel #{$stow_id} <- UrlModel #" . $this->get_id());
             $this->syslog(__FUNCTION__,__LINE__,"(marker) Update {$content_type}: " . $this->get_pagecontent() );
           }
         }
@@ -1032,6 +1065,13 @@ EOH;
         }
       }/*}}}*/
     }/*}}}*/
+		else if ( 1 == $hits && !is_null($last_matched_record) ) {
+			if ( !(FALSE == @json_decode(nonempty_array_element($last_matched_record['data'],'data'),TRUE)) ) {
+				$this->set_urlcontent($last_matched_record);
+				$this->set_content($last_matched_record['data']['data']);
+				$this->syslog(__FUNCTION__,__LINE__,"(marker) Reasserted content from unique ContentDocument match {$last_matched_record['data']['id']}." );
+			}
+		}
 
     return $this;
   }/*}}}*/
@@ -1039,8 +1079,13 @@ EOH;
   function load_url_from_metalink_data($metalink, $content_type = NULL) {/*{{{*/
     // Obtain pre-cached JSON document, if available.
     // Note that if metalink data is available, then get_pagecontent() 
-    // returns the ContentDocument
-    $debug_method          = FALSE;
+		// returns the ContentDocument indicated in the metalink data
+		// content URL (Join hash = POST URL hash).
+		// If no metalink data is provided (e.g. $metalink is empty, or invalid),
+		// then this method should load the ContentDocumentModel linked to this 
+		// UrlModel, where Join[ContentDocumentModel].content_hash = $this.urlhash
+		// and Join[ContentDocumentModel].content_type = $content_type
+    $debug_method          = TRUE;
     $congress_tag          = NULL;
     $fake_url_str          = NULL;
     $have_parsed_data      = NULL;
@@ -1057,16 +1102,10 @@ EOH;
 
     $test_url = new UrlModel($this->get_url(),FALSE);
 
-    if ( $debug_method ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)   Current content hash: " . $this->get_content_hash());
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Requested content type: {$content_type}" );
-      $this->recursive_dump($content_type,"(marker)");
-    }
-
     // We simply load the UrlModel representing the POST action, and the
     // attached ContentDocumentModel that corresponds to a specific set of
     // POST parameters. FIXME: This should probably include cookie state.
-    $congress_tag  = nonempty_array_element($metalink,'congress');
+    $congress_tag  = nonempty_array_element($metalink,'congress',NULL);
     $urlhash       = $this->get_urlhash();
     $fake_url_str  = GenericParseUtility::url_plus_post_parameters($test_url, $metalink);
     $fake_url_hash = UrlModel::get_url_hash($fake_url_str);
@@ -1081,8 +1120,16 @@ EOH;
     );
 
     if ( $debug_method ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Filter: " . $this->get_url());
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)          Metalink type: " . gettype($metalink));
+      $this->recursive_dump($metalink,"(marker) ---");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)   Current content hash: " . $this->get_content_hash());
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Requested content type: {$content_type}" );
+      $this->recursive_dump($content_type,"(marker) ---");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) ContentDocument srcURL: {$fake_url_str}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)        Source URL hash: {$fake_url_hash}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)                 Filter: UrlModel #" . $this->get_id() . " (" . $this->get_url() . ")" );
       $this->recursive_dump($filter_parameters,"(marker)");
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)-------------------------------------------------------------------------------" );
     }
 
     $test_url->debug_final_sql = $debug_method;
@@ -1102,22 +1149,24 @@ EOH;
     
     while( $test_url->recordfetch($url,TRUE) ) {/*{{{*/
       // Find the record that corresponds to the POST action. There should only ever be ONE such record. 
-      $urlcontent      = nonempty_array_element($url,'urlcontent');
-      $db_content_type = nonempty_array_element($urlcontent['join'],'content_type');
+      $urlcontent        = nonempty_array_element($url,'urlcontent');
+      $db_content_type   = nonempty_array_element($urlcontent['join'],'content_type');
+      $have_parsed_data |= ( $db_content_type == CONTENT_TYPE_PREPARSED ) && (!(FALSE == @json_decode(nonempty_array_element($urlcontent['data'],'data'))));
+      $test_data_id      = nonempty_array_element($urlcontent['data'],'id');
       if ( $debug_method ) {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) {$url['id']} - - - - - - - - - - - - - - - - - - - -" );
-        $this->recursive_dump($url['urlcontent'],"(marker) ContentDocument {$db_content_type}");
+        $this->recursive_dump($urlcontent,"(marker) ContentDocument {$db_content_type} #{$test_data_id}");
       }
       if ( !array_key_exists($db_content_type, array_flip($content_type)) ) continue;
-      $test_data_id = nonempty_array_element($urlcontent['data'],'id');
       if ( is_null($test_data_id) ) continue;
       $meta_record_ids[$db_content_type][$test_data_id] = $urlcontent; 
-      $have_parsed_data |= ( $db_content_type == CONTENT_TYPE_PREPARSED );
     }/*}}}*/
 
     $this->matched_records = $meta_record_ids;
 
-    if (0 == ($meta_record_ids_found = count($meta_record_ids))) {
+		$have_parsed_data &= array_key_exists( CONTENT_TYPE_PREPARSED, $this->matched_records);
+		// No matches
+    if (0 == ($meta_record_ids_found = count($meta_record_ids))) {/*{{{*/
       if ( FALSE == $this->fixup_old_metaorigin_source($metalink, $fake_url_str, $content_type) ) {
         if ( $debug_method ) {
           $this->syslog( __FUNCTION__, __LINE__, "(marker) Filter parameters" );
@@ -1126,27 +1175,31 @@ EOH;
         $this->syslog(__FUNCTION__,__LINE__,"(warning) Attempt to parse a record without content, {$fake_url_str}");
         $this->syslog(__FUNCTION__,__LINE__,"(marker) Existing pagecontent() data: " . $this->get_pagecontent());
       }
-    }
-    else if (1 < $meta_record_ids_found) {
+    }/*}}}*/
+		// More than one match
+    else if (1 <= $meta_record_ids_found) {
       // Return preparsed content first
-      if ( array_key_exists( CONTENT_TYPE_RESPONSE_CONTENT, $this->matched_records ) ) {
-        $urlcontent = array_shift($this->matched_records[CONTENT_TYPE_RESPONSE_CONTENT]);
-        $this->set_urlcontent($urlcontent);
-        if ( $debug_method ) {/*{{{*/
-          $data_id = nonempty_array_element($urlcontent['data'],'id');
-          $join_id = nonempty_array_element($urlcontent['join'],'id');
-          $this->syslog(__FUNCTION__,__LINE__,"(marker) Keeping [{$join_id},{$data_id}] - - - - - - - - - - - - - - - - - - - -" );
-        }/*}}}*/
-      }
-      else if ( array_key_exists( CONTENT_TYPE_PREPARSED, $this->matched_records ) ) {
-        $urlcontent = array_shift($this->matched_records[CONTENT_TYPE_PREPARSED]);
+			if ( $have_parsed_data ) {/*{{{*/
+        $urlcontent = $this->matched_records[CONTENT_TYPE_PREPARSED];
+        $urlcontent = array_shift($urlcontent);
         $this->set_urlcontent($urlcontent);
         if ( $debug_method ) {
           $data_id = nonempty_array_element($urlcontent['data'],'id');
           $join_id = nonempty_array_element($urlcontent['join'],'id');
           $this->syslog(__FUNCTION__,__LINE__,"(marker) Keeping [{$join_id},{$data_id}] - - - - - - - - - - - - - - - - - - - -" );
         }
-      }
+			}/*}}}*/
+			else if ( array_key_exists( CONTENT_TYPE_RESPONSE_CONTENT, $this->matched_records ) ) {/*{{{*/
+        $urlcontent = $this->matched_records[CONTENT_TYPE_RESPONSE_CONTENT];
+        $urlcontent = array_shift($urlcontent);
+				$this->set_urlcontent($urlcontent);
+        $this->set_pagecontent($urlcontent['data']['data']);
+        if ( $debug_method ) {/*{{{*/
+          $data_id = nonempty_array_element($urlcontent['data'],'id');
+          $join_id = nonempty_array_element($urlcontent['join'],'id');
+          $this->syslog(__FUNCTION__,__LINE__,"(marker) Keeping [{$join_id},{$data_id}] - - - - - - - - - - - - - - - - - - - -" );
+        }/*}}}*/
+      }/*}}}*/
       else if ( $debug_method ) {
         $this->syslog( __FUNCTION__, __LINE__, "(warning) -- MULTIPLE ContentDocument records (content_type = {$content_type}) ({$meta_record_ids_found}), none with valid type.");
         $this->recursive_dump($this->matched_records,"(warning)");
@@ -1156,17 +1209,24 @@ EOH;
     // At this point, you SHOULD have at least one record with a matching ContentDocument.
 
     if ( $debug_method ) {/*{{{*/
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)   Matched joins: " . count($meta_record_ids));
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)             Raw: " . count(nonempty_array_element($meta_record_ids,CONTENT_TYPE_RESPONSE_CONTENT)));
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)       Preparsed: " . count(nonempty_array_element($meta_record_ids,CONTENT_TYPE_PREPARSED)));
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Target congress: {$congress_tag} <- (" . gettype($metalink) . "){$metalink}" );
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)        POST URL: {$fake_url_str}" );
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)   Metalink data:" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)-------------------------------------------------------------------------------" );
+			$this->syslog( __FUNCTION__, __LINE__, "(marker) Have parsed data: " . ($have_parsed_data ? "TRUE" : "FALSE") );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)    Matched joins: " . count($meta_record_ids));
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)              Raw: " . count(nonempty_array_element($meta_record_ids,CONTENT_TYPE_RESPONSE_CONTENT)));
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)        Preparsed: " . count(nonempty_array_element($meta_record_ids,CONTENT_TYPE_PREPARSED)));
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)  Target congress: {$congress_tag} <- (" . gettype($metalink) . "){$metalink}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)         POST URL: {$fake_url_str}" );
+			$this->syslog( __FUNCTION__, __LINE__, "(marker)    Metalink data: " . (is_array($metalink) && (0 < count($metalink)) ? "present" : "empty")  );
       $this->recursive_dump($metalink,"(marker) -");
-      $this->syslog( __FUNCTION__, __LINE__, "(marker)      My content (UrlModel #{$url_id}): " . $this->get_pagecontent());
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) My content (UrlModel #{$url_id}): " . $this->get_pagecontent());
+      $this->syslog( __FUNCTION__, __LINE__, "(marker)-------------------------------------------------------------------------------" );
     }/*}}}*/
 
-    return compact($fake_url_str, $congress_tag, $have_parsed_data);
+		return array(
+			'fake_url_str' => $fake_url_str, 
+			'congress_tag' => $congress_tag,
+			'have_parsed_data' => $have_parsed_data
+		);
   }/*}}}*/
 
 }

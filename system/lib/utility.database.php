@@ -169,7 +169,8 @@ class DatabaseUtility extends ReflectionClass {
       $sql = <<<EOS
 DELETE FROM `{$this->tablename}` WHERE `id` = {$this->id}
 EOS;
-      $this->query($sql);
+      $result = $this->query($sql);
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) Result {$sql} " . $this->error());
     }
     return $this;
   }/*}}}*/

@@ -871,16 +871,23 @@ EOH
 
     if ( empty($target_page) ) {/*{{{*/
 
-      $tab_options = array_combine(
-        array_map(create_function('$a','return $a["tag-class"];'), $resource_links),
-        array_map(create_function('$a','return $a["text"];'), $resource_links)
-      );
-      ksort($tab_options);
-      $link_members = array_combine(
-        array_map(create_function('$a','return $a["tag-class"];'), $resource_links),
-        array_map(create_function('$a','return $a["url"];'), $resource_links)
-      );
-      ksort($link_members);
+      $tag_class_elements = array_map(create_function('$a','return $a["tag-class"];'), $resource_links);
+
+      $tab_options = array();
+      $link_members = array();
+
+      if ( is_array($tag_class_elements) && (0 < count($tag_class_elements)) ) {
+        $tab_options = array_combine(
+          $tag_class_elements,
+          array_map(create_function('$a','return $a["text"];'), $resource_links)
+        );
+        ksort($tab_options);
+        $link_members = array_combine(
+          $tag_class_elements, 
+          array_map(create_function('$a','return $a["url"];'), $resource_links)
+        );
+        ksort($link_members);
+      }
 
       // Trigger reload
       $tab_sources = array(
@@ -888,6 +895,7 @@ EOH
         'authorship' => $bills,
       );
 
+      if ( 0 < count($link_members) && 0 < count($tab_options) ) 
       $tab_containers = $this->generate_committee_rep_tabs($link_members, $tab_options, $tab_sources);
 
       // To trigger automated fetch, crawl this list after loading the entire dossier doc;

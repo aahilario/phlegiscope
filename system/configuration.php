@@ -25,9 +25,9 @@ define('LEGISCOPE_CURLOPT_PROXYTYPE',  CURLPROXY_SOCKS5);
 
 // Debug logging
 define('DEBUG_ONLY_ADMIN',FALSE);
-define('DEBUG_ONLY_ENDUSER',FALSE);
+define('DEBUG_ONLY_ENDUSER',TRUE);
 define('DEBUGLOG_FILENAME', TRUE);
-define('DEBUG_HANDLER_NAMES', FALSE);
+define('DEBUG_HANDLER_NAMES', TRUE);
 define('DEBUG_DatabaseUtility', FALSE);
 define('DEBUG_LegiscopeBase', FALSE);
 define('DEBUG_CongressGovPh', FALSE);
@@ -41,6 +41,8 @@ define('DISABLE_AUTOMATIC_URL_EDGES',TRUE);
 
 define('SELENIUM_WEBDRIVER', 'http://127.0.0.8:4444/wd/hub');
 
+// URL handling
+// define('RETAIN_TRAILING_PATH_SLASH',FALSE);
 // Debug flags
 define('ENABLE_STRUCTURE_DUMP'        , FALSE);
 define('DEBUG_STACKTRACE_ON_SQL_ERROR', TRUE);

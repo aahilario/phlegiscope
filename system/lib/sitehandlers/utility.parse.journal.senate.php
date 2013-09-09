@@ -17,7 +17,7 @@ class SenateJournalParseUtility extends SenateDocAuthorshipParseUtility {
     parent::__construct();
   }
 
-  function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {
+  function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {/*{{{*/
 
     $debug_method = FALSE;
 
@@ -26,10 +26,10 @@ class SenateJournalParseUtility extends SenateDocAuthorshipParseUtility {
     $this->child_collection_source = $this->get_containers('children[tagname=form][class*=lis_div]',0);
     $this->reorder_with_sequence_tags($this->child_collection_source);
 
-    if ( $debug_method ) $this->recursive_dump($this->get_containers(),"(marker)");
+    if ( $debug_method ) $this->recursive_dump($this->get_containers(),"(critical)");
 
     return $parse_result;
-  }
+  }/*}}}*/
 
   function parse_activity_summary(array & $journal_data) {/*{{{*/
 
@@ -475,7 +475,7 @@ EOH;
 
   function canonical_journal_page_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method   = FALSE;
+    $debug_method   = TRUE;
 
     $report         = new SenateCommitteeReportDocumentModel();
     $journal        = new SenateJournalDocumentModel();
@@ -652,7 +652,7 @@ EOH;
               if ( array_key_exists($join[$document_propertyname], $sn_suffixes) ) {
                 $sn_suffixes[$join[$document_propertyname]] = NULL; 
               }
-            } 
+            }
             // If no records remain (all joins accounted for), skip to next iter
             if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) -- + -- To store"); 
             if ( $debug_method ) $this->recursive_dump($sn_suffixes,'(marker) -- + --');
@@ -660,6 +660,7 @@ EOH;
             if (!(0 < count($sn_suffixes))) continue;
             $sn_suffixes = array_values(array_flip($sn_suffixes));
             if ( $debug_method ) $this->recursive_dump($sn_suffixes,'(marker) -- + -- Filtered');
+
             $document_id_setter = "set_{$document_propertyname}";
             foreach ( $sn_suffixes as $bill_id ) {
 

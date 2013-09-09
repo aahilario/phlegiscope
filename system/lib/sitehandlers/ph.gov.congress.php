@@ -5,6 +5,7 @@ class CongressGovPh extends SeekAction {
   private $container_buffer = NULL;
 
   function __construct() {
+    define('RETAIN_TRAILING_URL_SLASH',TRUE);
     parent::__construct();
   }
 
@@ -134,7 +135,7 @@ class CongressGovPh extends SeekAction {
     $document_parser = new CongressRepublicActCatalogParseUtility();
     $document_model  = new RepublicActDocumentModel();
 
-    $document_parser->debug_method = FALSE;
+    $document_parser->debug_method = TRUE;
     $document_parser->seek_postparse_ra($parser,$pagecontent,$urlmodel,$document_model);
 
     $document_parser = NULL;
@@ -177,7 +178,7 @@ class CongressGovPh extends SeekAction {
     $common->set_parent_url($urlmodel->get_url())->parse_html($urlmodel->get_pagecontent(),$urlmodel->get_response_header());
 
     $this->recursive_dump(($target_form = array_values($common->get_containers(
-      'children[attrs:ACTION*=index.php\?d=ra$]'
+      'children[attrs:ACTION*=download\?d=congrecords$]'
     ))),"(debug) Extracted content");
 
     if (is_null($target_form[0])) {/*{{{*/
@@ -210,7 +211,7 @@ class CongressGovPh extends SeekAction {
       $controlset_json_base64 = base64_encode(json_encode($control_set));
       $controlset_hash = md5($controlset_json_base64);
       $faux_url = UrlModel::parse_url($urlmodel->get_url());
-      $faux_url['query'] = "d=ra";
+      $faux_url['query'] = "d=congrecords";
       $faux_url = UrlModel::recompose_url($faux_url,array(),FALSE);
       $link_class_selector = array("fauxpost");
       if ( $ra_linktext == $select_option['text'] ) {
@@ -227,7 +228,7 @@ EOH;
     }/*}}}*/
 
     // ----------------------------------------------------------------------
-    // Coerce the parent URL to index.php?d=ra
+    // Coerce the parent URL to index.php?d=congrecords
     $parent_url   = UrlModel::parse_url($urlmodel->get_url());
     $parent_url['query'] = 'd=congrecords';
     $parent_url   = UrlModel::recompose_url($parent_url,array(),FALSE);
@@ -248,7 +249,7 @@ EOH;
 
     $this->recursive_dump(($ra_list = $ra_listparser->get_containers(
       '*[item=RA][bill-head=*]'
-    )),"Extracted content");
+    )),"(marker) Extracted content");
 
     $replacement_content = '';
 
@@ -528,6 +529,13 @@ EOH;
     $this->seek_postparse_bypath_plus_queryvars_e5bf63efae0afe2ae1e652dd2dd56948($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
+  function seek_by_pathfragment_8d5125b7dba2f2b263f1bd6e4917b247(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // seek_postparse_bypath_plus_queryvars_83c006854a63d767ee0808c0de0e97d7
+    // http://www.congress.gov.ph/committees/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->congress_committee_listing($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
   function seek_postparse_9f222d54cda33a330ffc7cd18e7ce27f(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // seek_postparse_bypath_plus_queryvars_83c006854a63d767ee0808c0de0e97d7
     // http://www.congress.gov.ph/committees/search.php 
@@ -583,6 +591,12 @@ EOH;
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $this->representative_bio_parser($parser,$pagecontent,$urlmodel);
   }/*}}}*/
+
+  function seek_postparse_15ce34758cb702cd96e0ddd3c34ee695(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->representative_bio_parser($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
 
   function seek_congress_memberlist(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 

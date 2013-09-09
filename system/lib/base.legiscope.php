@@ -581,6 +581,8 @@ class LegiscopeBase extends SystemUtility {
     $metalink, $debug_dump = FALSE
   ) {/*{{{*/
 
+		$debug_dump |= TRUE;
+
     $successful_fetch   = FALSE;
     $post_response_data = array();
     $captured_response  = 'POST';

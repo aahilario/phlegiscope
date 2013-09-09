@@ -36,11 +36,23 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
   function generate_child_collection(SenateJournalParseUtility & $document_parser) {/*{{{*/
 
     // Extract parsed urls, for inclusion in the child collection.
-    $parsed_urls = $document_parser->filter_nested_array(
+    $parsed_url_set = array_values($document_parser->filter_nested_array(
       $document_parser->child_collection_source,
-      'children[tagname=div][id=lis_journal_table]',0
-    );
-    $parsed_urls = nonempty_array_element(array_shift($parsed_urls),'children');
+      'children[tagname=div][id=lis_journal_table]'
+    ));
+
+    $parsed_url_set = nonempty_array_element($parsed_url_set,0);
+
+    $parsed_urls = array();
+    while ( 0 < count($parsed_url_set) ) {
+      $children = array_shift($parsed_url_set);
+      $children = nonempty_array_element($children,'children');
+      while ( 0 < count($children) ) {
+        array_push($parsed_urls, array_shift($children));
+      }
+    }
+
+    $this->recursive_dump($parsed_urls,"(critical) -- CCI");
 
     // The Senate Journal parser returns only the set of tags and their children
     // containing div#lis_journal_table, which contain Journal links 
@@ -65,7 +77,7 @@ class SenateJournalDocumentModel extends SenateDocCommonDocumentModel {
     // Include parsed records
     foreach ( $parsed_urls as $journal_entry ) {
       $url  = preg_replace('@[^a-z0-9/:.&?=]@i','',$journal_entry['url']);
-      $text = preg_replace('@@i','',$journal_entry['text']);
+      $text = $journal_entry['text'];
       $hash = UrlModel::get_url_hash($url);
       if ( !array_key_exists($hash,$child_collection) ) {
         $this->syslog(__FUNCTION__,__LINE__,"(marker) {$url}");

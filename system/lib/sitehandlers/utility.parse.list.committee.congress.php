@@ -125,7 +125,7 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
 
   function congress_committee_listing(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
     // http://www.congress.gov.ph/committees
 
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
@@ -135,12 +135,7 @@ class CongressCommitteeListParseUtility extends CongressCommonParseUtility {
 
     $this->debug_tags = FALSE;
     $this->debug_operators = FALSE;
-    $this->
-      set_parent_url($urlmodel->get_url())->
-      parse_html(
-        $urlmodel->get_pagecontent(),
-        $urlmodel->get_response_header()
-      );
+    $this->standard_parse($urlmodel);
     $this->debug_operators = FALSE;
 
     $pagecontent = str_replace('[BR]','<br/>',join('',$this->get_filtered_doc()));

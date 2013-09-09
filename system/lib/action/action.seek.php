@@ -43,7 +43,7 @@ class SeekAction extends LegiscopeBase {
 
     if ( !is_null($metalink) ) {
       $metalink = @json_decode(base64_decode($metalink),TRUE);
-      $this->recursive_dump($metalink,'(marker) -- - - - metalink ');
+      $this->recursive_dump($metalink,'(critical) -- - - - metalink ');
     }
 
     if ( $debug_method ) {
@@ -95,7 +95,7 @@ class SeekAction extends LegiscopeBase {
 
     if ( $network_fetch ) {/*{{{*/
 
-      $this->syslog( __FUNCTION__, __LINE__, "(critical) Network fetch {$target_url}" );
+      $this->syslog( __FUNCTION__, __LINE__, "(warning) Network fetch {$target_url}" );
 
       $retrieved = $this->perform_network_fetch( 
         $url     , $referrer, $target_url  ,

@@ -86,6 +86,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     $senate_bill_recordparts['legislative_history'] = array(); 
 		while ( 0 < count($chainable) ) {
 			$entry = nonempty_array_element(array_shift($chainable),'children');
+      if ( is_array($entry) )
 			foreach ( $entry as $seq => $row ) {
 				$text = trim(nonempty_array_element($row,'text'));
 				if ( 1 == preg_match('@^\[.*\]$@i', $text) ) continue;

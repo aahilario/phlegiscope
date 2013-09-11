@@ -385,6 +385,7 @@ function emit_document_entries(entries) {
   for ( var p in entries ) {
     var entry = entries[p];
     var links = entry && entry.links ? entry.links : {};
+    var metalink = entry && entry.metalink ? entry.metalink : null;
     var representative = entry && entry.representative ? entry.representative : null;
     var committee = entry && entry.committee ? entry.committee : null;
     var linktype_map = {
@@ -392,8 +393,10 @@ function emit_document_entries(entries) {
       'url_engrossed' : 'Engrossed',
       'filed' : 'Filed' 
     };
+    var linktext = 'Other';
 
     jQuery('div[id='+entry.sn+']').children().remove();
+    jQuery('div[id='+entry.sn+']').remove();
 
     var link_container = jQuery(document.createElement('SPAN'))
       .addClass('republic-act-heading')
@@ -403,17 +406,37 @@ function emit_document_entries(entries) {
 			;
 
     for ( var t in links ) {
-      var l = links[t];
+      var l = links[t].replace(/\/$/,'');
 			var cl = entry && entry.linkstate ? entry.linkstate[t] : 'uncached';
-      jQuery(link_container)
-        .append(jQuery(document.createElement('A'))
-          .attr('href',l)
-          .addClass('legiscope-remote')
-					.addClass(cl)
-          .append(linktype_map[t])
-        )
-				.append('&nbsp;')
-				;
+      var metadata = metalink && metalink[t] ? metalink[t] : null;  
+      linktext = linktype_map[t];
+      if ( typeof linktext != 'string' || linktext.length == 0 ) linktext = 'Other'; 
+      if ( typeof metalink != 'null' && typeof metadata != null ) {
+        jQuery(link_container)
+          .append(jQuery(document.createElement('A'))
+            .attr('href',l)
+            .addClass(metadata.classname)
+            .addClass(cl)
+            .attr('id','switch-'+metadata.hash)
+            .append(linktext)
+          )
+          .append(jQuery(document.createElement('SPAN'))
+            .attr('id','content-'+metadata.hash)
+            .css({ display : 'none'})
+            .append(metadata.metadata)
+          )
+          .append('&nbsp;');
+      }
+      else {
+        jQuery(link_container)
+          .append(jQuery(document.createElement('A'))
+            .attr('href',l)
+            .addClass('legiscope-remote')
+            .addClass(cl)
+            .append(linktext)
+          )
+          .append('&nbsp;');
+      }
     }
 
     jQuery('#listing').append(
@@ -481,6 +504,7 @@ function emit_document_entries(entries) {
       );
 
   }
+  initialize_remote_links(); 
 }
 
 
@@ -721,6 +745,11 @@ EOJ
     if ( $depth == 1 ) {
       $url_set = nonempty_array_element($pregenerated_list,'links',array());
       foreach ( $url_set as $url_kind => $url ) {
+        // While we generally avoid trimming trailing slashes when parsing 
+        // Congress URLs, the Congress Republic Acts listings generally resolve
+        // to filesystem URLs, or URLs that contain query parameters, and
+        // so do not need to terminate in a trailing slash. 
+        $url = rtrim($url,'/');
         $urlhash = UrlModel::get_url_hash($url);
         $this->url_state_cache[] = array(
           'urlhash' => $urlhash,
@@ -733,6 +762,13 @@ EOJ
     return;
   }
 
+  function reduce_cells(& $ra, $k) {
+    array_walk($ra,create_function(
+      '& $a, $k, $s', 'if ( is_string($a) ) $a = $s->reverse_iconv($a);'
+    ), $this);
+    return $ra;
+  }
+
   function seek_postparse(& $parser, & $pagecontent, & $urlmodel, & $document_model, $document_type ) {
 
     // Partition large list into multiple processable chunks, transmit
@@ -741,7 +777,7 @@ EOJ
     $debug_method = $this->extant_property_value('debug_method');
 
     if ( $debug_method ) {/*{{{*/
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() . ". Length: " . $urlmodel->get_content_length() . ". Memory load: " . memory_get_usage(TRUE) );
+      $this->syslog( __METHOD__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() . ". Length: " . $urlmodel->get_content_length() . ". Memory load: " . memory_get_usage(TRUE) );
       $this->recursive_dump($_POST,"(marker) --");
     }/*}}}*/
 
@@ -775,7 +811,7 @@ EOH;
     $emit_frame        = FALSE;
     $caching_method    = 'cache_parsed_records';
 
-		if ( method_exists($document_model, $caching_method) ) { 
+		if ( method_exists($document_model, $caching_method) ) {/*{{{*/
 			// This method is invoked to cache new records found on the original site catalog page.
 			// UPDATES to *individual* records are triggered from the 
 			// local curator's catalog (by traversing catalog links).
@@ -790,25 +826,50 @@ EOH;
 				$congress_tag,
 				$parser->from_network
 			);
-		}
-		else {
+		}/*}}}*/
+		else {/*{{{*/
 			$document_type = get_class($document_model);
 			$this->syslog(__FUNCTION__,__LINE__,"(warning) Missing {$document_type}::{$caching_method}");
-		}
+		}/*}}}*/
 
-    if ( 'fetch' == $this->filter_post('catalog') ) {
+    $markup_preparation = 'prepare_markup_source';
+
+    if ( 'fetch' == $this->filter_post('catalog') ) {/*{{{*/
+
       $parser->json_reply['catalog'] = nonempty_array_element($this->container_buffer,'parsed_bills');
-      if ( $debug_method ) $this->recursive_dump(nonempty_array_element($this->container_buffer,'parsed_bills'),"(marker) -- A --");
+      if ( method_exists($document_model, $markup_preparation) ) {
+        $document_model->$markup_preparation($parser->json_reply['catalog']);
+      }
+      $this->add_document_urlcaching_cssclass($parser->json_reply['catalog']);
+      array_walk($parser->json_reply['catalog'],create_function(
+        '& $a, $k, $s', '$a = $s->reduce_cells($a,$k);'
+      ), $this);
+      if ( $debug_method ) $this->recursive_dump($parser->json_reply['catalog'],"(marker) -- A --");
       $parser->json_reply['division'] = 'A';
-		}
-	 	else {
+      $parse_offset   = intval($this->filter_post('parse_offset',0));
+      $parse_limit    = intval($this->filter_post('parse_limit',20));
+      $parser->json_reply['parse_offset'] = $parse_offset + $parse_limit;
+
+      return;
+
+    }/*}}}*/
+	 	else {/*{{{*/
+      
       $pregenerated_list = nonempty_array_element($this->container_buffer,'parsed_bills');
+      if ( method_exists($document_model, $markup_preparation) ) {
+        $document_model->$markup_preparation($pregenerated_list);
+      }
       $this->add_document_urlcaching_cssclass($pregenerated_list);
-      if ( TRUE || $debug_method ) $this->recursive_dump($pregenerated_list,"(marker) -- B --");
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) -- -- -- Entry count: " . count($pregenerated_list) );
+      array_walk($pregenerated_list,create_function(
+        '& $a, $k, $s', '$a = $s->reduce_cells($a,$k);'
+      ), $this);
+      if ( $debug_method ) $this->recursive_dump($pregenerated_list,"(critical) -- B --");
       $pregenerated_list = addslashes(LegiscopeBase::safe_json_encode($pregenerated_list)); 
       $emit_frame = TRUE;
       $parser->json_reply['division'] = 'B';
-    }
+
+    }/*}}}*/
 
     // Store records not yet recorded in *DocumentModel backing store.
     // Generate POST links
@@ -869,14 +930,16 @@ EOH;
     $emit_frame     = $emit_frame || ($parse_offset == 0);
 
     // FIXME: Use per-method session store
-    $last_fetch     = $this->filter_post('last_fetch', $parser->from_network ? time() : 'null');
+    $last_fetch     = $this->filter_post('last_fetch', time());
 
     if ( $debug_method || $emit_frame ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Offset: {$parse_offset}. " . ($emit_frame ? "Emitting" : "Not emitting") . " frame");
 
-    $document_generator = $this->emit_document_entries_js();
-    // Send markup container and script 
+    if ( $emit_frame ) {/*{{{*/
 
-    if ( $emit_frame ) $pagecontent = str_replace("\r","\n",<<<EOH
+      $document_generator = $this->emit_document_entries_js();
+      // Send markup container and script 
+
+      $pagecontent = str_replace("\r","\n",<<<EOH
 
 <div class="flattened-post-forms" id="system-stats">
   Congress {$congress_tag}: {$entries} {$generated_link}
@@ -899,50 +962,99 @@ function pull() {
   if ( !(trigger_pull.length > 0) ) return;
   var active = jQuery('[id='+trigger_pull+']').attr('id').replace(/^switch-/,'content-');
   var linkurl = jQuery('[id='+trigger_pull+']').attr('href');
-  jQuery.ajax({
-    type     : 'POST',
-    url      : '/seek/',
-    data     : { url : linkurl, catalog : 'fetch', last_fetch : {$last_fetch}, parse_offset : parse_offset, parse_limit : parse_limit, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true, metalink : jQuery('#'+active).html() },
-    cache    : false,
-    dataType : 'json',
-    async    : true,
-    beforeSend : (function() {
-      display_wait_notification();
-    }),
-    complete : (function(jqueryXHR, textStatus) {
-      remove_wait_notification();
-    }),
-    success  : (function(data, httpstatus, jqueryXHR) {
-      if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
-      if ( data && data.state ) {
-        if ( 0 == parseInt(data.state) ) {
-          jQuery('#spider').prop('checked',null);
-        }  
+  try {
+    jQuery.ajax({
+      type     : 'POST',
+      url      : '/seek/',
+      data     : { url : linkurl, catalog : 'fetch', last_fetch : {$last_fetch}, parse_offset : parse_offset, parse_limit : parse_limit, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), modifier : jQuery('#seek').prop('checked'), metalink : jQuery('#'+active).html() },
+      cache    : false,
+      dataType : 'json',
+      async    : true,
+      beforeSend : (function() {
+        display_wait_notification();
+      }),
+      complete : (function(jqueryXHR, textStatus) {
+        remove_wait_notification();
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+        if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+        parse_offset = ( data && data.parse_offset ) ? data.parse_offset : 0;
+        if ( data && data.catalog ) emit_document_entries(data.catalog);
+        if ( jQuery('#spider').prop('checked') ) {
+          setTimeout((function(){ crawl(); }),500);
+          if ( data && data.state ) {
+            if ( 0 == parseInt(data.state) ) {
+              jQuery('#spider').prop('checked',null);
+            }  
+          }
+        }
+      })
+    });
+  } catch (e) {
+    setTimeout((function(){ crawl(); }),500);
+  }
+}
+
+var crawl_hitcount = 0;
+
+function crawl() {
+  try {
+    jQuery('div[id=listing]').find('a[class*=uncached]').first().each(function(){
+      var linkurl = jQuery(this).attr('href');
+      var data = { url : linkurl, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true };
+      var self = this;
+      if ( /^switch-/.test(jQuery(this).attr('id')) ) {
+        data.metalink = jQuery('[id='+jQuery(this).attr('id').replace(/^switch-/,'content-')+']').html(); 
       }
-      parse_offset = ( data && data.parse_offset ) ? data.parse_offset : 0;
-      if ( data && data.catalog ) emit_document_entries(data.catalog);
-      jQuery('#seek').prop('checked',null);
-      if ( jQuery('#spider').prop('checked') ) {
-        setTimeout((function(){ pull(); }),500);
-      }
-    })
-  });
+      crawl_hitcount++;
+      jQuery.ajax({
+        type     : 'POST',
+        url      : '/seek/',
+        data     : data, 
+        cache    : false,
+        dataType : 'json',
+        async    : true,
+        beforeSend : (function() {
+          display_wait_notification();
+        }),
+        complete : (function(jqueryXHR, textStatus) {
+          remove_wait_notification();
+        }),
+        success  : (function(data, httpstatus, jqueryXHR) {
+          if ( data && data.hoststats ) set_hoststats(data.hoststats);
+          if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
+          if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
+          jQuery(self).removeClass('uncached');
+          initialize_remote_links(); 
+          setTimeout((function(){ crawl_hitcount = 0; crawl(); }),500);
+        })
+      });
+      return true;
+    });
+    if ( crawl_hitcount == 0 ) {
+      setTimeout((function(){ pull(); }),500);
+    }
+  } catch (e) {
+    setTimeout((function(){ pull(); }),500);
+  }
+  return crawl_hitcount;
 }
 
 jQuery(document).ready(function(){
   jQuery('#subcontent').children().remove();
+  emit_document_entries(pregenerated_list);
+  initialize_remote_links(); 
   if ( !jQuery('#spider').prop('checked') ) {
-    emit_document_entries(pregenerated_list);
     return; 
   }
-  pull();
+  setTimeout((function(){ crawl(); }),500);
 });
 </script>
 
 EOH
 );
+    }/*}}}*/
     ///////////////////////////////////////////////////////////////////////////////////////////////////
-
 
   }
 

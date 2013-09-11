@@ -16,7 +16,6 @@ class LegiscopeBase extends SystemUtility {
 
   function __construct() {/*{{{*/
     parent::__construct();
-    gc_enable();
     $this->session_start_wrapper();
     $target_url                = $this->filter_post('url');
     $this->subject_host_hash   = UrlModel::get_url_hash($target_url,PHP_URL_HOST);
@@ -380,14 +379,14 @@ class LegiscopeBase extends SystemUtility {
 
   function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
-      $cache_force = $this->filter_post('cache');
+      //$cache_force = $this->filter_post('cache');
       $pagecontent = static::safe_json_encode($json_reply);
       header('Content-Type: application/json');
       header('Content-Length: ' . strlen($pagecontent));
       $this->flush_output_buffer();
-      if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-        file_put_contents($this->seek_cache_filename, $pagecontent);
-      }
+      // if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
+      //  file_put_contents($this->seek_cache_filename, $pagecontent);
+      //}
       echo $pagecontent;
       exit(0);
     }/*}}}*/
@@ -624,9 +623,7 @@ class LegiscopeBase extends SystemUtility {
       if ( nonempty_array_element($metalink_parameters,'get_before_post') ) {/*{{{*/
         if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Reverse click traversal: GET before doing a POST action {$target_url}" );
         $get_before_post = TRUE;
-				$skip_get = FALSE;
 				$skip_post = FALSE;
-				unset($metalink_parameters['skip_get']);
 				unset($metalink_parameters['_']);
       }/*}}}*/
       if ( nonempty_array_element($metalink_parameters,'skip_get') ) {/*{{{*/

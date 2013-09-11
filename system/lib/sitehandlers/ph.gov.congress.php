@@ -63,10 +63,34 @@ class CongressGovPh extends SeekAction {
     $hb_parser = NULL;
   }/*}}}*/
 
+  function congressional_housebill_history(& $parser, & $pagecontent, & $urlmodel) {
+
+    // House bill textual history parser
+    $debug_method = FALSE;
+
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) History text parser for " . $urlmodel->get_url() );
+
+    $history = new CongressionalDocumentHistoryParseUtility();
+    $housebill_id = $history->congressional_housebill_history($urlmodel);
+
+    $parser->json_reply['subcontent'] = "History " . $this->filter_session('referrer');
+
+    $hb_parser = new CongressHbListParseUtility();
+    $hb_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
+    //$hb_parser->seek_postparse_hb_history($parser, $pagecontent, $urlmodel);
+
+    $pagecontent = NULL;
+
+  }
+
   function seek_by_pathfragment_43c81bac990cafa5d9a1d772f89a4488(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // http://www.congress.gov.ph/legis/search/hist_show.php?congress=16&save=1&journal=&switch=0&bill_no=HB00485
-    $this->syslog( __FUNCTION__, __LINE__, "Invoked for " . $urlmodel->get_url() );
-    $this->seek_postparse_hb_history($parser,$pagecontent,$urlmodel);
+    // House bill textual history parser
+    $this->congressional_housebill_history($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
+  function seek_postparse_bypath_plus_queryvars_a122f17e725e662e98017660664a009b(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    $this->congressional_housebill_history($parser,$pagecontent,$urlmodel);
   }/*}}}*/
 
   function seek_by_pathfragment_e4b820a97cc20aae3d312cf6d3a3c2ff(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
@@ -75,7 +99,6 @@ class CongressGovPh extends SeekAction {
     $hb_parser = new CongressHbListParseUtility();
     $hb_parser->generate_descriptive_markup($parser, $pagecontent, $urlmodel);
     unset($hb_parser);
-
   }/*}}}*/
 
   /** **/
@@ -452,7 +475,7 @@ EOH;
     $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
     $document_parser = new CongressionalCommitteeInfoParseUtility();
     $document_parser->update_existing = $parser->update_existing;
-    $document_parser->committee_information_page(& $parser, & $pagecontent, & $urlmodel);
+    $document_parser->committee_information_page($parser, $pagecontent, $urlmodel);
     $document_parser = NULL;
     unset($document_parser);
 
@@ -500,26 +523,6 @@ EOH;
     }
 
     $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
-  }/*}}}*/
-
-  function seek_postparse_bypath_plus_queryvars_a122f17e725e662e98017660664a009b(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
-    // House bill textual history parser
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) History text parser for " . $urlmodel->get_url() );
-
-    $history = new CongressionalDocumentHistoryParseUtility();
-
-    $history->standard_parse($urlmodel);
-
-    $document = $history->get_containers('children[tagname*=body]',0);
-
-    $contents = nonempty_array_element(array_values($document),0);
-    $contents = nonempty_array_element($contents,'text');
-
-    $history->parse_document_history($urlmodel, $contents);
-
-    $parser->json_reply['subcontent'] = "History " . $this->filter_session('referrer');
-    $pagecontent = NULL;
-
   }/*}}}*/
 
   function seek_postparse_bypath_plus_queryvars_83c006854a63d767ee0808c0de0e97d7(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/

@@ -305,12 +305,17 @@ class CongressHbListParseUtility extends CongressCommonParseUtility {
   }/*}}}*/
 
   function seek_postparse_d_billstext(& $parser, & $pagecontent, & $urlmodel, & $document_model) {/*{{{*/
-
+    // system/lib/sitehandlers/utility.parse.common.congress.php
+    $this->debug_method = TRUE;
     $this->seek_postparse($parser, $pagecontent, $urlmodel, $document_model, 'billstext');
 
   }/*}}}*/
 
   function seek_postparse_hb_history(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $this->syslog(__FUNCTION__,__LINE__,"(critical) Metalink data: " . count($parser->metalink_data));
+    $this->recursive_dump($parser->metalink_data,"(critical)"); 
+    $this->syslog(__FUNCTION__,__LINE__,"(critical) Content: " . $urlmodel->get_pagecontent());
 
     // Parse and use content of History links
     $url = $urlmodel->get_url();
@@ -334,7 +339,7 @@ EOH;
         'sn' => $bill_number
       )))->
       recordfetch_setup();
-    $hb = NULL;
+    $hb = array();
     while ( $document->recordfetch($hb,TRUE) ) {
       $sn = $hb['sn'];
       $this->syslog(__FUNCTION__,__LINE__,"(marker) Item {$sn} url {$hb['url']} " );
@@ -353,13 +358,28 @@ EOH;
   function generate_descriptive_markup(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
 		// Generate descriptive markup for an already-stored RA/Act record.
-    $this->syslog( __FUNCTION__, __LINE__, "(marker) Invoked for " . $urlmodel->get_url() );
+    $this->syslog( __FUNCTION__, __LINE__, "(critical) Invoked for " . $urlmodel->get_url() );
 
-    $pagecontent = NULL;
+    $pagecontent = '&nbsp;';
 
     if ( !$urlmodel->in_database() ) $urlmodel->stow();
 
-		if (!(FALSE == ($conditions = $this->get_document_sn_match_from_urlpath($urlmodel)))) {
+    $bill_number  = $urlmodel->get_query_element('bill_no');
+    $congress_tag = $urlmodel->get_query_element('congress');
+
+    $conditions = $this->get_document_sn_match_from_urlpath($urlmodel, nonempty_array_element($parser->metalink_data,'congress_tag',NULL));
+
+		if (FALSE == $conditions) {
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) SQL filter condition not constructed. Trying alternate.");
+      $conditions = $this->fetch_document_sn_congress_session_conds($bill_number, $congress_tag, NULL);
+    }
+
+		if (FALSE == $conditions) {
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) Unable to construct SQL condition clauses.");
+    }
+    else {
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) SQL filter condition");
+      $this->recursive_dump($conditions,"(critical)");
 			$this->generate_pagecontent_using_ocr($pagecontent, $conditions, 'HouseBillDocumentModel');
 		}
 

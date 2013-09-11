@@ -33,6 +33,7 @@ class CongressionalCommitteeHouseBillJoin extends ModelJoin {
 		if ($this->debug_final_sql) $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - Destroying " . get_class($this));
   }
 
+
 	function & set_congress_tag($v) { $this->congress_tag_vc8 = $v; return $this; }
 	function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 
@@ -45,8 +46,11 @@ class CongressionalCommitteeHouseBillJoin extends ModelJoin {
   function & set_jointype($v) { $this->jointype_vc64 = $v; return $this; }
   function get_jointype($v = NULL) { if (!is_null($v)) $this->set_jointype($v); return $this->jointype_vc64; }
 
-  function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
-  function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
+	function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
+	function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
+
+	function & set_payload($v) { $this->payload_blob = $v; return $this; }
+	function get_payload($v = NULL) { if (!is_null($v)) $this->set_payload($v); return $this->payload_blob; }
 
   function remap_parsed_housebill_template_entries(& $a, $k) {
     $is_mapped = 0 < intval(array_element($a["meta"]["main-committee"],"mapped"));

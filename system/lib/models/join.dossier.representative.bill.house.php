@@ -20,16 +20,6 @@ class HouseBillRepresentativeDossierJoin extends ModelJoin {
 
   function __construct() {
     parent::__construct();
-    // $this->dump_accessor_defs_to_syslog();
-    // $this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
-  }
-
-  function __destruct() {
-    unset($this->relation_to_bill_vc32);
-    unset($this->create_time_utx);
-    unset($this->house_bill_HouseBillDocumentModel);
-    unset($this->representative_dossier_RepresentativeDossierModel);
-    if ($this->debug_final_sql) $this->syslog(__FUNCTION__,__LINE__, "(warning) - - - - - - - - - - Destroying " . get_class($this));
   }
 
   function & set_house_bill($v) { $this->house_bill_HouseBillDocumentModel = $v; return $this; }

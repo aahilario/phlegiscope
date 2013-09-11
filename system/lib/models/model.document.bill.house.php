@@ -8,7 +8,7 @@
  * Release license terms: GNU Public License V2
  */
 
-class HouseBillDocumentModel extends RepublicActDocumentModel {
+class HouseBillDocumentModel extends LegislativeCommonDocumentModel {
   
   var $sn_vc64uniq = NULL;
   var $congress_tag_vc8 = NULL;
@@ -20,6 +20,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
   var $url_history_vc4096 = NULL; // Whenever available
   var $url_engrossed_vc4096 = NULL;
   var $status_vc1024 = NULL;
+  var $content_blob = NULL; //  Current master document, unversioned.  Versioned documents should probably be attached as ContentDocumentModel records.
 
   // The content of linked documents, e.g. those referred to within House Bill source pages,
   // should probably be stored as Join edges, to facilitate revision marking.
@@ -41,33 +42,18 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
   var $housebill_HouseBillDocumentModel = NULL;              // Reference to other house bills, indicating the relationship (e.g. substitution).
   var $republic_act_RepublicActDocumentModel = NULL;         // Republic Act toward which this House Bill contributed essential language and intent.
   var $representative_RepresentativeDossierModel = NULL;     // Several types of association between a house bill and representatives (authorship, etc.).
-  var $content_UrlModel = NULL;                              // Content BLOB edges.
   var $committee_CongressionalCommitteeDocumentModel = NULL; // Reference to Congressional Committees, bearing the status of a House Bill, or the principal committee.
+  var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
 
   function __construct() {/*{{{*/
     parent::__construct();
   }/*}}}*/
 
-  function __destruct() {/*{{{*/
-    unset($this->sn_vc64uniq);
-    unset($this->description_vc4096);
-    unset($this->create_time_utx);
-    unset($this->last_fetch_utx);
-    unset($this->searchable_bool);
-    unset($this->congress_tag_vc8);
-    unset($this->url_vc4096);
-    unset($this->url_history_vc4096);
-    unset($this->url_engrossed_vc4096);
-    unset($this->status_vc1024);
-    //unset($this->date_read_utx);
-    //unset($this->house_approval_date_utx);
-    //unset($this->significance_vc16);
-    unset($this->housebill_HouseBillDocumentModel);
-    unset($this->republic_act_RepublicActDocumentModel);
-    unset($this->representative_RepresentativeDossierModel);
-    unset($this->content_UrlModel);
-    unset($this->committee_CongressionalCommitteeDocumentModel);
-  }/*}}}*/
+  function & set_content($v) { $this->content_blob = $v; return $this; }
+  function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
+
+  function & set_ocrcontent($v) { $this->ocrcontent_ContentDocumentModel = $v; return $this; }
+  function get_ocrcontent($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->ocrcontent_ContentDocumentModel; }
 
   function & set_status($meta) {/*{{{*/
     $this->status_vc1024 = is_array($meta)
@@ -100,8 +86,14 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
   function & set_sn($v) { $this->sn_vc64uniq = $v; return $this; }
   function get_sn($v = NULL) { if (!is_null($v)) $this->set_sn($v); return $this->sn_vc64uniq; }
 
+  function & set_create_time($v) { $this->create_time_utx = $v; return $this; }
+  function get_create_time($v = NULL) { if (!is_null($v)) $this->set_create_time($v); return $this->create_time_utx; }
+
   function & set_last_fetch($v) { $this->last_fetch_utx = $v; return $this; }
   function get_last_fetch($v = NULL) { if (!is_null($v)) $this->set_last_fetch($v); return $this->last_fetch_utx; }
+
+  function & set_searchable($v) { $this->searchable_bool = $v; return $this; }
+  function get_searchable($v = NULL) { if (!is_null($v)) $this->set_searchable($v); return $this->searchable_bool; }
 
   function & set_description($v) { $this->description_vc4096 = $v; return $this; }
   function get_description($v = NULL) { if (!is_null($v)) $this->set_description($v); return $this->description_vc4096; }
@@ -110,7 +102,7 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
   function get_congress_tag($v = NULL) { if (!is_null($v)) $this->set_congress_tag($v); return $this->congress_tag_vc8; }
 
   function & set_url($v) { $this->url_vc4096 = $v; return $this; }
-  function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }  
+  function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return rtrim($this->url_vc4096,'/'); }  
 
   function & set_url_history($v) { $this->url_history_vc4096 = $v; return $this; }
   function get_url_history($v = NULL) { if (!is_null($v)) $this->set_url_history($v); return $this->url_history_vc4096; }
@@ -152,10 +144,10 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     // Find House Bill record matching SNs of the substitutes, keep 
     // their record IDs in $suffixes[$suffix]['id']
     $regex    = join('|', array_keys($suffixes));
-    $regex    = "^([A-Z]*)([0]*)({$regex})";
+    $regex    = "^([A-Z]*)([0]{1,})({$regex})$";
     $this->where(array('AND' => array('sn' => "REGEXP '{$regex}'")))->recordfetch_setup();
     $document = array();
-    $regex    = "^([A-Z]*)([0]*)([0-9]*)";
+    $regex    = "^([A-Z]*)([0]{1,})([0-9]*)$";
     while ( $this->recordfetch($document) ) {
       $matches = array();
       $sn      = array_element($document,'sn');
@@ -415,7 +407,12 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
     ), $this);
 
     // Update the lookup table
-    $this->get_foreign_obj_instance('committee')->update_committee_name_regex_lookup($bill_cache,$this->committee_regex_lookup);
+    $this->
+      get_foreign_obj_instance('committee')->
+      update_committee_name_regex_lookup(
+        $bill_cache,
+        $this->committee_regex_lookup
+      );
 
     // Update status (create Joins with appropriate attributes)
     $this->resolve_housebill_status_referents($bill_cache);
@@ -425,8 +422,6 @@ class HouseBillDocumentModel extends RepublicActDocumentModel {
    
     if ( $debug_method ) $this->recursive_dump($bill_cache,"(marker) -- Return to caller --");
     $bill_cache_source = $bill_cache;
-
-    gc_collect_cycles();
 
     $bill_sns = array_keys($bill_cache);
 

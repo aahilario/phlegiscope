@@ -672,6 +672,11 @@ EOH;
         $joinobj = new $joinobj();
         $joinobj_attrdefs = $joinobj->get_attrdefs();
 
+        // BLOB attributes to exclude from SQL filter condition
+        $exclude_joinattrs = $joinobj_attrdefs;
+        $this->filter_nested_array($exclude_joinattrs,'name[type=blob]');
+        $exclude_joinattrs = array_flip(array_keys($exclude_joinattrs));
+
         $self_attrname = $joinobj_attrdefs;
         $this->filter_nested_array($self_attrname,'name[type='.get_class($this).']',0);
         $self_attrname = $self_attrname[0];
@@ -689,6 +694,8 @@ EOH;
           $this->recursive_dump($joinobj_attrdefs, "(marker) - -- ---");
           $this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for self: " . $self_attrname);
           $this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for {$modelname}: " . $foreign_attrname);
+          $this->syslog( __FUNCTION__, __LINE__, "(marker) Full attribute defs:");
+          $this->recursive_dump($this->get_attrdefs(),"(marker) - * * get_attrdefs() * * -");
         }/*}}}*/
 
         // TODO: Handle larger arrays of more than a handful of foreign Joins 
@@ -705,13 +712,17 @@ EOH;
               $self_attrname    => $self_id,
               $foreign_attrname => $foreignkey
             );
-          if ( $debug_method ) $this->recursive_dump($data,"(marker) --- - F ---");
+          $data_no_blobs = array_diff_key($data, $exclude_joinattrs);
+          if ( $debug_method ) {
+            $this->recursive_dump($exclude_joinattrs,"(marker) --- - E ---");
+            $this->recursive_dump($data_no_blobs,"(marker) --- - F ---");
+          }
           if ( $full_match ) 
-            $joinobj->fetch($data,'AND');
+            $joinobj->fetch($data_no_blobs,'AND');
           else
             $joinobj->fetch(array(
-              $self_attrname    => $data[$self_attrname],
-              $foreign_attrname => $data[$foreign_attrname],
+              $self_attrname    => $data_no_blobs[$self_attrname],
+              $foreign_attrname => $data_no_blobs[$foreign_attrname],
             ),'AND');
           $join_present = $joinobj->in_database();
           if ( !$join_present || $allow_update ) {
@@ -757,6 +768,7 @@ EOH;
     $this->initialize_db_handle();
     self::$dbhandle->set_alias_map($this->alias_map);
     self::$dbhandle->query($sql, $bindparams);
+    $this->last_inserted_id = self::$dbhandle->last_insert_id();
     // Clear JOIN parameters, cached JOIN assignment values, etc.
     if ( $this->suppress_reinitialize ) {
       $this->suppress_reinitialize = FALSE;
@@ -1325,8 +1337,8 @@ EOS;
         array_filter(array_map($bindable_attrs, $attrlist))
       );
       $attrnames[] = $primary_table_alias.'`id`'; // Mandatory to include this
-      $attrnames       = join(',',$attrnames);
-      $attrlist        = array_combine($key_map, $attrlist); // Pivot keys, make [name] attribute be the array lookup key
+      $attrnames   = join(',',$attrnames);
+      $attrlist    = array_combine($key_map, $attrlist); // Pivot keys, make [name] attribute be the array lookup key
 
       if ( !is_null($primary_table_alias) ) {
         $attrlist = array_combine(
@@ -1341,6 +1353,7 @@ EOS;
           $this->recursive_dump(array_keys($attrlist),"(marker) - - - - Pre-generate, alias present");
         }
       }
+
       $attrlist        = array_merge( $join_attrlists, $attrlist );
       $conditionstring = $this->construct_sql_from_conditiontree($attrlist);
       if ( FALSE == $conditionstring ) return FALSE;
@@ -1741,10 +1754,9 @@ EOS;
     $valueset   = NULL;
     $boundattrs = NULL;
     if ( !empty(self::$dbhandle->error) ) {
-      $this->syslog( __FUNCTION__, __LINE__, "ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");
+      $this->syslog( __FUNCTION__, __LINE__, "(critical) ERROR: " . self::$dbhandle->error ); // throw new Exception("Failed to execute SQL: {$sql}");
     } else {
-      $this->last_inserted_id = self::$dbhandle->insert_id;
-      $this->syslog(__FUNCTION__, __LINE__, "Inserted record #{$this->last_inserted_id}: {$sql}" );
+      if ( $this->debug_final_sql ) $this->syslog(__FUNCTION__, __LINE__, "(marker) Inserted record #{$this->last_inserted_id}: {$sql}" );
     }
     return $this->last_inserted_id;
   }/*}}}*/

@@ -14,16 +14,61 @@ class LegislativeCommonDocumentModel extends UrlModel {
     parent::__construct();
   }
 
+  // Catalog list partitioning
+
+  function prepare_markup_source(& $bill_cache, $in_iterator = FALSE, $entry_key = NULL) {/*{{{*/
+    if ( !$in_iterator ) {
+      // Method invoked after caching content, to add entries in $bill_cache
+      // that are used (by e.g. CongressCommonParseUtility::emit_document_entries_js)
+      // to generate additional DHTML behavior.
+
+      array_walk($bill_cache,create_function(
+        '& $a, $k, $s','$a = $s->prepare_markup_source($a, TRUE, $k);'
+      ),$this);
+
+      return TRUE;
+    }
+
+    $links     = nonempty_array_element($bill_cache,'links');
+    $linktext  = NULL; // Irrelevant, since we only need the $hash and $metadata result
+    $classname = join(' ',array('legiscope-remote','fauxpost'));
+    foreach ( $links as $attrname => $href ) {
+      $href = rtrim($href,'/');
+      $control_set = array('_LEGISCOPE_' => array(
+        // This results in a link that triggers a 
+        // server-side GET requesting the resource identified
+        // by it's URL, with no subsequent POST; the
+        // Congress number and document SN is also sent 
+        // when the link is triggered.
+        'get_before_post' => TRUE,
+        'skip_get'        => TRUE,
+        'congress_tag'    => $bill_cache['congress_tag'],
+        'sn'              => $bill_cache['sn'],
+      )); 
+      $parts = UrlModel::create_metalink($linktext, $href, $control_set, $classname, TRUE);
+      extract($parts); // $metalink, $hash, $metadata
+      $bill_cache['metalink'][$attrname] = array(
+        'hash' => $hash,
+        'metadata' => $metadata,
+        'classname' => $classname,
+      );
+      // Trim trailing slash
+      $bill_cache['links'][$attrname] = $href;
+    }
+    return $bill_cache;
+  }/*}}}*/
+
+
   // OCR-related, document formatting methods
 
   function test_document_ocr_result($url_accessor = NULL) {/*{{{*/
 
-    // Reload this SenateBillDocument and test for presence of OCR version of doc_url PDF.
+    // Reload this Document and test for presence of OCR version of doc_url PDF.
     // Return TRUE if the document is associated with at least one converted record (stored as a set of ContentDocuments)
     //        NULL
     //        FALSE 
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
 		if ( !$this->in_database() ) {
 			$this->syslog(__FUNCTION__,__LINE__,"(critical) Model not loaded. Cannot proceed.");
@@ -51,7 +96,7 @@ class LegislativeCommonDocumentModel extends UrlModel {
 
     $matched = 0;
     $remove_entries = array();
-    while ( $this->recordfetch($r,TRUE) ) {
+    while ( $this->recordfetch($r,TRUE) ) {/*{{{*/
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- Record #{$r['id']} {$r['sn']}.{$r['congress_tag']}");
       $ocrcontent = $this->get_ocrcontent();
       if ( $debug_method ) $this->recursive_dump($ocrcontent,"(marker) ->");
@@ -77,8 +122,8 @@ class LegislativeCommonDocumentModel extends UrlModel {
         $this->recursive_dump($remove_entry,"(marker)");
         if ( 0 < count($remove_entry) ) $remove_entries[] = $remove_entry;
       }
-    }
-    while ( 0 < count($remove_entries) ) {
+    }/*}}}*/
+    while ( 0 < count($remove_entries) ) {/*{{{*/
       $remove_entry = array_shift($remove_entries);
       if ( !is_null(nonempty_array_element($remove_entry,'join')))
       $this->get_join_instance('ocrcontent')->
@@ -88,7 +133,7 @@ class LegislativeCommonDocumentModel extends UrlModel {
       $this->get_foreign_obj_instance('ocrcontent')->
         retrieve($remove_entry['data'],'id')->
         remove();
-    }
+    }/*}}}*/
     if ( 0 == $matched ) {/*{{{*/
       // No record matched
       $ocr_result_file = LegiscopeBase::get_ocr_queue_stem($faux_url) . '.txt';
@@ -302,7 +347,7 @@ class LegislativeCommonDocumentModel extends UrlModel {
       $ocrcontent = nonempty_array_element($ocrcontent,'data');
       $ocr_record_id = nonempty_array_element($ocrcontent,'id');
       if ( is_null($ocr_record_id) || !(0 < intval($ocr_record_id)) ) {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) No OCR result available.");
+        $this->syslog(__FUNCTION__,__LINE__,"(marker) No OCR result stored.");
         $this->set_ocrcontent('No OCR available');
         return FALSE;
       }

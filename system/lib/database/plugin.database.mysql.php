@@ -14,6 +14,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
   private $ls_last_operation_affected_rows = NULL;
 	private $ls_last_operation_sql = NULL;
 	private $ls_last_operation_errdesc = NULL;
+	private $ls_last_insert_id = NULL;
   private $ls_result = NULL;
 	protected $alias_map = NULL;
 	var $debug_model = FALSE;
@@ -62,6 +63,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     $this->ls_last_operation_affected_rows = NULL;
 		$this->ls_last_operation_errdesc = NULL;
     $this->ls_result = NULL;
+		$this->ls_last_insert_id = NULL;
 
 		if ( empty($sql) ) {
 			syslog(LOG_INFO, get_class($this) . '::' . __FUNCTION__ . ": -- - -- - ERROR: Empty SQL statement, unable to proceed.");
@@ -71,6 +73,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
 
     if ( is_null($bindparams) ) {
       $resultset = parent::query( $sql, MYSQLI_STORE_RESULT ); // We wish to iterate over the resultset some time after this call is made, without incurring memory overhead of prestoring all retrieved data.
+			$this->ls_last_insert_id = $this->insert_id;
     } else {
       $prepare_hdl = parent::prepare( $sql );
       $paramindex = 0;
@@ -118,6 +121,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
           $paramindex++;
         }
         $resultset = $prepare_hdl->execute();
+				$this->ls_last_insert_id = $prepare_hdl->insert_id;
       }
     }
 		$this->ls_last_operation_sql = $sql;
@@ -159,6 +163,10 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
   public function commit() {
     throw new Exception(__METHOD__.":Unimplemented");
   }
+
+	public function last_insert_id() {
+		return $this->ls_last_insert_id;
+	}
 
   public function last_query_rows() {
     $result = is_null($this->ls_result) 

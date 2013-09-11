@@ -881,7 +881,30 @@ EOH;
 		return $legislative_document->substitute($this->legislative_doc_user_template());
   }/*}}}*/
 
-	function get_document_sn_match_from_urlpath(UrlModel & $urlmodel) {/*{{{*/
+  function fetch_document_sn_congress_session_conds($sn,$congress_tag,$session_tag) {/*{{{*/
+    $match = array();
+      
+    if ( 1 == preg_match('@([A-Z]{1,})[-0]*([0-9]{1,})@i',$sn,$match) ) {
+
+      array_shift($match);
+      $match    = array_values($match);
+      $match[1] = ltrim($match[1],'0');
+      $ra_regex = join('([-0]*)',$match);
+      $this->syslog( __FUNCTION__, __LINE__, "(marker) Seek document {$sn} {$ra_regex}" );
+      $conditions = array_filter(array(
+        '`a`.`sn`' => "REGEXP '^({$ra_regex})$'",
+        '`a`.`congress_tag`' => $congress_tag,
+        '`a`.`session_tag`' => $session_tag,
+      ));
+      $conditions = array('AND' => $conditions);
+
+			return $conditions;
+
+    }
+		return FALSE;
+  }/*}}}*/
+
+	function get_document_sn_match_from_urlpath(UrlModel & $urlmodel, $congress_tag = NULL, $session_tag = NULL) {/*{{{*/
 		// Obtain SN filter condition from the last component of a [PDF] URL.
     $urlpath = urldecode($urlmodel->get_url());
     $urlpath = explode('/',UrlModel::parse_url($urlpath,PHP_URL_PATH));
@@ -890,21 +913,10 @@ EOH;
 			: strtoupper(preg_replace('@[^RA0-9]@i','',array_pop($urlpath)))
 			; 
 
-    $match = array();
+    $this->syslog(__FUNCTION__,__LINE__,"(critical) Testing SN '{$sn}' <- " . join('/',$urlpath));
 
-    if ( 1 == preg_match('@([A-Z]{1,})[-]?([0-9]{1,})@i',$sn,$match) ) {
+    return $this->fetch_document_sn_congress_session_conds($sn,$congress_tag,$session_tag);
 
-      array_shift($match);
-      $match    = array_values($match);
-      $match[1] = ltrim($match[1],'0');
-      $ra_regex = join('(.*)',$match);
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) Seek document {$sn} {$ra_regex}" );
-			$conditions = array('AND' => array('`a`.sn' => "REGEXP '({$ra_regex})'"));
-
-			return $conditions;
-
-    }
-		return FALSE;
 	}/*}}}*/
 
 
@@ -912,7 +924,7 @@ EOH;
 		// Expect to retrieve exactly ONE document record (as the [sn] attribute should be unique)
 		// with possibly zero or several joined records depending on the type
 		// of document. 
-		$debug_method = FALSE;
+		$debug_method = TRUE;
 		$legislative_document = new $legislative_document_type();
 		$legislative_document->
 			join_all()->
@@ -921,11 +933,18 @@ EOH;
 
 		$record = array();
 		$ocr_queue_list = array();
-		while ( $legislative_document->recordfetch($record,TRUE) ) {
+    $document_id = NULL;
+		while ( $legislative_document->recordfetch($record,TRUE) ) {/*{{{*/
 			$ra = $record['sn'];
-			if ( is_null($pagecontent) ) {
-				$this->syslog( __FUNCTION__, __LINE__, "(marker) {$legislative_document_type} {$ra} #{$record['id']}" );
+      $congress_tag = nonempty_array_element($record,'congress_tag');
+      // Hack to strip trailing slashes (REMOVE THIS; DEBUG FRAGMENT ONLY)
+      $record['url'] = rtrim($record['url'],'/');
+      $urlhash = UrlModel::get_url_hash($record['url']);
+      if ( is_null($document_id) ) $document_id = $record['id'];
+      if ( is_null($pagecontent) ) {
+				$this->syslog( __FUNCTION__, __LINE__, "(marker) {$legislative_document_type} {$ra} #{$record['id']}.{$congress_tag}" );
 				if ( $debug_method ) $this->recursive_dump($record,"(marker)");
+        $legislative_document->set_url($record['url']);
 				$pagecontent = $this->generate_admin_content($legislative_document);
 			}
 			if ( is_array($record['content']) ) {
@@ -936,9 +955,12 @@ EOH;
 				$this->syslog( __FUNCTION__, __LINE__, "(marker) Enqueue.");
 				$ocr_queue_list[UrlModel::get_url_hash($record['url'])] = $record['id'];
 			}
-		}
+		}/*}}}*/
+
 		$ocr_dequeue_method = 'test_document_ocr_result';
 		if ( method_exists($legislative_document,$ocr_dequeue_method) ) {/*{{{*/
+      // Unspool queue, and pass each of the elements
+      if ( !is_null($document_id) && is_null($legislative_document->get_id())) $legislative_document->set_id($document_id);
 			if ( $debug_method ) {
 				$this->syslog( __FUNCTION__, __LINE__, "(marker) OCR queue check. Elements: " . count($ocr_queue_list));
 				$this->recursive_dump($ocr_queue_list,"(marker)");
@@ -954,7 +976,7 @@ EOH;
 			$this->syslog( __FUNCTION__, __LINE__, "(critical) No method {$ocr_dequeue_method}.");
 		}
 
-	}	/*}}}*/
+	}/*}}}*/
 
 	// POST wall traversal (converting POST actions to proxied GET)
 	function overridden_test_form_traversal_network_fetch(UrlModel & $form_action) {/*{{{*/

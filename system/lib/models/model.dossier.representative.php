@@ -133,7 +133,7 @@ class RepresentativeDossierModel extends DatabaseUtility {
    }/*}}}*/
 
   function fetch_by_fullname($fullname) {/*{{{*/
-    $debug_method = TRUE;
+    $debug_method = FALSE;
     $parsed_name = $this->parse_name($fullname);
     if ( !is_array($parsed_name) ||
       !array_key_exists('given', $parsed_name) ||
@@ -147,15 +147,17 @@ class RepresentativeDossierModel extends DatabaseUtility {
       array_element($parsed_name, 'surname'),
       $given
     ));
-    if ( !(2 == count($name_regex)) ) return NULL;
+		if ( !(2 == count($name_regex)) ) {
+			return NULL;
+		}
     $name_regex = join('(.*)', $name_regex);
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) - {$name_regex}");
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - {$name_regex}");
     $representative_record = $this->
       fetch(array(
         'fullname' => "REGEXP '({$name_regex})'"
       ),'AND');
     if ( !is_array($representative_record) ) {
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) - No match");
+			$this->syslog(__FUNCTION__,__LINE__,"(marker) - No match");
       return NULL;
     }
     if ( $debug_method ) {/*{{{*/

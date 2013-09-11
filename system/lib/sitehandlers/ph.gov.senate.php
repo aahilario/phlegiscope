@@ -1308,7 +1308,6 @@ EOH;
       $parser->from_network = TRUE;
     }
 
-
     $this->session_linked_content_parser(__FUNCTION__, 'HBN', $parser, $pagecontent, $urlmodel );
 
   }/*}}}*/
@@ -1395,7 +1394,7 @@ EOH;
 
     if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) ----- ---- --- -- - - - {$document_parser}, {$documents}" );
 
-    return $this->non_session_linked_content_parser_worker($documents, $document_parser, $senatedoc, $prefix, & $parser, & $pagecontent, & $urlmodel );
+    return $this->non_session_linked_content_parser_worker($documents, $document_parser, $senatedoc, $prefix, $parser, $pagecontent, $urlmodel );
 
   }/*}}}*/
 

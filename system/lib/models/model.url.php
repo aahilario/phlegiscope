@@ -658,7 +658,7 @@ class UrlModel extends DatabaseUtility {
 <span id="content-{$controlset_hash}" style="display:none">{$controlset_json_base64}</span>
 EOH;
     return $with_hash
-      ? array( 'metalink' => $generated_link, 'hash' => $controlset_hash )
+      ? array( 'metalink' => $generated_link, 'hash' => $controlset_hash, 'metadata' => $controlset_json_base64 )
       : $generated_link
       ;
   }/*}}}*/
@@ -1085,7 +1085,7 @@ EOH;
 		// then this method should load the ContentDocumentModel linked to this 
 		// UrlModel, where Join[ContentDocumentModel].content_hash = $this.urlhash
 		// and Join[ContentDocumentModel].content_type = $content_type
-    $debug_method          = TRUE;
+    $debug_method          = FALSE;
     $congress_tag          = NULL;
     $fake_url_str          = NULL;
     $have_parsed_data      = NULL;

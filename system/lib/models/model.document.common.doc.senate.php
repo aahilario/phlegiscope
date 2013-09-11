@@ -675,7 +675,7 @@ EOH;
 
     $debug_method = FALSE;
 
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name raw   {$committee_name}");
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name raw   {$committee_name}");
 
     $search_name = LegislationCommonParseUtility::committee_name_regex($committee_name);
 
@@ -684,7 +684,7 @@ EOH;
       return FALSE;
     }
 
-    $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name regex {$search_name}");
+    if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - Committee name regex {$search_name}");
 
     return $this->fetch_by_name_regex($search_name, $cursor);
 

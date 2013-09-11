@@ -41,11 +41,16 @@ class SenateHousebillDocumentModel extends SenateDocCommonDocumentModel {
   // including reading state (which cannot be associated with just
   // Senate Journals).
 
+  var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
+
   function __construct() {
     parent::__construct();
     //$this->dump_accessor_defs_to_syslog();
     //$this->recursive_dump($this->get_attrdefs(),'(marker) "+++++++"');
   }
+
+  function & set_ocrcontent($v) { $this->ocrcontent_ContentDocumentModel = $v; return $this; }
+  function get_ocrcontent($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->ocrcontent_ContentDocumentModel; }
 
   function & set_invalidated($v) { $this->invalidated_bool = $v; return $this; }
   function get_invalidated($v = NULL) { if (!is_null($v)) $this->set_invalidated($v); return $this->invalidated_bool; }

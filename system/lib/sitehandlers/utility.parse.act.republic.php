@@ -353,6 +353,8 @@ EOH;
     if ( !$urlmodel->in_database() ) $urlmodel->stow();
 
 		if (!(FALSE == ($conditions = $this->get_document_sn_match_from_urlpath($urlmodel)))) {
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) SQL filter condition");
+      $this->recursive_dump($conditions,"(critical)");
 			$this->generate_pagecontent_using_ocr($pagecontent, $conditions, 'RepublicActDocumentModel');
 		}
 

@@ -43,7 +43,7 @@ class SeekAction extends LegiscopeBase {
 
     if ( !is_null($metalink) ) {
       $metalink = @json_decode(base64_decode($metalink),TRUE);
-      $this->recursive_dump($metalink,'(critical) -- - - - metalink ');
+      if ( DatabaseUtility::$force_log ) $this->recursive_dump($metalink,'(critical) -- - - - metalink ');
     }
 
     if ( $debug_method ) {
@@ -315,13 +315,6 @@ class SeekAction extends LegiscopeBase {
             $this->syslog( __FUNCTION__, __LINE__, "No custom handler for path " . $url->get_url());
           }
 
-          $handler_list = NULL;
-          unset($handler_list);
-
-          $parser = NULL;
-          unset($parser);
-
-          gc_collect_cycles();
           if ( $debug_method ) {
             $this->syslog(__FUNCTION__,__LINE__,"(warning)  Deallocated parser; Memory usage " . memory_get_usage(TRUE) );
           }
@@ -431,8 +424,8 @@ EOH
     if ( 0 < strlen($output_buffer) ) {/*{{{*/
       // Dump content inadvertently generated during this operation.
       $output_buffer = explode("\n", $output_buffer);
-      $this->syslog(__FUNCTION__,__LINE__,'WARNING:  System-generated warning messages trapped');
-      $this->recursive_dump($output_buffer,__LINE__);
+      $this->syslog(__FUNCTION__,__LINE__,'(critical)  System-generated warning messages trapped');
+      $this->recursive_dump($output_buffer,'(critical)');
     }/*}}}*/
 
     $this->exit_cache_json_reply($json_reply,get_class($this));

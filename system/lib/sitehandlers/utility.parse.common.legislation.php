@@ -990,12 +990,14 @@ EOH;
 
 	function test_form_traversal_network_fetch(UrlModel & $form_action) {/*{{{*/
 
+    // Return TRUE to force retrieval of data.
 		$debug_method = $this->debug_method;
 		// Determine whether or not to force a POST action to retrieve form data. 
 		// Modify the UrlModel $form_action so that an existing POST response
 		// is loaded into urlcontent; otherwise, return TRUE to cause
 		// a POST action to be executed. 
     if ( !$form_action->in_database() ) return TRUE; 
+
 		$url_id = $form_action->get_id();
 		$form_action->
 			join(array('urlcontent'))->
@@ -1038,11 +1040,9 @@ EOH;
     return TRUE;
 	}/*}}}*/
 
-
 	function site_form_traversal_controls(UrlModel & $action_url, $form_controls ) {
 		$this->syslog(__FUNCTION__, __LINE__, "(critical) Unimplemented method called while processing " . $form_action->get_url() );
 		return array();
 	}
-
 
 }

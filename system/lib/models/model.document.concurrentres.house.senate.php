@@ -1,14 +1,14 @@
 <?php
 
 /*
- * Class SenateResolutionDocumentModel
+ * Class SenateConcurrentresDocumentModel
  * Legiscope - web site reflection framework
  *
  * Antonio A Hilario
  * Release license terms: GNU Public License V2
  */
 
-class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
+class SenateHouseConcurrentresDocumentModel extends SenateDocCommonDocumentModel {
   
   var $title_vc256 = NULL;
   var $sn_vc64 = NULL;
@@ -18,6 +18,7 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   var $congress_tag_vc8 = NULL;
   var $session_tag_vc8 = NULL;
   var $url_vc4096 = NULL;
+  var $urlid_int11 = NULL;
   var $doc_url_vc256 = NULL;
 	var $status_vc1024 = NULL;
 	var $subjects_vc1024 = NULL;
@@ -26,14 +27,12 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
   var $invalidated_bool = NULL;
   var $searchable_bool = NULL;
   var $legislative_history_blob = NULL;
-	var $filing_date_dtm = NULL;
 	var $significance_vc16 = NULL;
 
 	var $main_referral_comm_vc64 = NULL;
 	var $secondary_committee_vc64 = NULL;
 
 	var $journal_SenateJournalDocumentModel = NULL;
-  var $committee_SenateCommitteeModel = NULL;
   var $senator_SenatorDossierModel = NULL;
   var $ocrcontent_ContentDocumentModel = NULL; // Used here to contain OCR versions  
 
@@ -79,6 +78,9 @@ class SenateResolutionDocumentModel extends SenateDocCommonDocumentModel {
 
 	function & set_url($v) { $this->url_vc4096 = $v; return $this; }
 	function get_url($v = NULL) { if (!is_null($v)) $this->set_url($v); return $this->url_vc4096; }
+
+  function & set_urlid($v) { $this->urlid_int11 = $v; return $this; }
+  function get_urlid($v = NULL) { if (!is_null($v)) $this->set_urlid($v); return $this->urlid_int11; }
 
   function & set_doc_url($v) { $this->doc_url_vc256 = $v; return $this; }
   function get_doc_url($v = NULL) { if (!is_null($v)) $this->set_doc_url($v); return $this->doc_url_vc256; }

@@ -68,7 +68,7 @@ class LegislativeCommonDocumentModel extends UrlModel {
     //        NULL
     //        FALSE 
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
 		if ( !$this->in_database() ) {
 			$this->syslog(__FUNCTION__,__LINE__,"(critical) Model not loaded. Cannot proceed.");

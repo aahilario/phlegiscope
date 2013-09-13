@@ -357,8 +357,10 @@ EOH;
 
   function generate_descriptive_markup(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
+    $debug_method = FALSE;
+
 		// Generate descriptive markup for an already-stored RA/Act record.
-    $this->syslog( __FUNCTION__, __LINE__, "(critical) Invoked for " . $urlmodel->get_url() );
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(critical) Invoked for " . $urlmodel->get_url() );
 
     $pagecontent = '&nbsp;';
 
@@ -378,8 +380,10 @@ EOH;
       $this->syslog(__FUNCTION__,__LINE__,"(critical) Unable to construct SQL condition clauses.");
     }
     else {
-      $this->syslog(__FUNCTION__,__LINE__,"(critical) SQL filter condition");
-      $this->recursive_dump($conditions,"(critical)");
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,"(critical) SQL filter condition");
+        $this->recursive_dump($conditions,"(critical)");
+      }
 			$this->generate_pagecontent_using_ocr($pagecontent, $conditions, 'HouseBillDocumentModel');
 		}
 

@@ -29,7 +29,6 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   var $legislative_history_blob = NULL;
   var $significance_vc16 = NULL;
 
-
   var $main_referral_comm_vc64 = NULL;
   var $secondary_committee_vc128 = NULL;
 
@@ -45,6 +44,12 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
   function __construct() {
     parent::__construct();
   }
+
+  function & set_committee($v) { $this->committee_SenateCommitteeModel = $v; return $this; }
+  function get_committee($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->committee_SenateCommitteeModel; }
+
+  function & set_senator($v) { $this->senator_SenatorDossierModel = $v; return $this; }
+  function get_senator($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->senator_SenatorDossierModel; }
 
   function & set_ocrcontent($v) { $this->ocrcontent_ContentDocumentModel = $v; return $this; }
   function get_ocrcontent($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->ocrcontent_ContentDocumentModel; }
@@ -122,7 +127,7 @@ class SenateBillDocumentModel extends SenateDocCommonDocumentModel {
 
     $subjects = $this->get_subjects();
     if ( !(FALSE == ($subjects = @json_decode($subjects,TRUE))) ) {
-      $this->recursive_dump($subjects,"(critical) + + + =");
+      if ( $debug_method ) $this->recursive_dump($subjects,"(critical) + + + =");
       $subjects = join('[BR]', $subjects);
       $this->set_subjects($subjects);
     }
@@ -156,7 +161,7 @@ EOH;
     // DatabaseUtility::set_contents_from_array()
     // Returns the database record ID of this *Document
 
-    $debug_method = FALSE; 
+    $debug_method = TRUE; 
 
     // Generate joins between this record and
     // - Committees (sponsorship, primary responsibility)

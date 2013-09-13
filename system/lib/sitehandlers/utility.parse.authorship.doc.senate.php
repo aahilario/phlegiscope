@@ -35,6 +35,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     // Clean up containers
     $containers = $this->get_containers();
     $this->reorder_with_sequence_tags($containers);
+    //$this->recursive_dump($containers,'(critical) -- - - - LIS_TABLE');
     array_walk($containers,create_function('& $a, $k, $s', '$s->reorder_with_sequence_tags($a);'),$this);
     array_walk($containers,create_function('& $a, $k', 'if (is_array(array_element($a,"children"))) unset($a["children"][$k]);'));
     $this->assign_containers($containers);
@@ -76,6 +77,11 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
     $downloadable = array_element($downloadable,0,array());
 
     // Legislative history table cells (legislative history, if present and nonempty)
+    if (0) {
+    $chainable = $containers;
+    $this->filter_nested_array($chainable,'children[tagname=table][id=lis_table]');
+    }
+
     $chainable = $containers;
     $this->filter_nested_array($chainable,'children[tagname=table][id=lis_table]',0);
 		$chainable = nonempty_array_element($chainable,0);
@@ -84,16 +90,22 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 
 		// Reduce history rows, omitting parser attribs, unwanted lines 
     $senate_bill_recordparts['legislative_history'] = array(); 
-		while ( 0 < count($chainable) ) {
+
+		while ( 0 < count($chainable) ) {/*{{{*/
 			$entry = nonempty_array_element(array_shift($chainable),'children');
       if ( is_array($entry) )
 			foreach ( $entry as $seq => $row ) {
 				$text = trim(nonempty_array_element($row,'text'));
 				if ( 1 == preg_match('@^\[.*\]$@i', $text) ) continue;
 				if ( 1 == preg_match('@^\(prepared.*by.*indexing.*bills.*\)$@i', $text) ) continue;
-				$senate_bill_recordparts['legislative_history'][] = $row; 
+				$senate_bill_recordparts['legislative_history'][$seq] = $row; 
 			}
-		}
+		}/*}}}*/
+
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__,__LINE__,'(critical) -- - - - Legislative History, Parsed');
+      $this->recursive_dump($senate_bill_recordparts['legislative_history'],'(critical) -- - - -');
+    }
 
     // Table rows containing extended information about Senate Bill
     $extended = $containers;
@@ -112,7 +124,10 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
         '& $a, $k', 'if ( array_element($a,"tagname") == "blockquote" ) $a = array_element(nonempty_array_element($a,"children"),$k);'
       ));
 
-      if ( $debug_method ) $this->recursive_dump($extended,"(critical) +++");
+      if ( $debug_method ) {
+        $this->syslog(__FUNCTION__,__LINE__,'(critical) -- - - - Extended attributes, Parsed');
+        $this->recursive_dump($extended,"(critical) +++");
+      }
 
       // Obtain SN
       $sn = $extended;
@@ -211,7 +226,18 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
             if ( is_string($elements) ) {
               if ( $text == 'subjects' ) $elements = explode('[BR]', $elements);
             }
-            $senate_bill_recordparts[$text] = $elements;
+            if ( !array_key_exists($text,$senate_bill_recordparts) ) {
+              $senate_bill_recordparts[$text] = $elements;
+            }
+            else {
+              $this->syslog(__FUNCTION__,__LINE__,"(critical) Warning: Key '{$text}' already present, not replacing current");
+              if ( $debug_method ) {
+                $this->syslog(__FUNCTION__,__LINE__,"(critical) -- Current: ");
+                $this->recursive_dump($senate_bill_recordparts[$text],"(critical) --");
+                $this->syslog(__FUNCTION__,__LINE__,"(critical) -- Replacement: ");
+                $this->recursive_dump($elements,"(critical) --");
+              }
+            }
           }
           break;
         }
@@ -258,7 +284,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
 
   function ru_table_open(& $parser, & $attrs, $tag) {/*{{{*/
     $this->current_tag();
-			$this->push_container_def($tag, $attrs);
+    $this->push_container_def($tag, $attrs);
     return TRUE;
   }/*}}}*/
   function ru_table_cdata(& $parser, & $cdata) {/*{{{*/
@@ -266,7 +292,7 @@ class SenateDocAuthorshipParseUtility extends SenateCommonParseUtility {
   }/*}}}*/
   function ru_table_close(& $parser, $tag) {/*{{{*/
     $this->current_tag();
-      $this->stack_to_containers();
+    $this->stack_to_containers();
     return TRUE;
   }/*}}}*/
 

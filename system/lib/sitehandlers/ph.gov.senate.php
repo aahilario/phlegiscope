@@ -415,21 +415,36 @@ EOH;
       $this->recursive_dump($listing_mode_change,"(marker)  MODE CHANGE ?");
     } else {
       $this->syslog(__FUNCTION__,__LINE__,"(marker)  Switch mode to {$dlBillType}");
+			$listing_prefix = $dlBillType;
       $this->recursive_dump($_SESSION,"(marker) - - - -");
       $_SESSION[__FUNCTION__] = $dlBillType;
       $this->recursive_dump($_SESSION,"(marker) - -+- -");
     }
 
-    $listing_prefix = 'SRN';
+    $listing_prefix = nonempty_array_element($_SESSION,__FUNCTION__);
 
-    $listing_prefix = nonempty_array_element($_SESSION,__FUNCTION__, $listing_prefix);
+		switch ( $listing_prefix ) {
+			case 'SCR': $spoofed_caller_name = 'leg_sys_concurrentres';
+				break;
+			case 'SJR': $spoofed_caller_name = 'leg_sys_jointres';
+				break;
+			case 'HCR': $spoofed_caller_name = 'leg_sys_house_concurrentres';
+				break;
+			case 'HJR': $spoofed_caller_name = 'leg_sys_house_jointres';
+				break;
+			default: 
+				$spoofed_caller_name = __FUNCTION__;
+				break;
+		}
+
+		$this->recursive_dump($_SESSION,"(critical)");
+
 
     // $this->append_filtered_doc = FALSE;
-
     // $this->stateful_child_pager_links = TRUE;
 
     return $this->non_session_linked_document(
-      __FUNCTION__,
+      $spoofed_caller_name,
       $parser,$pagecontent,$urlmodel,
       // Unique tail fragment for Resolution URLs
       $listing_prefix.'-([0-9]*)',
@@ -1197,6 +1212,11 @@ EOH;
 
   }/*}}}*/
 
+  function blitter(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+    // 15th Congress
+    $this->leg_sys_router($parser,$pagecontent,$urlmodel);
+  }/*}}}*/
+
   function seek_postparse_bypath_62f91d11784860d07dea11c53509a732(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
     // 15th Congress
     $this->leg_sys_router($parser,$pagecontent,$urlmodel);
@@ -1252,6 +1272,7 @@ EOH;
   }
 
   function seek_postparse_bypath_plus_queryvars_2c1ba14d2e7fa5f538650a437bffb487(& $parser, & $pagecontent, & $urlmodel) {
+		// http://www.senate.gov.ph/lis/bill_res.aspx?congress=16&q=SRN-238
     $this->senate_document_content_parsers($parser, $pagecontent, $urlmodel);
   }
 
@@ -1284,6 +1305,12 @@ EOH;
           break;
         case 'HBN' :
           return $this->senate_housebill_content_parser($parser,$pagecontent,$urlmodel);
+          break;
+        case 'HCR' :
+          return $this->senate_house_concurrentres_content_parser($parser,$pagecontent,$urlmodel);
+          break;
+        case 'HJR' :
+          return $this->senate_house_jointres_content_parser($parser,$pagecontent,$urlmodel);
           break;
         default:
           $this->common_unhandled_page_parser($parser,$pagecontent,$urlmodel);
@@ -1342,6 +1369,40 @@ EOH;
 
   }/*}}}*/
 
+  function senate_house_jointres_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $this->append_filtered_doc = FALSE;
+    $this->debug_method        = FALSE;
+    $urlmodel->ensure_custom_parse();
+
+    // Workaround to force POST without GET, when retrieving detail pages.
+    if ( $parser->update_existing ) {
+      // $parser->network_fetch_skip_get = TRUE;
+      // Force network fetch when the curator enables the 'Update' switch
+      $parser->from_network = TRUE;
+    }
+
+    $this->non_session_linked_content_parser(__FUNCTION__, 'HJR', $parser, $pagecontent, $urlmodel );
+
+  }/*}}}*/
+
+  function senate_house_concurrentres_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
+
+    $this->append_filtered_doc = FALSE;
+    $this->debug_method        = FALSE;
+    $urlmodel->ensure_custom_parse();
+
+    // Workaround to force POST without GET, when retrieving detail pages.
+    if ( $parser->update_existing ) {
+      // $parser->network_fetch_skip_get = TRUE;
+      // Force network fetch when the curator enables the 'Update' switch
+      $parser->from_network = TRUE;
+    }
+
+    $this->non_session_linked_content_parser(__FUNCTION__, 'HCR', $parser, $pagecontent, $urlmodel );
+
+  }/*}}}*/
+
   function senate_resolution_content_parser(& $parser, & $pagecontent, & $urlmodel) {/*{{{*/
 
     $this->append_filtered_doc = FALSE;
@@ -1350,7 +1411,7 @@ EOH;
 
     // Workaround to force POST without GET, when retrieving detail pages.
     if ( $parser->update_existing ) {
-      $parser->network_fetch_skip_get = TRUE;
+      // $parser->network_fetch_skip_get = TRUE;
       // Force network fetch when the curator enables the 'Update' switch
       $parser->from_network = TRUE;
     }
@@ -1370,7 +1431,7 @@ EOH;
 
     // Workaround to force POST without GET, when retrieving detail pages.
     if ( $parser->update_existing ) {
-      $parser->network_fetch_skip_get = TRUE;
+      // $parser->network_fetch_skip_get = TRUE;
       // Force network fetch when the curator enables the 'Update' switch
       $parser->from_network = TRUE;
     }
@@ -1387,7 +1448,9 @@ EOH;
     $debug_method = FALSE;
 
     $method_infix = '@^senate_(.*)_content_parser$@i';
-    $senatedoc = ucfirst(strtolower(preg_replace($method_infix,'$1', $caller)));
+		$method_infix = explode('_',preg_replace($method_infix,'$1', $caller));
+		array_walk($method_infix,create_function('& $a, $k', '$a = ucfirst(strtolower($a));'));
+		$senatedoc = join('',$method_infix);
 
     $documents = "Senate{$senatedoc}DocumentModel";
     $document_parser = "Senate{$senatedoc}ParseUtility";
@@ -1443,7 +1506,9 @@ EOH;
 
 		if ( $debug_method ) {
 			$this->syslog(__FUNCTION__,__LINE__,"(critical) Initial parse result " . $urlmodel->get_url() );
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) Traversal result array elements: " . (is_array($traversal_resultarray) ? count($traversal_resultarray) : ("0 (result type: ".gettype($traversal_resultarray).")")) );
 			$this->recursive_dump($traversal_resultarray,"(marker) +++");
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) " . $action_url->get_pagecontent() );
 		}
 
     $pagecontent = "";
@@ -1479,8 +1544,11 @@ EOH;
       }
 
       if ( $ok ) {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - RELOADED " . $urlmodel->get_url());
+
+        $this->syslog(__FUNCTION__,__LINE__,"(critical) - - - RELOADED " . $urlmodel->get_url());
+
       } else {
+
         $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - EXIT " . $urlmodel->get_url());
         $this->invalidate_record($senate_document, $urlmodel);
         $document_sn = $senate_document->get_sn();
@@ -1496,7 +1564,7 @@ EOH;
 
 		if ( property_exists($action_url,'content_overridden') && $action_url->content_overridden ) {
 
-			$this->syslog(__FUNCTION__,__LINE__,"(critical) Reparsing " . $action_url->get_url() );
+			if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(critical) Reparsing " . $action_url->get_url() );
 
 			$senate_document_parser->debug_tags   = FALSE;
 			$senate_document_parser->debug_method = FALSE;
@@ -1513,6 +1581,7 @@ EOH;
 			$senate_document_parser->debug_method = FALSE;
 
 			if ( $debug_method ) {
+				$this->syslog(__FUNCTION__,__LINE__,"(critical) Parsed data for " . get_class($senate_document_parser));
 				$this->recursive_dump($stowable_content,"(critical) +++");
 				$this->recursive_dump($senate_document_parser->get_containers(),"(critical) +--");
 			}
@@ -1559,6 +1628,9 @@ EOH;
       if ( $debug_method || (0 < count($difference)) ) {
         $this->syslog(__FUNCTION__, __LINE__, "(critical) --- --- --- - - - --- --- --- Stowed ".get_class($senate_document)." {$sbn_regex_result}.{$target_congress} #{$id}" );
         $this->recursive_dump($difference,"(critical) Difference: ");
+				if ( $debug_method ) {
+					$this->recursive_dump($stowable_content,"(critical) Stowable: ");
+				}
       }
 
     }/*}}}*/
@@ -1936,7 +2008,7 @@ EOH;
     $target_action_url = nonempty_array_element($form_attributes,'action');
 
     if ( empty($target_action_url) ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) - - No FORM action extracted from document. action_url = '{$action_url}', invoked for " . (is_a($urlmodel,'UrlModel') ? $urlmodel->get_url() : '<Unknown URL>')  );
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) - - No FORM action extracted from document. action_url = '{$action_url}', invoked for " . (is_a($urlmodel,'UrlModel') ? $urlmodel->get_url() : '<Unknown URL>')  );
       return FALSE;
     }/*}}}*/
 
@@ -1961,6 +2033,10 @@ EOH;
 
     if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Real post action {$sbn_regex_result} URL {$action_url} Faux cacheable {$faux_url_in_db} url: {$action_url}" );
 
+		// Execute $senate_document_parser->test_form_traversal_network_fetch()
+		// to find out whether we need to re-fetch.
+		// See system/lib/sitehandlers/
+		// utility.parse.common.legislation.php:: test_form_traversal_network_fetch
 		$force_network_fetch = method_exists($senate_document_parser, "test_form_traversal_network_fetch")
 			? $senate_document_parser->test_form_traversal_network_fetch($action_url)
 			: FALSE;

@@ -355,22 +355,24 @@ class LegiscopeBase extends SystemUtility {
 
   static function safe_json_encode($s) {/*{{{*/
 
-    $pagecontent     = json_encode($s);
+    $pagecontent     = json_encode($s,JSON_UNESCAPED_UNICODE);
     $json_last_error = json_last_error();
     switch ( $json_last_error ) {
     case JSON_ERROR_NONE: break;
     case JSON_ERROR_CTRL_CHAR:
     case JSON_ERROR_UTF8:
       // Reencode every string element of the JSON response array
+      $json_last_error = json_last_error_msg();
+      JoinFilterUtility::syslog(__FUNCTION__,__LINE__,"(critical) - - - Reencoding due to error: {$json_last_error}" );
       array_walk($s,create_function(
         '& $a, $k', 'if ( is_string($a) ) $a = utf8_encode($a);'
       ));
-      $pagecontent = json_encode($s);
-      $json_last_error = json_last_error();
-      //$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
+      $pagecontent = json_encode($s,JSON_UNESCAPED_UNICODE);
+      $json_last_error = json_last_error_msg();
+      JoinFilterUtility::syslog(__FUNCTION__,__LINE__,"(critical) - - - JSON UTF8 encoding error. Reencode result: {$json_last_error}" );
       break;
     default:
-      //$this->syslog(__FUNCTION__,__LINE__,"(warning) - - - Last JSON Error: {$json_last_error}" );
+      JoinFilterUtility::syslog(__FUNCTION__,__LINE__,"(critical) - - - Last JSON Error: {$json_last_error}" );
       break;
     }  
     return $pagecontent;
@@ -580,8 +582,6 @@ class LegiscopeBase extends SystemUtility {
     $metalink, $debug_dump = FALSE
   ) {/*{{{*/
 
-		$debug_dump |= TRUE;
-
     $successful_fetch   = FALSE;
     $post_response_data = array();
     $captured_response  = 'POST';
@@ -608,8 +608,8 @@ class LegiscopeBase extends SystemUtility {
         unset($metalink['_LEGISCOPE_']);
       }/*}}}*/
       if ( nonempty_array_element($metalink_parameters,'referrer') ) {/*{{{*/
+        $referrer = $metalink_parameters['referrer'];
         if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Force referrer {$referrer} for cURL action on {$target_url}" );
-        $skip_get = TRUE;
       }/*}}}*/
       if ( nonempty_array_element($metalink_parameters,'add_trailing_queryslash') ) {/*{{{*/
         // The Congress CMS is sensitive to trailing slashes before query params.
@@ -623,14 +623,15 @@ class LegiscopeBase extends SystemUtility {
       if ( nonempty_array_element($metalink_parameters,'get_before_post') ) {/*{{{*/
         if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Reverse click traversal: GET before doing a POST action {$target_url}" );
         $get_before_post = TRUE;
+        $skip_get = FALSE;
 				$skip_post = FALSE;
 				unset($metalink_parameters['_']);
       }/*}}}*/
-      if ( nonempty_array_element($metalink_parameters,'skip_get') ) {/*{{{*/
+      if ( nonempty_array_element($metalink_parameters,'skip_get',FALSE) ) {/*{{{*/
         if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
         $skip_get = TRUE;
       }/*}}}*/
-      if ( nonempty_array_element($metalink_parameters,'no_skip_get') ) {/*{{{*/
+      if ( nonempty_array_element($metalink_parameters,'no_skip_get',FALSE) ) {/*{{{*/
         if ( $debug_dump ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute only a POST to {$target_url}" );
         $skip_get = FALSE;
       }/*}}}*/
@@ -699,15 +700,17 @@ class LegiscopeBase extends SystemUtility {
     $url_copy = str_replace(' ','%20',$target_url); // CurlUtility methods modify the URL parameter (passed by ref)
 
     if ( $debug_dump ) {/*{{{*/
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)          Referrer: {$referrer}");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)        Target URL: {$target_url}");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker) Metalink/faux URL: {$target_url}");
-      $this->syslog(__FUNCTION__,__LINE__,"(marker)     Metalink data: " . gettype($metalink));
-      $this->recursive_dump((is_array($metalink) ? $metalink : array("RAW" => $metalink)),'(marker) - - ->');
+      $this->syslog(__FUNCTION__,__LINE__,"(critical)          Referrer: {$referrer}");
+      $this->syslog(__FUNCTION__,__LINE__,"(critical)        Target URL: {$target_url}");
+      $this->syslog(__FUNCTION__,__LINE__,"(critical) Metalink/faux URL: {$target_url}");
+      $this->syslog(__FUNCTION__,__LINE__,"(critical)     Metalink data: " . gettype($metalink));
+      $this->syslog(__FUNCTION__,__LINE__,"(critical)     Metalink data: " . print_r($metalink,TRUE));
+      $this->recursive_dump($metalink,'(critical)');
     }/*}}}*/
 
     $post_faux_url = NULL;
 
+    // FIRST FETCH OPERATION 
     if ( is_array($metalink) && !$skip_post ) {/*{{{*/
       $post_faux_url = GenericParseUtility::url_plus_post_parameters($url_copy, $metalink);
 			$response      = NULL;
@@ -715,6 +718,7 @@ class LegiscopeBase extends SystemUtility {
 				$captured_response = 'GET';
 				$response = CurlUtility::get($url_copy, $curl_options);
 			} else {
+        $captured_response = 'POST';
 				$response = CurlUtility::post($url_copy, $metalink, $curl_options);
 			}
       $transfer_info = CurlUtility::$last_transfer_info;
@@ -742,11 +746,11 @@ class LegiscopeBase extends SystemUtility {
       }
     }/*}}}*/
 
+    $response = NULL;
     if ( !$skip_get ) {/*{{{*/
       if ( $debug_dump ) {/*{{{*/
         $this->syslog( __FUNCTION__, __LINE__, "(marker) Execute GET/HEAD to {$url_copy}" );
       }/*}}}*/
-			$response = NULL;
 			if ( TRUE == $get_before_post ) {
 				$captured_response = 'POST';
 				$response = CurlUtility::post($url_copy, $metalink, $curl_options);
@@ -775,6 +779,7 @@ class LegiscopeBase extends SystemUtility {
       if ( is_array($metalink) && (0 < strlen($target_url)) ) {/*{{{*/
         // $captured_response is either 'POST' or 'GET', depending on whether we do POST or POST+GET
         if ( array_key_exists($captured_response, $post_response_data) ) $captured_response = "{$captured_response}_2";
+        if ( !is_null($response) )
         $post_response_data[$captured_response] = array(
           'post_target'   => $url_copy,
           'content_hash'  => sha1($response),

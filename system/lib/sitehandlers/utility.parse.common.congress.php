@@ -382,6 +382,8 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
 
 function emit_document_entries(entries) {
 
+  jQuery('[id=listing]').find('[class*=bill-container]').children().remove();
+
   for ( var p in entries ) {
     var entry = entries[p];
     var links = entry && entry.links ? entry.links : {};
@@ -411,7 +413,13 @@ function emit_document_entries(entries) {
       var metadata = metalink && metalink[t] ? metalink[t] : null;  
       linktext = linktype_map[t];
       if ( typeof linktext != 'string' || linktext.length == 0 ) linktext = 'Other'; 
-      if ( typeof metalink != 'null' && typeof metadata != null ) {
+      if ( typeof l != 'string' ) {
+        l = '';
+      }
+      else if ( l.length == 0 ) {
+        l = '';
+      }
+      else if ( typeof metalink != 'null' && typeof metadata != null ) {
         jQuery(link_container)
           .append(jQuery(document.createElement('A'))
             .attr('href',l)
@@ -762,9 +770,17 @@ EOJ
     return;
   }
 
+  function reduce_descend(& $a, $k = NULL) {
+    if ( is_array($a) && !is_string($a) ) array_walk($a,create_function(
+      '& $b, $k, $s', '$b = $s->reduce_cells($b,$k);'
+    ), $this);
+    return $a;
+  }
+
   function reduce_cells(& $ra, $k) {
-    array_walk($ra,create_function(
-      '& $a, $k, $s', 'if ( is_string($a) ) $a = $s->reverse_iconv($a);'
+    if ( is_array($ra) && !is_string($ra) ) array_walk($ra,create_function(
+      //'& $a, $k, $s', 'if ( is_string($a) ) { $a = $s->reverse_iconv($a); $s->syslog(__FUNCTION__,__LINE__,"(critical) - $a"); } else if ( is_array($a) ) $a = $s->reduce_cells($a,$k); '
+      '& $a, $k, $s', 'if ( is_string($a) ) { $a = $s->reverse_iconv($a); } else if ( is_array($a) ) $a = $s->reduce_cells($a,$k); '
     ), $this);
     return $ra;
   }
@@ -841,16 +857,9 @@ EOH;
         $document_model->$markup_preparation($parser->json_reply['catalog']);
       }
       $this->add_document_urlcaching_cssclass($parser->json_reply['catalog']);
-      array_walk($parser->json_reply['catalog'],create_function(
-        '& $a, $k, $s', '$a = $s->reduce_cells($a,$k);'
-      ), $this);
+      $this->reduce_descend($parser->json_reply['catalog']);
       if ( $debug_method ) $this->recursive_dump($parser->json_reply['catalog'],"(marker) -- A --");
       $parser->json_reply['division'] = 'A';
-      $parse_offset   = intval($this->filter_post('parse_offset',0));
-      $parse_limit    = intval($this->filter_post('parse_limit',20));
-      $parser->json_reply['parse_offset'] = $parse_offset + $parse_limit;
-
-      return;
 
     }/*}}}*/
 	 	else {/*{{{*/
@@ -861,10 +870,8 @@ EOH;
       }
       $this->add_document_urlcaching_cssclass($pregenerated_list);
       $this->syslog(__FUNCTION__,__LINE__,"(critical) -- -- -- Entry count: " . count($pregenerated_list) );
-      array_walk($pregenerated_list,create_function(
-        '& $a, $k, $s', '$a = $s->reduce_cells($a,$k);'
-      ), $this);
-      if ( $debug_method ) $this->recursive_dump($pregenerated_list,"(critical) -- B --");
+      $this->reduce_descend($pregenerated_list);
+      if ( FALSE && $debug_method ) $this->recursive_dump($pregenerated_list,"(critical) -- B --");
       $pregenerated_list = addslashes(LegiscopeBase::safe_json_encode($pregenerated_list)); 
       $emit_frame = TRUE;
       $parser->json_reply['division'] = 'B';

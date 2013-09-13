@@ -21,6 +21,11 @@ class CongressionalDocumentHistoryParseUtility extends CongressCommonParseUtilit
 		$this->standard_parse($urlmodel);
 
 		$document = $this->get_containers('children[tagname*=body]',0);
+		if ( !is_array($document) ) {
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) ---- STRUCTURE CHANGE IN DOCUMENT " . $urlmodel->get_url() );
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) ---- CANNOT PROCEED PROCESSING " . $urlmodel->get_url() );
+			return;
+		}
 		$contents = nonempty_array_element(array_values($document),0);
 		$contents = nonempty_array_element($contents,'text');
 
@@ -45,10 +50,10 @@ class CongressionalDocumentHistoryParseUtility extends CongressCommonParseUtilit
 				stow();
 		}
 		else {
-			$this->syslog(__FUNCTION__,__LINE__,"(critical) Record already exists (#{$document_id}). Must scan for changes.");
-			$this->recursive_dump($contents,"(critical)");
+			$this->syslog(__FUNCTION__,__LINE__,"(critical) TODO: Record already exists (#{$document_id}). Must scan for changes.");
+			if ( $debug_method ) $this->recursive_dump($contents,"(critical)");
 			$actual = $hb->join_all()->fetch($document_id,'id');
-			$this->recursive_dump($actual,"(critical)");
+			if ( $debug_method ) $this->recursive_dump($actual,"(critical)");
 		}
 
 		if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - Committed record #" . $hb->get_id());

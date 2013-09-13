@@ -1,23 +1,23 @@
 <?php
 
 /*
- * Class SenateBillParseUtility
+ * Class SenateHouseJointresParseUtility
  * Legiscope - web site reflection framework
  *
  * Antonio A Hilario
  * Release license terms: GNU Public License V2
  */
 
-class SenateBillParseUtility extends SenateDocAuthorshipParseUtility {
+class SenateHouseJointresParseUtility extends SenateDocAuthorshipParseUtility {
   
-  var $filtered_content = array();
-  var $senate_document_sn_regex_prefix = NULL;
-  var $senate_document_sn_prefix = 'SBN';
+  var $activity_summary = array();
+	var $senate_document_sn_regex_prefix = NULL;
+	var $senate_document_sn_prefix = 'HJR';
 
   function __construct() {
     parent::__construct();
-    $this->senate_document_sn_regex_prefix = 'senate bill'; 
-    $this->senate_document_sn_prefix = 'SBN';
+		$this->senate_document_sn_regex_prefix = 'house joint resolution'; 
+    $this->senate_document_sn_prefix = 'HJR';
   }
 
 	function congress_session_column_link($child_link) {/*{{{*/
@@ -71,3 +71,4 @@ EOH;
 	}/*}}}*/
 
 }
+

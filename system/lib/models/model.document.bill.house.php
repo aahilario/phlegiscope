@@ -181,6 +181,8 @@ class HouseBillDocumentModel extends LegislativeCommonDocumentModel {
     $debug_method = FALSE;
     // Move nested array elements into place, to allow use of 
     // set_contents_from_array()
+    array_walk($a['links'],create_function('& $a, $k', '$a = rtrim($a,"/");'));
+
     $links = array_element($a,"links",array());
     $meta  = array_element($a,"meta",array());
 
@@ -438,9 +440,10 @@ class HouseBillDocumentModel extends LegislativeCommonDocumentModel {
       )))->
       recordfetch_setup();
     $this->debug_final_sql = FALSE;
-    $hb = array();
-    $debug_checker = FALSE;
-    $join_exclusions = $this->get_joins();
+
+    $hb                    = array();
+    $debug_checker         = FALSE;
+    $join_exclusions       = $this->get_joins();
 
     if ( $debug_checker) $this->recursive_dump($join_exclusions,"(marker) -- JOINS --");
 
@@ -522,9 +525,6 @@ class HouseBillDocumentModel extends LegislativeCommonDocumentModel {
 
       $cache_entry = array_filter(array_pop($bill_cache)); 
 
-      unset($cache_entry['links']);
-      unset($cache_entry['meta']);
-
       if (!is_null(array_element($cache_entry,'republic_act'))) {
       }
       else if ((is_null(array_element($cache_entry,'url')) || empty($cache_entry['url']) ) && 
@@ -535,6 +535,9 @@ class HouseBillDocumentModel extends LegislativeCommonDocumentModel {
         $this->recursive_dump($cache_entry,"(marker) - - -");
         continue;
       }
+
+      unset($cache_entry['links']);
+      unset($cache_entry['meta']);
 
       if (is_null(array_element($cache_entry,'congress_tag'))) {
         $this->syslog(__FUNCTION__,__LINE__,"(error) No Congress number available. Cannot stow entry.");
@@ -587,6 +590,8 @@ class HouseBillDocumentModel extends LegislativeCommonDocumentModel {
       }
       $cache_entry = NULL;
     }/*}}}*/
+
+    $this->syslog(__FUNCTION__,__LINE__,"(critical) Done with DB updates.");
 
   }/*}}}*/
     

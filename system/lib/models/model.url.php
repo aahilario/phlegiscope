@@ -796,17 +796,19 @@ EOH;
       return $this;
     }/*}}}*/
 
-    $debug_method = TRUE;
+    $debug_method = FALSE;
 
     // If perform_network_fetch() causes MORE than one record to be added,
     // we take the last-retrieved record to attach to this UrlModel
-    $urlcontent = array_values($urlcontent);
+    $this->syslog(__FUNCTION__,__LINE__,"(critical) Attaching urlcontent data, entries: " . count($urlcontent));
+    $this->recursive_dump($urlcontent,'(critical)');
     // To allow multiple records to be given, iterate through $urlcontent,
     // performing a loop from this point forward
     $urlcontent = array_pop($urlcontent);
 
     if ( $debug_method ) {/*{{{*/
       $this->syslog(__FUNCTION__,__LINE__,"(marker) --- ---- ------- INPUT DATA {$content_type} Attaching POST response ------- ---- ---");
+      $this->syslog(__FUNCTION__,__LINE__,"(marker) {$urlcontent['response']}");
       $this->recursive_dump($urlcontent,"(marker)");
     }/*}}}*/
 

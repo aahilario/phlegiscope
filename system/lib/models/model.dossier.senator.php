@@ -67,7 +67,7 @@ class SenatorDossierModel extends RepresentativeDossierModel {
 
 		// $this->syslog(__FUNCTION__,__LINE__,"(marker) ------- WARNING: Potentially inconsistent behavior between 15th and 16th Congress ---");
 
-		$name = mb_ereg_replace('@[“”]@i', '"', $name);
+		$name = preg_replace('@[“”]@i', '"', $name);
 		$name = trim(preg_replace(
 			array(
 				'@^(Sen\.|Senator)([ ]*)@i', 

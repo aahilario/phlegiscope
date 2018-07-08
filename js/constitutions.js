@@ -102,27 +102,30 @@ jQuery(document).ready(function() {
     var column_index = 0;
     $('#h-'+slug+' ~ table').first()
       .attr('id',slug)
-      // At this point, we can alter the "Section X" text inside tables with id {slug},
-      // and turn them into anchors.
+      // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
+      // and turn those string fragments into HTML anchors.
       .find('TD').each(function(tindex){
         column_index++;
         $(this).find('STRONG').each(function(sindex){
           var strong = $(this);
           var column_specifier = column_index & 1;
           var section_text = $(strong).text();
-          var section_num = section_text.replace(/^section ([0-9a-z]{1,}).*/i,"$1");
-          var section_anchor = $(document.createElement('A'))
-            .attr('name','#'+slug+'-'+section_num+'-'+column_specifier)
-            .attr('href','#'+slug+'-'+section_num+'-'+column_specifier)
-            .css({
-              'text-decoration' : 'none',
-              'color'           : 'black',
-              'padding-top'     : '10px',
-              'box-shadow'      : '0 0 0 0' 
-            })
-            .addClass('toc-section')
-            .text('SECTION '+section_num+'.');
-          $(strong).empty().append(section_anchor);
+          // Ignore instances of "See ..."
+          if ( !(/^see /gi.test(section_text) ) ) {
+            var section_num = section_text.replace(/^section ([0-9]{1,}).*/i,"$1");
+            var section_anchor = $(document.createElement('A'))
+              .attr('name','#'+slug+'-'+section_num+'-'+column_specifier)
+              .attr('href','#'+slug+'-'+section_num+'-'+column_specifier)
+              .css({
+                'text-decoration' : 'none',
+                'color'           : 'black',
+                'padding-top'     : '10px',
+                'box-shadow'      : '0 0 0 0' 
+              })
+              .addClass('toc-section')
+              .text('SECTION '+section_num+'.');
+            $(strong).empty().append(section_anchor);
+          }
         });
       });
 

@@ -158,7 +158,7 @@ $(document).ready(function() {
           var column_specifier = column_index & 1;
           var section_text = $(strong).text();
           // Ignore instances of "See ..."
-          if ( !(/^see /gi.test(section_text) ) ) {
+          if ( !(/^see /gi.test(section_text) ) && /^section ([0-9]{1,})/i.test(section_text) ) {
             var section_num = section_text.replace(/^section ([0-9]{1,}).*/i,"$1");
             var section_anchor = $(document.createElement('A'))
               .attr('name','#'+slug+'-'+section_num+'-'+column_specifier)

@@ -179,7 +179,7 @@ $(document).ready(function() {
 
 
   // This placeholder image serves no function
-  $('div.post-thumbnail').first().find('img.wp-post-image').hide();
+  $('div.post-thumbnail').first().find('img.wp-post-image').remove();
 
   $('#toc').css({'top': $(window).scrollTop()+'px'});
 

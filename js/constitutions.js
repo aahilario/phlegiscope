@@ -175,6 +175,9 @@ $(document).ready(function() {
   });
 
 
+  // This placeholder image serves no function
+  $('div.post-thumbnail').first().find('img.wp-post-image').hide();
+
   $('#toc').css({'top': $(window).scrollTop()+'px'});
 
   // Since the site will only be serving the Constitution for a while,
@@ -187,28 +190,27 @@ $(document).ready(function() {
     ;
   $('#toc').append(privacy_policy);
 
-  // If the parser was given an existing anchor, go to it.
   setTimeout(function(){
+    // If the parser was given an existing anchor, go to it.
     $('#link-'+parser.hash.replace(/^#/,'')).click();
-    // This placeholder image serves no function
-    $('div.post-thumbnail').first().find('img.wp-post-image').hide();
     // Attach handler that triggers reappearance of TOC on mouse movement
-    $(window).mousemove(function(event){
-      var offsetedge = Number.parseInt(event.pageX);
-      var triggeredge = Number.parseInt($('#toc').data('floatedge'));
-      if ( offsetedge + 10 < triggeredge ) {
-        clearTimeout($('#toc').data('timer_fade'));
-        $('#toc').show().css({
-          'top'        : scroll_y+'px',
-          'max-height' : ($(window).innerHeight()-40)+'px'
-        });
-        $('#toc').data('timer_fade',setTimeout(function(){
-          $('#toc').fadeOut(1000);
-        },3000));
-      }
-    });
-
   },100);
+
+  $(window).mousemove(function(event){
+    var offsetedge = Number.parseInt(event.pageX);
+    var triggeredge = Number.parseInt($('#toc').data('floatedge'));
+    clearTimeout($('#toc').data('timer_fade'));
+    // FIXME:  You're repeating code here, from the scroll() event handler 
+    if ( offsetedge + 10 < triggeredge ) {
+      $('#toc').show().css({
+        'top'        : $(window).scrollTop().toFixed(0)+'px',
+        'max-height' : ($(window).innerHeight()-40)+'px'
+      });
+    }
+    $('#toc').data('timer_fade',setTimeout(function(){
+      $('#toc').fadeOut(1000);
+    },3000));
+  });
 
   $('#toc').data('timer_fade',setTimeout(function(){
     $('#toc').fadeOut(1000);
@@ -216,15 +218,19 @@ $(document).ready(function() {
 
   $(window).scroll(function(event){
     clearTimeout($('#toc').data('timer_fade'));
-    var scroll_y = $(window).scrollTop().toFixed(0);
-    $('#toc').show().css({
-      'top'        : scroll_y+'px',
+    var offsetedge = Number.parseInt(event.pageX);
+    var triggeredge = Number.parseInt($('#toc').data('floatedge'));
+    if ( offsetedge + 10 < triggeredge ) {
+      $('#toc').show();
+    }
+    $('#toc').css({
+      'top'        : $(window).scrollTop().toFixed(0)+'px',
       'max-height' : ($(window).innerHeight()-40)+'px'
     });
-    defer_toc_highlight(toc,200);
     $('#toc').data('timer_fade',setTimeout(function(){
       $('#toc').fadeOut(1000);
     },3000));
+    defer_toc_highlight(toc,200);
   });
 
 });

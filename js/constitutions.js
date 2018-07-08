@@ -1,5 +1,11 @@
 jQuery(document).ready(function() {
 
+  // Copyright 2018, Antonio Victor Andrada Hilario
+  // avahilario@gmail.com
+  // I am releasing this to the public domain.
+  // 6 July 2018
+  // #StopTheKillings
+
   $ = jQuery;
   var preamble_y = 0;
   var toc = {};
@@ -50,7 +56,11 @@ jQuery(document).ready(function() {
     var link = document.createElement('A');
     var anchor = document.createElement('A');
     // Set link color if the article includes "draft" or "new" 
-    var link_color = /(draft|new)/i.test(article_text) ? { 'color' : '#F01', 'font-style' : 'italic' } : { 'color' : 'blue' };
+    var link_color = /(draft|new)/i.test(article_text) 
+      ? { 'color' : '#F01', 'font-style' : 'italic' } 
+      : /(available formats)/i.test(article_text)
+        ? { 'color' : '#AAA', 'font-style' : 'italic' }
+        : { 'color' : 'blue' };
     // Prepare TOC link
     $(link).attr('id','link-'+slug)
       .addClass('toc-link')
@@ -88,10 +98,33 @@ jQuery(document).ready(function() {
       .empty()
       .append(anchor)
       .attr('id','h-'+slug)
-      .next() // Modifies the table of Sections
-      .attr('id',slug);
-    //// Prepend the anchor BEFORE this header
-    //$(this).before(anchor);
+      ;
+    var column_index = 0;
+    $('#h-'+slug+' ~ table').first()
+      .attr('id',slug)
+      // At this point, we can alter the "Section X" text inside tables with id {slug},
+      // and turn them into anchors.
+      .find('TD').each(function(tindex){
+        column_index++;
+        $(this).find('STRONG').each(function(sindex){
+          var strong = $(this);
+          var column_specifier = column_index & 1;
+          var section_text = $(strong).text();
+          var section_num = section_text.replace(/^section ([0-9a-z]{1,}).*/i,"$1");
+          var section_anchor = $(document.createElement('A'))
+            .attr('name','#'+slug+'-'+section_num+'-'+column_specifier)
+            .attr('href','#'+slug+'-'+section_num+'-'+column_specifier)
+            .css({
+              'text-decoration' : 'none',
+              'color'           : 'black',
+              'padding-top'     : '10px',
+              'box-shadow'      : '0 0 0 0' 
+            })
+            .addClass('toc-section')
+            .text('SECTION '+section_num+'.');
+          $(strong).empty().append(section_anchor);
+        });
+      });
 
     // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
     // Replace references to articles ("in Article X...") with links to local anchors.

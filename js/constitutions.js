@@ -143,6 +143,9 @@ $(document).ready(function() {
       // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
       // and turn those string fragments into HTML anchors.
       .find('TD').each(function(tindex){
+        $(this).click(function(event){
+          $('#toc').show();
+        });
         column_index++;
         $(this).find('STRONG').each(function(sindex){
           var strong = $(this);

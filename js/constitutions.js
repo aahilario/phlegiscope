@@ -20,6 +20,8 @@ function defer_toc_highlight(toc,interval) {
         var entry = $('#toc').data('toc');
         toc_entry = toc[Number.parseInt($('#toc').data('prior'))];
         document.title = $('#link-'+toc_entry.id).text();
+        // Set TOC trigger edge as left table edge
+        $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
         matched = 1;
         highlight_toc_entry(toc_entry.id);
         clearTimeout(timer_id);
@@ -41,21 +43,10 @@ $(document).ready(function() {
   // #StopTheKillings
 
   var preamble_y = 0;
-  var scroll_y = 0;
   var preamble_offset = 0;
   var tocdiv = document.createElement('DIV');
   var toc = new Array();
   
-  $(window).scroll(function(event){
-    // FIXME: Kludge.  Use CSS sticky property instead
-    scroll_y = $(window).scrollTop().toFixed(0);
-    $('#toc').css({
-      'top'        : scroll_y+'px',
-      'max-height' : ($(window).innerHeight()-40)+'px'
-    });
-    defer_toc_highlight(toc,200);
-  });
-
   // Generate empty TOC div
   $(tocdiv)
     .attr('id','toc')
@@ -78,7 +69,7 @@ $(document).ready(function() {
   // Add TOC div to WordPress content DIV
   $('div.site-inner').append(tocdiv);
 
-  $('#toc').data('prior',0);
+  $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0});
   var parser = document.createElement('A');
   parser.href = document.location;
 
@@ -199,6 +190,41 @@ $(document).ready(function() {
   // If the parser was given an existing anchor, go to it.
   setTimeout(function(){
     $('#link-'+parser.hash.replace(/^#/,'')).click();
+    // This placeholder image serves no function
+    $('div.post-thumbnail').first().find('img.wp-post-image').hide();
+    // Attach handler that triggers reappearance of TOC on mouse movement
+    $(window).mousemove(function(event){
+      var offsetedge = Number.parseInt(event.pageX);
+      var triggeredge = Number.parseInt($('#toc').data('floatedge'));
+      if ( offsetedge + 10 < triggeredge ) {
+        clearTimeout($('#toc').data('timer_fade'));
+        $('#toc').show().css({
+          'top'        : scroll_y+'px',
+          'max-height' : ($(window).innerHeight()-40)+'px'
+        });
+        $('#toc').data('timer_fade',setTimeout(function(){
+          $('#toc').fadeOut(1000);
+        },3000));
+      }
+    });
+
   },100);
+
+  $('#toc').data('timer_fade',setTimeout(function(){
+    $('#toc').fadeOut(1000);
+  },3000));
+
+  $(window).scroll(function(event){
+    clearTimeout($('#toc').data('timer_fade'));
+    var scroll_y = $(window).scrollTop().toFixed(0);
+    $('#toc').show().css({
+      'top'        : scroll_y+'px',
+      'max-height' : ($(window).innerHeight()-40)+'px'
+    });
+    defer_toc_highlight(toc,200);
+    $('#toc').data('timer_fade',setTimeout(function(){
+      $('#toc').fadeOut(1000);
+    },3000));
+  });
 
 });

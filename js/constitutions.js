@@ -135,7 +135,6 @@ $(document).ready(function() {
     $(this)
       .before(anchor)
       .attr('id','h-'+slug)
-      .attr('title','At '+$(this).offset().top)
       ;
     var column_index = 0;
     $('#h-'+slug+' ~ table').first()

@@ -21,9 +21,13 @@ function defer_toc_highlight(toc,interval) {
         toc_entry = toc[Number.parseInt($('#toc').data('prior'))];
         document.title = $('#link-'+toc_entry.id).text();
         // Set TOC trigger edge as left table edge
-        $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
-        matched = 1;
-        highlight_toc_entry(toc_entry.id);
+        try {
+          $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
+          matched = 1;
+          highlight_toc_entry(toc_entry.id);
+        }
+        catch(e) {
+        }
         clearTimeout(timer_id);
         timer_id = 0;
       }
@@ -193,11 +197,19 @@ $(document).ready(function() {
   $('#toc').append(privacy_policy);
 
   setTimeout(function(){
-    // If the parser was given an existing anchor, go to it.
+    // Fix up references to existing sections: Add event handler for a click on links that lead to local anchors..
+    // Note:  This is potentially an O(n^n) operation.  
+    //   Every section cell can refer to every other section's anchor.  
+    //   If every section refers to every other, no self-referencing, that's a O(n(n-1)*n) = O(n^3-n^2).
+    //   A lower bound for search is O(ni^2), when every cell refers to just one other cell.
+    //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
+    //   So:  Do this in a timed event.
+
+    // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();
-    // Attach handler that triggers reappearance of TOC on mouse movement
   },100);
 
+  // Attach handler that triggers reappearance of TOC on mouse movement
   $(window).mousemove(function(event){
     var offsetedge = Number.parseInt(event.pageX);
     var triggeredge = Number.parseInt($('#toc').data('floatedge'));

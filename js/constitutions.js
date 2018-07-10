@@ -76,7 +76,7 @@ $(document).ready(function() {
   // Add TOC div to WordPress content DIV
   $('div.site-inner').append(tocdiv);
 
-  $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0});
+  $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0, 'table_count' : 0});
 
   // Add anchors to each article header
 
@@ -214,9 +214,9 @@ $(document).ready(function() {
     //   So:  Do this in a timed event.
     
     // Increase reading space by collapsing middle columns
-    var table_count = 0;
     $('div.site-inner').find('table').each(function(){
       var table = this;
+      var table_count = $('#toc').data('table_count');
       if ( table_count > 0 ) { 
         $(table).find('tr').each(function(){
           var tr = this;
@@ -231,6 +231,7 @@ $(document).ready(function() {
         });
       }
       table_count++;
+      $('#toc').data('table_count',table_count);
     });
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();

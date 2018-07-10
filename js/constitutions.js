@@ -50,6 +50,9 @@ $(document).ready(function() {
   var preamble_offset = 0;
   var tocdiv = document.createElement('DIV');
   var toc = new Array();
+  var parser = document.createElement('A');
+
+  parser.href = document.location;
   
   // Generate empty TOC div
   $(tocdiv)
@@ -74,8 +77,6 @@ $(document).ready(function() {
   $('div.site-inner').append(tocdiv);
 
   $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0});
-  var parser = document.createElement('A');
-  parser.href = document.location;
 
   // Add anchors to each article header
 
@@ -103,11 +104,16 @@ $(document).ready(function() {
         'clear'        : 'both'
       })
       .css(link_color)
-      .attr('href','#'+slug)
+      .attr('href',parser.pathname+'#'+slug)
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
       .click(function(event){
         var self = this;
-        var anchor_id = $(self).attr('href').replace(/#/,'a-');
+        var local_parser = document.createElement('A');
+        var anchor_id;
+
+        local_parser.href = $(self).attr('href');
+        anchor_id = local_parser.hash.replace(/#/,'a-');
+
         event.preventDefault();
         event.stopPropagation();
         document.title = $(self).text();
@@ -132,7 +138,7 @@ $(document).ready(function() {
         'padding-top'     : '10px',
         'box-shadow'      : '0 0 0 0' 
       })
-      .attr('href','/#'+slug)
+      .attr('href',parser.pathname+'#'+slug)
       .append('&nbsp;')
       .addClass('toc-anchor');
     // Add ID attribute to this H1 tag, replace text, and add ID to table body. 
@@ -159,7 +165,8 @@ $(document).ready(function() {
             var section_num = section_text.replace(/^section ([0-9]{1,}).*/i,"$1");
             var section_anchor = $(document.createElement('A'))
               .attr('name','#'+slug+'-'+section_num+'-'+column_specifier)
-              .attr('href','#'+slug+'-'+section_num+'-'+column_specifier)
+              //.attr('href','#'+slug+'-'+section_num+'-'+column_specifier)
+              .attr('href',parser.pathname+'#'+slug+'-'+section_num+'-'+column_specifier)
               .css({
                 'text-decoration' : 'none',
                 'color'           : 'black',

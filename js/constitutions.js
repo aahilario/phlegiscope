@@ -214,19 +214,23 @@ $(document).ready(function() {
     //   So:  Do this in a timed event.
     
     // Increase reading space by collapsing middle columns
+    var table_count = 0;
     $('div.site-inner').find('table').each(function(){
       var table = this;
+      if ( table_count > 0 ) { 
         $(table).find('tr').each(function(){
-        var tr = this;
-        jQuery.each($(tr).children(), function(index,td){
-          if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
-            $(td).attr('colspan','2');
-          }
-          else if ( index == 1 ) {
-            $(td).hide();
-          }
+          var tr = this;
+          jQuery.each($(tr).children(), function(index,td){
+            if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
+              $(td).attr('colspan','2');
+            }
+            else if ( index == 1 ) {
+              $(td).hide();
+            }
+          });
         });
-      });
+      }
+      table_count++;
     });
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();

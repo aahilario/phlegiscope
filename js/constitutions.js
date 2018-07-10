@@ -233,6 +233,8 @@ $(document).ready(function() {
       table_count++;
       $('#toc').data('table_count',table_count);
     });
+    var custom_css = $('head').find('style#wp-custom-css').text().replace(/font-size: ([^;]{1,});/i,'');
+    $('head').find('style#wp-custom-css').text(custom_css);
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();
   },100);

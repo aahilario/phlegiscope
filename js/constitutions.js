@@ -113,9 +113,6 @@ $(document).ready(function() {
 
         local_parser.href = $(self).attr('href');
         anchor_id = local_parser.hash.replace(/#/,'a-');
-
-        event.preventDefault();
-        event.stopPropagation();
         document.title = $(self).text();
         $('html, body').animate({
           scrollTop: $('#'+anchor_id).offset().top.toFixed(0)

@@ -142,9 +142,13 @@ $(document).ready(function() {
       .append('&nbsp;')
       .addClass('toc-anchor');
     // Add ID attribute to this H1 tag, replace text, and add ID to table body. 
+    // Also apply formatting.
     $(this)
       .before(anchor)
       .attr('id','h-'+slug)
+      .css({
+        'text-align' : 'center'
+      })
       ;
     var column_index = 0;
     $('#h-'+slug+' ~ table').first()

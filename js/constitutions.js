@@ -212,7 +212,22 @@ $(document).ready(function() {
     //   A lower bound for search is O(ni^2), when every cell refers to just one other cell.
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
-
+    
+    // Increase reading space by collapsing middle columns
+    $('div.site-inner').find('table').each(function(){
+      var table = this;
+        $(table).find('tr').each(function(){
+        var tr = this;
+        jQuery.each($(tr).children(), function(index,td){
+          if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
+            $(td).attr('colspan','2');
+          }
+          else if ( index == 1 ) {
+            $(td).hide();
+          }
+        });
+      });
+    });
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();
   },100);

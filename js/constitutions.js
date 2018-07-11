@@ -38,6 +38,22 @@ function defer_toc_highlight(toc,interval) {
   },interval);
 }
 
+function scroll_to_anchor(event,context,prefix){
+  var self = context;
+  var local_parser = document.createElement('A');
+  var anchor_id;
+
+  local_parser.href = $(self).attr('href');
+  anchor_id = local_parser.hash.replace(/#/,prefix);
+  
+  document.title = $(self).text();
+  window.alert('anchor_id:'+anchor_id);
+  $('html, body').animate({
+    scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
+  });
+  document.location = $('#'+anchor_id).attr('href');
+}
+
 $(document).ready(function() {
 
   // Copyright 2018, Antonio Victor Andrada Hilario
@@ -106,19 +122,8 @@ $(document).ready(function() {
       .css(link_color)
       .attr('href',parser.pathname+'#'+slug)
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
-      .click(function(event){
-        var self = this;
-        var local_parser = document.createElement('A');
-        var anchor_id;
-
-        local_parser.href = $(self).attr('href');
-        anchor_id = local_parser.hash.replace(/#/,'a-');
-        document.title = $(self).text();
-        $('html, body').animate({
-          scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
-        });
-        document.location = $('#'+anchor_id).attr('href');
-      });
+      .click(function(event){scroll_to_anchor(event,link,'a-');})
+      ;
     // Record TOC entry for use in animating TOC highlight updates.
     toc[toc.length] = { 
       offset : $(this).offset().top.toFixed(0),
@@ -204,7 +209,7 @@ $(document).ready(function() {
   $('#toc').append(privacy_policy);
 
   setTimeout(function(){
-    // Fix up references to existing sections: Add event handler for a click on links that lead to local anchors..
+    // Fix up references to existing sections: Add event handler for a click on links that lead to local anchors.
     // Note:  This is potentially an O(n^n) operation.  
     //   Every section cell can refer to every other section's anchor.  
     //   If every section refers to every other, no self-referencing, that's a O(n(n-1)*n) = O(n^3-n^2).
@@ -212,7 +217,6 @@ $(document).ready(function() {
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
     
-    // Increase reading space by collapsing middle columns
     jQuery.each($('div.site-inner').find('table').children(),function(index,table){
       // Table context
       var table_count = $('#toc').data('table_count');
@@ -229,7 +233,8 @@ $(document).ready(function() {
               var section_num = $(this).data('section_num');
               var path = $(this).data('path');
               $(this)
-                .attr('name','#'+slug+'-'+section_num+'-'+td_index)
+                .attr('name',slug+'-'+section_num+'-'+td_index)
+                .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
                 .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index)
                 ;
             });
@@ -237,14 +242,37 @@ $(document).ready(function() {
               $(td).attr('colspan','2');
             }
             else if ( td_index == 1 ) {
+              // Increase reading space by collapsing middle columns
               $(td).hide();
             }
+
+            // Separately: If this cell contains any A tags linking to any other cell in this document,
+            // we add a click handler that causes the browser to scroll that target into view.
+            jQuery.each($(td).find('A'),function(a_index,anchor){
+              if ( $(anchor).hasClass('toc-section') ) {
+                // Do nothing
+              }
+              else if ( $(anchor).hasClass('toc-anchor') ) {
+                // Do nothing
+              }
+              else {
+                $(anchor).click(function(event){
+                  try {
+                    scroll_to_anchor(event,this,'a-');
+                  } catch(e) {
+                  }
+                  event.preventDefault();
+                });
+              }
+            });
           });
         });
       }
       table_count++;
       $('#toc').data('table_count',table_count);
     });
+
+    // Reset font size by removing all font-size style specifiers
     var custom_css = $('head').find('style#wp-custom-css').text().replace(/font-size: ([^;]{1,});/i,'');
     $('head').find('style#wp-custom-css').text(custom_css);
     // If the parser was given an existing anchor, go to it, after this initialization is done..

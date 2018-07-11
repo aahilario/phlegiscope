@@ -213,7 +213,7 @@ $(document).ready(function() {
     //   So:  Do this in a timed event.
     
     // Increase reading space by collapsing middle columns
-    jQuery.each($('div.site-inner').find('table'),function(index,table){
+    jQuery.each($('div.site-inner').find('table').children(),function(index,table){
       // Table context
       var table_count = $('#toc').data('table_count');
       if ( table_count > 0 ) { 
@@ -236,7 +236,7 @@ $(document).ready(function() {
             if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
               $(td).attr('colspan','2');
             }
-            else if ( index == 1 ) {
+            else if ( td_index == 1 ) {
               $(td).hide();
             }
           });

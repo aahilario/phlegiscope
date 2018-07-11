@@ -147,7 +147,6 @@ $(document).ready(function() {
         'text-align' : 'center'
       })
       ;
-    var column_index = 0;
     $('#h-'+slug+' ~ table').first()
       .attr('id',slug)
       // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
@@ -156,18 +155,18 @@ $(document).ready(function() {
         $(this).click(function(event){
           $('#toc').show();
         });
-        column_index++;
         $(this).find('STRONG').each(function(sindex){
           var strong = $(this);
-          var column_specifier = column_index & 1;
           var section_text = $(strong).text();
           // Ignore instances of "See ..."
           if ( !(/^see /gi.test(section_text) ) && /^section ([0-9]{1,})/i.test(section_text) ) {
             var section_num = section_text.replace(/^section ([0-9]{1,}).*/i,"$1");
             var section_anchor = $(document.createElement('A'))
-              .attr('name','#'+slug+'-'+section_num+'-'+column_specifier)
-              //.attr('href','#'+slug+'-'+section_num+'-'+column_specifier)
-              .attr('href',parser.pathname+'#'+slug+'-'+section_num+'-'+column_specifier)
+              .data({
+                'section_num' : section_num,
+                'slug'        : slug,
+                'path'        : parser.pathname
+              })
               .css({
                 'text-decoration' : 'none',
                 'color'           : 'black',
@@ -214,13 +213,26 @@ $(document).ready(function() {
     //   So:  Do this in a timed event.
     
     // Increase reading space by collapsing middle columns
-    $('div.site-inner').find('table').each(function(){
-      var table = this;
+    jQuery.each($('div.site-inner').find('table'),function(index,table){
+      // Table context
       var table_count = $('#toc').data('table_count');
       if ( table_count > 0 ) { 
         $(table).find('tr').each(function(){
+          // TR context
           var tr = this;
-          jQuery.each($(tr).children(), function(index,td){
+          jQuery.each($(tr).children(), function(td_index,td){
+            // TD context
+            $(td).data('index',td_index);
+            // Locate and modify toc-section anchors
+            $(td).find('[class*=toc-section]').each(function(){
+              var slug = $(this).data('slug');
+              var section_num = $(this).data('section_num');
+              var path = $(this).data('path');
+              $(this)
+                .attr('name','#'+slug+'-'+section_num+'-'+td_index)
+                .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index)
+                ;
+            });
             if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
               $(td).attr('colspan','2');
             }

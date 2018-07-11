@@ -47,7 +47,6 @@ function scroll_to_anchor(event,context,prefix){
   anchor_id = local_parser.hash.replace(/#/,prefix);
   
   document.title = $(self).text();
-  window.alert('anchor_id:'+anchor_id);
   $('html, body').animate({
     scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
   });

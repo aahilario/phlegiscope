@@ -9,19 +9,22 @@ function highlight_toc_entry(id) {
 }
 
 function defer_toc_highlight(toc,interval) {
+  var matched = 0;
   clearTimeout(timer_id);
   timer_id = 0;
-  var matched = 0;
   timer_id = setTimeout(function() {
     var toc = $('#toc').data('toc');
-    var scroll_y = $(window).scrollTop().toFixed(0);
+    var window_halfheight = Number.parseInt(Number.parseInt($(window).innerHeight().toFixed(0)) / 2);
+    var scroll_y = Number.parseInt($(window).scrollTop().toFixed(0)) + window_halfheight;
+    document.title = scroll_y;
     if ( typeof toc === 'object' && toc.length > 0 )
     toc.forEach(function(toc_entry, index) {
       if ( matched > 0 ) return;
       if ( scroll_y < Number.parseInt(toc_entry.offset) ) {
         var entry = $('#toc').data('toc');
         toc_entry = toc[Number.parseInt($('#toc').data('prior'))];
-        document.title = $('#link-'+toc_entry.id).text();
+        // document.title = $('#link-'+toc_entry.id).text();
+        console.log = $('#link-'+toc_entry.id).text();
         // Set TOC trigger edge as left table edge
         try {
           $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
@@ -218,6 +221,12 @@ $(document).ready(function() {
       : /(available formats)/i.test(article_text)
         ? { 'color' : '#AAA', 'font-style' : 'italic' }
         : { 'color' : 'blue' };
+
+    // DEBUG
+    $(this).click(function(event){
+      document.title = Number.parseInt($(this).offset().top().toFixed(0));
+    });
+
     // Prepare TOC link
     $(link).attr('id','link-'+slug)
       .addClass('toc-link')
@@ -351,6 +360,11 @@ $(document).ready(function() {
             }
           }
 
+          // Highlight weasel words
+          if ( td_index > 0 ) {
+            var ww = $(td).html().replace(/(by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
+            $(td).html(ww);
+          }
 
           // Separately: If this cell contains any A tags linking to any other cell in this document,
           // we add a click handler that causes the browser to scroll that target into view.

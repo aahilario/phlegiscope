@@ -1,6 +1,7 @@
 $ = jQuery;
 var timer_id = 0;
 var enable_copy = 0;
+var intrasection_links = 0;
 
 function highlight_toc_entry(id) {
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
@@ -153,7 +154,11 @@ function set_section_cell_handler(tindex,slug,context) {
           'box-shadow'      : '0 0 0 0' 
         })
         .addClass('toc-section')
-        .text('SECTION '+section_num+'.');
+        .text('SECTION '+section_num+'.')
+        .click(function(event){
+          scroll_to_anchor(event,this,'a-');
+          event.preventDefault();
+        });
       $(anchor_container).empty().append(section_anchor);
     }
   });
@@ -257,6 +262,7 @@ $(document).ready(function() {
         'text-align' : 'center'
       })
       ;
+    // Get the first table following an h-<slug> H1
     $('#h-'+slug+' ~ table').first()
       .attr('id',slug)
       // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
@@ -298,57 +304,75 @@ $(document).ready(function() {
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
     
-    jQuery.each($('div.site-inner').find('table').children(),function(index,table){
+    jQuery.each($('div.site-inner').find('table'),function(index,table){
       // Table context
       var table_count = $('#toc').data('table_count');
-      if ( table_count > 0 ) { 
-        $(table).find('tr').each(function(){
-          // TR context
-          var tr = this;
-          jQuery.each($(tr).children(), function(td_index,td){
-            // TD context
-            $(td).data('index',td_index);
-            // Locate and modify toc-section anchors
-            $(td).find('[class*=toc-section]').each(function(){
-              var slug = $(this).data('slug');
-              var section_num = $(this).data('section_num');
-              var path = $(this).data('path');
-              $(this)
-                .attr('name',slug+'-'+section_num+'-'+td_index)
-                .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
-                .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index)
-                ;
-            });
-            if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
-              $(td).attr('colspan','2');
-            }
-            else if ( td_index == 1 ) {
-              // Increase reading space by collapsing middle columns
-              $(td).hide();
-            }
+      var slug = $(table).attr('id');
+      if ( slug === undefined ) return;
+      jQuery.each($(table).find('TR'), function(tr_index, tr) {
+      // Do not process the first table on the page (used for available formats links)
+        if ( table_count < 1 ) return;
+        // TR context
+        jQuery.each($(tr).children(), function(td_index,td){
+          // TD context
+          // 1. Locate and modify toc-section anchors
+          // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
+          // 3. Apply column span mod and collapse middle columns
+          $(td).data('index',td_index);
 
-            // Separately: If this cell contains any A tags linking to any other cell in this document,
-            // we add a click handler that causes the browser to scroll that target into view.
-            jQuery.each($(td).find('A'),function(a_index,anchor){
-              if ( $(anchor).hasClass('toc-section') ) {
-                // Do nothing
-              }
-              else if ( $(anchor).hasClass('toc-anchor') ) {
-                // Do nothing
-              }
-              else {
-                $(anchor).click(function(event){
-                  try {
-                    scroll_to_anchor(event,this,'a-');
-                  } catch(e) {
-                  }
-                  event.preventDefault();
-                });
-              }
-            });
+          // 1. Locate and modify toc-section anchors
+          $(td).find('[class*=toc-section]').each(function(){
+            var slug = $(this).data('slug');
+            var section_num = $(this).data('section_num');
+            var path = $(this).data('path');
+            $(this)
+              .attr('name',slug+'-'+section_num+'-'+td_index)
+              .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
+              .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index)
+              ;
           });
+
+          if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
+            $(td).attr('colspan','2');
+          }
+          else if ( td_index == 1 ) {
+            // Increase reading space by collapsing middle columns
+            $(td).hide();
+          }
+
+          if ( intrasection_links > 0 ) {
+            // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
+            var section_match = new RegExp('section [0-9]{1,}( of article [XIV]{1,})*','gi');
+            var matches;
+            while ((matches = section_match.exec( $(td).text() )) !== null) {
+              var offset = section_match.lastIndex - matches[0].length;
+              if (!( offset > 0 )) continue;
+              console.log("Got "+matches[0]+" @ "+(offset)+': '+$(td).text());
+            }
+          }
+
+
+          // Separately: If this cell contains any A tags linking to any other cell in this document,
+          // we add a click handler that causes the browser to scroll that target into view.
+          jQuery.each($(td).find('A'),function(a_index,anchor){
+            if ( $(anchor).hasClass('toc-section') ) {
+              // Do nothing
+            }
+            else if ( $(anchor).hasClass('toc-anchor') ) {
+              // Do nothing
+            }
+            else {
+              $(anchor).click(function(event){
+                try {
+                  scroll_to_anchor(event,this,'a-');
+                } catch(e) {}
+                event.preventDefault();
+              });
+            }
+          });
+
         });
-      }
+      });
       table_count++;
       $('#toc').data('table_count',table_count);
     });

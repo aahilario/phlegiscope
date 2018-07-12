@@ -215,17 +215,13 @@ $(document).ready(function() {
     var slug = article_text.toLowerCase().replace(/\n/,' ').replace(/[^a-z ]/g,' ').replace(/[ ]{1,}/,' ').replace(/[ ]*$/,'').replace(/[ ]{1,}/g,'-');
     var link = document.createElement('A');
     var anchor = document.createElement('A');
+
     // Set link color if the article includes "draft" or "new" 
     var link_color = /(draft|new)/i.test(article_text) 
       ? { 'color' : '#F01', 'font-style' : 'italic' } 
       : /(available formats)/i.test(article_text)
         ? { 'color' : '#AAA', 'font-style' : 'italic' }
         : { 'color' : 'blue' };
-
-    // DEBUG
-    //$(this).click(function(event){
-    //  document.title = Number.parseInt($(this).offset().top().toFixed(0));
-    //});
 
     // Prepare TOC link
     $(link).attr('id','link-'+slug)
@@ -250,6 +246,7 @@ $(document).ready(function() {
     };
     // Attach the TOC metadata to the TOC, sure.
     $('#toc').data('toc', toc);
+
     // Derive anchor target
     $(anchor).attr('name',slug)
       .attr('id','a-'+slug)
@@ -262,6 +259,7 @@ $(document).ready(function() {
       .attr('href',parser.pathname+'#'+slug)
       .append('&nbsp;')
       .addClass('toc-anchor');
+
     // Add ID attribute to this H1 tag, replace text, and add ID to table body. 
     // Also apply formatting.
     $(this)
@@ -271,6 +269,7 @@ $(document).ready(function() {
         'text-align' : 'center'
       })
       ;
+
     // Get the first table following an h-<slug> H1
     $('#h-'+slug+' ~ table').first()
       .attr('id',slug)
@@ -285,8 +284,7 @@ $(document).ready(function() {
         set_section_cell_handler(tindex,slug,$(this))
       });
 
-    // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
-    // Replace references to articles ("in Article X...") with links to local anchors.
+    // TODO: Replace references to articles ("in Article X...") with links to local anchors.
 
     // Append Article link (and an explicit line break) to the TOC container 
     $(tocdiv).append(link);
@@ -310,7 +308,7 @@ $(document).ready(function() {
   $('#toc').append(privacy_policy);
 
   setTimeout(function(){
-    // Fix up references to existing sections: Add event handler for a click on links that lead to local anchors.
+    // FIXME: Fix up references to existing sections: Add event handler for a click on links that lead to local anchors.
     // Note:  This is potentially an O(n^n) operation.  
     //   Every section cell can refer to every other section's anchor.  
     //   If every section refers to every other, no self-referencing, that's a O(n(n-1)*n) = O(n^3-n^2).
@@ -329,9 +327,12 @@ $(document).ready(function() {
         // TR context
         jQuery.each($(tr).children(), function(td_index,td){
           // TD context
+          // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
           // 1. Locate and modify toc-section anchors
           // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
           // 3. Apply column span mod and collapse middle columns
+
+          // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
           $(td).data('index',td_index);
 
           // 1. Locate and modify toc-section anchors

@@ -16,7 +16,6 @@ function defer_toc_highlight(toc,interval) {
     var toc = $('#toc').data('toc');
     var window_halfheight = Number.parseInt(Number.parseInt($(window).innerHeight().toFixed(0)) / 2);
     var scroll_y = Number.parseInt($(window).scrollTop().toFixed(0)) + window_halfheight;
-    // document.title = scroll_y;
     if ( typeof toc === 'object' && toc.length > 0 )
     toc.forEach(function(toc_entry, index) {
       if ( matched > 0 ) return;
@@ -24,7 +23,6 @@ function defer_toc_highlight(toc,interval) {
         var entry = $('#toc').data('toc');
         toc_entry = toc[Number.parseInt($('#toc').data('prior'))];
         document.title = $('#link-'+toc_entry.id).text();
-        // console.log = $('#link-'+toc_entry.id).text();
         // Set TOC trigger edge as left table edge
         try {
           $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
@@ -90,49 +88,49 @@ function replace_section_x_text(context) {
 function set_section_cell_handler(tindex,slug,context) {
   // Experimental copy to clipboard
   var self = $(context);
-    $(context).click(function(event){
-      if ( enable_copy > 0 ) {
-        var self = this;
-        var textarea = document.createElement('TEXTAREA');
-        var innertext = {};
+  $(context).click(function(event){
+    if ( enable_copy > 0 ) {
+      var self = this;
+      var textarea = document.createElement('TEXTAREA');
+      var innertext = {};
 
-        try {
-          innertext = $(self).data('innertext');
-        }
-        catch (e) {}
-        if ( undefined === innertext ) innertext = {}; 
-        if ( innertext.length > 0 ) {
-          $(self).empty().append(innertext);
-          $(self).data('innertext',{});
-        }
-        else {
-          $(self).data('innertext',$(self).text());
-          $(textarea).text($(self).text())
-            .css({
-              'padding'          : 0,
-              'margin'           : 0,
-              'display'          : 'block',
-              'height'           : ($(self).innerHeight()-4)+'px',
-              'width'            : ($(self).innerWidth()-2)+'px',
-              'clear'            : 'both',
-              'background-color' : 'transparent',
-              'font-size'        : 'inherit',
-              'color'            : 'black !important',
-              'scroll'           : 'none',
-              'overflow'         : 'auto',
-              'resize'           : 'none',
-              'border'           : '0px solid',
-            });
-          $(self).empty().append(textarea);
-          $(self).children().first().focus().select();
-          document.execCommand("copy");
-          setTimeout(function(){
-            $(self).click();
-          },50);
-        }
+      try {
+        innertext = $(self).data('innertext');
       }
-      $('#toc').show();
-    });
+      catch (e) {}
+      if ( undefined === innertext ) innertext = {}; 
+      if ( innertext.length > 0 ) {
+        $(self).empty().append(innertext);
+        $(self).data('innertext',{});
+      }
+      else {
+        $(self).data('innertext',$(self).text());
+        $(textarea).text($(self).text())
+          .css({
+            'padding'          : 0,
+            'margin'           : 0,
+            'display'          : 'block',
+            'height'           : ($(self).innerHeight()-4)+'px',
+            'width'            : ($(self).innerWidth()-2)+'px',
+            'clear'            : 'both',
+            'background-color' : 'transparent',
+            'font-size'        : 'inherit',
+            'color'            : 'black !important',
+            'scroll'           : 'none',
+            'overflow'         : 'auto',
+            'resize'           : 'none',
+            'border'           : '0px solid',
+          });
+        $(self).empty().append(textarea);
+        $(self).children().first().focus().select();
+        document.execCommand("copy");
+        setTimeout(function(){
+          $(self).click();
+        },50);
+      }
+    }
+    $('#toc').show();
+  });
   // Replace Section highlight prefix ("SECTION XXX...") with anchor.
   $(self).find('STRONG').each(function(sindex){
     var anchor_container = $(this);
@@ -322,8 +320,6 @@ $(document).ready(function() {
       var slug = $(table).attr('id');
       if ( slug === undefined ) return;
       jQuery.each($(table).find('TR'), function(tr_index, tr) {
-      // Do not process the first table on the page (used for available formats links)
-        if ( table_count < 1 ) return;
         // TR context
         jQuery.each($(tr).children(), function(td_index,td){
           // TD context

@@ -276,7 +276,12 @@ $(document).ready(function() {
       .attr('id',slug)
       // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
       // and turn those string fragments into HTML anchors.
+
+      // First, highlight weasel words
+      // Replacing HTML damages DOM attributes
       .find('TD').each(function(tindex){
+        var ww = $(this).html().replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
+        $(this).html(ww);
         set_section_cell_handler(tindex,slug,$(this))
       });
 
@@ -358,12 +363,6 @@ $(document).ready(function() {
               if (!( offset > 0 )) continue;
               console.log("Got "+matches[0]+" @ "+(offset)+': '+$(td).text());
             }
-          }
-
-          // Highlight weasel words
-          if ( td_index > 0 ) {
-            var ww = $(td).html().replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
-            $(td).html(ww);
           }
 
           // Separately: If this cell contains any A tags linking to any other cell in this document,

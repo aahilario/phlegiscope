@@ -1,5 +1,6 @@
 $ = jQuery;
 var timer_id = 0;
+var enable_copy = 0;
 
 function highlight_toc_entry(id) {
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
@@ -51,6 +52,85 @@ function scroll_to_anchor(event,context,prefix){
     scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
   });
   document.location = $('#'+anchor_id).attr('href');
+}
+
+function replace_section_x_text(context) {
+}
+
+function set_section_cell_handler(tindex,slug,context) {
+  // Experimental copy to clipboard
+  var self = $(context);
+  if ( enable_copy > 0 ) {
+    $(context).click(function(event){
+      var self = this;
+      var textarea = document.createElement('TEXTAREA');
+      var innertext = {};
+
+      try {
+        innertext = $(self).data('innertext');
+      }
+      catch (e) {}
+      if ( undefined === innertext ) innertext = {}; 
+      if ( innertext.length > 0 ) {
+        $(self).empty().append(innertext);
+        $(self).data('innertext',{});
+      }
+      else {
+        $(self).data('innertext',$(self).text());
+        $(textarea).text($(self).text())
+          .css({
+            'padding'          : 0,
+            'margin'           : 0,
+            'display'          : 'block',
+            'height'           : ($(self).innerHeight()-4)+'px',
+            'width'            : ($(self).innerWidth()-2)+'px',
+            'clear'            : 'both',
+            'background-color' : 'transparent',
+            'font-size'        : 'inherit',
+            'color'            : 'black !important',
+            'scroll'           : 'none',
+            'overflow'         : 'auto',
+            'resize'           : 'none',
+            'border'           : '0px solid',
+          });
+        $(self).empty().append(textarea);
+        $(self).children().first().focus().select();
+        document.execCommand("copy");
+        setTimeout(function(){
+          $(self).click();
+        },50);
+      }
+      $('#toc').show();
+    });
+  }
+  // Replace Section highlight prefix ("SECTION XXX...") with anchor.
+  $(self).find('STRONG').each(function(sindex){
+    var anchor_container = $(this);
+    var anchor_text = $(anchor_container).text();
+    var parser = document.createElement('A');
+
+    parser.href = document.location;
+
+    // Ignore instances of "See ..."
+    if ( !(/^see /gi.test(anchor_text) ) && /^section ([0-9]{1,})/i.test(anchor_text) ) {
+      var section_num = anchor_text.replace(/^section ([0-9]{1,}).*/i,"$1");
+      var section_anchor = $(document.createElement('A'))
+        .data({
+          'section_num' : section_num,
+          'slug'        : slug,
+          'path'        : parser.pathname
+        })
+        .css({
+          'text-decoration' : 'none',
+          'color'           : 'black',
+          'padding-top'     : '10px',
+          'box-shadow'      : '0 0 0 0' 
+        })
+        .addClass('toc-section')
+        .text('SECTION '+section_num+'.');
+      $(anchor_container).empty().append(section_anchor);
+    }
+  });
 }
 
 $(document).ready(function() {
@@ -156,36 +236,12 @@ $(document).ready(function() {
       // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
       // and turn those string fragments into HTML anchors.
       .find('TD').each(function(tindex){
-        $(this).click(function(event){
-          $('#toc').show();
-        });
-        $(this).find('STRONG').each(function(sindex){
-          var strong = $(this);
-          var section_text = $(strong).text();
-          // Ignore instances of "See ..."
-          if ( !(/^see /gi.test(section_text) ) && /^section ([0-9]{1,})/i.test(section_text) ) {
-            var section_num = section_text.replace(/^section ([0-9]{1,}).*/i,"$1");
-            var section_anchor = $(document.createElement('A'))
-              .data({
-                'section_num' : section_num,
-                'slug'        : slug,
-                'path'        : parser.pathname
-              })
-              .css({
-                'text-decoration' : 'none',
-                'color'           : 'black',
-                'padding-top'     : '10px',
-                'box-shadow'      : '0 0 0 0' 
-              })
-              .addClass('toc-section')
-              .text('SECTION '+section_num+'.');
-            $(strong).empty().append(section_anchor);
-          }
-        });
+        set_section_cell_handler(tindex,slug,$(this))
       });
 
     // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
     // Replace references to articles ("in Article X...") with links to local anchors.
+
     // Append Article link (and an explicit line break) to the TOC container 
     $(tocdiv).append(link);
     $(tocdiv).append(document.createElement('BR'));

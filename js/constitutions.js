@@ -362,7 +362,7 @@ $(document).ready(function() {
 
           // Highlight weasel words
           if ( td_index > 0 ) {
-            var ww = $(td).html().replace(/(by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
+            var ww = $(td).html().replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
             $(td).html(ww);
           }
 

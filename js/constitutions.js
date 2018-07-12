@@ -297,13 +297,31 @@ $(document).ready(function() {
 
   // Since the site will only be serving the Constitution for a while,
   // best include the privacy policy link in the link box.
+  var aux_link = {
+    'white-space'  : 'nowrap',
+    'display'      : 'block',
+    'float'        : 'left',
+    'padding-left' : '5px',
+    'width'        : '100%',
+    'clear'        : 'both',
+    'color'        : '#AAA'
+  }
   var privacy_policy = $(document.createElement('EM')).css({'margin-top': '10px'}).append($(document.createElement('A'))
-    .css({'color' : '#AAA'})
+    .css(aux_link)
     .attr('href','/privacy-policy/')
     .attr('target','_target')
     .text('Privacy Policy'))
     ;
+  var representative_map = $(document.createElement('EM')).css({'margin-top': '10px'}).append($(document.createElement('A'))
+    .css(aux_link)
+    .attr('href','/representatives-by-map/')
+    .attr('target','_target')
+    .text('Representatives'))
+    ;
+
   $('#toc').append(privacy_policy);
+  $('#toc').append(document.createElement('BR'));
+  $('#toc').append(representative_map);
 
   setTimeout(function(){
     // FIXME: Fix up references to existing sections: Add event handler for a click on links that lead to local anchors.

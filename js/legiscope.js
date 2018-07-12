@@ -1,3 +1,4 @@
+var $ = jQuery;
 var Spider = {};
 var hotsearch_timer = null;
 
@@ -843,3 +844,14 @@ function initialize_traversable(c) {
 }
 
 
+$(document).ready(function() {
+  jQuery.each($('#map'),function(map_i, map){
+    // Each map boundary is represented by a path 
+    $(map).find('path').each(function(path_i){
+      var path = this;
+      $(path).click(function(event){
+        document.title = $(this).attr('title').replace(/^title-/i.'');
+      });
+    });
+  });
+});

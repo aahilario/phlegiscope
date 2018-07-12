@@ -43,14 +43,42 @@ function scroll_to_anchor(event,context,prefix){
   var self = context;
   var local_parser = document.createElement('A');
   var anchor_id;
+  var parent_td;
 
   local_parser.href = $(self).attr('href');
   anchor_id = local_parser.hash.replace(/#/,prefix);
   
   document.title = $(self).text();
-  $('html, body').animate({
-    scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
+  $('#'+anchor_id).parents('TD').first().each(function(){
+    var self = this;
+    var offset_top = $(self).offset().top.toFixed(0);
+    var parent_offset_top = $(self).parents('TR').offset().top.toFixed(0);
+    
+    if (parent_offset_top === undefined) {
+      $('html, body').animate({
+        scrollTop: $(self).offset().top.toFixed(0)
+      });
+    }
+    else {
+      $(self).parents('TR').first().each(function(){
+        var self = this;
+        // FIXME: Implement YFE 
+        // $(self).css({'background-color' : '#DED00D'});
+        event.stopPropagation();
+        event.preventDefault();
+        $('html, body').animate({
+          scrollTop: ($(self).offset().top - 20).toFixed(0),
+          backgroundColor: '#FFFFFF'
+        });
+      });
+    }
+
   });
+  if ($('#'+anchor_id).parents('TR').length === 0) {
+    $('html, body').animate({
+      scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
+    });
+  }
   document.location = $('#'+anchor_id).attr('href');
 }
 

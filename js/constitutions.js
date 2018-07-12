@@ -64,8 +64,6 @@ function scroll_to_anchor(event,context,prefix){
         var self = this;
         // FIXME: Implement YFE 
         // $(self).css({'background-color' : '#DED00D'});
-        event.stopPropagation();
-        event.preventDefault();
         $('html, body').animate({
           scrollTop: ($(self).offset().top - 20).toFixed(0),
           backgroundColor: '#FFFFFF'
@@ -88,49 +86,49 @@ function replace_section_x_text(context) {
 function set_section_cell_handler(tindex,slug,context) {
   // Experimental copy to clipboard
   var self = $(context);
-  if ( enable_copy > 0 ) {
     $(context).click(function(event){
-      var self = this;
-      var textarea = document.createElement('TEXTAREA');
-      var innertext = {};
+      if ( enable_copy > 0 ) {
+        var self = this;
+        var textarea = document.createElement('TEXTAREA');
+        var innertext = {};
 
-      try {
-        innertext = $(self).data('innertext');
-      }
-      catch (e) {}
-      if ( undefined === innertext ) innertext = {}; 
-      if ( innertext.length > 0 ) {
-        $(self).empty().append(innertext);
-        $(self).data('innertext',{});
-      }
-      else {
-        $(self).data('innertext',$(self).text());
-        $(textarea).text($(self).text())
-          .css({
-            'padding'          : 0,
-            'margin'           : 0,
-            'display'          : 'block',
-            'height'           : ($(self).innerHeight()-4)+'px',
-            'width'            : ($(self).innerWidth()-2)+'px',
-            'clear'            : 'both',
-            'background-color' : 'transparent',
-            'font-size'        : 'inherit',
-            'color'            : 'black !important',
-            'scroll'           : 'none',
-            'overflow'         : 'auto',
-            'resize'           : 'none',
-            'border'           : '0px solid',
-          });
-        $(self).empty().append(textarea);
-        $(self).children().first().focus().select();
-        document.execCommand("copy");
-        setTimeout(function(){
-          $(self).click();
-        },50);
+        try {
+          innertext = $(self).data('innertext');
+        }
+        catch (e) {}
+        if ( undefined === innertext ) innertext = {}; 
+        if ( innertext.length > 0 ) {
+          $(self).empty().append(innertext);
+          $(self).data('innertext',{});
+        }
+        else {
+          $(self).data('innertext',$(self).text());
+          $(textarea).text($(self).text())
+            .css({
+              'padding'          : 0,
+              'margin'           : 0,
+              'display'          : 'block',
+              'height'           : ($(self).innerHeight()-4)+'px',
+              'width'            : ($(self).innerWidth()-2)+'px',
+              'clear'            : 'both',
+              'background-color' : 'transparent',
+              'font-size'        : 'inherit',
+              'color'            : 'black !important',
+              'scroll'           : 'none',
+              'overflow'         : 'auto',
+              'resize'           : 'none',
+              'border'           : '0px solid',
+            });
+          $(self).empty().append(textarea);
+          $(self).children().first().focus().select();
+          document.execCommand("copy");
+          setTimeout(function(){
+            $(self).click();
+          },50);
+        }
       }
       $('#toc').show();
     });
-  }
   // Replace Section highlight prefix ("SECTION XXX...") with anchor.
   $(self).find('STRONG').each(function(sindex){
     var anchor_container = $(this);

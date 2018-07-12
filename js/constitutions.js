@@ -16,15 +16,15 @@ function defer_toc_highlight(toc,interval) {
     var toc = $('#toc').data('toc');
     var window_halfheight = Number.parseInt(Number.parseInt($(window).innerHeight().toFixed(0)) / 2);
     var scroll_y = Number.parseInt($(window).scrollTop().toFixed(0)) + window_halfheight;
-    document.title = scroll_y;
+    // document.title = scroll_y;
     if ( typeof toc === 'object' && toc.length > 0 )
     toc.forEach(function(toc_entry, index) {
       if ( matched > 0 ) return;
       if ( scroll_y < Number.parseInt(toc_entry.offset) ) {
         var entry = $('#toc').data('toc');
         toc_entry = toc[Number.parseInt($('#toc').data('prior'))];
-        // document.title = $('#link-'+toc_entry.id).text();
-        console.log = $('#link-'+toc_entry.id).text();
+        document.title = $('#link-'+toc_entry.id).text();
+        // console.log = $('#link-'+toc_entry.id).text();
         // Set TOC trigger edge as left table edge
         try {
           $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
@@ -223,9 +223,9 @@ $(document).ready(function() {
         : { 'color' : 'blue' };
 
     // DEBUG
-    $(this).click(function(event){
-      document.title = Number.parseInt($(this).offset().top().toFixed(0));
-    });
+    //$(this).click(function(event){
+    //  document.title = Number.parseInt($(this).offset().top().toFixed(0));
+    //});
 
     // Prepare TOC link
     $(link).attr('id','link-'+slug)

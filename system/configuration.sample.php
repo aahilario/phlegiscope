@@ -67,8 +67,8 @@ define('DELETE_UNREACHABLE_URLS',FALSE);
 define('DBTYPE', 'Mysql');
 define('DBHOST', '127.0.0.1');
 define('DBUSER', 'root');
-define('DBPASS', 'suvorov');
-define('DBNAME', 'legiscope');
+define('DBPASS', '');
+define('DBNAME', '');
 
 // Model handling
 define('DISABLE_CLASS_AUTOGENERATE',FALSE);

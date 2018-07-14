@@ -25,7 +25,7 @@ class UrlUrlJoin extends ModelJoin {
     }
   }
 
-  function fetch($a, $b) {
+  function fetch($a, $b = NULL) {
     // Translates to where(array('AND' => array('a' => $a, 'b' => $b) ))
     return parent::fetch(array(
       'left_url' => $a,
@@ -37,13 +37,13 @@ class UrlUrlJoin extends ModelJoin {
     return parent::fetch($a, 'left_url');
   }
 
-  function stow($a, $b) {
+  function stow($a = NULL, $b = NULL) {
     $a = intval($a);
     $b = intval($b);
     if ( $a > 0 && $b > 0 ) {
       $this->set_left_url($a);
       $this->set_right_url($b);
-      return parent::stow();
+      return parent::stow($a, $b);
     }
     return FALSE;
   }

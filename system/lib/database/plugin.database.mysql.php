@@ -33,8 +33,8 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
   function __destruct() {
   }
 
-  public function connect($dbhost, $dbuser, $dbpass, $dbname = NULL) {
-    if ( !$this->real_connect($dbhost, $dbuser, $dbpass, $dbname) ) {
+  public function connect($dbhost = NULL, $dbuser = NULL, $dbpass = NULL, $dbname = NULL, $port = NULL, $socket = NULL) {
+    if ( !$this->real_connect($dbhost, $dbuser, $dbpass, $dbname, $port, $socket) ) {
       $error = mysqli_connect_errno();
       $errstr = mysqli_connect_error();
       throw new Exception("Error {$error}: Unable to connect to database ({$errstr})");
@@ -160,7 +160,7 @@ class MysqlDatabasePlugin extends mysqli /* implements DatabasePlugin */ {
     throw new Exception(__METHOD__.":Unimplemented");
   }
 
-  public function commit() {
+  public function commit($flags = NULL, $name = NULL) {
     throw new Exception(__METHOD__.":Unimplemented");
   }
 

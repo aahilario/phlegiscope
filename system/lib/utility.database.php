@@ -1626,7 +1626,7 @@ EOS;
     return property_exists($this,'id') ? intval($this->id) > 0 : FALSE;
   }/*}}}*/
 
-  function stow() {/*{{{*/
+  function stow($a = NULL, $b = NULL) {/*{{{*/
     return is_null($this->id)
       ? $this->insert()
       : $this->update()

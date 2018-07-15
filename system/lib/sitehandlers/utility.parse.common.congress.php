@@ -174,7 +174,7 @@ class CongressCommonParseUtility extends LegislationCommonParseUtility {/*{{{*/
     return TRUE;
   }/*}}}*/
 
-  function ru_div_open(& $parser, & $attrs, $tagname ) {/*{{{*/
+  function ru_div_open(& $parser, & $attrs, & $tagname ) {/*{{{*/
     $this->pop_tagstack();
     $this->current_tag['cdata'] = array();
     $this->push_tagstack();
@@ -1068,7 +1068,7 @@ EOH
 
   /** Rejected tags **/
 
-  function ru_link_open(& $parser, & $attrs, $tag) {/*{{{*/
+  function ru_link_open(& $parser, & $attrs) {/*{{{*/
     return TRUE;
   }/*}}}*/
   function ru_link_cdata(& $parser, & $cdata) {/*{{{*/

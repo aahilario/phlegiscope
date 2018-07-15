@@ -80,7 +80,7 @@ class RepublicActDocumentModel extends SenateDocCommonDocumentModel {
   function & set_content($v) { $this->content_blob = $v; return $this; }
   function get_content($v = NULL) { if (!is_null($v)) $this->set_content($v); return $this->content_blob; }
 
-  function non_session_linked_document_stow($document) {/*{{{*/
+  function non_session_linked_document_stow($document, $allow_update = false) {/*{{{*/
     // Override parent::non_session_linked_document_stow
     unset($document['text']);
     // $this->recursive_dump($document,"(marker) --");

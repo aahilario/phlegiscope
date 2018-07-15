@@ -182,88 +182,89 @@ class CongressMemberBioParseUtility extends CongressCommonParseUtility {
     if ( $debug_method )
     $this->recursive_dump($bill,'(marker) - + + Bill ');
 
-    if (0) if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
-      // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
-      foreach ( $container as $tag ) {/*{{{*/
+    if(0) {
+      if ( !$signature['a'] && $signature['b'] ) {/*{{{*/// Bills
+        // TODO: Consolidate this code with CongressGovPh::seek_postparse_d_billstext 
+        foreach ( $container as $tag ) {/*{{{*/
 
-        if ( !is_null(array_element($tag,'prune-to'))) {
-          array_push($bills, $tag);
-          continue;
-        }
-
-        if ( array_key_exists('text',$tag) && 1 == preg_match($this->get_document_sn_regex(), $tag['text']) ) {/*{{{*/
-
-          if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - Found {$tag['text']}");
-
-          if ( 0 < count($bills) ) {
-            $bill = array_pop($bills);
-            array_push($bills, $bill);
+          if ( !is_null(array_element($tag,'prune-to'))) {
+            array_push($bills, $tag);
+            continue;
           }
-          array_push($bills,array(
-            'bill'             => $tag['text'],
-            'bill-url'         => NULL,
-            'bill-engrossed'   => NULL,
-            'history'          => NULL,
-            'bill-title'       => NULL,
-            'principal-author' => NULL,
-            'status'           => NULL,
-            'ref'              => NULL,
-          ));
-          continue;
-        }/*}}}*/
 
-        if ( array_key_exists('image', $tag) ) continue;
+          if ( array_key_exists('text',$tag) && 1 == preg_match($this->get_document_sn_regex(), $tag['text']) ) {/*{{{*/
 
-        if ( array_key_exists('url', $tag) && ('[HISTORY]' == strtoupper(trim($tag['text']))) ) {/*{{{*/
-          $clickevent = array_element($tag,'onclick');
-          if ( is_null($clickevent) ) continue;
-          $displayWindow_regex = "display_Window\('([^']*)','([0-9]*)'\)";
-          $matches = array();
-          if ( !(1 == preg_match("@{$displayWindow_regex}@i", $clickevent, $matches ) ) ) continue;
-          if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) ) {
-            $bill = array_pop($bills);
-            $matches = $matches[1]; // The URL itself.
-            $fixurl = array('url' => $matches);
-            $tag['url'] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
-            if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Normalized {$tag['text']} URL to {$tag['url']}");
+            if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - - Found {$tag['text']}");
+
+            if ( 0 < count($bills) ) {
+              $bill = array_pop($bills);
+              array_push($bills, $bill);
+            }
+            array_push($bills,array(
+              'bill'             => $tag['text'],
+              'bill-url'         => NULL,
+              'bill-engrossed'   => NULL,
+              'history'          => NULL,
+              'bill-title'       => NULL,
+              'principal-author' => NULL,
+              'status'           => NULL,
+              'ref'              => NULL,
+            ));
+            continue;
+          }/*}}}*/
+
+          if ( array_key_exists('image', $tag) ) continue;
+
+          if ( array_key_exists('url', $tag) && ('[HISTORY]' == strtoupper(trim($tag['text']))) ) {/*{{{*/
+            $clickevent = array_element($tag,'onclick');
+            if ( is_null($clickevent) ) continue;
+            $displayWindow_regex = "display_Window\('([^']*)','([0-9]*)'\)";
+            $matches = array();
+            if ( !(1 == preg_match("@{$displayWindow_regex}@i", $clickevent, $matches ) ) ) continue;
+            if ( is_array($this->page_url_parts) && (0 < count($this->page_url_parts)) ) {
+              $bill = array_pop($bills);
+              $matches = $matches[1]; // The URL itself.
+              $fixurl = array('url' => $matches);
+              $tag['url'] = UrlModel::normalize_url($this->page_url_parts, $fixurl);
+              if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Normalized {$tag['text']} URL to {$tag['url']}");
+              $bill['history'] = $tag['url'];
+              array_push($bills,$bill);
+            }
+            continue;
+          }/*}}}*/
+
+          $bill = array_pop($bills);
+          if ( is_null(array_element($bill,'history')) && array_key_exists('url',$tag) && (1 == preg_match("@(history of bill)@i", $tag["title"])) ) {
             $bill['history'] = $tag['url'];
-            array_push($bills,$bill);
+            array_push($bills, $bill); continue;
           }
-          continue;
+          if ( is_null(array_element($bill,'bill-engrossed')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill)@i", $tag["title"])) ) {
+            $bill['bill-engrossed'] = $tag['url'];
+            array_push($bills, $bill); continue;
+          }
+          if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill as filed)@i", $tag["title"])) ) {
+            $bill['bill-url'] = $tag['url'];
+            array_push($bills, $bill); continue;
+          }
+          if ( is_null(array_element($bill,'ref')) && array_key_exists('text',$tag) && ( 1 == preg_match('@^\[(.*)\]$@', trim($tag['text'])) ) ) {
+            $bill['ref'] = $tag['text'];
+            array_push($bills, $bill); continue;
+          }
+          if ( is_null(array_element($bill,'status')) && array_key_exists('text', $tag) && (1 == preg_match('@^Status:@i',$tag['text'])) ) {
+            $bill['status'] = preg_replace('@^(Status:)([ ]*)@i','',$tag['text']);
+            array_push($bills, $bill); continue;
+          }
+          if ( is_null(array_element($bill,'principal-author')) && array_key_exists('text', $tag) && (1 == preg_match('@^Principal author:@i',$tag['text'])) ) {
+            $bill['principal-author'] = preg_replace('@^(Principal author:)([ ]*)@i','',$tag['text']);
+            array_push($bills, $bill); continue;
+          }
+          if ( is_null(array_element($bill,'bill-title')) && array_key_exists('text', $tag) ) {
+            $bill['bill-title'] = $tag['text'];
+          }
+          array_push($bills, $bill);
         }/*}}}*/
-
-        $bill = array_pop($bills);
-        if ( is_null(array_element($bill,'history')) && array_key_exists('url',$tag) && (1 == preg_match("@(history of bill)@i", $tag["title"])) ) {
-          $bill['history'] = $tag['url'];
-          array_push($bills, $bill); continue;
-        }
-        if ( is_null(array_element($bill,'bill-engrossed')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill)@i", $tag["title"])) ) {
-          $bill['bill-engrossed'] = $tag['url'];
-          array_push($bills, $bill); continue;
-        }
-        if ( is_null(array_element($bill,'bill-url')) && array_key_exists('url',$tag) && (1 == preg_match("@(text of bill as filed)@i", $tag["title"])) ) {
-          $bill['bill-url'] = $tag['url'];
-          array_push($bills, $bill); continue;
-        }
-        if ( is_null(array_element($bill,'ref')) && array_key_exists('text',$tag) && ( 1 == preg_match('@^\[(.*)\]$@', trim($tag['text'])) ) ) {
-          $bill['ref'] = $tag['text'];
-          array_push($bills, $bill); continue;
-        }
-        if ( is_null(array_element($bill,'status')) && array_key_exists('text', $tag) && (1 == preg_match('@^Status:@i',$tag['text'])) ) {
-          $bill['status'] = preg_replace('@^(Status:)([ ]*)@i','',$tag['text']);
-          array_push($bills, $bill); continue;
-        }
-        if ( is_null(array_element($bill,'principal-author')) && array_key_exists('text', $tag) && (1 == preg_match('@^Principal author:@i',$tag['text'])) ) {
-          $bill['principal-author'] = preg_replace('@^(Principal author:)([ ]*)@i','',$tag['text']);
-          array_push($bills, $bill); continue;
-        }
-        if ( is_null(array_element($bill,'bill-title')) && array_key_exists('text', $tag) ) {
-          $bill['bill-title'] = $tag['text'];
-        }
-        array_push($bills, $bill);
       }/*}}}*/
-      continue;
-    }/*}}}*/
+    }
 
     $this->total_bills_parsed++;
 

@@ -296,13 +296,13 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 
   if (typeof data == 'null') return true;
 
-  var linkset = data && data.error ? data.message : data.linkset;
-  var referrer = data.referrer;
-  var url = data.url;
-  var contenttype = data.contenttype ? data.contenttype : '';
-  var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
+  var linkset = data && data.error ? data.message : ( data && data.linkset ? data.linkset : {} );
+  var referrer = data && data.referrer ? data.referrer : null
+  var url = data && data.url ? data.url : null;
+  var contenttype = data && data.contenttype ? data.contenttype : '';
+  var retainoriginal = data && data.retainoriginal ? data.retainoriginal : false;
   var rootpage = data && data.rootpage ? data.rootpage : false;
-  var targetframe = data.targetframe ? data.targetframe : '[class*=alternate-content]'; 
+  var targetframe = data && data.targetframe ? data.targetframe : '[class*=alternate-content]'; 
 
   if ( data && data.clicked ) {
      jQuery('a').removeClass('clicked');
@@ -363,7 +363,7 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
  	else {
     if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
     else
-    replace_contentof(rootpage ? 'processed' : 'content', data.content);
+    replace_contentof(rootpage ? 'processed' : 'content', data && data.content ? data.content : '');
     if ( /^text\/html/.test(contenttype) ) {
       if ( linkset && linkset.length > 0 ) {
         replace_contentof('linkset', linkset);
@@ -378,12 +378,13 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
     );
     replace_contentof('currenturl',
       jQuery(document.createElement('A'))
-      .attr('href', data.url)
+      .attr('href', data && data.url ? data.url : '')
       .attr('target','blank')
 			.attr('id','currenturl-reflexive')
-      .append(data.url)
+      .append(data && data.url ? data.url : 'No Link')
     );
     initialize_authentication_inputs();
+    if ( data && data.defaulttab )
     jQuery('#tab_'+data.defaulttab).click();
   }
   initialize_remote_links(); 
@@ -580,9 +581,9 @@ function initialize_hot_search(s,url) {
         }),
         success  : (function(data, httpstatus, jqueryXHR) {
           var count = 0; 
-          var records = data.records ? data.records : [];
-          var returns = data.count ? data.count : 0;
-          var retainoriginal = data.retainoriginal ? data.retainoriginal : false;
+          var records = data && data.records ? data.records : [];
+          var returns = data && data.count ? data.count : 0;
+          var retainoriginal = data && data.retainoriginal ? data.retainoriginal : false;
           if ( data && data.hoststats ) set_hoststats(data.hoststats);
           if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
           if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);

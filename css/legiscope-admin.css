@@ -570,7 +570,7 @@ div.legiscope-admin:hover {
 .legiscope-admin-maincontent {
   clip: auto;
   overflow: hidden;
-  clear: none;
+  clear: left;
   float: left;
   width: 49%;
   min-height: 640px;
@@ -578,6 +578,7 @@ div.legiscope-admin:hover {
 .legiscope-admin-subcontent {
   clear: none;
   float: right;
+  overflow: hidden;
   width: 49%;
   min-height: 640px;
 }

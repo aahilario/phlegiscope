@@ -5,6 +5,7 @@ class LegiscopeBase extends SystemUtility {
   protected static $hostmodel = NULL;
   public static $singleton = NULL;
   public static $user_id = NULL;
+  public static $enable_debug = FALSE;
 
   var $remote_host = NULL;
   var $user_agent  = NULL;
@@ -22,6 +23,7 @@ class LegiscopeBase extends SystemUtility {
     $this->seek_cache_filename = UrlModel::get_url_hash($target_url);
     $this->seek_cache_filename = SYSTEM_BASE . "/../cache/seek-{$this->subject_host_hash}-{$this->seek_cache_filename}.generated";
     $this->enable_proxy        = $this->filter_post('proxy','false') == 'true';
+    self::$enable_debug        = $this->filter_post('debug','false') == 'true';
     $this->register_derived_class();
   }/*}}}*/
 
@@ -37,16 +39,15 @@ class LegiscopeBase extends SystemUtility {
     // defining class SubDomainPh (derived from (www.)*sub.domain.tld),
     // then that class (which extends LegiscopeBase) is generated, 
     // instead of LegiscopeBase.
-    $debug_method = FALSE;
     $request_url = filter_post('url');
     $hostname    = @UrlModel::parse_url($request_url, PHP_URL_HOST);
     $matches     = array();
     $base_regex  = '/^(www\.)?(([^.]+[.]?)*)/i';
     $matchresult = preg_match_all($base_regex, $hostname, $matches);
-    if ($debug_method)  syslog( LOG_INFO, "----------------- (" . gettype($matchresult) . " {$matchresult})" . print_r($matches,TRUE));
+    if (self::$enable_debug)  syslog( LOG_INFO, "----------------- (" . gettype($matchresult) . " {$matchresult})" . print_r($matches,TRUE));
     $initcaps    = create_function('$a', 'return ucfirst($a);');
     $nameparts   = array_map($initcaps, explode('.', $matches[2][0]));
-    if ($debug_method)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
+    if (self::$enable_debug)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
     if ( count($nameparts > 3) ) {
       krsort($nameparts);
       $nameparts = array_values($nameparts);
@@ -54,7 +55,7 @@ class LegiscopeBase extends SystemUtility {
       krsort($nameparts);
       $nameparts = array_values($nameparts);
     }
-    if ($debug_method)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
+    if (self::$enable_debug)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
     $classname   = join('', $nameparts);
     $hostregex   = '/^((www|ireport)\.)+((gmanetwork|sec|denr|dbm|senate|congress)\.)*(gov\.ph|com)/i';
     static::$singleton = (1 == preg_match($hostregex, $hostname)) && @class_exists($classname)

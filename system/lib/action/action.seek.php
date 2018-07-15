@@ -25,13 +25,12 @@ class SeekAction extends LegiscopeBase {
 
     $invocation_delta = microtime(TRUE);
 
-    $debug_method = FALSE;
-
     $json_reply   = array();
     $this->update_existing = $this->filter_post('update') == 'true'; 
     $modifier        = $this->filter_post('modifier');
     $metalink        = $this->filter_post('metalink');
     $linktext        = $this->filter_post('linktext');
+    $debug_method    = $this->filter_post('debug') == 'true';
     $target_url      = $this->filter_post('url','');
     $target_url_hash = UrlModel::get_url_hash($target_url); 
     $freeze_referrer = $this->filter_post('fr'); // Freeze referrer

@@ -584,7 +584,7 @@ function load_uncached_links() {
       jQuery.ajax({
         type     : 'POST',
         url      : '/seek/',
-        data     : { url : url, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), fr: true, linktext: linktext },
+        data     : { url : url, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : jQuery('#seek').prop('checked'), debug : jQuery('#debug').prop('checked'), fr: true, linktext: linktext },
         cache    : false,
         dataType : 'json',
         async    : true,

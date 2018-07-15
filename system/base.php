@@ -238,6 +238,7 @@ EOH;
 
     if (!$skip_load && !('LegiscopeBase' == $classname) && !C('DISABLE_CLASS_AUTOGENERATE') ) {
       if ( ( FALSE == stripos($target_filename,'_') ) && !file_exists($target_filename) ) {/*{{{*/
+        $generate_date = date(DATE_RFC2822);
         $class_skeleton = <<<EOH
 <?php
 
@@ -247,6 +248,7 @@ EOH;
  *
  * Antonio A Hilario
  * Release license terms: GNU Public License V2
+ * Generated on {$generate_date}
  */
 
 {$classdef}

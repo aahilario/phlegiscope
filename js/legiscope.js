@@ -72,7 +72,15 @@ function preload_worker() {
     jQuery.ajax({
       type     : 'POST',
       url      : '/seek/',
-      data     : { url : linkstring, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
+      data     : { 
+        url : linkstring, 
+        update : jQuery('#update').prop('checked'), 
+        proxy : jQuery('#proxy').prop('checked'), 
+        debug : jQuery('#debug').prop('checked'),
+        modifier : live, 
+        fr: true, 
+        linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html()
+      },
       cache    : false,
       dataType : 'json',
       async    : true,
@@ -116,7 +124,7 @@ function preload_worker_unconditional() {
   jQuery.ajax({
     type     : 'POST',
     url      : '/seek/',
-    data     : { url : linkstring, update : jQuery('#update').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
+    data     : { url : linkstring, update : jQuery('#update').prop('checked'), debug : jQuery('#debug').prop('checked'), proxy : jQuery('#proxy').prop('checked'), modifier : live, fr: true, linktext: jQuery('a[class*=legiscope-remote][id='+hash+']').html() },
     cache    : false,
     dataType : 'json',
     async    : true,
@@ -146,7 +154,7 @@ function preload(components) {
   jQuery.ajax({
     type     : 'POST',
     url      : '/preload/',
-    data     : { links: components, update : jQuery('#update').prop('checked'), modifier : jQuery('#seek').prop('checked') },
+    data     : { links: components, update : jQuery('#update').prop('checked'), modifier : jQuery('#seek').prop('checked'), debug : jQuery('#debug').prop('checked') },
     cache    : false,
     dataType : 'json',
     async    : true,
@@ -423,8 +431,8 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
 function load_content_window(a,ck,obj,data,handlers) {
   var object_text = typeof obj != 'undefined' ? jQuery(obj).html() : null;
   var std_data = (jQuery('#metalink').html().length > 0)
-    ? { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text, metalink : jQuery('#metalink').html() } 
-    : { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), linktext : object_text }
+    ? { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), debug : jQuery('#debug').prop('checked'), linktext : object_text, metalink : jQuery('#metalink').html() } 
+    : { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), debug : jQuery('#debug').prop('checked'), linktext : object_text }
     ;
   var async = (data && data.async) ? data.async : true;
   if ( typeof data != "undefined" && typeof data != "null" ) {
@@ -804,7 +812,7 @@ function update_representatives_avatars() {
     jQuery.ajax({
       type     : 'POST',
       url      : '/seek/',
-      data     : { url : avatar_url, modifier : jQuery('#spider').prop('checked'), cache : jQuery('#cache').prop('checked'), member_uuid : member_uuid, no_replace : no_replace, fr : true },
+      data     : { url : avatar_url, modifier : jQuery('#spider').prop('checked'), debug : jQuery('#debug').prop('checked'), cache : jQuery('#cache').prop('checked'), member_uuid : member_uuid, no_replace : no_replace, fr : true },
       cache    : false,
       dataType : 'json',
       async    : true,
@@ -844,50 +852,4 @@ function initialize_traversable(c) {
 }
 
 
-$(document).ready(function() {
-  jQuery.each($('#map'),function(map_i, map){
-    // Each map boundary is represented by a path 
-    var src = $(map).attr('src');
-    var svg = $(document.createElement('SVG'))
-      .attr('width', $(map).attr('width')+'px')
-      .attr('height', $(map).attr('height')+'px') 
-      .addClass('size-large')
-      .attr('id','svgmap');
-      ;
-    $('#map').parent().append(svg);
 
-    jQuery.ajax({
-      type     : 'GET',
-      url      : src,
-      cache    : false,
-      dataType : 'xml',
-      async    : true,
-      beforeSend : (function() {
-        display_wait_notification();
-        jQuery('#doctitle').html('Loading '+src);
-      }),
-      complete : (function(jqueryXHR, textStatus) {
-        remove_wait_notification();
-      }),
-      success  : (function(data, httpstatus, jqueryXHR) {
-        if ( !(data === null ) ) {
-          try {
-            $('#svgmap').html($(data).children().first());
-            jQuery.each($('#svgmap').find('path'),function(path_index, path){
-              $(path).click(function(event){
-                document.title = $(this).children('title').first().html();
-                $(this).css({
-                  'fill' : '#000000'
-                });
-              });
-            });
-            $('#map').hide();
-          }
-          catch (e) {
-            alert('No SVG');
-          }
-        }
-      })
-    });
-  });
-});

@@ -66,7 +66,7 @@ class CongressGovPh extends SeekAction {
   function congressional_housebill_history(& $parser, & $pagecontent, & $urlmodel) {
 
     // House bill textual history parser
-    $debug_method = FALSE;
+    $debug_method = static::$enable_debug;
 
     if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) History text parser for " . $urlmodel->get_url() );
 

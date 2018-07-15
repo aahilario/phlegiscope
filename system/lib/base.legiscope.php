@@ -10,7 +10,7 @@ class LegiscopeBase extends SystemUtility {
   var $user_agent  = NULL;
   var $subject_host_hash = NULL;
   var $seek_cache_filename = NULL;
-  var $enable_proxy = TRUE;
+  var $enable_proxy = FALSE;
   var $debug_handler_names = FALSE;
   var $debug_handle_model_action = FALSE;
 

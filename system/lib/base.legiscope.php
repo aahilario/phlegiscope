@@ -1176,7 +1176,7 @@ class LegiscopeBase extends SystemUtility {
     $plugins_url = plugins_url();
     $themes_uri  = get_template_directory_uri(); 
 
-    $spider_js_url        = plugins_url('spider.js'       , LEGISCOPE_JS_PATH . '/' . 'spider.js');
+    $spider_js_url        = plugins_url('legiscope.js'       , LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
     $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
     $admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
 

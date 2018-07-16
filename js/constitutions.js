@@ -8,7 +8,7 @@ function highlight_toc_entry(id) {
   $('#toc').find('#link-'+id).css({ 'background-color' : '#DDD' });
 }
 
-function defer_toc_highlight(toc,interval) {
+function defer_toc_highlight(interval) {
   var matched = 0;
   clearTimeout(timer_id);
   timer_id = 0;
@@ -65,7 +65,6 @@ function scroll_to_anchor(event,context,prefix){
       $(self).parents('TR').first().each(function(){
         var self = this;
         // FIXME: Implement YFE 
-        // $(self).css({'background-color' : '#DED00D'});
         $('html, body').animate({
           scrollTop: ($(self).offset().top - 20).toFixed(0),
           backgroundColor: '#FFFFFF'
@@ -186,22 +185,25 @@ $(document).ready(function() {
     .attr('id','toc')
     .css({
       'width'            : '180px',
-      'max-height'       : ($(window).innerHeight()-40)+'px',
+      'max-height'       : ($(window).innerHeight()-90)+'px',
       'background-color' : '#FFF',
       'padding'          : '5px 0 5px 0',
       'margin-left'      : '5px',
       'overflow'         : 'scroll',
       'overflow-x'       : 'hidden',
       'display'          : 'block',
-      'position'         : 'absolute',
-      'top'              : $(window).scrollTop()+'px',
-      'left'             : '-10px',
+      'float'            : 'right',
+      'clear'            : 'none',
+      'position'         : 'fixed',
+      'z-index'          : '10',
+      'top'              : '50px',
+      'left'             : '10px',
       'border'           : 'solid 3px #DDD'
     })
     .text("");
 
   // Add TOC div to WordPress content DIV
-  $('div.site-inner').append(tocdiv);
+  $('#page').append(tocdiv);
 
   $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0, 'table_count' : 0});
 
@@ -235,7 +237,11 @@ $(document).ready(function() {
       .css(link_color)
       .attr('href',parser.pathname+'#'+slug)
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
-      .click(function(event){scroll_to_anchor(event,link,'a-');})
+      .click(function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        scroll_to_anchor(event,$(this),'a-');
+      })
       ;
     // Record TOC entry for use in animating TOC highlight updates.
     toc[toc.length] = { 
@@ -292,8 +298,6 @@ $(document).ready(function() {
 
   // This placeholder image serves no function
   $('div.post-thumbnail').first().find('img.wp-post-image').remove();
-
-  $('#toc').css({'top': $(window).scrollTop()+'px'});
 
   // Since the site will only be serving the Constitution for a while,
   // best include the privacy policy link in the link box.
@@ -419,10 +423,8 @@ $(document).ready(function() {
     clearTimeout($('#toc').data('timer_fade'));
     // FIXME:  You're repeating code here, from the scroll() event handler 
     if ( offsetedge + 10 < triggeredge ) {
-      $('#toc').show().css({
-        'top'        : $(window).scrollTop().toFixed(0)+'px',
-        'max-height' : ($(window).innerHeight()-40)+'px'
-      });
+      
+      $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
     }
     $('#toc').data('timer_fade',setTimeout(function(){
       $('#toc').fadeOut(1000);
@@ -433,21 +435,18 @@ $(document).ready(function() {
     $('#toc').fadeOut(1000);
   },3000));
 
+  // Adjust menu position
   $(window).scroll(function(event){
     clearTimeout($('#toc').data('timer_fade'));
     var offsetedge = Number.parseInt(event.pageX);
     var triggeredge = Number.parseInt($('#toc').data('floatedge'));
     if ( offsetedge + 10 < triggeredge ) {
-      $('#toc').show();
+      $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
     }
-    $('#toc').css({
-      'top'        : $(window).scrollTop().toFixed(0)+'px',
-      'max-height' : ($(window).innerHeight()-40)+'px'
-    });
     $('#toc').data('timer_fade',setTimeout(function(){
-      $('#toc').fadeOut(1000);
+      $('#toc').fadeOut(3000);
     },3000));
-    defer_toc_highlight(toc,200);
+    defer_toc_highlight(200);
   });
 
 });

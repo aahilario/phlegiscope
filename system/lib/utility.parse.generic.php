@@ -575,7 +575,7 @@ EOH;
 
   final function generate_linkset($url, $only_key = NULL) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
 		$return_value = array(
       'linkset' => array(),

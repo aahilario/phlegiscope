@@ -245,7 +245,7 @@ EOH;
 
   function parse_html(& $raw_html, array $response_headers, $only_scrub = FALSE) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     $this->reset();
 
@@ -349,10 +349,20 @@ EOH;
         "offset {$error_offset} context \n" . substr($dom->saveXML(), $error_offset - 10, 200)
       );
       $errors = libxml_get_errors();
+      $errors_count = 0;
       foreach ($errors as $error) {
-        $this->syslog(__FUNCTION__,__LINE__,"(warning) - Parse err @ line {$error->line} col {$error->column}: {$error->message}");
+        $this->syslog(__FUNCTION__,__LINE__,"(warning) - ".getcwd()." Parse err @ line {$error->line} col {$error->column}: {$error->message}");
+        $errors_count++;
       }
 
+      if ( $errors_count > 0 ) {
+      $timestamp_sec = time();
+      $milliseconds = round(microtime(true) * 10000);
+      $timestamp = "{$timestamp_sec}-{$milliseconds}";
+      syslog( LOG_INFO, "TS: {$timestamp} (" . strlen($raw_html) . ")" );
+      file_put_contents( "/var/www/avahilario.net/cache/{$timestamp}.str", $raw_html, LOCK_EX );
+
+}
     }
 
     // Postprocessing

@@ -56,7 +56,9 @@ function preload_worker() {
   if ( typeof preload_a != 'null' && preload_n < preload_a.length ) {
 
     var hashpair   = preload_a[preload_n++];
-    var hash       = hashpair.hash;
+    var hash       = hashpair && hashpair.hash ? hashpair.hash : null;
+
+    if ( !(null === hash) ) {
     var live       = jQuery('#seek').prop('checked') ? jQuery('#seek').prop('checked') : hashpair.live;
     var linkstring = jQuery('a[id='+hash+']').attr('href');
 
@@ -94,6 +96,7 @@ function preload_worker() {
         if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker();}),100);
       })
     });
+}
   } 
 }
 

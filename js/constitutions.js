@@ -503,8 +503,7 @@ $(document).ready(function() {
 
     if ( target_section.length > 0 ) {
       var section_text = $('#a-'+target_section).parents('TD').first().text();
-      //$('#selected_section').empty().append(section_text);
-      //alert('Raising '+target_section+': '+section_text);
+      $('#selected_section').empty().append(section_text);
     }
   },100);
 

@@ -84,11 +84,27 @@ function scroll_to_anchor(event,context,prefix){
 function replace_section_x_text(context) {
 }
 
-function set_section_cell_handler(tindex,slug,context) {
+function set_section_cell_handler(column_index,slug,context) {
   // Experimental copy to clipboard
   var self = $(context);
+  var toc = $('#toc').data('toc');
+  var toc_index = $('#toc').data('toc_current');
+  var parser = document.createElement('A'); 
+  parser.href = document.location;
+
+  if ( undefined === toc[toc_index].section )
+    toc[toc_index].section = []; 
+  if ( undefined === toc[toc_index].section[column_index] )
+    toc[toc_index].section[column_index] = 0; 
+
+  if ( undefined === toc[toc_index].subsection ) 
+    toc[toc_index].subsection = [];
+  if ( undefined === toc[toc_index].subsection[column_index] ) 
+    toc[toc_index].subsection[column_index] = 0;
+
   $(context).click(function(event){
-    if ( enable_copy > 0 ) {
+    $('#toc').show();
+    if ( enable_copy > 0 ) {//{{{
       var self = this;
       var textarea = document.createElement('TEXTAREA');
       var innertext = {};
@@ -127,41 +143,87 @@ function set_section_cell_handler(tindex,slug,context) {
           $(self).click();
         },50);
       }
-    }
-    $('#toc').show();
+    }//}}}
   });
+  // Replace leading subsection string with anchor.
+  var is_subsection = /^\(([0-9a-z]{1,})\) /i.test($(self).text());
+
+  if ( is_subsection ) {
+
+    var anchor_text = $(self).text();
+    var section_num = toc[toc_index].section[column_index];
+    var subsection_num = anchor_text.replace(/^\(([0-9a-z]{1,})\) .*/i,"$1");
+    var anchor_data = {
+      'section_num'    : section_num,
+      'subsection_num' : toc[toc_index].subsection[column_index] + 1,
+      'slug'           : slug,
+      'path'           : parser.pathname
+    };
+    var section_anchor = $(document.createElement('A'));
+
+    $(section_anchor)
+      .data(anchor_data)
+      .css({
+        'text-decoration' : 'none',
+        'color'           : 'blue',
+        'padding-top'     : '10px',
+        'box-shadow'      : '0 0 0 0' 
+      })
+      .addClass('toc-section')
+      .addClass('toc-subsection')
+      .text('('+subsection_num+') ')
+      .click(function(event){
+        scroll_to_anchor(event,self,'a-');
+        event.preventDefault();
+      });
+    $(self).empty()
+      .append(section_anchor)
+      .append(anchor_text.replace(/^\(([0-9a-z]{1,})\) /,''));
+
+    toc[toc_index].subsection[column_index]++;
+  } 
+
+  $('#toc').data('toc', toc);
   // Replace Section highlight prefix ("SECTION XXX...") with anchor.
+  
   $(self).find('STRONG').each(function(sindex){
     var anchor_container = $(this);
     var anchor_text = $(anchor_container).text();
-    var parser = document.createElement('A');
-
-    parser.href = document.location;
+    var toc = $('#toc').data('toc');
+    var toc_current = $('#toc').data('toc_current');
 
     // Ignore instances of "See ..."
-    if ( !(/^see /gi.test(anchor_text) ) && /^section ([0-9]{1,})/i.test(anchor_text) ) {
-      var section_num = anchor_text.replace(/^section ([0-9]{1,}).*/i,"$1");
-      var section_anchor = $(document.createElement('A'))
-        .data({
+    if ( !(/^see /gi.test(anchor_text) ) ) {
+      if ( /^section ([0-9]{1,})/i.test(anchor_text) ) {
+        var section_num = anchor_text.replace(/^section ([0-9]{1,}).*/i,"$1");
+        var anchor_data = {
           'section_num' : section_num,
           'slug'        : slug,
           'path'        : parser.pathname
-        })
-        .css({
-          'text-decoration' : 'none',
-          'color'           : 'black',
-          'padding-top'     : '10px',
-          'box-shadow'      : '0 0 0 0' 
-        })
-        .addClass('toc-section')
-        .text('SECTION '+section_num+'.')
-        .click(function(event){
-          scroll_to_anchor(event,this,'a-');
-          event.preventDefault();
-        });
-      $(anchor_container).empty().append(section_anchor);
+        };
+        var section_anchor = $(document.createElement('A'))
+          .data(anchor_data)
+          .css({
+            'text-decoration' : 'none',
+            'color'           : 'blue',
+            'padding-top'     : '10px',
+            'box-shadow'      : '0 0 0 0' 
+          })
+          .addClass('toc-section')
+          .text('SECTION '+section_num+'.')
+          .click(function(event){
+            scroll_to_anchor(event,this,'a-');
+            event.preventDefault();
+          });
+        $(anchor_container).empty().append(section_anchor);
+        toc[toc_current].section[column_index] = section_num;
+        toc[toc_current].subsection[column_index] = 0;
+        $('#toc').data('toc', toc);
+      }
     }
   });
+
+  parser = null;
 }
 
 $(document).ready(function() {
@@ -210,11 +272,20 @@ $(document).ready(function() {
   // Add anchors to each article header
 
   // Iterate through each H1 Article header
-  $("div.entry-content").find('H1').each(function(index){
+  $("div.entry-content").find('H1').each(function(article_index){
+
+    // The variables 
+    //     article_index, 
+    //     toc_index, 
+    //     column_index, and 
+    //     toc.section[column_index],
+    //     toc.subsection[column_index] are
+    //   used to generate anchor links.
     var article_text = $(this).text();
     var slug = article_text.toLowerCase().replace(/\n/,' ').replace(/[^a-z ]/g,' ').replace(/[ ]{1,}/,' ').replace(/[ ]*$/,'').replace(/[ ]{1,}/g,'-');
     var link = document.createElement('A');
     var anchor = document.createElement('A');
+    var toc_index = toc.length;
 
     // Set link color if the article includes "draft" or "new" 
     var link_color = /(draft|new)/i.test(article_text) 
@@ -244,12 +315,16 @@ $(document).ready(function() {
       })
       ;
     // Record TOC entry for use in animating TOC highlight updates.
-    toc[toc.length] = { 
-      offset : $(this).offset().top.toFixed(0),
-      id     : slug
+    toc[toc_index] = { 
+      article    : article_index,
+      section    : {},
+      subsection : {},  // Counters; reset at each section
+      offset     : $(this).offset().top.toFixed(0),
+      id         : slug
     };
     // Attach the TOC metadata to the TOC, sure.
     $('#toc').data('toc', toc);
+    $('#toc').data('toc_current', toc_index);
 
     // Derive anchor target
     $(anchor).attr('name',slug)
@@ -268,7 +343,7 @@ $(document).ready(function() {
     // Also apply formatting.
     $(this)
       .before(anchor)
-      .attr('id','h-'+slug)
+          .attr('id','h-'+slug)
       .css({
         'text-align' : 'center'
       })
@@ -282,10 +357,12 @@ $(document).ready(function() {
 
       // First, highlight weasel words
       // Replacing HTML damages DOM attributes
-      .find('TD').each(function(tindex){
-        var ww = $(this).html().replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
-        $(this).html(ww);
-        set_section_cell_handler(tindex,slug,$(this))
+      .find('TR').each(function(row_index){
+        jQuery.each($(this).find('TD'),function(column_index,td){
+          var ww = $(td).html().replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
+          $(td).html(ww);
+          set_section_cell_handler(column_index,slug,$(td));
+        });
       });
 
     // TODO: Replace references to articles ("in Article X...") with links to local anchors.
@@ -356,13 +433,15 @@ $(document).ready(function() {
           // 1. Locate and modify toc-section anchors
           $(td).find('[class*=toc-section]').each(function(){
             var slug = $(this).data('slug');
-            var section_num = $(this).data('section_num');
+            var subsection_num = $(this).data('subsection_num');
+            var section_num = (undefined === subsection_num) 
+              ? $(this).data('section_num') 
+              : $(this).data('section_num')+'-'+$(this).data('subsection_num');
             var path = $(this).data('path');
             $(this)
               .attr('name',slug+'-'+section_num+'-'+td_index)
               .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
-              .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index)
-              ;
+              .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index);
           });
 
           if ( Number.parseInt($(td).attr('colspan')) == 3 ) {

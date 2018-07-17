@@ -413,8 +413,7 @@ $(document).ready(function() {
     //   A lower bound for search is O(ni^2), when every cell refers to just one other cell.
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
-    var parser = document.createElement('A'); 
-    parser.href = document.location;
+  },100);
 
     jQuery.each($('div.site-inner').find('table'),function(index,table){
       // Table context
@@ -500,12 +499,10 @@ $(document).ready(function() {
     // If the requested URL contains a hash part, extract that text and 
     //   place above the "Available Formats" table
     var target_section = parser.hash.replace(/^#/,'');
-
     if ( target_section.length > 0 ) {
       var section_text = $('#a-'+target_section).parents('TD').first().text();
       $('#selected_section').empty().append(section_text);
     }
-  },100);
 
   // Attach handler that triggers reappearance of TOC on mouse movement
   $(window).mousemove(function(event){

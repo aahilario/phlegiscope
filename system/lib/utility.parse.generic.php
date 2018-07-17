@@ -491,7 +491,7 @@ EOH
 
   function extract_pager_links(array & $links, $cluster_urldefs, $url_uuid = NULL, $parent_state = NULL, $insert_p1_link = FALSE) {/*{{{*/
 
-    $debug_method    = FALSE;
+    $debug_method    = TRUE;
     $check_cache     = TRUE;
     $links           = array();
     $pager_links     = array();

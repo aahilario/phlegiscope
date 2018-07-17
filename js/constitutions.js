@@ -173,6 +173,7 @@ function set_section_cell_handler(column_index,slug,context) {
       .addClass('toc-subsection')
       .text('('+subsection_num+') ')
       .click(function(event){
+        var self = this;
         scroll_to_anchor(event,self,'a-');
         event.preventDefault();
       });

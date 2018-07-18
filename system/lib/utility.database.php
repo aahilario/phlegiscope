@@ -7,7 +7,7 @@ class DatabaseUtility extends ReflectionClass {
   // TODO:  Implement reference counter?
   protected static $obj_attrdefs = array(); // Lookup table of class attributes and names. 
   protected static $obj_ondisk   = array();
-  static $force_log = FALSE;
+  static $force_log = TRUE;
 
   protected $tablename             = NULL;
   protected $query_conditions      = array();

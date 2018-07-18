@@ -43,13 +43,13 @@ function defer_toc_highlight(interval) {
 
 function scroll_to_anchor(event,context,prefix){
   var self = context;
-  var local_parser = document.createElement('A');
   var anchor_id;
   var parent_td;
 
-  local_parser.href = $(self).attr('href');
-  anchor_id = local_parser.hash.replace(/#/,prefix);
-  
+  event.preventDefault();
+
+  anchor_id = $(self).attr('href').replace(/#/,'').replace(/^\/(constitutions\/)?/,prefix);
+
   document.title = $(self).text();
   $('#'+anchor_id).parents('TD').first().each(function(){
     var self = this;
@@ -78,7 +78,7 @@ function scroll_to_anchor(event,context,prefix){
       scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
     });
   }
-  document.location = $('#'+anchor_id).attr('href');
+  document.location = '#'+anchor_id;
 }
 
 function replace_section_x_text(context) {
@@ -174,8 +174,7 @@ function set_section_cell_handler(column_index,slug,context) {
       .text('('+subsection_num+') ')
       .click(function(event){
         var self = this;
-        scroll_to_anchor(event,self,'a-');
-        event.preventDefault();
+        scroll_to_anchor(event,$('#'+$(self).attr('id').replace(/link-/,'a-')),'a-');
       });
     $(self).empty()
       .append(section_anchor)
@@ -307,12 +306,12 @@ $(document).ready(function() {
         'clear'        : 'both'
       })
       .css(link_color)
-      .attr('href',parser.pathname+'#'+slug)
+        
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
       .click(function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        scroll_to_anchor(event,$(this),'a-');
+        var self = this;
+        var targete = '#'+$(self).attr('id').replace(/link-/,'a-');
+        scroll_to_anchor(event,$(targete),'a-');
       })
       ;
     // Record TOC entry for use in animating TOC highlight updates.
@@ -413,13 +412,22 @@ $(document).ready(function() {
     //   A lower bound for search is O(ni^2), when every cell refers to just one other cell.
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
+
   },100);
 
     jQuery.each($('div.site-inner').find('table'),function(index,table){
       // Table context
+      var tabledef = { 
+        n : index,
+        title : null,
+        slug : null,
+        sections : new Array()
+      }; 
       var table_count = $('#toc').data('table_count');
       var slug = $(table).attr('id');
       if ( slug === undefined ) return;
+      tabledef.slug = slug;
+      tabledef.title = $('#h-'+slug).text();
       jQuery.each($(table).find('TR'), function(tr_index, tr) {
         // TR context
         jQuery.each($(tr).children(), function(td_index,td){
@@ -429,10 +437,19 @@ $(document).ready(function() {
           // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
           // 3. Apply column span mod and collapse middle columns
 
+          if ( undefined === tabledef.sections[td_index] )
+            tabledef.sections[td_index] = {
+              current_ident : null,
+              current_slug : null,
+              current_section : null,
+              subsection_num : null,
+              contents : new Array()
+            };
+
           // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
           $(td).data('index',td_index);
 
-          // 1. Locate and modify toc-section anchors
+          // 1. Locate and modify toc-section anchors; fix 
           $(td).find('[class*=toc-section]').each(function(){
             var slug = $(this).data('slug');
             var subsection_num = $(this).data('subsection_num');
@@ -440,10 +457,16 @@ $(document).ready(function() {
               ? $(this).data('section_num') 
               : $(this).data('section_num')+'-'+$(this).data('subsection_num');
             var path = $(this).data('path');
+            var cell_ident = slug+'-'+section_num+'-'+td_index;
             $(this)
               .attr('name',slug+'-'+section_num+'-'+td_index)
               .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
-              .attr('href',path+'#'+slug+'-'+section_num+'-'+td_index);
+              .attr('href',path+'constitutions/'+cell_ident);
+
+            tabledef.sections[td_index].current_ident   = cell_ident;
+            tabledef.sections[td_index].current_slug    = slug;
+            tabledef.sections[td_index].current_section = section_num;
+            tabledef.sections[td_index].subsection_num  = subsection_num;
           });
 
           if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
@@ -452,6 +475,16 @@ $(document).ready(function() {
           else if ( td_index == 1 ) {
             // Increase reading space by collapsing middle columns
             $(td).hide();
+          }
+          else {
+            if ( $(td).text().length > 0 )
+            tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
+              ident          : tabledef.sections[td_index].current_ident,
+              // slug           : tabledef.sections[td_index].current_slug,
+              // section        : tabledef.sections[td_index].current_section,
+              // subsection_num : tabledef.sections[td_index].subsection_num,
+              content        : $(td).text()
+            };
           }
 
           if ( intrasection_links > 0 ) {
@@ -479,7 +512,6 @@ $(document).ready(function() {
                 try {
                   scroll_to_anchor(event,this,'a-');
                 } catch(e) {}
-                event.preventDefault();
               });
             }
           });
@@ -488,6 +520,19 @@ $(document).ready(function() {
       });
       table_count++;
       $('#toc').data('table_count',table_count);
+      jQuery.ajax({
+        type     : 'POST',
+        url      : '/stash/',
+        data     : tabledef,
+        cache    : false,
+        dataType : 'json',
+        async    : true,
+        complete : (function(jqueryXHR, textStatus) {
+        }),
+        success  : (function(data, httpstatus, jqueryXHR) {
+        })
+      });
+      tabledef = null;
     });
 
     // Reset font size by removing all font-size style specifiers

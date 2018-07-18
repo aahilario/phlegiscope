@@ -152,7 +152,7 @@ class LegiscopeBase extends SystemUtility {
 
   final private function handle_plugin_context() {/*{{{*/
 
-    $debug_method = $this->debug_handle_model_action;
+    $debug_method = FALSE; // $this->debug_handle_model_action;
     // Modify $_REQUEST by extracting an action value from the request URI 
     if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Not a plugin context. Leaving" );
@@ -177,6 +177,7 @@ class LegiscopeBase extends SystemUtility {
       'fetchpdf',
       'preload',
       'proxyform',
+      'constitutions',
     );
 
     $request_regex  = '@/(' . join('|',array_values($actions_lookup)) . ')/(.*)@i';
@@ -1209,6 +1210,98 @@ EOH;
     }/*}}}*/
 
   }/*}}}*/
+
+  static function wordpress_init()
+  {
+    // See ../phlegiscope.php add_action(__FUNCTION__, ...)
+    // Intercept GET request where REQUEST_URI contains prefix '^/constitutions/'
+    $restricted_request_uri = substr($_SERVER['REQUEST_URI'], 0, 255); 
+    if ( 1 === preg_match('/^\/constitutions\//i', $restricted_request_uri) ) {
+      // Only accept up to 255 characters in REQUEST_URI
+      $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
+      $path_hash = hash('sha256', $path_part.NONCE_SALT);
+      $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
+      //$response = array(
+      //  "path" => $path_part,
+      //  "hash" => $path_hash,
+      //  "content" => NULL, 
+      //);
+      if ( file_exists( $cached_file ) ) {
+        //$response['content'] = file_get_contents($cached_file);
+        $target_url = "/?see={$path_hash}#{$path_part}";
+        wp_redirect( $target_url, 301 );
+        exit;
+      }
+      //$response_json = json_encode( $response );
+      //header('Content-Type: text/json');
+      //header('Content-Length: ' . strlen($response_json));
+      //die($response_json);
+      wp_redirect( "/" );
+      exit;
+    }
+    else if ( 1 === preg_match('/^\/stash\//i', $restricted_request_uri) ) {
+      openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+      $cache_path = SYSTEM_BASE . "/../cache";
+      if ( !file_exists( $cache_path ) ) mkdir( $cache_path );
+      // Accept caching request
+      $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
+      $path_hash = hash('sha256', $path_part.NONCE_SALT);
+      $response = array(
+        "received"  => $_REQUEST['slug'],
+        "length"    => strlen(json_encode($_REQUEST['sections'])),
+        "available" => 0,
+        "status"    => 0,
+      );
+      //$this->recursive_dump(array_keys($_REQUEST),"(marker) POST");
+      //$this->recursive_dump(array_keys($_REQUEST),"(marker) POST");
+
+      $slug  = $_REQUEST['slug'];
+      $title = $_REQUEST['title'];
+
+      syslog( LOG_INFO, "(marker) -- Caching {$slug} to {$cache_path}");
+
+      if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $contents ) {
+        if ( is_array($contents['contents']) ) foreach ( $contents['contents'] as $content ) {
+
+          // Skip empty ident
+          $ident = $content['ident'];
+          if ( 0 == strlen($ident) ) 
+            continue;
+
+          // Test for target file
+          $filename = hash('sha256', $ident.NONCE_SALT);
+          $filepath = "${cache_path}/{$filename}";
+          if (file_exists($filepath)) {
+            $response['available']++;
+            continue;
+          }
+
+          // Store section text with metadata as JSON string
+          $packed_section = array(
+            'title'   => $title,
+            'article' => $slug,
+            'slug'    => $ident,
+            'content' => $content['content'],
+          );
+          file_put_contents($filepath, json_encode($packed_section));
+          $response['status']++;
+          syslog( LOG_INFO, "(marker) -- {$filename}" );
+        }
+      }
+
+      $response_json = json_encode( $response );
+      header('Content-Type: text/json');
+      header('Content-Length: ' . strlen($response_json));
+      die($response_json);
+    }
+    // wp_die('<pre>'.print_r($_SERVER,true).'</pre>');
+  }
+
+  static function wordpress_parse_request( $query )
+  {
+    // wp_die('<pre>'.print_r($query,TRUE).'</pre>');
+  }
+
 
   /** OCR queue **/
 

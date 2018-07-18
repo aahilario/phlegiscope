@@ -35,3 +35,8 @@ add_action('admin_post'           , array($phlegiscope_instance, 'admin_post'));
 add_action('admin_menu'           , array($phlegiscope_instance, 'wordpress_register_admin_menus'));
 add_action('admin_init'           , array($phlegiscope_instance, 'wordpress_admin_initialize'));
 add_action('admin_enqueue_scripts', array($phlegiscope_instance, 'wordpress_enqueue_admin_scripts'));
+add_action('init'                 , array($phlegiscope_instance, 'wordpress_init'));
+add_action('parse_request'        , array($phlegiscope_instance, 'wordpress_parse_request'));
+
+////////////////////////////////////////////////////////////////
+

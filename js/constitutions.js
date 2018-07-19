@@ -404,6 +404,131 @@ $(document).ready(function() {
   $('#toc').append(document.createElement('BR'));
   $('#toc').append(representative_map);
 
+  jQuery.each($('div.site-inner').find('table'),function(index,table){
+    // Table context
+    var tabledef = { 
+      n : index,
+      title : null,
+      slug : null,
+      sections : new Array()
+    }; 
+    var table_count = $('#toc').data('table_count');
+    var slug = $(table).attr('id');
+    if ( slug === undefined ) return;
+    tabledef.slug = slug;
+    tabledef.title = $('#h-'+slug).text();
+    jQuery.each($(table).find('TR'), function(tr_index, tr) {
+      // TR context
+      jQuery.each($(tr).children(), function(td_index,td){
+        // TD context
+        // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
+        // 1. Locate and modify toc-section anchors
+        // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
+        // 3. Apply column span mod and collapse middle columns
+
+        if ( undefined === tabledef.sections[td_index] )
+          tabledef.sections[td_index] = {
+            current_ident : null,
+            current_slug : null,
+            current_section : null,
+            subsection_num : null,
+            contents : new Array()
+          };
+
+        // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
+        $(td).data('index',td_index);
+
+        // 1. Locate and modify toc-section anchors; fix 
+        $(td).find('[class*=toc-section]').each(function(){
+          var slug = $(this).data('slug');
+          var subsection_num = $(this).data('subsection_num');
+          var section_num = (undefined === subsection_num) 
+            ? $(this).data('section_num') 
+            : $(this).data('section_num')+'-'+$(this).data('subsection_num');
+          var path = $(this).data('path');
+          var cell_ident = slug+'-'+section_num+'-'+td_index;
+          $(this)
+            .attr('name',slug+'-'+section_num+'-'+td_index)
+            .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
+            .attr('href',path+'constitutions/'+cell_ident);
+
+          tabledef.sections[td_index].current_ident   = cell_ident;
+          tabledef.sections[td_index].current_slug    = slug;
+          tabledef.sections[td_index].current_section = section_num;
+          tabledef.sections[td_index].subsection_num  = subsection_num;
+        });
+
+        if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
+          $(td).attr('colspan','2');
+        }
+        else if ( td_index == 1 ) {
+          // Increase reading space by collapsing middle columns
+          $(td).hide();
+        }
+        else {
+          if ( $(td).text().length > 0 )
+          tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
+            ident          : tabledef.sections[td_index].current_ident,
+            content        : $(td).text()
+          };
+        }
+
+        if ( intrasection_links > 0 ) {
+          // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
+          var section_match = new RegExp('section [0-9]{1,}( of article [XIV]{1,})*','gi');
+          var matches;
+          while ((matches = section_match.exec( $(td).text() )) !== null) {
+            var offset = section_match.lastIndex - matches[0].length;
+            if (!( offset > 0 )) continue;
+            console.log("Got "+matches[0]+" @ "+(offset)+': '+$(td).text());
+          }
+        }
+
+        // Separately: If this cell contains any A tags linking to any other cell in this document,
+        // we add a click handler that causes the browser to scroll that target into view.
+        jQuery.each($(td).find('A'),function(a_index,anchor){
+          if ( $(anchor).hasClass('toc-section') ) {
+            // Do nothing
+          }
+          else if ( $(anchor).hasClass('toc-anchor') ) {
+            // Do nothing
+          }
+          else {
+            $(anchor).click(function(event){
+              try {
+                scroll_to_anchor(event,this,'a-');
+              } catch(e) {}
+            });
+          }
+        });
+
+      });
+    });
+    table_count++;
+    $('#toc').data('table_count',table_count);
+    jQuery.ajax({
+      type     : 'POST',
+      url      : '/stash/',
+      data     : tabledef,
+      cache    : false,
+      dataType : 'json',
+      async    : true,
+      complete : (function(jqueryXHR, textStatus) {
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+      })
+    });
+    tabledef = null;
+  });
+
+  // If the requested URL contains a hash part, extract that text and 
+  //   place above the "Available Formats" table
+  var target_section = parser.hash.replace(/^#/,'');
+  if ( target_section.length > 0 ) {
+    var section_text = $('#a-'+target_section).parents('TD').first().text();
+    $('#selected_section').empty().append(section_text);
+  }
+
   setTimeout(function(){
     // FIXME: Fix up references to existing sections: Add event handler for a click on links that lead to local anchors.
     // Note:  This is potentially an O(n^n) operation.  
@@ -418,136 +543,12 @@ $(document).ready(function() {
       document.location = $(this).attr('href');
     });
 
-    jQuery.each($('div.site-inner').find('table'),function(index,table){
-      // Table context
-      var tabledef = { 
-        n : index,
-        title : null,
-        slug : null,
-        sections : new Array()
-      }; 
-      var table_count = $('#toc').data('table_count');
-      var slug = $(table).attr('id');
-      if ( slug === undefined ) return;
-      tabledef.slug = slug;
-      tabledef.title = $('#h-'+slug).text();
-      jQuery.each($(table).find('TR'), function(tr_index, tr) {
-        // TR context
-        jQuery.each($(tr).children(), function(td_index,td){
-          // TD context
-          // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
-          // 1. Locate and modify toc-section anchors
-          // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
-          // 3. Apply column span mod and collapse middle columns
-
-          if ( undefined === tabledef.sections[td_index] )
-            tabledef.sections[td_index] = {
-              current_ident : null,
-              current_slug : null,
-              current_section : null,
-              subsection_num : null,
-              contents : new Array()
-            };
-
-          // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
-          $(td).data('index',td_index);
-
-          // 1. Locate and modify toc-section anchors; fix 
-          $(td).find('[class*=toc-section]').each(function(){
-            var slug = $(this).data('slug');
-            var subsection_num = $(this).data('subsection_num');
-            var section_num = (undefined === subsection_num) 
-              ? $(this).data('section_num') 
-              : $(this).data('section_num')+'-'+$(this).data('subsection_num');
-            var path = $(this).data('path');
-            var cell_ident = slug+'-'+section_num+'-'+td_index;
-            $(this)
-              .attr('name',slug+'-'+section_num+'-'+td_index)
-              .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
-              .attr('href',path+'constitutions/'+cell_ident);
-
-            tabledef.sections[td_index].current_ident   = cell_ident;
-            tabledef.sections[td_index].current_slug    = slug;
-            tabledef.sections[td_index].current_section = section_num;
-            tabledef.sections[td_index].subsection_num  = subsection_num;
-          });
-
-          if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
-            $(td).attr('colspan','2');
-          }
-          else if ( td_index == 1 ) {
-            // Increase reading space by collapsing middle columns
-            $(td).hide();
-          }
-          else {
-            if ( $(td).text().length > 0 )
-            tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
-              ident          : tabledef.sections[td_index].current_ident,
-              content        : $(td).text()
-            };
-          }
-
-          if ( intrasection_links > 0 ) {
-            // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
-            var section_match = new RegExp('section [0-9]{1,}( of article [XIV]{1,})*','gi');
-            var matches;
-            while ((matches = section_match.exec( $(td).text() )) !== null) {
-              var offset = section_match.lastIndex - matches[0].length;
-              if (!( offset > 0 )) continue;
-              console.log("Got "+matches[0]+" @ "+(offset)+': '+$(td).text());
-            }
-          }
-
-          // Separately: If this cell contains any A tags linking to any other cell in this document,
-          // we add a click handler that causes the browser to scroll that target into view.
-          jQuery.each($(td).find('A'),function(a_index,anchor){
-            if ( $(anchor).hasClass('toc-section') ) {
-              // Do nothing
-            }
-            else if ( $(anchor).hasClass('toc-anchor') ) {
-              // Do nothing
-            }
-            else {
-              $(anchor).click(function(event){
-                try {
-                  scroll_to_anchor(event,this,'a-');
-                } catch(e) {}
-              });
-            }
-          });
-
-        });
-      });
-      table_count++;
-      $('#toc').data('table_count',table_count);
-      jQuery.ajax({
-        type     : 'POST',
-        url      : '/stash/',
-        data     : tabledef,
-        cache    : false,
-        dataType : 'json',
-        async    : true,
-        complete : (function(jqueryXHR, textStatus) {
-        }),
-        success  : (function(data, httpstatus, jqueryXHR) {
-        })
-      });
-      tabledef = null;
-    });
-
     // Reset font size by removing all font-size style specifiers
     var custom_css = $('head').find('style#wp-custom-css').text().replace(/font-size: ([^;]{1,});/i,'');
     $('head').find('style#wp-custom-css').text(custom_css);
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();
 
-    // If the requested URL contains a hash part, extract that text and 
-    //   place above the "Available Formats" table
-    var target_section = parser.hash.replace(/^#/,'');
-    if ( target_section.length > 0 ) {
-      var section_text = $('#a-'+target_section).parents('TD').first().text();
-      $('#selected_section').empty().append(section_text);
-    }
   },100);
 
   // Attach handler that triggers reappearance of TOC on mouse movement

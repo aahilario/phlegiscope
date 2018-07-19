@@ -462,7 +462,8 @@ $(document).ready(function() {
         });
 
         if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
-          $(td).attr('colspan','2');
+          // Uncommment to restrict to 1987 constitution and latest ConCom draft
+          // $(td).attr('colspan','2');
         }
         else if ( td_index == 1 ) {
           // Increase reading space by collapsing 27 June draft column

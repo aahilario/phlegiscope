@@ -413,8 +413,6 @@ $(document).ready(function() {
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
 
-  },100);
-
     jQuery.each($('div.site-inner').find('table'),function(index,table){
       // Table context
       var tabledef = { 
@@ -480,9 +478,6 @@ $(document).ready(function() {
             if ( $(td).text().length > 0 )
             tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
               ident          : tabledef.sections[td_index].current_ident,
-              // slug           : tabledef.sections[td_index].current_slug,
-              // section        : tabledef.sections[td_index].current_section,
-              // subsection_num : tabledef.sections[td_index].subsection_num,
               content        : $(td).text()
             };
           }
@@ -548,6 +543,7 @@ $(document).ready(function() {
       var section_text = $('#a-'+target_section).parents('TD').first().text();
       $('#selected_section').empty().append(section_text);
     }
+  },100);
 
   // Attach handler that triggers reappearance of TOC on mouse movement
   $(window).mousemove(function(event){

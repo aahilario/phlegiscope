@@ -1349,7 +1349,7 @@ EOH;
 </head>
 </body>
 <div class="selected_section" id="selected_section">
-  <h3><a href="#{$json['article']}">{$json['title']}</a></h3>
+  <h3><a href="/#{$json['article']}">{$json['title']}</a></h3>
   <p>{$json['content']} <a href="/#{$json['slug']}">[Go]</a></p>
 </div>
 </body>

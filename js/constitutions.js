@@ -465,8 +465,8 @@ $(document).ready(function() {
           $(td).attr('colspan','2');
         }
         else if ( td_index == 1 ) {
-          // Increase reading space by collapsing middle columns
-          $(td).hide();
+          // Increase reading space by collapsing 27 June draft column
+          $(td).remove();
         }
         else {
           if ( $(td).text().length > 0 )

@@ -1374,7 +1374,7 @@ EOH;
         "status"    => 0,
       );
 
-      if (!(C('ENABLE_SECTION_STASHING') == TRUE)) {
+      if ((C('ENABLE_SECTION_STASHING') == TRUE)) {
         $cache_path = SYSTEM_BASE . "/../cache";
         if ( !file_exists( $cache_path ) ) mkdir( $cache_path );
         // Accept caching request

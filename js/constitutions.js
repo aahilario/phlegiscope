@@ -2,6 +2,7 @@ $ = jQuery;
 var timer_id = 0;
 var enable_copy = 0;
 var intrasection_links = 0;
+var enable_stash_code = 0;
 
 function highlight_toc_entry(id) {
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
@@ -512,18 +513,20 @@ $(document).ready(function() {
     });
     table_count++;
     $('#toc').data('table_count',table_count);
-    jQuery.ajax({
-      type     : 'POST',
-      url      : '/stash/',
-      data     : tabledef,
-      cache    : false,
-      dataType : 'json',
-      async    : true,
-      complete : (function(jqueryXHR, textStatus) {
-      }),
-      success  : (function(data, httpstatus, jqueryXHR) {
-      })
-    });
+    if ( enable_stash_code > 0 ) {
+      jQuery.ajax({
+        type     : 'POST',
+        url      : '/stash/',
+        data     : tabledef,
+        cache    : false,
+        dataType : 'json',
+        async    : true,
+        complete : (function(jqueryXHR, textStatus) {
+        }),
+        success  : (function(data, httpstatus, jqueryXHR) {
+        })
+      });
+    }
     tabledef = null;
   });
 

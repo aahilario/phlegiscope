@@ -1367,46 +1367,48 @@ EOH;
       exit;
     }
     else if ( 1 === preg_match('/^\/stash\//i', $restricted_request_uri) ) {
-      $cache_path = SYSTEM_BASE . "/../cache";
-      if ( !file_exists( $cache_path ) ) mkdir( $cache_path );
-      // Accept caching request
-      $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
-      $path_hash = hash('sha256', $path_part.NONCE_SALT);
+
       $response = array(
-        "received"  => $_REQUEST['slug'],
-        "length"    => strlen(json_encode($_REQUEST['sections'])),
+        "received"  => substr($_REQUEST['slug'],0,255),
         "available" => 0,
         "status"    => 0,
       );
 
-      $slug  = $_REQUEST['slug'];
-      $title = $_REQUEST['title'];
+      if (!(C('ENABLE_SECTION_STASHING') == TRUE)) {
+        $cache_path = SYSTEM_BASE . "/../cache";
+        if ( !file_exists( $cache_path ) ) mkdir( $cache_path );
+        // Accept caching request
+        $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
+        $path_hash = hash('sha256', $path_part.NONCE_SALT);
+        $slug  = $_REQUEST['slug'];
+        $title = $_REQUEST['title'];
 
-      if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $contents ) {
-        if ( is_array($contents['contents']) ) foreach ( $contents['contents'] as $content ) {
-          // Skip empty ident
-          $ident = $content['ident'];
-          if ( 0 == strlen($ident) ) 
-            continue;
+        if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $contents ) {
+          if ( is_array($contents['contents']) ) foreach ( $contents['contents'] as $content ) {
+            // Skip empty ident
+            $ident = $content['ident'];
+            if ( 0 == strlen($ident) ) 
+              continue;
 
-          // Test for target file
-          $filename = hash('sha256', $ident.NONCE_SALT);
-          $filepath = "${cache_path}/{$filename}";
-          if (file_exists($filepath)) {
-            $response['available']++;
-            continue;
+            // Test for target file
+            $filename = hash('sha256', $ident.NONCE_SALT);
+            $filepath = "${cache_path}/{$filename}";
+            if (file_exists($filepath)) {
+              $response['available']++;
+              continue;
+            }
+
+            // Store section text with metadata as JSON string
+            $packed_section = array(
+              'title'   => $title,
+              'article' => $slug,
+              'slug'    => $ident,
+              'content' => $content['content'],
+            );
+            file_put_contents($filepath, json_encode($packed_section));
+            $response['status']++;
+            syslog( LOG_INFO, "(marker) -- {$filename}" );
           }
-
-          // Store section text with metadata as JSON string
-          $packed_section = array(
-            'title'   => $title,
-            'article' => $slug,
-            'slug'    => $ident,
-            'content' => $content['content'],
-          );
-          file_put_contents($filepath, json_encode($packed_section));
-          $response['status']++;
-          syslog( LOG_INFO, "(marker) -- {$filename}" );
         }
       }
 

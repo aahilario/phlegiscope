@@ -146,13 +146,13 @@ function set_section_cell_handler(column_index,slug,context) {
     }//}}}
   });
   // Replace leading subsection string with anchor.
-  var is_subsection = /^\(([0-9a-z]{1,})\) /i.test($(self).text());
+  var is_subsection = /^\(?([0-9a-z]{1,})\) /i.test($(self).text());
 
   if ( is_subsection ) {
 
     var anchor_text = $(self).text();
     var section_num = toc[toc_index].section[column_index];
-    var subsection_num = anchor_text.replace(/^\(([0-9a-z]{1,})\) .*/i,"$1");
+    var subsection_num = anchor_text.replace(/^(\()?([0-9a-z]{1,})\) .*/i,"$2");
     var anchor_data = {
       'section_num'    : section_num,
       'subsection_num' : toc[toc_index].subsection[column_index] + 1,
@@ -178,7 +178,7 @@ function set_section_cell_handler(column_index,slug,context) {
       });
     $(self).empty()
       .append(section_anchor)
-      .append(anchor_text.replace(/^\(([0-9a-z]{1,})\) /,''));
+      .append(anchor_text.replace(/^(\()?([0-9a-z]{1,})\) /,''));
 
     toc[toc_index].subsection[column_index]++;
   } 
@@ -359,7 +359,10 @@ $(document).ready(function() {
       // Replacing HTML damages DOM attributes
       .find('TR').each(function(row_index){
         jQuery.each($(this).find('TD'),function(column_index,td){
-          var ww = $(td).html().replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>');
+          var ww = $(td).html()
+            .replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>')
+            .replace(/^SECTION ([0-9]{1,})./i, '<strong>SECTION $1.</strong>')
+            ;
           $(td).html(ww);
           set_section_cell_handler(column_index,slug,$(td));
         });

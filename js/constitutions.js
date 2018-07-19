@@ -146,13 +146,13 @@ function set_section_cell_handler(column_index,slug,context) {
     }//}}}
   });
   // Replace leading subsection string with anchor.
-  var is_subsection = /^\(?([0-9a-z]{1,})\) /i.test($(self).text());
+  var is_subsection = /^\(?([0-9a-z]{1})\)[ ]{1}/i.test($(self).text());
 
   if ( is_subsection ) {
 
     var anchor_text = $(self).text();
     var section_num = toc[toc_index].section[column_index];
-    var subsection_num = anchor_text.replace(/^(\()?([0-9a-z]{1,})\) .*/i,"$2");
+    var subsection_num = anchor_text.replace(/(\r|\n)/g,' ').replace(/^([(]?)([0-9a-z])\)[ ](.*)/,"$1$2) ");
     var anchor_data = {
       'section_num'    : section_num,
       'subsection_num' : toc[toc_index].subsection[column_index] + 1,
@@ -161,6 +161,8 @@ function set_section_cell_handler(column_index,slug,context) {
     };
     var section_anchor = $(document.createElement('A'));
 
+    if ( subsection_num.length > 4 )
+      alert( "Warning: "+subsection_num);
     $(section_anchor)
       .data(anchor_data)
       .css({
@@ -171,14 +173,15 @@ function set_section_cell_handler(column_index,slug,context) {
       })
       .addClass('toc-section')
       .addClass('toc-subsection')
-      .text('('+subsection_num+') ')
+      .text(subsection_num+' ')
       .click(function(event){
         var self = this;
         scroll_to_anchor(event,$('#'+$(self).attr('id').replace(/link-/,'a-')),'a-');
       });
     $(self).empty()
       .append(section_anchor)
-      .append(anchor_text.replace(/^(\()?([0-9a-z]{1,})\) /,''));
+      .append(anchor_text.replace(/^([(]?)([0-9a-z]{1})\)/i,''))
+      ;
 
     toc[toc_index].subsection[column_index]++;
   } 
@@ -306,7 +309,6 @@ $(document).ready(function() {
         'clear'        : 'both'
       })
       .css(link_color)
-        
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
       .click(function(event){
         var self = this;

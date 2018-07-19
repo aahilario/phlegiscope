@@ -1223,6 +1223,7 @@ EOH;
       $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
       if ( file_exists( $cached_file ) ) {
         // The content is wrapped in JSON: 
+        $server_name = $_SERVER['SERVER_NAME'];
         $section_content = file_get_contents($cached_file);
         $json = json_decode($section_content, TRUE);
         $target_url = "/?see={$path_hash}#{$path_part}";
@@ -1234,6 +1235,7 @@ EOH;
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width">
   <meta name="robots" content="noindex,follow">
+  <script type="text/javascript" src="https://{$server_name}/wp-includes/js/jquery/jquery.js?ver=1.12.4"></script>
   <title>{$json['title']}</title>
   <style type="text/css">
     html {
@@ -1347,11 +1349,12 @@ EOH;
 
       </style>
 </head>
-</body>
+<body>
 <div class="selected_section" id="selected_section">
   <h3><a href="/#{$json['article']}">{$json['title']}</a></h3>
-  <p>{$json['content']} <a href="/#{$json['slug']}">[Go]</a></p>
+  <p>{$json['content']} <a id="maindoc-jump-link" href="/#{$json['slug']}">[See in context]</a></p>
 </div>
+<script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
 </body>
 </html>
 EOH;

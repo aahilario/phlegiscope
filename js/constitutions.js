@@ -413,6 +413,11 @@ $(document).ready(function() {
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
 
+    $('#maindoc-jump-link').each(function(){
+      // Presence of this element on the page causes an unconditional document reload.
+      document.location = $(this).attr('href');
+    });
+
     jQuery.each($('div.site-inner').find('table'),function(index,table){
       // Table context
       var tabledef = { 

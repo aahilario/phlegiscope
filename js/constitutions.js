@@ -3,6 +3,37 @@ var timer_id = 0;
 var enable_copy = 0;
 var intrasection_links = 0;
 var enable_stash_code = 0;
+var enable_html_extractor = 0;
+
+function generate_toc_div(container) {
+  var tocdiv = document.createElement('DIV');
+  // Generate empty TOC div
+  $(tocdiv)
+    .attr('id','toc')
+    .css({
+      'width'            : '180px',
+      'max-height'       : ($(window).innerHeight()-90)+'px',
+      'background-color' : '#FFF',
+      'padding'          : '5px 0 5px 0',
+      'margin-left'      : '5px',
+      'overflow'         : 'scroll',
+      'overflow-x'       : 'hidden',
+      'display'          : 'block',
+      'float'            : 'right',
+      'clear'            : 'none',
+      'position'         : 'fixed',
+      'z-index'          : '10',
+      'top'              : '50px',
+      'left'             : '10px',
+      'border'           : 'solid 3px #DDD'
+    })
+    .text("");
+
+  // Add TOC div to WordPress content DIV
+  $(container).append(tocdiv);
+  $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0, 'table_count' : 0});
+  return tocdiv;
+}
 
 function highlight_toc_entry(id) {
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
@@ -79,10 +110,7 @@ function scroll_to_anchor(event,context,prefix){
       scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
     });
   }
-  document.location = '#'+anchor_id;
-}
-
-function replace_section_x_text(context) {
+  document.location = '#'+anchor_id.replace(/^a-/,'');
 }
 
 function set_section_cell_handler(column_index,slug,context) {
@@ -230,6 +258,31 @@ function set_section_cell_handler(column_index,slug,context) {
   parser = null;
 }
 
+function raise_toc_on_mousemove(event) {//{{{
+  var offsetedge = Number.parseInt(event.pageX);
+  var triggeredge = Number.parseInt($('#toc').data('floatedge'));
+  clearTimeout($('#toc').data('timer_fade'));
+  if ( offsetedge + 10 < triggeredge ) {
+    $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
+  }
+  $('#toc').data('timer_fade',setTimeout(function(){
+    $('#toc').fadeOut(1000);
+  },3000));
+}//}}}
+
+function handle_window_scroll(event) {
+  clearTimeout($('#toc').data('timer_fade'));
+  var offsetedge = Number.parseInt(event.pageX);
+  var triggeredge = Number.parseInt($('#toc').data('floatedge'));
+  if ( offsetedge + 10 < triggeredge ) {
+    $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
+  }
+  $('#toc').data('timer_fade',setTimeout(function(){
+    $('#toc').fadeOut(3000);
+  },3000));
+  defer_toc_highlight(200);
+}
+
 $(document).ready(function() {
 
   // Copyright 2018, Antonio Victor Andrada Hilario
@@ -240,39 +293,12 @@ $(document).ready(function() {
 
   var preamble_y = 0;
   var preamble_offset = 0;
-  var tocdiv = document.createElement('DIV');
   var toc = new Array();
+  var tocdiv = generate_toc_div($('#page'));
   var parser = document.createElement('A');
 
   parser.href = document.location;
   
-  // Generate empty TOC div
-  $(tocdiv)
-    .attr('id','toc')
-    .css({
-      'width'            : '180px',
-      'max-height'       : ($(window).innerHeight()-90)+'px',
-      'background-color' : '#FFF',
-      'padding'          : '5px 0 5px 0',
-      'margin-left'      : '5px',
-      'overflow'         : 'scroll',
-      'overflow-x'       : 'hidden',
-      'display'          : 'block',
-      'float'            : 'right',
-      'clear'            : 'none',
-      'position'         : 'fixed',
-      'z-index'          : '10',
-      'top'              : '50px',
-      'left'             : '10px',
-      'border'           : 'solid 3px #DDD'
-    })
-    .text("");
-
-  // Add TOC div to WordPress content DIV
-  $('#page').append(tocdiv);
-
-  $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0, 'table_count' : 0});
-
   // Add anchors to each article header
 
   // Iterate through each H1 Article header
@@ -410,6 +436,27 @@ $(document).ready(function() {
   $('#toc').append(document.createElement('BR'));
   $('#toc').append(representative_map);
 
+  if ( enable_html_extractor > 0 ) {
+    var html_extractor = $(document.createElement('DIV'))
+      .attr('id','html-extractor')
+      .css({
+        'position'         : 'fixed',
+        'width'            : '100px',
+        'top'              : '50px',
+        'left'             : ($(window).innerWidth()-110)+'px',
+        'display'          : 'block',
+        'clear'            : 'none',
+        'z-index'          : '10',
+        'overflow'         : 'scroll',
+        'overflox-x'       : 'hidden',
+        'float'            : 'right',
+        'border'           : 'solid 3px #DDD',
+        'background-color' : '#FFF',
+      });
+
+    $('#page').append(html_extractor);
+  }
+
   jQuery.each($('div.site-inner').find('table'),function(index,table){
     // Table context
     var tabledef = { 
@@ -421,10 +468,21 @@ $(document).ready(function() {
     var table_count = $('#toc').data('table_count');
     var slug = $(table).attr('id');
     if ( slug === undefined ) return;
+
+    // Store table properties for /stash/
     tabledef.slug = slug;
     tabledef.title = $('#h-'+slug).text();
+
+    $(table).addClass('constitution-article');
+
+    if ( enable_html_extractor > 0 ) {
+      // Duplicate markup components, except those dynamically generated.
+      $('#html-extractor').append($('#h-'+slug).clone());
+    }
+
     jQuery.each($(table).find('TR'), function(tr_index, tr) {
       // TR context
+      var previous_column_cell = null;
       jQuery.each($(tr).children(), function(td_index,td){
         // TD context
         // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
@@ -432,19 +490,25 @@ $(document).ready(function() {
         // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
         // 3. Apply column span mod and collapse middle columns
 
-        if ( undefined === tabledef.sections[td_index] )
-          tabledef.sections[td_index] = {
-            current_ident : null,
-            current_slug : null,
-            current_section : null,
-            subsection_num : null,
-            contents : new Array()
-          };
+        if ( enable_stash_code > 0 ) {
+          if ( undefined === tabledef.sections[td_index] )
+            tabledef.sections[td_index] = {
+              current_ident : null,
+              current_slug : null,
+              current_section : null,
+              subsection_num : null,
+              contents : new Array()
+            };
+        }
 
         // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
         $(td).data('index',td_index);
-
-        // 1. Locate and modify toc-section anchors; fix 
+        // Add column classname to ConCom draft sections
+        if ( td_index > 0 ) {
+          $(td).addClass("concom-"+td_index);
+        }
+ 
+        // 1. Locate and modify toc-section anchors: Make links point to /constitutions/ section preview. 
         $(td).find('[class*=toc-section]').each(function(){
           var slug = $(this).data('slug');
           var subsection_num = $(this).data('subsection_num');
@@ -458,29 +522,56 @@ $(document).ready(function() {
             .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
             .attr('href',path+'constitutions/'+cell_ident);
 
-          tabledef.sections[td_index].current_ident   = cell_ident;
-          tabledef.sections[td_index].current_slug    = slug;
-          tabledef.sections[td_index].current_section = section_num;
-          tabledef.sections[td_index].subsection_num  = subsection_num;
+          if ( enable_stash_code > 0 ) {
+            tabledef.sections[td_index].current_ident   = cell_ident;
+            tabledef.sections[td_index].current_slug    = slug;
+            tabledef.sections[td_index].current_section = section_num;
+            tabledef.sections[td_index].subsection_num  = subsection_num;
+          }
         });
 
+        // Column presentation mods 
         if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
           // Uncommment to restrict to 1987 constitution and latest ConCom draft
           // $(td).attr('colspan','2');
         }
         else if ( td_index == 1 ) {
           // Increase reading space by collapsing 27 June draft column
-          $(td).remove();
+          $(td).hide();
         }
         else {
-          if ( $(td).text().length > 0 )
-          tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
-            ident          : tabledef.sections[td_index].current_ident,
-            content        : $(td).text()
-          };
+          if ( td_index == 3 ) {
+            if ( $(previous_column_cell).text().length == $(td).text().length && $(td).text().length == 0 ) {
+              $(previous_column_cell).hide();
+              $(td).attr('colspan','2');
+            }
+            else if ( $(previous_column_cell).text() == $(td).text() ) {
+              if ( $(previous_column_cell).text().length > 0 ) {
+                $(td).attr('colspan','2');
+                $(previous_column_cell).hide();
+              }
+            }
+          }
+          if ( enable_stash_code > 0 ) {
+            // Store Article table parameters for /stash/
+            if ( $(td).text().length > 0 ) tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
+              ident          : tabledef.sections[td_index].current_ident,
+              content        : $(td).text()
+            };
+          }
+          if ( enable_html_extractor > 0 ) {
+            // Add table cell to html-extractor
+            var clone = $(td).clone().addClass('final-20180717');
+            if ( /^ConCom Draft.*/i.test($(clone).text()) ) {
+              $(clone).empty();
+              $(clone).html("ConCom Final\rDraft");
+            }
+            $(td).parent().append(clone);
+          }
         }
+        $(td).css({'height' : 'auto'});
 
-        if ( intrasection_links > 0 ) {
+        if ( intrasection_links > 0 ) {//{{{
           // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
           var section_match = new RegExp('section [0-9]{1,}( of article [XIV]{1,})*','gi');
           var matches;
@@ -489,11 +580,11 @@ $(document).ready(function() {
             if (!( offset > 0 )) continue;
             console.log("Got "+matches[0]+" @ "+(offset)+': '+$(td).text());
           }
-        }
+        }//}}}
 
-        // Separately: If this cell contains any A tags linking to any other cell in this document,
-        // we add a click handler that causes the browser to scroll that target into view.
         jQuery.each($(td).find('A'),function(a_index,anchor){
+          // Separately: If this cell contains any A tags linking to any other cell in this document,
+          // we add a click handler that causes the browser to scroll that target into view.
           if ( $(anchor).hasClass('toc-section') ) {
             // Do nothing
           }
@@ -509,10 +600,14 @@ $(document).ready(function() {
           }
         });
 
+        previous_column_cell = $(td);
       });
+      $(tr).css({'height':'auto'});
     });
+
     table_count++;
     $('#toc').data('table_count',table_count);
+
     if ( enable_stash_code > 0 ) {
       jQuery.ajax({
         type     : 'POST',
@@ -527,8 +622,27 @@ $(document).ready(function() {
         })
       });
     }
+
     tabledef = null;
+
+    if ( enable_html_extractor > 0 ) {
+      // Append this table to the HTML extractor div
+      $('#html-extractor')
+        .append($(table).clone());
+    }
   });
+
+  if ( enable_html_extractor > 0 ) {
+    // Clean up the HTML extractor's cells.  Replace TD contents with text.
+    jQuery.each($('div#html-extractor').find('table'),function(index,table){
+      jQuery.each($(table).find('TR'), function(tr_index, tr) {
+        jQuery.each($(tr).children(), function(td_index,td){
+          var content = document.createTextNode($(td).text());
+          $(td).text($(content).text());
+        });
+      });
+    });
+  }
 
   // If the requested URL contains a hash part, extract that text and 
   //   place above the "Available Formats" table
@@ -547,10 +661,13 @@ $(document).ready(function() {
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
 
-    $('#maindoc-jump-link').each(function(){
-      // Presence of this element on the page causes an unconditional document reload.
-      document.location = $(this).attr('href');
-    });
+    // Facebook Preview fix: Jump to real page after a few seconds.
+    setTimeout(function(){
+      $('#maindoc-jump-link').each(function(){
+        // Presence of this element on the page causes an unconditional document reload.
+        document.location = $(this).attr('href');
+      });
+    },7000);
 
     // Reset font size by removing all font-size style specifiers
     var custom_css = $('head').find('style#wp-custom-css').text().replace(/font-size: ([^;]{1,});/i,'');
@@ -562,35 +679,17 @@ $(document).ready(function() {
 
   // Attach handler that triggers reappearance of TOC on mouse movement
   $(window).mousemove(function(event){
-    var offsetedge = Number.parseInt(event.pageX);
-    var triggeredge = Number.parseInt($('#toc').data('floatedge'));
-    clearTimeout($('#toc').data('timer_fade'));
-    // FIXME:  You're repeating code here, from the scroll() event handler 
-    if ( offsetedge + 10 < triggeredge ) {
-      
-      $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
-    }
-    $('#toc').data('timer_fade',setTimeout(function(){
-      $('#toc').fadeOut(1000);
-    },3000));
+    raise_toc_on_mousemove(event);
   });
 
+  // Hide TOC after a few seconds
   $('#toc').data('timer_fade',setTimeout(function(){
     $('#toc').fadeOut(1000);
   },3000));
 
   // Adjust menu size (position is fixed) 
   $(window).scroll(function(event){
-    clearTimeout($('#toc').data('timer_fade'));
-    var offsetedge = Number.parseInt(event.pageX);
-    var triggeredge = Number.parseInt($('#toc').data('floatedge'));
-    if ( offsetedge + 10 < triggeredge ) {
-      $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
-    }
-    $('#toc').data('timer_fade',setTimeout(function(){
-      $('#toc').fadeOut(3000);
-    },3000));
-    defer_toc_highlight(200);
+    handle_window_scroll(event);
   });
 
 });

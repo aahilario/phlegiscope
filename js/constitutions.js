@@ -480,9 +480,11 @@ $(document).ready(function() {
       $('#html-extractor').append($('#h-'+slug).clone());
     }
 
+    var visible_columns = 0;
     jQuery.each($(table).find('TR'), function(tr_index, tr) {
       // TR context
       var previous_column_cell = null;
+      var row_visible_cells = 0;
       jQuery.each($(tr).children(), function(td_index,td){
         // TD context
         // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
@@ -534,27 +536,31 @@ $(document).ready(function() {
         if ( Number.parseInt($(td).attr('colspan')) == 3 ) {
           // Uncommment to restrict to 1987 constitution and latest ConCom draft
           // $(td).attr('colspan','2');
+          $(td).addClass('header-full');
         }
         else if ( td_index == 1 ) {
           // Increase reading space by collapsing 27 June draft column
           $(td).hide();
         }
         else {
+          row_visible_cells++; 
           if ( td_index == 3 ) {
             if ( $(previous_column_cell).text().length == $(td).text().length && $(td).text().length == 0 ) {
               $(previous_column_cell).hide();
               $(td).attr('colspan','2');
+              row_visible_cells--;
             }
             else if ( $(previous_column_cell).text() == $(td).text() ) {
               if ( $(previous_column_cell).text().length > 0 ) {
-                $(td).attr('colspan','2');
                 $(previous_column_cell).hide();
+                $(td).attr('colspan','2');
+                row_visible_cells--;
               }
             }
           }
-          if ( enable_stash_code > 0 ) {
+          if ( $(td).text().length > 0 ) {
             // Store Article table parameters for /stash/
-            if ( $(td).text().length > 0 ) tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
+            if ( enable_stash_code > 0 ) tabledef.sections[td_index].contents[tabledef.sections[td_index].contents.length] = {
               ident          : tabledef.sections[td_index].current_ident,
               content        : $(td).text()
             };
@@ -602,8 +608,24 @@ $(document).ready(function() {
 
         previous_column_cell = $(td);
       });
+      if ( tr_index > 0 ) {
+        if ( row_visible_cells > visible_columns )
+          visible_columns = row_visible_cells;
+      }
+
       $(tr).css({'height':'auto'});
     });
+
+    if ( visible_columns < 3 ) {
+      $(table).find('tr').find('.concom-1').each(function(){$(this).hide();});
+      $(table).find('tr').find('.concom-2').each(function(){$(this).hide();});
+      $(table).find('tr').find('td').each(function(){
+        if ( $(this).hasClass('header-full') )
+          $(this).attr('colspan','2');
+        else
+          $(this).attr('colspan','1');
+      });
+    }
 
     table_count++;
     $('#toc').data('table_count',table_count);

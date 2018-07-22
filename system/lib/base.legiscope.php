@@ -1409,6 +1409,7 @@ EOH;
       }
       $commentary_linkset = join($commentary_linkset,'<br/>');
     }
+    else $commentary_linkset = "";
     if ( 0 < count($commentary_links) || $user->exists() )
       $response['content'] =<<<EOH
 <div id="slug-commentary-{$slug}">

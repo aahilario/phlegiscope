@@ -1221,7 +1221,7 @@ EOH;
 
     $debug_method = TRUE; 
 
-    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
 
     if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
 
@@ -1425,7 +1425,7 @@ EOH;
     // This is utterly embarrassing.
     $debug_method = TRUE;
 
-    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
 
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);

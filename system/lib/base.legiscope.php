@@ -1219,6 +1219,8 @@ EOH;
   static function handle_stash_post( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
 
+    $debug_method = TRUE; 
+
     if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
 
     if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
@@ -1417,7 +1419,7 @@ EOH;
   {/*{{{*/
 
     // This is utterly embarrassing.
-    $debug_method = FALSE;
+    $debug_method = TRUE;
 
     if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
 

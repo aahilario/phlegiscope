@@ -1219,9 +1219,9 @@ EOH;
   static function handle_stash_post( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
 
-    openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
 
-    syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
+    if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
 
     if (!(C('ENABLE_SECTION_STASHING') == TRUE)) 
       return;
@@ -1234,10 +1234,11 @@ EOH;
     // Accept caching request
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
-    $slug      = $_REQUEST['slug'];
-    $title     = $_REQUEST['title'];
-    $selected  = $_REQUEST['selected'];
-    $link      = array_key_exists('link', $_REQUEST) ? $_REQUEST['link'] : NULL;
+    $slug      = substr($_REQUEST['slug'],0,255);
+    $title     = substr($_REQUEST['title'],0,255);
+    $selected  = substr($_REQUEST['selected'],0,255);
+    $summary   = substr($_REQUEST['summary'],0,1000);
+    $link      = array_key_exists('link', $_REQUEST) ? substr($_REQUEST['link'],0.255) : NULL;
 
     $linkset   = array();
     // path_hash refers to the Article table ID; unused presently
@@ -1266,19 +1267,35 @@ EOH;
         );
         file_put_contents($filepath, json_encode($packed_section));
         $response['status']++;
-        syslog( LOG_INFO, "(marker) -- {$filename}" );
+        syslog( LOG_INFO, "(marker) -- Target file {$filename}" );
       }
     }/*}}}*/
-    if ( !is_null($link) ) {
+    if ( !is_null($link) && !empty($selected) ) {
 
       // Collect the sections to which the submitted link applies
+      $match = NULL;
       if ( is_array($_REQUEST['links']) ) foreach ( $_REQUEST['links'] as $index => $section ) {
-        syslog( LOG_INFO, "(marker) --  RQ: {$index} -> {$section}" );
+        $match = ( $section == $selected ) ? " (THIS)" : "";
+        if ( $debug_method ) syslog( LOG_INFO, "(marker) --  RQ: {$index} -> {$section}{$match}" );
       }
-      syslog( LOG_INFO, "(marker) --  Section: {$selected}" );
-      syslog( LOG_INFO, "(marker) --     Slug: {$slug}" );
-      syslog( LOG_INFO, "(marker) --    Title: {$title}" );
-      syslog( LOG_INFO, "(marker) --     Link: {$link}" );
+
+      $section_filename =is_null($match) 
+        ? hash('sha256', $slug.NONCE_SALT)
+        : hash('sha256', $selected.NONCE_SALT)
+        ;
+
+      $filepath = "${cache_path}/{$section_filename}";
+      $section_file_present = file_exists($filepath);
+      $section_file_mark = $section_file_present ? "Present" : "???";
+
+      if ( $debug_method ) { 
+        syslog( LOG_INFO, "(marker) --     File: {$filepath}" );
+        syslog( LOG_INFO, "(marker) --  Section: {$selected} {$section_file_present}" );
+        syslog( LOG_INFO, "(marker) --     Slug: {$slug}" );
+        syslog( LOG_INFO, "(marker) --    Title: {$title}" );
+        syslog( LOG_INFO, "(marker) --     Link: {$link}" );
+        syslog( LOG_INFO, "(marker) --  Summary: {$summary}" );
+      }
 
       // The link is associated with the selected section, stored in the 
       // same flat file as the section text.
@@ -1286,17 +1303,123 @@ EOH;
       // If no section link is contained in the cell that triggered this event,
       // then the link will be stored in the Article's JSON file.
       $parsed_link = parse_url($link);
-      if ( FALSE === $parsed_link ) {
-      }
+      if ( FALSE === $parsed_link ) {/*{{{*/
+        syslog( LOG_INFO, "Unparseable URL provided '{$link}'" );
+      }/*}}}*/
+      else if ( !preg_match('@^https?@',$parsed_link['scheme']) ) {/*{{{*/
+        syslog( LOG_INFO, "Invalid link scheme '{$parsed_link['scheme']}'" );
+      }/*}}}*/
+      else if ( file_exists("{$filepath}.lock") ) {/*{{{*/
+        syslog( LOG_INFO, "Section file " . basename($filepath) . " is locked. Notify retry" );
+        if (file_exists("{$filepath}.lock"))
+          unlink("{$filepath}.lock");
+      }/*}}}*/
+      else if ( !$section_file_present ) {/*{{{*/
+        // No operation if section file not yet recorded
+        syslog( LOG_INFO, "Section '{$selected}' is not yet cached." );
+      }/*}}}*/
+      else if ( FALSE === ($current_json = file_get_contents($filepath)) ) {/*{{{*/
+        syslog( LOG_INFO, "Unable to read cached section file " . basename($filepath) );
+      }/*}}}*/
+      else if ( FALSE === ($json = json_decode($current_json, TRUE)) ) {/*{{{*/
+        syslog( LOG_INFO, "Corrupt section file " . basename($filepath) );
+      }/*}}}*/
+      else {/*{{{*/
+        
+        file_put_contents( "{$filepath}.lock", $current_json );
+
+        $current_json = NULL;
+
+        if ( $debug_method ) { 
+          syslog( LOG_INFO, "Submit parsed link {$link}" );
+          syslog( LOG_INFO, "Target file for section is {$filepath}" );
+        }
+        if ( !array_key_exists('linkset', $json) ) 
+          $json['linkset'] = array(
+            'links' => 0,
+            'link' => array()
+          ); 
+
+        $linkhash = hash('sha256', $link);
+
+        if ( array_key_exists( $linkhash, $json['linkset']['link'] ) ) { 
+          $json['linkset']['link'][$linkhash]['updated'] = $time;
+          $json['linkset']['link'][$linkhash]['title']   = $title;
+          $json['linkset']['link'][$linkhash]['summary'] = $summary;
+        }
+        else
+          $json['linkset']['link'][$linkhash] = array(
+            'approved' => FALSE,
+            'added'    => time(),
+            'updated'  => time(),
+            'title'    => $title,
+            'link'     => $link,
+            'summmary' => $summary,
+          );
+
+        $current_json = json_encode($json);
+
+        if ( FALSE === file_put_contents( $filepath, $current_json ) ) {
+          syslog( LOG_INFO, "Unable to write section file " . basename($filepath) );
+        }
+        else {
+          syslog( LOG_INFO, "Updated " . $filepath );
+        }
+
+        // Release file lock
+        unlink("{$filepath}.lock");
+
+        $linkset = $json['linkset']['link'];
+
+      }/*}}}*/
+      self::generate_commentary_box( $response, $linkset );
     }
+  }/*}}}*/
+
+  static function generate_commentary_box( & $response, $commentary_links ) 
+  {/*{{{*/
+    $test_title         = "Comment on " . date('d M Y @ H:i:s'); // Rappler Talk: Albert del Rosario on Duterte gov’t’s refusal to enforce Hague ruling
+    $test_url           = "https://avahilario.net"; // https://www.rappler.com/newsbreak/rich-media/207467-interview-albert-del-rosario-duterte-arbitral-ruling
+    $test_summary       = "Optional summary text";
+
+    $commentary         = NULL;
+    $commentary_linkset = NULL;
+    $slug               = $response['slug'];
+
+    $user = wp_get_current_user();
+    if ( $user->exists() ) {
+      $separator = NULL;
+      if ( 0 < count($commentary_links) )
+        $separator = '<hr/>';
+      $commentary = <<<EOH
+{$separator}
+<label class="constitution-commentary" for="comment-title">Title:</label><input type="text" title="{$test_title}" id="comment-title"></input>
+<label class="constitution-commentary" for="comment-url">Link:</label><input type="text" title="{$test_url}" id="comment-url"></input>
+<label class="constitution-commentary" for="comment-summary">Summary:</label><input type="text" title="{$test_summary}" id="comment-summary"></input>
+<input id="comment-send" value="Record" type="submit" class="button button-primary button-large" style="display: block; float: right; margin-top: 4px;"/>
+EOH;
+    }
+    if ( 0 < count($commentary_links) )
+      foreach( $commentary_links as $linkhash => $components ) {
+        $commentary_linkset .=<<<EOH
+<a class="external-link" href="{$components['link']}" target="_commentary">{$components['title']}</a>
+EOH;
+      }
+    if ( 0 < count($commentary_links) || $user->exists() )
+      $response['content'] =<<<EOH
+<div id="slug-commentary-{$slug}">
+{$commentary_linkset}{$commentary}
+</div>
+EOH;
   }/*}}}*/
 
   static function handle_stash_get( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
 
     // This is utterly embarrassing.
+    $debug_method = FALSE;
 
-    openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
 
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
@@ -1327,46 +1450,25 @@ EOH;
       }
 
       if ( 0 < count($section['linkset']['link']) ) {
+        foreach ( $section['linkset']['link'] as $linkhash => $component ) {
+          $commentary_links[$linkhash] = $component;
+          if ( $debug_method ) syslog( LOG_INFO, "(marker) -- Got link {$component['link']}");
+        }
       }
 
-      syslog( LOG_INFO, "(marker) -- {$filename} ({$ident}) " . strlen($section_json) );
+      if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$filename} ({$ident}) " . strlen($section_json) );
     }
-
-    $user = wp_get_current_user();
-    $slug = substr($_REQUEST['slug'],0,255);
+    if ( $debug_method ) syslog( LOG_INFO, "(marker) -- Stash GET: " . $path_part );
 
     $response['received'] = $_REQUEST['sections'];
-    $response['slug']     = $slug;
+    $response['slug']     = substr($_REQUEST['slug'],0,255);
 
-    $commentary = NULL;
-    $commentary_linkset = NULL;
-    if ( $user->exists() ) {
-      $separator = NULL;
-      if ( 0 < count($commentary_links) )
-        $separator = '<hr/>';
-      $commentary = <<<EOH
-{$separator}
-<label class="constitution-commentary" for="comment-title">Title:</label><input type="text" id="comment-title"></input>
-<label class="constitution-commentary" for="comment-url">Link:</label><input type="text" id="comment-url"></input>
-<label class="constitution-commentary" for="comment-summary">Summary:</label><input type="text" id="comment-summary"></input>
-<input id="comment-send" value="Record" type="submit" class="button button-primary button-large" style="display: block; float: right; margin-top: 4px;"/>
-EOH;
-    }
-    if ( 0 < count($commentary_links) )
-      $commentary_linkset =<<<EOH
-<a class="external-link" href="https://www.rappler.com/newsbreak/rich-media/207467-interview-albert-del-rosario-duterte-arbitral-ruling" target="_commentary">Rappler Talk: Albert del Rosario on Duterte gov’t’s refusal to enforce Hague ruling</a>
-EOH;
-    if ( 0 < count($commentary_links) || $user->exists() )
-    $response['content'] =<<<EOH
-<div id="slug-commentary-{$slug}">
-{$commentary_linkset}{$commentary}
-</div>
-EOH;
+    self::generate_commentary_box( $response, $commentary_links );
+
   }/*}}}*/
 
   static function handle_constitutions_get( $restricted_request_uri ) 
   {/*{{{*/
-    // Only accept up to 255 characters in REQUEST_URI
     $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
     $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
@@ -1521,6 +1623,7 @@ EOH;
     // See ../phlegiscope.php add_action(__FUNCTION__, ...)
     // Intercept GET request where REQUEST_URI contains prefix '^/constitutions/' or '^/stash/'
 
+    // Only accept up to 255 characters in REQUEST_URI
     $restricted_request_uri = substr($_SERVER['REQUEST_URI'], 0, 255); 
     if ( 1 === preg_match('/^\/constitutions\//i', $restricted_request_uri) ) {
       self::handle_constitutions_get( $restricted_request_uri );

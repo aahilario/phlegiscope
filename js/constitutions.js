@@ -321,15 +321,17 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
         $('#comment-send').click(function(event){
           var title = $('#comment-title').val();
           var link  = $('#comment-url').val();
+          var summary = $('#comment-summary').val();
           if ( link.length > 0 && title.length > 0 )
           jQuery.ajax({
             type     : 'POST',
             url      : '/stash/'+slug,
             data     : {
-              selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id'),
+              selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id').replace(/^a-/i,''),
               slug     : slug,
               title    : title,
               link     : link,
+              summary  : summary,
               links    : links
             },
             cache    : false,

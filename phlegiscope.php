@@ -40,3 +40,4 @@ add_action('parse_request'        , array($phlegiscope_instance, 'wordpress_pars
 
 ////////////////////////////////////////////////////////////////
 
+add_action('wp_enqueue_scripts'   , array($phlegiscope_instance, 'wordpress_enqueue_scripts'));

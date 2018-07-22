@@ -916,19 +916,19 @@ class LegiscopeBase extends SystemUtility {
 
   /** View methods **/
 
-  function get_template_filename($template_name, $for_class = NULL) {
+  function get_template_filename($template_name, $for_class = NULL) {/*{{{*/
     if ( is_null($for_class) ) {
       $for_class = get_class($this);
     } 
     $for_class = join('.',array_reverse(camelcase_to_array($for_class)));
     $template_filename = array(SYSTEM_BASE,'templates',$for_class,$template_name);
     return join('/',$template_filename); 
-  }
+  }/*}}}*/
 
-  function get_template($template_name, $for_class = NULL) {
+  function get_template($template_name, $for_class = NULL) {/*{{{*/
     $fn = $this->get_template_filename($template_name, $for_class);
     return file_exists($fn) ? @file_get_contents($fn) : NULL;
-  }
+  }/*}}}*/
 
   //////////////////////////////////////////////////////////////////////////
   /** WordPress Plugin adapter methods **/
@@ -1068,8 +1068,8 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
-  static function include_map() {
-  }
+  static function include_map() {/*{{{*/
+  }/*}}}*/
 
   static function phlegiscope_main() {/*{{{*/
 
@@ -1115,7 +1115,7 @@ class LegiscopeBase extends SystemUtility {
     exit(0);
   }/*}}}*/
 
-  public static function emit_basemap($scale = NULL, $return = FALSE) {
+  public static function emit_basemap($scale = NULL, $return = FALSE) {/*{{{*/
     $m = str_replace(
       array(
         '{svg_inline}',
@@ -1129,9 +1129,9 @@ class LegiscopeBase extends SystemUtility {
     );
     if ( $return ) return $m;
     echo $m;
-  }
+  }/*}}}*/
 
-  static function register_userland_menus() {
+  static function register_userland_menus() {/*{{{*/
 
     register_nav_menus(
       array(
@@ -1139,7 +1139,7 @@ class LegiscopeBase extends SystemUtility {
       )
     );
 
-  }
+  }/*}}}*/
 
   static function wordpress_enqueue_scripts() {/*{{{*/
 
@@ -1147,10 +1147,14 @@ class LegiscopeBase extends SystemUtility {
 
     $plugins_url   = plugins_url();
     $themes_uri    = get_template_directory_uri();
-    $spider_js_url = plugins_url('legiscope.js', LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
+    $spider_js_url = plugins_url('legiscope.js'    , LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
+    $fx_js_url     = plugins_url('jquery-ui.min.js', LEGISCOPE_JS_PATH . '/ui/' . 'jquery-ui-min.js');
 
     wp_register_script('legiscope-spider', $spider_js_url, array('jquery'), NULL);
     wp_enqueue_script('legiscope-spider' , $spider_js_url, array('jquery'), NULL);
+
+    wp_register_script('legiscope-fx', $fx_js_url    , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-fx' , $fx_js_url    , array('jquery'), NULL);
 
     static::register_userland_menus();
 
@@ -1178,8 +1182,9 @@ class LegiscopeBase extends SystemUtility {
     $themes_uri  = get_template_directory_uri(); 
 
     $spider_js_url        = plugins_url('legiscope.js'       , LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
-    $pdf_js_url           = plugins_url('pdf.js'          , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
-    $admin_css_url        = plugins_url('legiscope-admin.css',  LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+    $pdf_js_url           = plugins_url('pdf.js'             , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+    $admin_css_url        = plugins_url('legiscope-admin.css', LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+    $fx_js_url     = plugins_url('jquery-ui.min.js', LEGISCOPE_JS_PATH . '/ui/' . 'jquery-ui-min.js');
 
     wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
     wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
@@ -1211,24 +1216,168 @@ EOH;
 
   }/*}}}*/
 
-  static function wordpress_init()
-  {
-    // See ../phlegiscope.php add_action(__FUNCTION__, ...)
-    // Intercept GET request where REQUEST_URI contains prefix '^/constitutions/'
-    $restricted_request_uri = substr($_SERVER['REQUEST_URI'], 0, 255); 
-    if ( 1 === preg_match('/^\/constitutions\//i', $restricted_request_uri) ) {
-      // Only accept up to 255 characters in REQUEST_URI
-      $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
-      $path_hash = hash('sha256', $path_part.NONCE_SALT);
-      $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
-      if ( file_exists( $cached_file ) ) {
-        // The content is wrapped in JSON: 
-        $server_name = $_SERVER['SERVER_NAME'];
-        $section_content = file_get_contents($cached_file);
-        $json = json_decode($section_content, TRUE);
-        $target_url = "/?see={$path_hash}#{$path_part}";
-        $anchor_url = "/#{$path_part}";
-        $microtemplate = <<<EOH
+  static function handle_stash_post( & $response, $restricted_request_uri, $cache_path ) 
+  {/*{{{*/
+
+    openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+
+    syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
+
+    if (!(C('ENABLE_SECTION_STASHING') == TRUE)) 
+      return;
+
+    $user = wp_get_current_user();
+
+    if (!($user->exists()))
+      return;
+
+    // Accept caching request
+    $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
+    $path_hash = hash('sha256', $path_part.NONCE_SALT);
+    $slug      = $_REQUEST['slug'];
+    $title     = $_REQUEST['title'];
+    $selected  = $_REQUEST['selected'];
+    $link      = array_key_exists('link', $_REQUEST) ? $_REQUEST['link'] : NULL;
+
+    $linkset   = array();
+    // path_hash refers to the Article table ID; unused presently
+    if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $contents ) {/*{{{*/
+      if ( is_array($contents['contents']) ) foreach ( $contents['contents'] as $content ) {
+        // Skip empty ident
+        $ident = substr($content['ident'],0,255);
+        if ( 0 == strlen($ident) ) 
+          continue;
+
+        // Test for target file
+        $filename = hash('sha256', $ident.NONCE_SALT);
+        $filepath = "${cache_path}/{$filename}";
+        if (file_exists($filepath)) {
+          $response['available']++;
+          continue;
+        }
+
+        // Store section text with metadata as JSON string
+        $packed_section = array(
+          'title'   => $title,
+          'article' => $slug,
+          'slug'    => $ident,
+          'content' => $content['content'],
+          'links'   => array(),
+        );
+        file_put_contents($filepath, json_encode($packed_section));
+        $response['status']++;
+        syslog( LOG_INFO, "(marker) -- {$filename}" );
+      }
+    }/*}}}*/
+    if ( !is_null($link) ) {
+
+      // Collect the sections to which the submitted link applies
+      if ( is_array($_REQUEST['links']) ) foreach ( $_REQUEST['links'] as $index => $section ) {
+        syslog( LOG_INFO, "(marker) --  RQ: {$index} -> {$section}" );
+      }
+      syslog( LOG_INFO, "(marker) --  Section: {$selected}" );
+      syslog( LOG_INFO, "(marker) --     Slug: {$slug}" );
+      syslog( LOG_INFO, "(marker) --    Title: {$title}" );
+      syslog( LOG_INFO, "(marker) --     Link: {$link}" );
+
+      // The link is associated with the selected section, stored in the 
+      // same flat file as the section text.
+
+      // If no section link is contained in the cell that triggered this event,
+      // then the link will be stored in the Article's JSON file.
+      $parsed_link = parse_url($link);
+      if ( FALSE === $parsed_link ) {
+      }
+    }
+  }/*}}}*/
+
+  static function handle_stash_get( & $response, $restricted_request_uri, $cache_path ) 
+  {/*{{{*/
+
+    // This is utterly embarrassing.
+
+    openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL7 );
+
+    $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
+    $path_hash = hash('sha256', $path_part.NONCE_SALT);
+    // path_hash refers to the Article table ID; unused presently
+
+    $commentary_links = array();
+
+    if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $section_slug ) {
+      // Skip empty ident
+      $ident = substr($section_slug,0,255);
+      if ( 0 == strlen($ident) ) 
+        continue;
+
+      // Test for target file
+      $filename = hash('sha256', $ident.NONCE_SALT);
+      $filepath = "${cache_path}/{$filename}";
+
+      // Fetch JSON-wrapped section 
+      $section_json = file_get_contents($filepath);
+      $section = json_decode($section_json, TRUE);
+
+      if ( !array_key_exists('linkset', $section) ) {
+        $section['linkset'] = array(
+          'links' => 0,
+          'link' => array(),
+        );
+        file_put_contents($filepath, json_encode($section));
+      }
+
+      if ( 0 < count($section['linkset']['link']) ) {
+      }
+
+      syslog( LOG_INFO, "(marker) -- {$filename} ({$ident}) " . strlen($section_json) );
+    }
+
+    $user = wp_get_current_user();
+    $slug = substr($_REQUEST['slug'],0,255);
+
+    $response['received'] = $_REQUEST['sections'];
+    $response['slug']     = $slug;
+
+    $commentary = NULL;
+    $commentary_linkset = NULL;
+    if ( $user->exists() ) {
+      $separator = NULL;
+      if ( 0 < count($commentary_links) )
+        $separator = '<hr/>';
+      $commentary = <<<EOH
+{$separator}
+<label class="constitution-commentary" for="comment-title">Title:</label><input type="text" id="comment-title"></input>
+<label class="constitution-commentary" for="comment-url">Link:</label><input type="text" id="comment-url"></input>
+<label class="constitution-commentary" for="comment-summary">Summary:</label><input type="text" id="comment-summary"></input>
+<input id="comment-send" value="Record" type="submit" class="button button-primary button-large" style="display: block; float: right; margin-top: 4px;"/>
+EOH;
+    }
+    if ( 0 < count($commentary_links) )
+      $commentary_linkset =<<<EOH
+<a class="external-link" href="https://www.rappler.com/newsbreak/rich-media/207467-interview-albert-del-rosario-duterte-arbitral-ruling" target="_commentary">Rappler Talk: Albert del Rosario on Duterte gov’t’s refusal to enforce Hague ruling</a>
+EOH;
+    if ( 0 < count($commentary_links) || $user->exists() )
+    $response['content'] =<<<EOH
+<div id="slug-commentary-{$slug}">
+{$commentary_linkset}{$commentary}
+</div>
+EOH;
+  }/*}}}*/
+
+  static function handle_constitutions_get( $restricted_request_uri ) 
+  {/*{{{*/
+    // Only accept up to 255 characters in REQUEST_URI
+    $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
+    $path_hash = hash('sha256', $path_part.NONCE_SALT);
+    $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
+    if ( file_exists( $cached_file ) ) {
+      // The content is wrapped in JSON: 
+      $server_name = $_SERVER['SERVER_NAME'];
+      $section_content = file_get_contents($cached_file);
+      $json = json_decode($section_content, TRUE);
+      $target_url = "/?see={$path_hash}#{$path_part}";
+      $anchor_url = "/#{$path_part}";
+      $microtemplate = <<<EOH
 <!DOCTYPE html>
 <html>
 <head>
@@ -1358,15 +1507,30 @@ EOH;
 </body>
 </html>
 EOH;
-        header('Content-Type: text/html; enctype=utf-8');
-        header('Content-Length: '.strlen($microtemplate)); 
-        die($microtemplate);
-        exit;
-      }
-      wp_redirect( "/" );
+      header('Content-Type: text/html; enctype=utf-8');
+      header('Content-Length: '.strlen($microtemplate)); 
+      die($microtemplate);
       exit;
     }
+    wp_redirect( "/" );
+    exit;
+  }/*}}}*/
+
+  static function wordpress_init()
+  {/*{{{*/
+    // See ../phlegiscope.php add_action(__FUNCTION__, ...)
+    // Intercept GET request where REQUEST_URI contains prefix '^/constitutions/' or '^/stash/'
+
+    $restricted_request_uri = substr($_SERVER['REQUEST_URI'], 0, 255); 
+    if ( 1 === preg_match('/^\/constitutions\//i', $restricted_request_uri) ) {
+      self::handle_constitutions_get( $restricted_request_uri );
+    }
     else if ( 1 === preg_match('/^\/stash\//i', $restricted_request_uri) ) {
+
+      $cache_path = SYSTEM_BASE . "/../cache";
+      $method     = $_SERVER['REQUEST_METHOD'];
+
+      if ( !file_exists( $cache_path ) ) mkdir( $cache_path );
 
       $response = array(
         "received"  => substr($_REQUEST['slug'],0,255),
@@ -1374,42 +1538,13 @@ EOH;
         "status"    => 0,
       );
 
-      if ((C('ENABLE_SECTION_STASHING') == TRUE)) {
-        $cache_path = SYSTEM_BASE . "/../cache";
-        if ( !file_exists( $cache_path ) ) mkdir( $cache_path );
-        // Accept caching request
-        $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
-        $path_hash = hash('sha256', $path_part.NONCE_SALT);
-        $slug  = $_REQUEST['slug'];
-        $title = $_REQUEST['title'];
-
-        if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $contents ) {
-          if ( is_array($contents['contents']) ) foreach ( $contents['contents'] as $content ) {
-            // Skip empty ident
-            $ident = $content['ident'];
-            if ( 0 == strlen($ident) ) 
-              continue;
-
-            // Test for target file
-            $filename = hash('sha256', $ident.NONCE_SALT);
-            $filepath = "${cache_path}/{$filename}";
-            if (file_exists($filepath)) {
-              $response['available']++;
-              continue;
-            }
-
-            // Store section text with metadata as JSON string
-            $packed_section = array(
-              'title'   => $title,
-              'article' => $slug,
-              'slug'    => $ident,
-              'content' => $content['content'],
-            );
-            file_put_contents($filepath, json_encode($packed_section));
-            $response['status']++;
-            syslog( LOG_INFO, "(marker) -- {$filename}" );
-          }
-        }
+      if ($method == 'POST') 
+      {
+        self::handle_stash_post( $response, $restricted_request_uri, $cache_path );
+      }
+      else if ($method == 'GET') 
+      {
+        self::handle_stash_get( $response, $restricted_request_uri, $cache_path );
       }
 
       $response_json = json_encode( $response );
@@ -1417,7 +1552,7 @@ EOH;
       header('Content-Length: ' . strlen($response_json));
       die($response_json);
     }
-  }
+  }/*}}}*/
 
   static function wordpress_parse_request( $query )
   {

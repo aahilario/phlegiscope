@@ -2,10 +2,10 @@ $ = jQuery;
 var timer_id = 0;
 var enable_copy = 0;
 var intrasection_links = 0;
-var enable_stash_code = 0;
+var enable_stash_code = 1;
 var enable_html_extractor = 0;
 
-function generate_toc_div(container) {
+function generate_toc_div(container) {//{{{
   var tocdiv = document.createElement('DIV');
   // Generate empty TOC div
   $(tocdiv)
@@ -33,14 +33,14 @@ function generate_toc_div(container) {
   $(container).append(tocdiv);
   $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0, 'table_count' : 0});
   return tocdiv;
-}
+}//}}}
 
-function highlight_toc_entry(id) {
+function highlight_toc_entry(id) {//{{{
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
   $('#toc').find('#link-'+id).css({ 'background-color' : '#DDD' });
-}
+}//}}}
 
-function defer_toc_highlight(interval) {
+function defer_toc_highlight(interval) {//{{{
   var matched = 0;
   clearTimeout(timer_id);
   timer_id = 0;
@@ -71,14 +71,16 @@ function defer_toc_highlight(interval) {
       }
     });
   },interval);
-}
+}//}}}
 
-function scroll_to_anchor(event,context,prefix){
+function scroll_to_anchor(event,context,prefix){//{{{
+
   var self = context;
   var anchor_id;
   var parent_td;
 
   event.preventDefault();
+  event.stopPropagation();
 
   anchor_id = $(self).attr('href').replace(/#/,'').replace(/^\/(constitutions\/)?/,prefix);
 
@@ -111,15 +113,37 @@ function scroll_to_anchor(event,context,prefix){
     });
   }
   document.location = '#'+anchor_id.replace(/^a-/,'');
-}
+}//}}}
 
-function set_section_cell_handler(column_index,slug,context) {
-  // Experimental copy to clipboard
+function construct_commentary_box(data,row,colspan)
+{//{{{
+  var slug = data && data.slug ? '-'+data.slug : '';
+  var new_cell = $(document.createElement('TD'))
+    .attr('colspan',colspan)
+    .append(data && data.content 
+        ? data.content 
+        : $(document.createElement('I')).html('No comments yet')
+        )
+    ;
+  var new_row = $(document.createElement('TR'))
+    .attr('id','commentary-box'+slug)
+    .addClass('commentary-boxes')
+    .append(new_cell)
+    ;
+  $('#page').find('[class~=commentary-boxes]').hide();
+  $('#page').find('[id=commentary-box'+slug+']').empty().remove();
+  $(row).after(new_row);
+}//}}}
+
+function set_section_cell_handler(column_index,slug,context) {//{{{
+
   var self = $(context);
   var toc = $('#toc').data('toc');
   var toc_index = $('#toc').data('toc_current');
   var parser = document.createElement('A'); 
   parser.href = document.location;
+
+  $(context).data('column_index', column_index);
 
   if ( undefined === toc[toc_index].section )
     toc[toc_index].section = []; 
@@ -131,10 +155,95 @@ function set_section_cell_handler(column_index,slug,context) {
   if ( undefined === toc[toc_index].subsection[column_index] ) 
     toc[toc_index].subsection[column_index] = 0;
 
+
+  // Replace leading subsection string with anchor.
+  var is_subsection = /^\(?([0-9a-z]{1})\)[ ]{1}/i.test($(self).text());
+
+  if ( is_subsection ) {//{{{
+
+    var anchor_text = $(self).text();
+    var section_num = toc[toc_index].section[column_index];
+    var subsection_num = anchor_text.replace(/(\r|\n)/g,' ').replace(/^([(]?)([0-9a-z])\)[ ](.*)/,"$1$2) ");
+    var anchor_data = {
+      'section_num'    : section_num,
+      'subsection_num' : toc[toc_index].subsection[column_index] + 1,
+      'slug'           : slug,
+      'path'           : parser.pathname
+    };
+    var section_anchor = $(document.createElement('A'));
+
+    if ( subsection_num.length > 4 )
+      alert( "Warning: "+subsection_num);
+    $(section_anchor)
+      .data(anchor_data)
+      .css({
+        'text-decoration' : 'none',
+        'color'           : 'blue',
+        'padding-top'     : '10px',
+        'box-shadow'      : '0 0 0 0' 
+      })
+      .addClass('toc-section')
+      .addClass('toc-subsection')
+      .text(subsection_num+' ')
+      .click(function(event){
+        var self = this;
+        scroll_to_anchor(event,$('#'+$(self).attr('id').replace(/link-/,'a-')),'a-');
+        $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+      });
+    $(self).empty()
+      .append(section_anchor)
+      .append(anchor_text.replace(/^([(]?)([0-9a-z]{1})\)/i,''))
+      ;
+
+    toc[toc_index].subsection[column_index]++;
+  } //}}}
+
+  $('#toc').data('toc', toc);
+  
+  // Replace Section highlight prefix ("SECTION XXX...") with anchor.
+  $(self).find('STRONG').each(function(sindex){
+    var anchor_container = $(this);
+    var anchor_text = $(anchor_container).text();
+    var toc = $('#toc').data('toc');
+    var toc_current = $('#toc').data('toc_current');
+
+    if ( !(/^see /gi.test(anchor_text) ) ) {//{{{
+      // Ignore instances of "See ..."
+      if ( /^section ([0-9]{1,})/i.test(anchor_text) ) {
+        var section_num = anchor_text.replace(/^section ([0-9]{1,}).*/i,"$1");
+        var anchor_data = {
+          'section_num' : section_num,
+          'slug'        : slug,
+          'path'        : parser.pathname
+        };
+        var section_anchor = $(document.createElement('A'))
+          .data(anchor_data)
+          .css({
+            'text-decoration' : 'none',
+            'color'           : 'blue',
+            'padding-top'     : '10px',
+            'box-shadow'      : '0 0 0 0' 
+          })
+          .addClass('toc-section')
+          .text('SECTION '+section_num+'.')
+          .click(function(event){
+            scroll_to_anchor(event,this,'a-');
+            $(this).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+          });
+        $(anchor_container).empty().append(section_anchor);
+        toc[toc_current].section[column_index] = section_num;
+        toc[toc_current].subsection[column_index] = 0;
+        $('#toc').data('toc', toc);
+      }
+    }//}}}
+
+  });
+
   $(context).click(function(event){
-    $('#toc').show();
+    var self = this;
+    $('#toc').fadeIn(100);
+    // Experimental copy to clipboard
     if ( enable_copy > 0 ) {//{{{
-      var self = this;
       var textarea = document.createElement('TEXTAREA');
       var innertext = {};
 
@@ -173,104 +282,86 @@ function set_section_cell_handler(column_index,slug,context) {
         },50);
       }
     }//}}}
-  });
-  // Replace leading subsection string with anchor.
-  var is_subsection = /^\(?([0-9a-z]{1})\)[ ]{1}/i.test($(self).text());
 
-  if ( is_subsection ) {
-
-    var anchor_text = $(self).text();
-    var section_num = toc[toc_index].section[column_index];
-    var subsection_num = anchor_text.replace(/(\r|\n)/g,' ').replace(/^([(]?)([0-9a-z])\)[ ](.*)/,"$1$2) ");
-    var anchor_data = {
-      'section_num'    : section_num,
-      'subsection_num' : toc[toc_index].subsection[column_index] + 1,
-      'slug'           : slug,
-      'path'           : parser.pathname
-    };
-    var section_anchor = $(document.createElement('A'));
-
-    if ( subsection_num.length > 4 )
-      alert( "Warning: "+subsection_num);
-    $(section_anchor)
-      .data(anchor_data)
-      .css({
-        'text-decoration' : 'none',
-        'color'           : 'blue',
-        'padding-top'     : '10px',
-        'box-shadow'      : '0 0 0 0' 
-      })
-      .addClass('toc-section')
-      .addClass('toc-subsection')
-      .text(subsection_num+' ')
-      .click(function(event){
-        var self = this;
-        scroll_to_anchor(event,$('#'+$(self).attr('id').replace(/link-/,'a-')),'a-');
+    var links = new Array();
+    var row = $(self).parents('TR').first();
+    var colspan = 0;
+    // Count visible columns in the row containing this cell.
+    jQuery.each($(row).find('TD:visible'),function(column_index, td){
+      var t_colspan = $(td).attr('colspan');
+      if ( t_colspan === undefined )
+        colspan++;
+      else
+        colspan += +Number.parseInt(t_colspan).toFixed(0);
+      jQuery.each($(td).find('A:visible'),function(a_index,anchor){
+        links[links.length] = $(anchor).attr('id').replace(/^a-/i,'');
       });
-    $(self).empty()
-      .append(section_anchor)
-      .append(anchor_text.replace(/^([(]?)([0-9a-z]{1})\)/i,''))
-      ;
-
-    toc[toc_index].subsection[column_index]++;
-  } 
-
-  $('#toc').data('toc', toc);
-  // Replace Section highlight prefix ("SECTION XXX...") with anchor.
-  
-  $(self).find('STRONG').each(function(sindex){
-    var anchor_container = $(this);
-    var anchor_text = $(anchor_container).text();
-    var toc = $('#toc').data('toc');
-    var toc_current = $('#toc').data('toc_current');
-
-    // Ignore instances of "See ..."
-    if ( !(/^see /gi.test(anchor_text) ) ) {
-      if ( /^section ([0-9]{1,})/i.test(anchor_text) ) {
-        var section_num = anchor_text.replace(/^section ([0-9]{1,}).*/i,"$1");
-        var anchor_data = {
-          'section_num' : section_num,
-          'slug'        : slug,
-          'path'        : parser.pathname
-        };
-        var section_anchor = $(document.createElement('A'))
-          .data(anchor_data)
-          .css({
-            'text-decoration' : 'none',
-            'color'           : 'blue',
-            'padding-top'     : '10px',
-            'box-shadow'      : '0 0 0 0' 
-          })
-          .addClass('toc-section')
-          .text('SECTION '+section_num+'.')
-          .click(function(event){
-            scroll_to_anchor(event,this,'a-');
-            event.preventDefault();
+    });
+    if ( links.length > 0 )
+    jQuery.ajax({
+      type     : 'GET',
+      url      : '/stash/',
+      data     : { 
+        sections : links,
+        selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id'),
+        slug     : $(self).parentsUntil('TABLE').parent().attr('id')
+      },
+      cache    : false,
+      dataType : 'json',
+      async    : true,
+      complete : (function(jqueryXHR, textStatus) {
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+        // We've sent the server a list of links in the *row* containing this TD cell. 
+        construct_commentary_box(data,row,colspan);
+        $(self).effect("highlight", {}, 1500);
+        $('#comment-send').click(function(event){
+          var title = $('#comment-title').val();
+          var link  = $('#comment-url').val();
+          if ( link.length > 0 && title.length > 0 )
+          jQuery.ajax({
+            type     : 'POST',
+            url      : '/stash/'+slug,
+            data     : {
+              selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id'),
+              slug     : slug,
+              title    : title,
+              link     : link,
+              links    : links
+            },
+            cache    : false,
+            dataType : 'json',
+            async    : true,
+            complete : (function(jqueryXHR, textStatus) {
+            }),
+            success  : (function(data, httpstatus, jqueryXHR) {
+              construct_commentary_box(data,row,colspan);
+              // $(self).effect("highlight", {}, 1500);
+              $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+            })
           });
-        $(anchor_container).empty().append(section_anchor);
-        toc[toc_current].section[column_index] = section_num;
-        toc[toc_current].subsection[column_index] = 0;
-        $('#toc').data('toc', toc);
-      }
-    }
+        });
+      })
+    });
+    else
+      $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
   });
-
   parser = null;
-}
+}//}}}
 
 function raise_toc_on_mousemove(event) {//{{{
   var offsetedge = Number.parseInt(event.pageX);
   var triggeredge = Number.parseInt($('#toc').data('floatedge'));
   clearTimeout($('#toc').data('timer_fade'));
   if ( offsetedge + 10 < triggeredge ) {
-    $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).show();
+    $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).fadeIn(100);
   }
   $('#toc').data('timer_fade',setTimeout(function(){
     $('#toc').fadeOut(1000);
   },3000));
 }//}}}
 
-function handle_window_scroll(event) {
+function handle_window_scroll(event) {//{{{
   clearTimeout($('#toc').data('timer_fade'));
   var offsetedge = Number.parseInt(event.pageX);
   var triggeredge = Number.parseInt($('#toc').data('floatedge'));
@@ -281,7 +372,7 @@ function handle_window_scroll(event) {
     $('#toc').fadeOut(3000);
   },3000));
   defer_toc_highlight(200);
-}
+}//}}}
 
 $(document).ready(function() {
 
@@ -299,6 +390,11 @@ $(document).ready(function() {
 
   parser.href = document.location;
   
+  // Stylesheet injection
+  // Add external link icon to custom CSS
+  var wp_custom_css = $('head').find('style#wp-custom-css').text() + ".external-link { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAXklEQVQoka2QwQ3AMAwCs1N28k7eiZ3oI7IcU6efBomXOREyxhUZ2brTdNAcVB2BaJgCVcDAalJLXsB+iLAjm1pAwzHWHD3gWMcMg/ERMjKfFOHVqMEGqEM/gKP/6gE2f+h+Z5P45wAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 17px; }";
+  $('head').find('style#wp-custom-css').text(wp_custom_css);
+
   // Add anchors to each article header
 
   // Iterate through each H1 Article header
@@ -372,7 +468,7 @@ $(document).ready(function() {
     // Also apply formatting.
     $(this)
       .before(anchor)
-          .attr('id','h-'+slug)
+      .attr('id','h-'+slug)
       .css({
         'text-align' : 'center'
       })
@@ -380,10 +476,9 @@ $(document).ready(function() {
 
     // Get the first table following an h-<slug> H1
     $('#h-'+slug+' ~ table').first()
-      .attr('id',slug)
       // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
       // and turn those string fragments into HTML anchors.
-
+      .attr('id',slug)
       // First, highlight weasel words
       // Replacing HTML damages DOM attributes
       .find('TR').each(function(row_index){
@@ -393,7 +488,7 @@ $(document).ready(function() {
             .replace(/^SECTION ([0-9]{1,})./i, '<strong>SECTION $1.</strong>')
             ;
           $(td).html(ww);
-          set_section_cell_handler(column_index,slug,$(td));
+          set_section_cell_handler(column_index,slug,td);
         });
       });
 
@@ -575,6 +670,8 @@ $(document).ready(function() {
             $(td).parent().append(clone);
           }
         }
+
+        // Force automatic height computation
         $(td).css({'height' : 'auto'});
 
         if ( intrasection_links > 0 ) {//{{{
@@ -684,16 +781,18 @@ $(document).ready(function() {
     //   So:  Do this in a timed event.
 
     // Facebook Preview fix: Jump to real page after a few seconds.
-    setTimeout(function(){
       $('#maindoc-jump-link').each(function(){
         // Presence of this element on the page causes an unconditional document reload.
-        document.location = $(this).attr('href');
-      });
+        var self = this;
+    setTimeout(function(){
+        document.location = $(self).attr('href');
     },7000);
+      });
 
     // Reset font size by removing all font-size style specifiers
     var custom_css = $('head').find('style#wp-custom-css').text().replace(/font-size: ([^;]{1,});/i,'');
     $('head').find('style#wp-custom-css').text(custom_css);
+
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#link-'+parser.hash.replace(/^#/,'')).click();
 

@@ -122,7 +122,7 @@ function construct_commentary_box(data,row,colspan)
     .attr('colspan',colspan)
     .append(data && data.content 
         ? data.content 
-        : $(document.createElement('I')).html('No comments yet')
+        : $(document.createElement('I')).html(data === null ? '&nbsp;' : 'No comments yet')
         )
     ;
   var new_row = $(document.createElement('TR'))
@@ -309,6 +309,9 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
       cache    : false,
       dataType : 'json',
       async    : true,
+      beforeSend : (function(jqueryXHR, setttings){
+        construct_commentary_box(null,row,colspan);
+      }),
       complete : (function(jqueryXHR, textStatus) {
       }),
       success  : (function(data, httpstatus, jqueryXHR) {
@@ -336,7 +339,6 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
             }),
             success  : (function(data, httpstatus, jqueryXHR) {
               construct_commentary_box(data,row,colspan);
-              // $(self).effect("highlight", {}, 1500);
               $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
             })
           });

@@ -1237,7 +1237,7 @@ EOH;
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
     $slug      = substr($_REQUEST['slug'],0,255);
-    $title     = substr($_REQUEST['title'],0,255);
+    $title     = stripcslashes(htmlspecialchars(substr($_REQUEST['title'],0,255)));
     $selected  = substr($_REQUEST['selected'],0,255);
     $summary   = substr($_REQUEST['summary'],0,1000);
     $link      = array_key_exists('link', $_REQUEST) ? substr($_REQUEST['link'],0.255) : NULL;
@@ -1403,6 +1403,7 @@ EOH;
     }
     if ( 0 < count($commentary_links) ) {
       foreach( $commentary_links as $linkhash => $components ) {
+        $components['title'] = stripcslashes($components['title']);
         $commentary_linkset[] =<<<EOH
 <a class="external-link" href="{$components['link']}" target="_commentary">{$components['title']}</a>
 EOH;

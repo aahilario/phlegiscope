@@ -1385,7 +1385,7 @@ EOH;
     $test_summary       = "Optional summary text";
 
     $commentary         = NULL;
-    $commentary_linkset = NULL;
+    $commentary_linkset = array();
     $slug               = $response['slug'];
 
     $user = wp_get_current_user();
@@ -1401,12 +1401,14 @@ EOH;
 <input id="comment-send" value="Record" type="submit" class="button button-primary button-large" style="display: block; float: right; margin-top: 4px;"/>
 EOH;
     }
-    if ( 0 < count($commentary_links) )
+    if ( 0 < count($commentary_links) ) {
       foreach( $commentary_links as $linkhash => $components ) {
-        $commentary_linkset .=<<<EOH
+        $commentary_linkset[] =<<<EOH
 <a class="external-link" href="{$components['link']}" target="_commentary">{$components['title']}</a>
 EOH;
       }
+      $commentary_linkset = join($commentary_linkset,'<br/>');
+    }
     if ( 0 < count($commentary_links) || $user->exists() )
       $response['content'] =<<<EOH
 <div id="slug-commentary-{$slug}">

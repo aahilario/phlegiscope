@@ -135,6 +135,119 @@ function construct_commentary_box(data,row,colspan)
   $(row).after(new_row);
 }//}}}
 
+function cell_copy(event, context)
+{//{{{
+  var self = context;
+  var textarea = document.createElement('TEXTAREA');
+  var innertext = {};
+
+  try {
+    innertext = $(self).data('innertext');
+  }
+  catch (e) {}
+  if ( undefined === innertext ) innertext = {}; 
+  if ( innertext.length > 0 ) {
+    $(self).empty().append(innertext);
+    $(self).data('innertext',{});
+  }
+  else {
+    $(self).data('innertext',$(self).text());
+    $(textarea).text($(self).text())
+      .css({
+        'padding'          : 0,
+        'margin'           : 0,
+        'display'          : 'block',
+        'height'           : ($(self).innerHeight()-4)+'px',
+        'width'            : ($(self).innerWidth()-2)+'px',
+        'clear'            : 'both',
+        'background-color' : 'transparent',
+        'font-size'        : 'inherit',
+        'color'            : 'black !important',
+        'scroll'           : 'none',
+        'overflow'         : 'auto',
+        'resize'           : 'none',
+        'border'           : '0px solid',
+      });
+    $(self).empty().append(textarea);
+    $(self).children().first().focus().select();
+    document.execCommand("copy");
+    setTimeout(function(){
+      $(self).click();
+    },50);
+  }
+}//}}}
+
+function handle_comment_linkbox_raise(event,context,slug)
+{//{{{
+  var self = context;
+  var links = new Array();
+  var row = $(self).parents('TR').first();
+  var colspan = 0;
+  // Count visible columns in the row containing this cell.
+  jQuery.each($(row).find('TD:visible'),function(column_index, td){
+    var t_colspan = $(td).attr('colspan');
+    if ( t_colspan === undefined )
+      colspan++;
+    else
+      colspan += +Number.parseInt(t_colspan).toFixed(0);
+    jQuery.each($(td).find('A:visible'),function(a_index,anchor){
+      links[links.length] = $(anchor).attr('id').replace(/^a-/i,'');
+    });
+  });
+  if ( links.length > 0 )
+    jQuery.ajax({
+      type     : 'GET',
+      url      : '/stash/',
+      data     : { 
+        sections : links,
+        selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id'),
+        slug     : $(self).parentsUntil('TABLE').parent().attr('id')
+      },
+      cache    : false,
+      dataType : 'json',
+      async    : true,
+      beforeSend : (function(jqueryXHR, setttings){
+        construct_commentary_box(null,row,colspan);
+      }),
+      complete : (function(jqueryXHR, textStatus) {
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+        // We've sent the server a list of links in the *row* containing this TD cell. 
+        construct_commentary_box(data,row,colspan);
+        $(self).effect("highlight", {}, 1500);
+        $('#comment-send').click(function(event){
+          var title = $('#comment-title').val();
+          var link  = $('#comment-url').val();
+          var summary = $('#comment-summary').val();
+          if ( link.length > 0 && title.length > 0 )
+            jQuery.ajax({
+              type     : 'POST',
+              url      : '/stash/'+slug,
+              data     : {
+                selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id').replace(/^a-/i,''),
+                slug     : slug,
+                title    : title,
+                link     : link,
+                summary  : summary,
+                links    : links
+              },
+              cache    : false,
+              dataType : 'json',
+              async    : true,
+              complete : (function(jqueryXHR, textStatus) {
+              }),
+              success  : (function(data, httpstatus, jqueryXHR) {
+                construct_commentary_box(data,row,colspan);
+                $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+              })
+            });
+        });
+      })
+    });
+  else
+    $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+}//}}}
+
 function set_section_cell_handler(column_index,slug,context) {//{{{
 
   var self = $(context);
@@ -243,112 +356,11 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
     var self = this;
     $('#toc').fadeIn(100);
     // Experimental copy to clipboard
-    if ( enable_copy > 0 ) {//{{{
-      var textarea = document.createElement('TEXTAREA');
-      var innertext = {};
 
-      try {
-        innertext = $(self).data('innertext');
-      }
-      catch (e) {}
-      if ( undefined === innertext ) innertext = {}; 
-      if ( innertext.length > 0 ) {
-        $(self).empty().append(innertext);
-        $(self).data('innertext',{});
-      }
-      else {
-        $(self).data('innertext',$(self).text());
-        $(textarea).text($(self).text())
-          .css({
-            'padding'          : 0,
-            'margin'           : 0,
-            'display'          : 'block',
-            'height'           : ($(self).innerHeight()-4)+'px',
-            'width'            : ($(self).innerWidth()-2)+'px',
-            'clear'            : 'both',
-            'background-color' : 'transparent',
-            'font-size'        : 'inherit',
-            'color'            : 'black !important',
-            'scroll'           : 'none',
-            'overflow'         : 'auto',
-            'resize'           : 'none',
-            'border'           : '0px solid',
-          });
-        $(self).empty().append(textarea);
-        $(self).children().first().focus().select();
-        document.execCommand("copy");
-        setTimeout(function(){
-          $(self).click();
-        },50);
-      }
-    }//}}}
+    if ( enable_copy > 0 )
+      cell_copy(event,self);
 
-    var links = new Array();
-    var row = $(self).parents('TR').first();
-    var colspan = 0;
-    // Count visible columns in the row containing this cell.
-    jQuery.each($(row).find('TD:visible'),function(column_index, td){
-      var t_colspan = $(td).attr('colspan');
-      if ( t_colspan === undefined )
-        colspan++;
-      else
-        colspan += +Number.parseInt(t_colspan).toFixed(0);
-      jQuery.each($(td).find('A:visible'),function(a_index,anchor){
-        links[links.length] = $(anchor).attr('id').replace(/^a-/i,'');
-      });
-    });
-    if ( links.length > 0 )
-    jQuery.ajax({
-      type     : 'GET',
-      url      : '/stash/',
-      data     : { 
-        sections : links,
-        selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id'),
-        slug     : $(self).parentsUntil('TABLE').parent().attr('id')
-      },
-      cache    : false,
-      dataType : 'json',
-      async    : true,
-      beforeSend : (function(jqueryXHR, setttings){
-        construct_commentary_box(null,row,colspan);
-      }),
-      complete : (function(jqueryXHR, textStatus) {
-      }),
-      success  : (function(data, httpstatus, jqueryXHR) {
-        // We've sent the server a list of links in the *row* containing this TD cell. 
-        construct_commentary_box(data,row,colspan);
-        $(self).effect("highlight", {}, 1500);
-        $('#comment-send').click(function(event){
-          var title = $('#comment-title').val();
-          var link  = $('#comment-url').val();
-          var summary = $('#comment-summary').val();
-          if ( link.length > 0 && title.length > 0 )
-          jQuery.ajax({
-            type     : 'POST',
-            url      : '/stash/'+slug,
-            data     : {
-              selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id').replace(/^a-/i,''),
-              slug     : slug,
-              title    : title,
-              link     : link,
-              summary  : summary,
-              links    : links
-            },
-            cache    : false,
-            dataType : 'json',
-            async    : true,
-            complete : (function(jqueryXHR, textStatus) {
-            }),
-            success  : (function(data, httpstatus, jqueryXHR) {
-              construct_commentary_box(data,row,colspan);
-              $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
-            })
-          });
-        });
-      })
-    });
-    else
-      $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+    handle_comment_linkbox_raise(event,self,slug);
   });
   parser = null;
 }//}}}

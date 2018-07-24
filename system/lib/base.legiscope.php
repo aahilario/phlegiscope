@@ -1239,7 +1239,7 @@ EOH;
     $slug      = substr($_REQUEST['slug'],0,255);
     $title     = stripcslashes(htmlspecialchars(substr($_REQUEST['title'],0,255)));
     $selected  = substr($_REQUEST['selected'],0,255);
-    $summary   = substr($_REQUEST['summary'],0,1000);
+    $summary   = substr($_REQUEST['summary'],0,4000);
     $link      = array_key_exists('link', $_REQUEST) ? substr($_REQUEST['link'],0.255) : NULL;
 
     $linkset   = array();

@@ -1345,7 +1345,7 @@ EOH;
         $linkhash = hash('sha256', $link);
 
         if ( array_key_exists( $linkhash, $json['linkset']['link'] ) ) { 
-          $json['linkset']['link'][$linkhash]['updated'] = $time;
+          $json['linkset']['link'][$linkhash]['updated'] = time();
           $json['linkset']['link'][$linkhash]['title']   = $title;
           $json['linkset']['link'][$linkhash]['summary'] = $summary;
         }

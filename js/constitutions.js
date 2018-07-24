@@ -340,7 +340,8 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
           .addClass('toc-section')
           .text('SECTION '+section_num+'.')
           .click(function(event){
-            scroll_to_anchor(event,this,'a-');
+            var anchor_self = this;
+            scroll_to_anchor(event,anchor_self,'a-');
             $(this).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
           });
         $(anchor_container).empty().append(section_anchor);
@@ -796,21 +797,27 @@ $(document).ready(function() {
     //   Linear time search has glb O(n^2) (a few cells refer to at most one other cell).
     //   So:  Do this in a timed event.
 
+    var parser = document.createElement('A');
+    parser.href = document.location;
+
     // Facebook Preview fix: Jump to real page after a few seconds.
-      $('#maindoc-jump-link').each(function(){
-        // Presence of this element on the page causes an unconditional document reload.
-        var self = this;
-    setTimeout(function(){
+    $('#maindoc-jump-link').each(function(){
+      // Presence of this element on the page causes an unconditional document reload.
+      var self = this;
+      setTimeout(function(){
         document.location = $(self).attr('href');
-    },7000);
-      });
+      },7000);
+    });
 
     // Reset font size by removing all font-size style specifiers
     var custom_css = $('head').find('style#wp-custom-css').text().replace(/font-size: ([^;]{1,});/i,'');
     $('head').find('style#wp-custom-css').text(custom_css);
 
-    // If the parser was given an existing anchor, go to it, after this initialization is done..
-    $('#link-'+parser.hash.replace(/^#/,'')).click();
+
+    // Hide TOC after a few seconds
+    $('#toc').data('timer_fade',setTimeout(function(){
+      $('#toc').fadeOut(1000);
+    },3000));
 
   },100);
 
@@ -819,14 +826,16 @@ $(document).ready(function() {
     raise_toc_on_mousemove(event);
   });
 
-  // Hide TOC after a few seconds
-  $('#toc').data('timer_fade',setTimeout(function(){
-    $('#toc').fadeOut(1000);
-  },3000));
-
   // Adjust menu size (position is fixed) 
   $(window).scroll(function(event){
     handle_window_scroll(event);
   });
+
+  setTimeout(function(){
+    // If the parser was given an existing anchor, go to it, after this initialization is done..
+    $('#page').find('#a-'+parser.hash.replace(/^\#/,'')).first().each(function(){
+      $(this).click();
+    });
+  },200);
 
 });

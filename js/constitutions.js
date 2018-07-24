@@ -835,6 +835,7 @@ $(document).ready(function() {
     // If the parser was given an existing anchor, go to it, after this initialization is done..
     $('#page').find('#a-'+parser.hash.replace(/^\#/,'')).first().each(function(){
       $(this).click();
+      $(this).parentsUntil('TD').parents().first().click();
     });
   },200);
 

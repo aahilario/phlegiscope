@@ -1356,7 +1356,7 @@ EOH;
             'updated'  => time(),
             'title'    => $title,
             'link'     => $link,
-            'summmary' => $summary,
+            'summary'  => $summary,
           );
 
         $current_json = json_encode($json);
@@ -1422,8 +1422,9 @@ EOH;
   static function handle_stash_get( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
 
-    // This is utterly embarrassing.
-    $debug_method = TRUE;
+    $user = wp_get_current_user();
+
+    $debug_method = $user->exists();
 
     if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
 

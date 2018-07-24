@@ -2,7 +2,7 @@ $ = jQuery;
 var timer_id = 0;
 var enable_copy = 0;
 var intrasection_links = 0;
-var enable_stash_code = 0;
+var enable_stash_code = 1;
 var enable_html_extractor = 0;
 
 function generate_toc_div(container) {//{{{

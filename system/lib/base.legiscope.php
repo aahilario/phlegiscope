@@ -1404,8 +1404,16 @@ EOH;
     if ( 0 < count($commentary_links) ) {
       foreach( $commentary_links as $linkhash => $components ) {
         $components['title'] = stripcslashes($components['title']);
+        $components['summary'] = stripcslashes($components['summary']);
+        $summary_comment = NULL;
+        if ( 0 < strlen($components['summary']) ) { 
+          $summary_comment =<<<EOH
+<div class="constitution-commentary-comment" style="font-family: Arial, Helvetica; display: block; float: right; clear: both; margin-left: 20%; margin-top: 1em; margin-bottom: 1em;">{$components['summary']}</div>
+EOH;
+        }
         $commentary_linkset[] =<<<EOH
-<a class="external-link" href="{$components['link']}" target="_commentary">{$components['title']}</a>
+<a class="external-link" href="{$components['link']}" target="_commentary" style="text-decoration: none !important;">{$components['title']}</a>
+{$summary_comment}
 EOH;
       }
       $commentary_linkset = join($commentary_linkset,'<br/>');

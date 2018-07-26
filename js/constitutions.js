@@ -279,7 +279,7 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
     var subsection_num = anchor_text.replace(/(\r|\n)/g,' ').replace(/^([(]?)([0-9a-z])\)[ ](.*)/,"$1$2) ");
     var anchor_data = {
       'section_num'    : section_num,
-      'subsection_num' : toc[toc_index].subsection[column_index] + 1,
+      'subsection_num' : +(toc[toc_index].subsection[column_index])+1,
       'slug'           : slug,
       'path'           : parser.pathname
     };
@@ -325,7 +325,7 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
       if ( /^section ([0-9]{1,})/i.test(anchor_text) ) {
         var section_num = anchor_text.replace(/^section ([0-9]{1,}).*/i,"$1");
         var anchor_data = {
-          'section_num' : section_num,
+          'section_num' : +(toc[toc_current].section[column_index])+1,
           'slug'        : slug,
           'path'        : parser.pathname
         };
@@ -345,7 +345,7 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
             $(this).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
           });
         $(anchor_container).empty().append(section_anchor);
-        toc[toc_current].section[column_index] = section_num;
+        toc[toc_current].section[column_index]++;
         toc[toc_current].subsection[column_index] = 0;
         $('#toc').data('toc', toc);
       }

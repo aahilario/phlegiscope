@@ -1482,26 +1482,41 @@ EOH;
   static function handle_constitutions_get( $restricted_request_uri ) 
   {/*{{{*/
 
+    $consti_version          = new ConstitutionVersionModel();
+    $article_model           = new ConstitutionArticleModel();
+    $section_model           = new ConstitutionSectionModel();
+    $constitution_commentary = new ConstitutionCommentaryModel();
+
     $debug_method = C('DEBUG_'.__FUNCTION__,FALSE); 
 
-    if ( $debug_method ) syslog( LOG_DEBUG, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
-
-    $consti_version = new ConstitutionVersionModel();
-    $article_model = new ConstitutionArticleModel();
-    $section_model = new ConstitutionSectionModel();
-    $article_section = new ConstitutionArticleConstitutionSectionJoin();
-    $constitution_commentary = new ConstitutionCommentaryModel();
+    if ( $debug_method ) $constitution_commentary->syslog( LOG_DEBUG, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
 
     $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
     $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
+
+    $record = NULL;
+    $constitution_commentary->debug_final_sql = TRUE;
+    $in_db = $constitution_commentary->
+      where(array(
+        'linkhash' => $path_hash
+      ))->
+      recordfetch_setup()->
+      recordfetch($record)
+      ;
+
+
+    $found_in_db = $in_db ? "in DB" : "not in DB";
+    $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) Section '{$path_part}' {$found_in_db}" );
+    $constitution_commentary->recursive_dump($constitution_commentary->get_joins(), "(marker) - - --");
+
     if ( file_exists( $cached_file ) ) {
       // The content is wrapped in JSON: 
-      $server_name = $_SERVER['SERVER_NAME'];
+      $server_name     = $_SERVER['SERVER_NAME'];
       $section_content = file_get_contents($cached_file);
-      $json = json_decode($section_content, TRUE);
-      $slug = stripcslashes($json['slug']);
-      $content = stripcslashes($json['content']);
+      $json            = json_decode($section_content, TRUE);
+      $slug            = stripcslashes($json['slug']);
+      $content         = stripcslashes($json['content']);
 
       if ( $debug_method ) {
         syslog( LOG_INFO, "(marker) -- article: " . $json['article']);
@@ -1668,11 +1683,11 @@ EOH;
   <p>{$content} <a id="maindoc-jump-link" href="/#{$slug}">[See in context]</a></p>
 </div>
 {$microtemplate}
+<script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
 </body>
 </html>
 EOH;
 
-// <script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
       
       header('Content-Type: text/html; enctype=utf-8');
       header('Content-Length: '.strlen($microtemplate)); 

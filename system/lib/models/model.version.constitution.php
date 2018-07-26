@@ -12,8 +12,10 @@
 class ConstitutionVersionModel extends DatabaseUtility {
   
   var $title_vc255 = 0;
-  var $ratified_dtm = NULL;
+  var $short_title_vc128 = 0;
+  //var $ratified_dtm = NULL;
   var $notes_blob = NULL;
+  var $revision_int8 = 0;
   var $created_dtm;
   var $updated_dtm;
 

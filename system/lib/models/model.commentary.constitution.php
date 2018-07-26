@@ -12,6 +12,9 @@
 class ConstitutionCommentaryModel extends DatabaseUtility {
   
   var $comment_vc8192;
+  var $linkhash_vc128;
+  var $section_ConstitutionSection;
+  var $constitution_ConstitutionVersion;
   var $created_dtm;
   var $updated_dtm;
 

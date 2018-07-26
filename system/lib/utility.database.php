@@ -1985,8 +1985,8 @@ EOS;
   function & set_contents_from_array($document_contents, $execute_setters = TRUE) {/*{{{*/
     $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $property_list = $this->fetch_combined_property_list();
-    $joins = $this->get_joins();
     if ( !(0 < count($property_list)) ) return $this;
+    $joins = $this->get_joins();
     foreach ( $document_contents as $name => $value ) {
       $setter = "set_{$name}";
       if ( method_exists($this, $setter) ) {

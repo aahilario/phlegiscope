@@ -11,11 +11,11 @@
 
 class ConstitutionSectionModel extends DatabaseUtility {
   
-  var $section_content_vc4096;
+  var $section_content_vc8192;
   var $created_dtm;
   var $updated_dtm;
   var $article_ConstitutionArticle;
-  var $sectionid_vc255;
+  var $sectionid_vc255; //  
 
   function __construct() {
     parent::__construct();

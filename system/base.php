@@ -132,11 +132,11 @@ EOH;
     else if ( 1 == preg_match('@(.*)Join$@i', $classname) ) {/*{{{*/
       $components = array();
       $builtins = '';
-      syslog( LOG_INFO, "- Generating {$classname}");
+      if ( $debug_method ) syslog( LOG_INFO, "- Generating {$classname}");
       // Note: If the file containing this class declaration does not
       // exist yet, then neither has the backing store (linking table)
       // been created for the object defined by this class.
-      syslog( LOG_INFO, "---- Classname {$classname}" );
+      if ( $debug_method ) syslog( LOG_INFO, "---- Classname {$classname}" );
 
       if ( 1 == preg_match('@\_Plus\_@i', $classname) ) {/*{{{*/
         $components_real = explode('_Plus_',  preg_replace("@Join$@i","",$classname));

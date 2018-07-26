@@ -86,7 +86,7 @@ class LegiscopeBase extends SystemUtility {
   }/*}}}*/
 
   function transform_svgimage($image) {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $svg = new SvgParseUtility();
     $svg->transform_svgimage($image);
     $image = $svg->get_containers('attrs,children[tagname*=svg]',0);
@@ -152,7 +152,7 @@ class LegiscopeBase extends SystemUtility {
 
   final private function handle_plugin_context() {/*{{{*/
 
-    $debug_method = FALSE; // $this->debug_handle_model_action;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     // Modify $_REQUEST by extracting an action value from the request URI 
     if (!(C('MODE_WORDPRESS_PLUGIN') == TRUE)) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Not a plugin context. Leaving" );
@@ -187,7 +187,7 @@ class LegiscopeBase extends SystemUtility {
       if (('XMLHttpRequest' == $this->filter_server('HTTP_X_REQUESTED_WITH'))) {
       }
       else if (!('fetchpdf' == array_element($actions_match,1))) {
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Not an XMLHttpRequest context. Leaving." );
+        if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) Not an XMLHttpRequest context. Leaving." );
         return NULL;
       } else {
         $_REQUEST['r'] = array_element($actions_match,2);
@@ -201,7 +201,7 @@ class LegiscopeBase extends SystemUtility {
 
   final protected function handle_model_action() {/*{{{*/
 
-    $debug_method = $this->debug_handle_model_action;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     // Extract controller, action, and subject values from server context
     $this->handle_plugin_context();
@@ -422,7 +422,7 @@ class LegiscopeBase extends SystemUtility {
   protected function get_handler_names(UrlModel & $url, array $cluster_urls) {/*{{{*/
 
     // Construct post-processing method name from path parts
-    $debug_method = $this->debug_handler_names;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $urlhash     = $url->get_urlhash();
     $urlpathhash = UrlModel::parse_url($url->get_url());
@@ -572,7 +572,7 @@ class LegiscopeBase extends SystemUtility {
   }/*}}}*/
 
   function extract_form($containers) {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $extract_form   = create_function('$a', 'return array_key_exists("tagname", $a) && ("FORM" == strtoupper($a["tagname"])) ? $a : NULL;');
     $paginator_form = array_values(array_filter(array_map($extract_form, $containers)));
     if ( $debug_method ) $this->recursive_dump($paginator_form,'(marker) Old');
@@ -1143,7 +1143,7 @@ class LegiscopeBase extends SystemUtility {
 
   static function wordpress_enqueue_scripts() {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $plugins_url   = plugins_url();
     $themes_uri    = get_template_directory_uri();
@@ -1176,7 +1176,7 @@ class LegiscopeBase extends SystemUtility {
 
   static function wordpress_enqueue_admin_scripts() {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $plugins_url = plugins_url();
     $themes_uri  = get_template_directory_uri(); 
@@ -1219,9 +1219,7 @@ EOH;
   static function handle_stash_post( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
 
-    $debug_method = TRUE; 
-
-    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE); 
 
     if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
 
@@ -1432,13 +1430,13 @@ EOH;
 
     $user = wp_get_current_user();
 
-    $debug_method = $user->exists();
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
 
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
-    $path_hash = hash('sha256', $path_part.NONCE_SALT);
-    // path_hash refers to the Article table ID; unused presently
+    $slug      = substr($_REQUEST['slug'],0,255);
+    $selected  = substr($_REQUEST['selected'],0,255);
 
     $commentary_links = array();
 
@@ -1467,16 +1465,15 @@ EOH;
       if ( 0 < count($section['linkset']['link']) ) {
         foreach ( $section['linkset']['link'] as $linkhash => $component ) {
           $commentary_links[$linkhash] = $component;
-          if ( $debug_method ) syslog( LOG_INFO, "(marker) -- Got link {$component['link']}");
+          if ( $debug_method ) syslog( LOG_INFO, "(marker) -- Stash Got link {$filename} {$component['link']}");
         }
       }
 
       if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$filename} ({$ident}) " . strlen($section_json) );
     }
-    if ( $debug_method ) syslog( LOG_INFO, "(marker) -- Stash GET: " . $path_part );
 
     $response['received'] = $_REQUEST['sections'];
-    $response['slug']     = substr($_REQUEST['slug'],0,255);
+    $response['slug']     = $slug;
 
     self::generate_commentary_box( $response, $commentary_links );
 
@@ -1484,6 +1481,17 @@ EOH;
 
   static function handle_constitutions_get( $restricted_request_uri ) 
   {/*{{{*/
+
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE); 
+
+    if ( $debug_method ) syslog( LOG_DEBUG, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
+
+    $consti_version = new ConstitutionVersionModel();
+    $article_model = new ConstitutionArticleModel();
+    $section_model = new ConstitutionSectionModel();
+    $article_section = new ConstitutionArticleConstitutionSectionJoin();
+    $constitution_commentary = new ConstitutionCommentaryModel();
+
     $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
     $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
@@ -1492,8 +1500,43 @@ EOH;
       $server_name = $_SERVER['SERVER_NAME'];
       $section_content = file_get_contents($cached_file);
       $json = json_decode($section_content, TRUE);
-      $target_url = "/?see={$path_hash}#{$path_part}";
-      $anchor_url = "/#{$path_part}";
+      $slug = stripcslashes($json['slug']);
+      $content = stripcslashes($json['content']);
+
+      if ( $debug_method ) {
+        syslog( LOG_INFO, "(marker) -- article: " . $json['article']);
+        syslog( LOG_INFO, "(marker) --   title: " . $json['title']);
+        syslog( LOG_INFO, "(marker) --    slug: " . $json['slug']);
+        syslog( LOG_INFO, "(marker) -- content: " . $json['content']);
+        $consti_version->recursive_dump($json, "(marker) - -- ---"); 
+      }
+
+      $microtemplate   = NULL;
+
+      if ( array_key_exists('linkset', $json) ) {
+
+        foreach ( $json['linkset']['link'] as $hash => $commentary ) {
+
+          $url     = parse_url($commentary['link']);
+          $linkhash = hash('sha256', $url.NONCE_SALT.AUTH_SALT);
+          $summary = stripcslashes($commentary['summary']);
+          $title   = stripcslashes($commentary['title']);
+
+          syslog( LOG_INFO, "(marker) -- {$commentary['link']}" );
+
+          $summary = ( 0 < strlen($summary) ) 
+            ? "<p>{$summary}</p>"
+            : NULL;
+          $microtemplate .= <<<EOH
+<div class="commentary-external-links" id="{$linkhash}">
+<a href="{$url}"><h3 style="font-family: Arial, Helvetica">{$title}</h3></a>
+{$summary}
+</div>
+
+EOH;
+        }  
+      }
+
       $microtemplate = <<<EOH
 <!DOCTYPE html>
 <html>
@@ -1613,17 +1656,24 @@ EOH;
       transform: translateY(1px);
     }
 
+    .commentary-external-links {
+      margin-top: 30px;
+    }
+
       </style>
 </head>
 <body>
 <div class="selected_section" id="selected_section">
   <h3><a href="/#{$json['article']}">{$json['title']}</a></h3>
-  <p>{$json['content']} <a id="maindoc-jump-link" href="/#{$json['slug']}">[See in context]</a></p>
+  <p>{$content} <a id="maindoc-jump-link" href="/#{$slug}">[See in context]</a></p>
 </div>
-<script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
+{$microtemplate}
 </body>
 </html>
 EOH;
+
+// <script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
+      
       header('Content-Type: text/html; enctype=utf-8');
       header('Content-Length: '.strlen($microtemplate)); 
       die($microtemplate);

@@ -56,8 +56,8 @@ class DatabaseUtility extends ReflectionClass {
 
   function __construct() {/*{{{*/
     parent::__construct($this);
-    $this->debug_method = FALSE;
-    $this->debug_operators = FALSE;
+    $this->debug_method = TRUE;
+    $this->debug_operators = TRUE;
     $this->id = NULL;
     if (1 == preg_match('@(Model|Join)$@i',get_class($this))) { 
       $this->initialize_derived_class_state();
@@ -112,7 +112,7 @@ class DatabaseUtility extends ReflectionClass {
     // Replace contents of string with this object's fields
     // {property:joinproperty} to refer to ModelJoin properties, and
     // {property.objproperty}  to refer to foreign table properties.
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $regex_match = array();
     $regex_replace = array();
     foreach ( $this->fetch_property_list() as $nv ) {
@@ -186,7 +186,7 @@ EOS;
 
   function fetch_property_list($include_omitted = FALSE) {/*{{{*/
     // Get list of public properties of the derived class 
-    $debug_method    = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $members         = array();
     $omitted_members = array();
     $myname          = get_class($this);
@@ -218,7 +218,7 @@ EOS;
         $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - - Testing attribute {$attrname} having these properties:" );
         $this->recursive_dump($member,"(marker) - - - -");
       }
-      $attr_is_model = class_exists("{$member['type']}",FALSE);
+      $attr_is_model = class_exists("{$member['type']}",FALSE) || class_exists("{$member['type']}Model",FALSE);
       if ( $attr_is_model || (1 == preg_match('@(.*)Model$@',$member['type'])) ) {
         // Model attribute check.  Treat object references as invisible;
         // they do not correspond to a field/column in the object's backing
@@ -292,7 +292,8 @@ EOS;
   private final function fetch_typemap(& $attrinfo, $mode = NULL) {/*{{{*/
 
     // Get type map information for a SINGLE model attribute.
-    $debug_method = FALSE; // 1 == preg_match('@(.*)Join$@i', get_class($this)); //  FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
+    // $debug_method =  C('DEBUG_'.__FUNCTION__); // 1 == preg_match('@(.*)Join$@i', get_class($this)); //  FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $type_map = array(
       'pkey' => array('attrname' => 'pkey'              , 'quot' => FALSE),
@@ -316,11 +317,34 @@ EOS;
     $match_result  = preg_match_all($modifiers, $attrinfo['type'], $matches);
     $size          = $matches[2][0];
     $modifier      = array_key_exists(3,$matches) && array_key_exists($matches[3][0],$sqlmodif) ? $sqlmodif[$matches[3][0]] : NULL;
+    $is_join       = (1 == preg_match('@(.*)Join$@i', get_class($this)));
+    $is_ftref      = FALSE;
+
+    $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - Matches"  );
+    $this->recursive_dump($matches, "(marker) - -- - ");
+    $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - Attribute info"  );
+    $this->recursive_dump($attrinfo, "(marker) -- - - ");
+
+    if ( !array_key_exists($matches[1][0], $type_map) ) {
+      // Check for class name in typespec
+      $model_match = "{$attrinfo['type']}Model";
+      if ( class_exists($model_match,FALSE) ) {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) Forcing use of class attrname {$attrinfo['type']} => {$model_match}"  );
+        $attrinfo['propername'] = "{$attrinfo['type']}Model";
+        $is_ftref = TRUE;
+      }
+      else {
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) No type found matching name '{$attrinfo['type']}' or '{$model_match}'"  );
+      }
+    }
+    else {
+    }
 
     $attrinfo['type'] = $matches[1][0];
 
     if ($debug_method) {
-      $this->syslog(__FUNCTION__, __LINE__, "(marker) Called with array " . count($attrinfo)  );
+      $modifier_desc = empty($modifier) ? "empty" : "'{$modifier}'";
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) Called with {$modifier_desc} array n = " . count($attrinfo)  );
       $this->recursive_dump($attrinfo, "(marker)");
       // $this->log_stack();
     }
@@ -346,7 +370,7 @@ EOS;
     );
 
     // Implement model references
-    if ((1 == preg_match('@(.*)Join$@i', get_class($this))) && array_key_exists('propername',$attrinfo)) {
+    if ( ( $is_join || $is_ftref ) && array_key_exists('propername',$attrinfo)) {
 
       $typemap['fieldname'] = $attrinfo['name'];
 
@@ -371,8 +395,9 @@ EOS;
     return $typemap;
   }/*}}}*/
 
-  private final function construct_backing_table($tablename, $members) {/*{{{*/
-    $debug_method = FALSE;
+  private final function construct_backing_table($tablename, $members) 
+  {/*{{{*/
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     if ( $debug_method ) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Constructing backing table '{$tablename}' for " . get_class($this) );
       $this->recursive_dump($members,"(marker) ----- ---- --- -- -  - -- --- ---- -----");
@@ -389,15 +414,15 @@ EOS;
       // - $properties: INT(11) REFERENCES `{ftable}` (`id`) MATCH FULL ON UPDATE CASCADE ON DELETE RESTRICT";  
       // Also add UNIQUE INDEX ($a,$b)  
       $attrdef = $this->fetch_typemap($attrs,'CREATE');
+      if ( $debug_method ) {
+        $this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute defs '{$tablename}' for " . get_class($this) );
+        $this->recursive_dump($attrdef,"(marker) ----- ---- --- -- -  - -- --- ---- -----");
+      }
       if ( is_null($attrdef) ) {
         continue;
       }
       if ( array_key_exists('joint_unique', $attrdef) ) {
         $unique_attrs[] = $attrdef['fieldname'];
-      }
-      if ( $debug_method ) {
-        $this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute defs '{$tablename}' for " . get_class($this) );
-        $this->recursive_dump($attrdef,"(marker) ----- ---- --- -- -  - -- --- ---- -----");
       }
       extract($attrdef);
       $attrset[] = <<<EOH
@@ -428,8 +453,9 @@ EOH;
     return $create_result;
   }/*}}}*/
 
-  function fetch_structure_backing_diffs($tablename, $members) {/*{{{*/
-    $debug_method = FALSE;
+  function fetch_structure_backing_diffs($tablename, $members) 
+  {/*{{{*/
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     if ( array_key_exists($tablename, self::$obj_ondisk) ) {
       if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - Assume no diffs for {$tablename}" );
       return array(
@@ -440,6 +466,7 @@ EOH;
     $is_join_table  = 1 == preg_match('@(.*)Join$@i',get_class($this));
     if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) - - - - - Treating {$tablename} as " . ($is_join_table ? "join" : "regular table") );
     self::$obj_ondisk[$tablename] = $members;
+    if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) -- Get tableinfo {$tablename}" );
     $attrdefs        = $this->query("SHOW COLUMNS FROM `{$tablename}`")->resultset();
     // TODO: Allow join tables to possess member reference attributes
     // TODO: Test individual attributes, instead of depending on the 'Join' suffix
@@ -450,7 +477,6 @@ EOH;
     $removed_columns = array_flip(array_filter(array_map($current_columns, $members))); // In DB, not in memory
     $added_columns   = $members; // Attributes in classdef, but not in backing store 
     $attribute_map   = array_flip($attrdefs['attrnames']);
-    // $this->recursive_dump($removed_columns, '-%');
     foreach ( $attrdefs['values'] as $attrs ) {
       $attrname   = $attrs[$attribute_map['Field']];
       if ( $debug_method ) $this->syslog( __FUNCTION__, __LINE__, "(marker) A+ {$attrname} vs " . join('',camelcase_to_array($attrname)) );
@@ -486,7 +512,7 @@ EOH;
     // Invoked from constructors of framework classes.
     // Count instantiations of any given derived class.
 
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     if ($debug_method) {
       $this->syslog(__FUNCTION__,__LINE__,"(marker) -- " . get_class($this));
       if ( method_exists($this, 'get_joins') ) {
@@ -498,7 +524,7 @@ EOH;
 
   protected final function initialize_derived_class_state() {/*{{{*/
 
-    $debug_method = FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $this->tablename = join('_', camelcase_to_array(get_class($this)));
     $this->initialize_db_handle();
@@ -542,8 +568,12 @@ EOH;
       // Synchronize table columns and class attributes
       $structure_deltas = $this->fetch_structure_backing_diffs($this->tablename, $members);
       if ( $debug_method ) { 
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING: Structure differences" );
-        $this->recursive_dump($structure_deltas,"(marker) ------ --- -- - ");
+        if ( is_array($structure_deltas) && ( 
+          ( array_key_exists('added_columns', $structure_deltas) && 0 < count($structure_deltas['added_columns']) ) ||
+          ( array_key_exists('removed_columns', $structure_deltas) && 0 < count($structure_deltas['added_columns']) ) ) ) {
+          $this->syslog( __FUNCTION__, __LINE__, "WARNING: Structure differences" );
+          $this->recursive_dump($structure_deltas,"(marker) ------ --- -- - ");
+        }
       }
       extract($structure_deltas);
 
@@ -645,7 +675,7 @@ EOH;
     //   Array ( fk0, fk1, ... , fkn )
     //   Array ( fk0 => Array(<join attributes>), fk1 => Array(...), ... , fkn => Array(...) )
     // $allow_update: 
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $join_table = $this->get_joins();
 
@@ -947,7 +977,7 @@ EOH;
   }/*}}}*/
 
   function update() {/*{{{*/
-    $debug_method = FALSE;//get_class($this) == 'HouseBillDocumentModel';//FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $f_attrval   = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "`{$a["name"]}` = ?": "`{$a["name"]}` = {$a["value"]}";');
     $f_bindattrs = create_function('$a', 'return $a["attrs"]["mustbind"] == TRUE ? "{$a["name"]}" : NULL;');
     $attrlist    = $this->full_property_list();
@@ -1025,7 +1055,7 @@ EOS;
 
   protected function get_join_clauses(& $consolidated_aliasmap) {/*{{{*/
 
-    $debug_method          = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $debug_method         |= $this->debug_method;
     $join_clauses          = array();
     $consolidated_aliasmap = NULL;
@@ -1235,7 +1265,7 @@ EOS;
 
     $this->initialize_db_handle();
 
-    $debug_method    = $this->debug_method;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $key_by_varname  = create_function('$a', 'return $a["name"];');
     $attrlist        = array_merge(array('id' => $this->get_std_id_attrset()),$this->full_property_list());
     $key_map         = array_map($key_by_varname, $attrlist);
@@ -1519,7 +1549,7 @@ EOS;
 
   function fetch_single_joinrecord($document_contents = array()) {/*{{{*/
 
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $this->recordfetch_setup();
 
@@ -1588,10 +1618,10 @@ EOS;
     return $this->query_result;
   }/*}}}*/
 
-	function & check_extant(& $record_present, $record_id = FALSE) {
+	function & check_extant(& $record_present, $record_id = FALSE) {/*{{{*/
 		$record_present = $record_id ? ($this->in_database() ? $this->get_id() : NULL ) : $this->in_database();
 		return $this;
-	}
+	}/*}}}*/
 
   function & retrieve($attrval, $attrname = NULL) {/*{{{*/
     // Continuation syntax call of fetch() 
@@ -1635,7 +1665,7 @@ EOS;
 
   private function insert_update_common($sql, $boundattrs, $attrlist) {/*{{{*/
     // TODO: Handle Join components given as [join,data] tuples
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     if ( empty($sql) ) throw new Exception(get_class($this));
     if ( 0 < count($boundattrs) ) {/*{{{*/
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__, "--- (marker) Currently: {$sql}");
@@ -1680,7 +1710,7 @@ EOS;
   }/*}}}*/
 
   private function update_joincache_attrs() {/*{{{*/
-    $debug_method = FALSE;//get_class($this) == 'RepublicActDocumentModel';
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     // Only perform Join updates if the insert or update operation succeeds
     if ( 0 < count($this->join_value_cache) ) {
       if ( $debug_method ) $this->syslog(__FUNCTION__, __LINE__, "(marker) - - - Updating joins for record #{$this->id}" );
@@ -1953,7 +1983,7 @@ EOS;
   }/*}}}*/
 
   function & set_contents_from_array($document_contents, $execute_setters = TRUE) {/*{{{*/
-    $debug_method = FALSE; //get_class($this) == 'HouseBillDocumentModel';//FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $property_list = $this->fetch_combined_property_list();
     $joins = $this->get_joins();
     if ( !(0 < count($property_list)) ) return $this;
@@ -2009,7 +2039,7 @@ EOP
 
   function dump_accessor_defs_to_syslog() {/*{{{*/
     // FIXME: Remove this debugging method pre-R1
-    $debug_method = TRUE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $data_items = array_flip(array_map($this->slice('name'), $this->fetch_property_list()));
     if ( $debug_method ) $this->recursive_dump($data_items,'(marker) ' . __METHOD__);
     $this->set_contents_from_array($data_items,FALSE);
@@ -2111,7 +2141,7 @@ EOP
   /** Join model object methods **/
 
   function & get_join_object($property, $which, $meta = 'obj') {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $join_desc = $this->get_joins($property);
     $join_desc_key = array_element($join_desc,'joinobject');
     if ( empty($join_desc_key) || !(0 < count($join_desc)) ) {
@@ -2182,7 +2212,7 @@ EOP
   }/*}}}*/
 
   function get_all_properties() {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $d = array();
     foreach ( $this->full_property_list() as $attr => $props ) {
       if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - - Get {$attr}");
@@ -2207,7 +2237,7 @@ EOP
   }/*}}}*/
 
   function get_stuffed_join($join_attrname) {/*{{{*/
-    $debug_method = FALSE;
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     // Return an object representing the 'far end' of a Join attribute
     if ( !is_null($joined_document = array_element($this->get_all_properties(),$join_attrname))) {
       if ( !is_null($data = array_element($joined_document,'data')) ) {/*{{{*/

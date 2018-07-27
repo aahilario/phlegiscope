@@ -1532,7 +1532,7 @@ EOH;
 
         foreach ( $json['linkset']['link'] as $hash => $commentary ) {
 
-          $url     = parse_url($commentary['link']);
+          $url     = $commentary['link'];
           $linkhash = hash('sha256', $url.NONCE_SALT.AUTH_SALT);
           $summary = stripcslashes($commentary['summary']);
           $title   = stripcslashes($commentary['title']);

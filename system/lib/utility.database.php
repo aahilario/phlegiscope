@@ -56,8 +56,8 @@ class DatabaseUtility extends ReflectionClass {
 
   function __construct() {/*{{{*/
     parent::__construct($this);
-    $this->debug_method = TRUE;
-    $this->debug_operators = TRUE;
+    $this->debug_method = FALSE;
+    $this->debug_operators = FALSE;
     $this->id = NULL;
     if (1 == preg_match('@(Model|Join)$@i',get_class($this))) { 
       $this->initialize_derived_class_state();
@@ -320,16 +320,19 @@ EOS;
     $is_join       = (1 == preg_match('@(.*)Join$@i', get_class($this)));
     $is_ftref      = FALSE;
 
-    $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - Matches"  );
-    $this->recursive_dump($matches, "(marker) - -- - ");
-    $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - Attribute info"  );
-    $this->recursive_dump($attrinfo, "(marker) -- - - ");
+    if ( $debug_method ) {
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - Matches"  );
+      $this->recursive_dump($matches, "(marker) - -- - ");
+      $this->syslog(__FUNCTION__, __LINE__, "(marker) - -- - Attribute info"  );
+      $this->recursive_dump($attrinfo, "(marker) -- - - ");
+    }
 
     if ( !array_key_exists($matches[1][0], $type_map) ) {
       // Check for class name in typespec
       $model_match = "{$attrinfo['type']}Model";
       if ( class_exists($model_match,FALSE) ) {
-        $this->syslog(__FUNCTION__, __LINE__, "(marker) Forcing use of class attrname {$attrinfo['type']} => {$model_match}"  );
+        if ( $debug_method ) 
+          $this->syslog(__FUNCTION__, __LINE__, "(marker) Forcing use of class attrname {$attrinfo['type']} => {$model_match}"  );
         $attrinfo['propername'] = "{$attrinfo['type']}Model";
         $is_ftref = TRUE;
       }
@@ -1263,9 +1266,10 @@ EOS;
     // Fill in the SQL string, and return attribute list
     // TODO: Exclude *BLOB attributes from the statement generated with this method. 
 
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
+
     $this->initialize_db_handle();
 
-    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $key_by_varname  = create_function('$a', 'return $a["name"];');
     $attrlist        = array_merge(array('id' => $this->get_std_id_attrset()),$this->full_property_list());
     $key_map         = array_map($key_by_varname, $attrlist);
@@ -1427,7 +1431,7 @@ EOS;
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Condition: {$conditionstring}");
       if ( $this->debug_final_sql ) $this->recursive_dump($this->alias_map,"(marker) - - -- Aliases -- - -");
     }/*}}}*/
-    if ( $this->debug_method ) {/*{{{*/
+    if ( $debug_method ) {/*{{{*/
       $this->syslog( __FUNCTION__, __LINE__, "(marker) Returning attribute list:");
       $this->recursive_dump($attrlist,"(marker) - - -- Attrlist -- - -");
     }/*}}}*/

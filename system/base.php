@@ -41,9 +41,9 @@ spl_autoload_register(function ($classname) {
   // to class filename czzz.byyy.axxx.php
   // syslog( LOG_INFO, "----- ---- --- -- - --------------- Finding class {$classname}");
 
-  $debug_method = FALSE; // C('DEBUG_'.__FUNCTION__,FALSE);
+  $debug_method = FALSE;
 
-  if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
+  openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
 
   $skip_load       = FALSE;
   $name_components = camelcase_to_array($classname);
@@ -180,8 +180,10 @@ class {$classname} {$base} {
 
   function __construct() {
     parent::__construct();
-    \$this->dump_accessor_defs_to_syslog();
-    \$this->recursive_dump(\$this->get_attrdefs(),'(marker) "+++++++"');
+    if (C('DEBUG_'.get_class(\$this))) {
+      \$this->dump_accessor_defs_to_syslog();
+      \$this->recursive_dump(\$this->get_attrdefs(),'(marker) "+++++++"');
+    }
   }
 
 {$builtins}

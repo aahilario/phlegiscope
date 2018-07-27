@@ -15,7 +15,7 @@ class ConstitutionSectionModel extends DatabaseUtility {
   var $created_dtm;
   var $updated_dtm;
   var $article_ConstitutionArticle;
-  var $sectionid_vc255; //  
+  var $slug_vc255;
 
   function __construct() {
     parent::__construct();

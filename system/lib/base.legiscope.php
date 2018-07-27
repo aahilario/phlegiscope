@@ -1482,21 +1482,41 @@ EOH;
   static function handle_constitutions_get( $restricted_request_uri ) 
   {/*{{{*/
 
+    $user = wp_get_current_user();
+
     $consti_version          = new ConstitutionVersionModel();
     $article_model           = new ConstitutionArticleModel();
     $section_model           = new ConstitutionSectionModel();
     $constitution_commentary = new ConstitutionCommentaryModel();
 
-    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE); 
+    $debug_method = TRUE; // C('DEBUG_'.__FUNCTION__,FALSE); 
 
-    if ( $debug_method ) $constitution_commentary->syslog( LOG_DEBUG, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
+    if ( $debug_method ) $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
 
     $path_part = preg_replace('/^\/constitutions\//i','', $restricted_request_uri);
+    $constitution_version_n = preg_replace('@.*-([0-9]{1,})$@i','$1', $path_part); 
     $path_hash = hash('sha256', $path_part.NONCE_SALT);
     $cached_file = SYSTEM_BASE . '/../cache/' . $path_hash;
 
     $record = NULL;
-    $constitution_commentary->debug_final_sql = TRUE;
+    $constitution_commentary->debug_final_sql = FALSE;
+    $constitution_version = NULL;
+
+    if ( 1 == strlen($constitution_version_n) ) {
+      $consti_version_available = $consti_version->
+        where(array('revision' => $constitution_version_n))->
+        recordfetch_setup()->
+        recordfetch($constitution_version)
+        ;
+      if ( $consti_version_available ) {
+        $consti_version->syslog( __FUNCTION__, __LINE__, "(marker) -- Have Constitution #{$constitution_version['revision']} - {$constitution_version['title']}");
+        $consti_version->recursive_dump($constitution_version,"(marker) --- -- -----");
+      }
+      else {
+        $consti_version->syslog( __FUNCTION__, __LINE__, "(marker) -- Missing Constitution #{$constitution_version_n}");
+      }
+    }
+
     $in_db = $constitution_commentary->
       where(array(
         'linkhash' => $path_hash
@@ -1505,10 +1525,11 @@ EOH;
       recordfetch($record)
       ;
 
-
     $found_in_db = $in_db ? "in DB" : "not in DB";
-    $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) Section '{$path_part}' {$found_in_db}" );
-    $constitution_commentary->recursive_dump($constitution_commentary->get_joins(), "(marker) - - --");
+
+    $joins = $constitution_commentary->get_join_names();
+    $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) Joins " . count($joins) . " for section '{$path_part}' {$found_in_db}" );
+    $constitution_commentary->recursive_dump($joins, "(marker) - - --");
 
     if ( file_exists( $cached_file ) ) {
       // The content is wrapped in JSON: 
@@ -1519,11 +1540,16 @@ EOH;
       $content         = stripcslashes($json['content']);
 
       if ( $debug_method ) {
-        syslog( LOG_INFO, "(marker) -- article: " . $json['article']);
-        syslog( LOG_INFO, "(marker) --   title: " . $json['title']);
-        syslog( LOG_INFO, "(marker) --    slug: " . $json['slug']);
-        syslog( LOG_INFO, "(marker) -- content: " . $json['content']);
+        $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) -- Revision: " . $constitution_version_n);
+        $article_model->          syslog( __FUNCTION__, __LINE__, "(marker) -- article: " . $json['article']);
+        $article_model->          syslog( __FUNCTION__, __LINE__, "(marker) --   title: " . $json['title']);
+        $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) --    slug: " . $json['slug']);
+        $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) -- content: " . $json['content']);
         $consti_version->recursive_dump($json, "(marker) - -- ---"); 
+      }
+
+      if ( !$in_db && $user->exists() ) {
+        // First, create nonexistent Article and Section records
       }
 
       $microtemplate   = NULL;
@@ -1532,7 +1558,7 @@ EOH;
 
         foreach ( $json['linkset']['link'] as $hash => $commentary ) {
 
-          $url     = parse_url($commentary['link']);
+          $url     = $commentary['link'];
           $linkhash = hash('sha256', $url.NONCE_SALT.AUTH_SALT);
           $summary = stripcslashes($commentary['summary']);
           $title   = stripcslashes($commentary['title']);
@@ -1552,6 +1578,11 @@ EOH;
         }  
       }
 
+      $timed_reload = $debug_method
+        ? NULL
+        : <<<EOH
+<script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
+EOH;
       $microtemplate = <<<EOH
 <!DOCTYPE html>
 <html>
@@ -1683,7 +1714,7 @@ EOH;
   <p>{$content} <a id="maindoc-jump-link" href="/#{$slug}">[See in context]</a></p>
 </div>
 {$microtemplate}
-<script type="text/javascript" src="/wp-content/plugins/phlegiscope/js/constitutions.js">[Scripting Disabled]</script>
+{$timed_reload}
 </body>
 </html>
 EOH;

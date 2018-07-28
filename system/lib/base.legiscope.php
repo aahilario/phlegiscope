@@ -1434,48 +1434,64 @@ EOH;
     // Generate markkup showing comments attached to comparable Sections 
     $user = wp_get_current_user();
 
-    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
+    $debug_method = TRUE;// C('DEBUG_'.__FUNCTION__,FALSE);
 
-    $constitution_article = new ConstitutionArticleModel();
-    $constitution_version = new ConstitutionVersionModel();
-    $constitution_section = new ConstitutionSectionModel();
+    $constitution_article    = new ConstitutionArticleModel();
+    $article_variants        = new ConstitutionArticleVariantModel();
+    $constitution_version    = new ConstitutionVersionModel();
+    $constitution_section    = new ConstitutionSectionModel();
+    $constitution_commentary = new ConstitutionCommentaryModel();
 
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
     $slug      = substr($_REQUEST['slug'],0,255); // Article table slug
     $article   = preg_replace('/^a-/','', $slug);
-    $selected  = substr($_REQUEST['selected'],0,255); // Section link
+    $selected  = preg_replace('/^a-/','', substr($_REQUEST['selected'],0,255)); // Section link
     $const_ver = preg_replace('@.*-([0-9]{1,})$@i','$1', $selected); // Table column number, constitution version proxy
 
     if ( $debug_method ) {
       $constitution_section->
-        syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- " . urldecode($_SERVER['REQUEST_URI']))->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$selected} " . urldecode($_SERVER['REQUEST_URI']))->
         recursive_dump($_REQUEST, "(marker) -- - --- ");
     }
 
     if ( $user->exists() ) {
       // Database reload tests and updates only occur when the remote user is authenticated.
+      $constitution_record = NULL;
+      $got_version = $constitution_version->
+        where(array('revision' => $const_ver))->
+        record_fetch($constitution_record);
+
       $article_in_db = $constitution_article->
         join_all()->
         where(array('slug' => $article))->
-        recordfetch_setup()->
-        recordfetch($article_record);
+        record_fetch($article_record);
 
       if ( !$article_in_db ) {
         $article_record = array(
           'slug'            => $article,
+          'constitution'    => $got_version ? $constitution_record['id'] : 1,
           'created'         => time(),
           'updated'         => time(),
           'revision'        => $const_ver,
           'article_content' => ' ',
           'article_title'   => $slug,
         );
-        $constitution_article->
+        $stow_result = $constitution_article->
           set_contents_from_array($article_record)->
           stow();
+        $constitution_article->
+          syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$selected} Stow result: " . $stow_result)
+          ;
       }
+
+      $constitution_article->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$selected} Article ID #" . $constitution_article->get_id())->
+        recursive_dump($article_record, "(marker) -- - ---" );
+        ;
+
       $constitution_section->debug_final_sql = TRUE;
       $section_in_db = $constitution_section->
-        join_all()->
+        //join_all()->
         where(array('slug' => $selected))->
         recordfetch_setup()->
         recordfetch($section);
@@ -1503,6 +1519,7 @@ EOH;
         $updated = TRUE;
         $section['constitution_version'] = $const_ver;
       }
+
       if ( !array_key_exists('linkset', $section) ) {
         $section['linkset'] = array(
           'links' => 0,
@@ -1510,6 +1527,7 @@ EOH;
         );
         $updated = TRUE;
       }
+
       if ( $updated ) file_put_contents($filepath, json_encode($section));
 
       if ( $section_slug == $selected ) {

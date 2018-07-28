@@ -1539,9 +1539,9 @@ EOS;
   }/*}}}*/
 
   function record_fetch(& $single_record)
-  {
+  {/*{{{*/
     return $this->recordfetch($single_record, FALSE, TRUE);
-  }
+  }/*}}}*/
 
   function recordfetch(& $single_record, $update_model = FALSE, $execute_setup = FALSE) {/*{{{*/
     $single_record = array();
@@ -1583,8 +1583,9 @@ EOS;
     // Collect all Join attributes for a single record
     while ( $this->recordfetch($bill) ) {/*{{{*/
 
-      if ( $debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker) - - {$bill['sn']} {$bill['id']}");
-      if ( $debug_method ) $this->recursive_dump($bill,"(marker) -^- {$id}");
+      if ( $debug_method ) $this->
+        syslog(__FUNCTION__,__LINE__,"(marker) - - {$bill['sn']} {$bill['id']}")->
+        recursive_dump($bill,"(marker) -^- {$id}");
 
       foreach ( $j as $attrnames ) {
         $joinattr_data = $bill[$attrnames]['data'];
@@ -1675,10 +1676,12 @@ EOS;
   }/*}}}*/
 
   function stow($a = NULL, $b = NULL) {/*{{{*/
-    return is_null($this->id)
+    $result = is_null($this->id)
       ? $this->insert()
       : $this->update()
       ;
+    if ( is_int($result) && (0 < $result) ) $this->set_id($result);
+    return $result;
   }/*}}}*/
 
   private function insert_update_common($sql, $boundattrs, $attrlist) {/*{{{*/

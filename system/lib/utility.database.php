@@ -374,11 +374,13 @@ EOS;
 
       $join_attrdefs = $this->get_attrdefs();
       $join_attrdefs = $join_attrdefs[$fieldname];
-
+      // Add missing foreign table reference
       if ( $is_ftref ) $join_attrdefs['propername'] = $attrinfo['propername'];
 
-      $this->syslog(__FUNCTION__, __LINE__, "(marker)Join Attrdefs" );
-      $this->recursive_dump($join_attrdefs, "(marker)");
+      $this->
+        syslog(__FUNCTION__, __LINE__, "(marker)Join Attrdefs" )->
+        recursive_dump($join_attrdefs, "(marker)")
+        ;
 
       if ( class_exists($join_attrdefs['type']) ) {
         $ft_propername = join('_',camelcase_to_array($join_attrdefs['propername']));
@@ -388,8 +390,9 @@ EOS;
         $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
       }
       if ($debug_method) {
-        $this->syslog(__FUNCTION__,__LINE__,"(marker) -- - -- - --  Final typemap");
-        $this->recursive_dump($typemap,'(marker) "- -- - -- -"');
+        $this->
+          syslog(__FUNCTION__,__LINE__,"(marker) -- - -- - --  Final typemap")->
+          recursive_dump($typemap,'(marker) "- -- - -- -"');
       }
     } else if (array_key_exists('propername',$attrinfo)) { 
       if ( is_null($mode) ) return NULL;
@@ -1908,12 +1911,13 @@ EOS;
     );
   }/*}}}*/
 
-  final function syslog($fxn, $line, $message) {/*{{{*/
+  final function & syslog($fxn, $line, $message) {/*{{{*/
     if ( $this->logging_ok($message) ) { 
       $message = str_replace('(marker)','',$message);
       syslog( LOG_INFO, $this->syslog_preamble($fxn, $line) . " {$message}" );
       if ( !(FALSE === C('SLOW_DOWN_RECURSIVE_DUMP')) ) usleep(C('SLOW_DOWN_RECURSIVE_DUMP'));
     }
+    return $this;
   }/*}}}*/
 
   final protected function syslog_preamble($fxn, $line) {/*{{{*/
@@ -1943,10 +1947,11 @@ EOS;
     }
   }/*}}}*/
 
-  final function recursive_dump($a, $prefix = NULL) {/*{{{*/
+  final function & recursive_dump($a, $prefix = NULL) {/*{{{*/
     if ( !is_array($a) ) return;
     if ( !$this->logging_ok($prefix) ) return;
     $this->recursive_dump_worker($a, 0, $prefix);
+    return $this;
   }/*}}}*/
 
   final private function recursive_dump_worker($a, $depth = 0, $prefix = NULL) {/*{{{*/

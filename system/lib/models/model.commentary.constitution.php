@@ -18,7 +18,8 @@ class ConstitutionCommentaryModel extends DatabaseUtility {
   var $constitution_ConstitutionVersion;
   var $article_ConstitutionArticle;
   var $section_ConstitutionSection;
-  var $created_dtm;
+  var $approved_bool;
+  var $added_dtm;
   var $updated_dtm;
 
   function __construct() {

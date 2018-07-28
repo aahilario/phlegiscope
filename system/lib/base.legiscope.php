@@ -1427,16 +1427,59 @@ EOH;
 
   static function handle_stash_get( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
-
+    // Data received:
+    // - $_REQUEST['slug']: Constitution Article table slug
+    // - $_REQUEST['selected']: Constitution Section link slug
+    // - $_REQUEST['sections']: Array of Section slugs
+    // Generate markkup showing comments attached to comparable Sections 
     $user = wp_get_current_user();
 
     $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
-    if ( $debug_method ) openlog( basename(__FILE__), /*LOG_PID |*/ LOG_NDELAY, LOG_LOCAL1 );
+    $constitution_article = new ConstitutionArticleModel();
+    $constitution_version = new ConstitutionVersionModel();
+    $constitution_section = new ConstitutionSectionModel();
 
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
-    $slug      = substr($_REQUEST['slug'],0,255);
-    $selected  = substr($_REQUEST['selected'],0,255);
+    $slug      = substr($_REQUEST['slug'],0,255); // Article table slug
+    $article   = preg_replace('/^a-/','', $slug);
+    $selected  = substr($_REQUEST['selected'],0,255); // Section link
+    $const_ver = preg_replace('@.*-([0-9]{1,})$@i','$1', $selected); // Table column number, constitution version proxy
+
+    if ( $debug_method ) {
+      $constitution_section->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- " . urldecode($_SERVER['REQUEST_URI']))->
+        recursive_dump($_REQUEST, "(marker) -- - --- ");
+    }
+
+    if ( $user->exists() ) {
+      // Database reload tests and updates only occur when the remote user is authenticated.
+      $article_in_db = $constitution_article->
+        join_all()->
+        where(array('slug' => $article))->
+        recordfetch_setup()->
+        recordfetch($article_record);
+
+      if ( !$article_in_db ) {
+        $article_record = array(
+          'slug'            => $article,
+          'created'         => time(),
+          'updated'         => time(),
+          'revision'        => $const_ver,
+          'article_content' => ' ',
+          'article_title'   => $slug,
+        );
+        $constitution_article->
+          set_contents_from_array($article_record)->
+          stow();
+      }
+      $constitution_section->debug_final_sql = TRUE;
+      $section_in_db = $constitution_section->
+        join_all()->
+        where(array('slug' => $selected))->
+        recordfetch_setup()->
+        recordfetch($section);
+    }
 
     $commentary_links = array();
 
@@ -1454,18 +1497,29 @@ EOH;
       $section_json = file_get_contents($filepath);
       $section = json_decode($section_json, TRUE);
 
+      // Update Section JSON file
+      $updated = FALSE;
+      if ( !array_key_exists('constitution_version', $section) ) {
+        $updated = TRUE;
+        $section['constitution_version'] = $const_ver;
+      }
       if ( !array_key_exists('linkset', $section) ) {
         $section['linkset'] = array(
           'links' => 0,
           'link' => array(),
         );
-        file_put_contents($filepath, json_encode($section));
+        $updated = TRUE;
+      }
+      if ( $updated ) file_put_contents($filepath, json_encode($section));
+
+      if ( $section_slug == $selected ) {
+        $constitution_section->syslog(  __FUNCTION__, __LINE__, "(marker) -- MATCH Got link {$filename} {$component['link']}");
       }
 
       if ( 0 < count($section['linkset']['link']) ) {
         foreach ( $section['linkset']['link'] as $linkhash => $component ) {
           $commentary_links[$linkhash] = $component;
-          if ( $debug_method ) syslog( LOG_INFO, "(marker) -- Stash Got link {$filename} {$component['link']}");
+          if ( $debug_method ) $constitution_section->syslog(  __FUNCTION__, __LINE__, "(marker) -- Stash Got link {$filename} {$component['link']}");
         }
       }
 
@@ -1482,6 +1536,10 @@ EOH;
   static function handle_constitutions_get( $restricted_request_uri ) 
   {/*{{{*/
 
+    // Datum received is the Constitution section slug [title-section(-subsection)-column]
+    // - -column encodes the Constitution version
+    // Comment data stored in JSON flat files 
+    // Generate markup showing comments attached to comparable Sections 
     $user = wp_get_current_user();
 
     $consti_version          = new ConstitutionVersionModel();
@@ -1509,8 +1567,9 @@ EOH;
         recordfetch($constitution_version)
         ;
       if ( $consti_version_available ) {
-        $consti_version->syslog( __FUNCTION__, __LINE__, "(marker) -- Have Constitution #{$constitution_version['revision']} - {$constitution_version['title']}");
-        $consti_version->recursive_dump($constitution_version,"(marker) --- -- -----");
+        $consti_version->
+          syslog( __FUNCTION__, __LINE__, "(marker) -- Have Constitution #{$constitution_version['revision']} - {$constitution_version['title']}")->
+          recursive_dump($constitution_version,"(marker) --- -- -----");
       }
       else {
         $consti_version->syslog( __FUNCTION__, __LINE__, "(marker) -- Missing Constitution #{$constitution_version_n}");

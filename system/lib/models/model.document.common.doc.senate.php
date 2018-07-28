@@ -164,8 +164,8 @@ EOH
         'create_time' => time()
       ));  
 
-      $join_type = get_class($this);
       if ( $debug_method ) {
+        $join_type = get_class($this);
         $this->syslog(__FUNCTION__,__LINE__,"(warning) - - Join type '{$join_type}'");
         $this->recursive_dump($join_info, '(marker) -- - --');
       }

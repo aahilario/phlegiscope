@@ -328,7 +328,7 @@ EOS;
 
     if ( !array_key_exists($matches[1][0], $type_map) ) {
       // Check for class name in typespec
-      $model_match = "{$attrinfo['type']}Model";
+      $model_match = preg_match('/Model$/i',$attrinfo['type']) ? $attrinfo['type'] : "{$attrinfo['type']}Model";
       if ( class_exists($model_match,TRUE) ) {
         if ( $debug_method ) 
           $this->syslog(__FUNCTION__, __LINE__, "(marker) Forcing use of class attrname {$attrinfo['type']} => {$model_match}"  );
@@ -538,7 +538,7 @@ EOH;
     $is_join_table   = 1 == preg_match('@(.*)Join$@i',get_class($this));
     $members         = $this->fetch_property_list($is_join_table);
 
-    if ( C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {/*{{{*/
+    if ( wp_get_current_user()->exists() && C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {/*{{{*/
 
       // Determine if the backing table exists; construct it if it does not.
       if ( $debug_method ) $this->recursive_dump($members,"(marker) - From fetch_property_list");
@@ -1374,7 +1374,8 @@ EOS;
         $attrnames,
         array_filter(array_map($bindable_attrs, $attrlist))
       );
-      $attrnames[] = $primary_table_alias.'`id`'; // Mandatory to include this
+      if ( !array_key_exists($primary_table_alias.'`id`',array_flip($attrnames)) )
+        $attrnames[] = $primary_table_alias.'`id`'; // Mandatory to include this
       $attrnames   = join(',',$attrnames);
       $attrlist    = array_combine($key_map, $attrlist); // Pivot keys, make [name] attribute be the array lookup key
 
@@ -1537,8 +1538,14 @@ EOS;
     return $this->query($sql);
   }/*}}}*/
 
-  function recordfetch(& $single_record, $update_model = FALSE) {/*{{{*/
+  function record_fetch(& $single_record)
+  {
+    return $this->recordfetch($single_record, FALSE, TRUE);
+  }
+
+  function recordfetch(& $single_record, $update_model = FALSE, $execute_setup = FALSE) {/*{{{*/
     $single_record = array();
+    if ( $execute_setup ) $this->recordfetch_setup();
     $a = self::$dbhandle->recordfetch($single_record);
     if ( $a == TRUE ) {
       if ( $update_model && is_array($single_record) ) {
@@ -1551,6 +1558,9 @@ EOS;
     } else {
       // Reset
       $this->alias_map = array(); 
+    }
+    if ( is_array($single_record) && array_key_exists('id', $single_record) ) {
+      $this->id = $single_record['id'];
     }
     return $a;
   }/*}}}*/
@@ -1973,8 +1983,14 @@ EOS;
           $logstring .= 'NULL';
         else if ( is_bool($val) )
           $logstring .= ($val ? 'TRUE' : 'FALSE');
-        else if ( empty($val) )
-          $logstring .= '[EMPTY]';
+        else if ( empty($val) ) {
+          if ( strlen("{$val}") == 0 ) 
+            $logstring .= "[EMPTY]";
+          else if ( 0 === $val || "0" == "{$val}" )
+            $logstring .= "0";
+          else
+            $logstring .= "[EMPTY]";
+        }
         else
           $logstring .= substr("{$val}",0,500) . (strlen("{$val}") > 500 ? '...' : '');
         syslog( LOG_INFO, $logstring );

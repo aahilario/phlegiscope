@@ -1436,9 +1436,9 @@ EOH;
 
     $debug_method = TRUE;// C('DEBUG_'.__FUNCTION__,FALSE);
 
-    $constitution_article    = new ConstitutionArticleModel();
-    $article_variants        = new ConstitutionArticleVariantModel();
     $constitution_version    = new ConstitutionVersionModel();
+    $article_variants        = new ConstitutionArticleVariantModel();
+    $constitution_article    = new ConstitutionArticleModel();
     $constitution_section    = new ConstitutionSectionModel();
     $constitution_commentary = new ConstitutionCommentaryModel();
 
@@ -1458,6 +1458,7 @@ EOH;
       // Database reload tests and updates only occur when the remote user is authenticated.
       $constitution_record = NULL;
       $got_version = $constitution_version->
+        join_all()->
         where(array('revision' => $const_ver))->
         record_fetch($constitution_record);
 
@@ -1560,12 +1561,13 @@ EOH;
     // Generate markup showing comments attached to comparable Sections 
     $user = wp_get_current_user();
 
+    $debug_method = TRUE; // C('DEBUG_'.__FUNCTION__,FALSE); 
+
     $consti_version          = new ConstitutionVersionModel();
+    $article_variants        = new ConstitutionArticleVariantModel();
     $article_model           = new ConstitutionArticleModel();
     $section_model           = new ConstitutionSectionModel();
     $constitution_commentary = new ConstitutionCommentaryModel();
-
-    $debug_method = TRUE; // C('DEBUG_'.__FUNCTION__,FALSE); 
 
     if ( $debug_method ) $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
 
@@ -1581,8 +1583,7 @@ EOH;
     if ( 1 == strlen($constitution_version_n) ) {
       $consti_version_available = $consti_version->
         where(array('revision' => $constitution_version_n))->
-        recordfetch_setup()->
-        recordfetch($constitution_version)
+        record_fetch($constitution_version)
         ;
       if ( $consti_version_available ) {
         $consti_version->
@@ -1595,11 +1596,11 @@ EOH;
     }
 
     $in_db = $constitution_commentary->
+      join_all()->
       where(array(
         'linkhash' => $path_hash
       ))->
-      recordfetch_setup()->
-      recordfetch($record)
+      record_fetch($record)
       ;
 
     $found_in_db = $in_db ? "in DB" : "not in DB";

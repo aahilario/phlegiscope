@@ -15,7 +15,7 @@ class ConstitutionCommentaryModel extends DatabaseUtility {
   var $title_vc512;
   var $link_vc1024; // Slug
   var $linkhash_vc128; // Slug hash
-  var $section_ConstitutionSection;
+  var $section_ConstitutionSectionModel;
   var $approved_bool;
   var $added_dtm;
   var $updated_dtm;

@@ -553,14 +553,16 @@ EOH;
           )
         );
         if ( $debug_method ) { 
-          $this->syslog( __FUNCTION__, __LINE__, "(warning) Matched tables" );
-          $this->recursive_dump($matched_tables,"(marker) --- -- -");
+          $this->
+            syslog( __FUNCTION__, __LINE__, "(warning) Matched tables" )->
+            recursive_dump($matched_tables,"(marker) --- -- -");
         }
       }
 
       if ( $debug_method ) { 
-        $this->syslog( __FUNCTION__, __LINE__, "(warning) Members table before construct_backing_table" );
-        $this->recursive_dump($members,"(marker) Class members as found");
+        $this->
+          syslog( __FUNCTION__, __LINE__, "(warning) Members table before construct_backing_table" )->
+          recursive_dump($members,"(marker) Class members as found");
       }
 
       if ( count($matched_tables) == 0 ) {
@@ -568,8 +570,9 @@ EOH;
       }
 
       if ( $debug_method ) { 
-        $this->syslog( __FUNCTION__, __LINE__, "WARNING: members table AFTER construct_backing_table" );
-        $this->recursive_dump($members,"(marker) Class members as found");
+        $this->
+          syslog( __FUNCTION__, __LINE__, "WARNING: members table AFTER construct_backing_table" )->
+          recursive_dump($members,"(marker) Class members as found");
       }
 
       // Synchronize table columns and class attributes
@@ -578,8 +581,9 @@ EOH;
         if ( is_array($structure_deltas) && ( 
           ( array_key_exists('added_columns', $structure_deltas) && 0 < count($structure_deltas['added_columns']) ) ||
           ( array_key_exists('removed_columns', $structure_deltas) && 0 < count($structure_deltas['added_columns']) ) ) ) {
-          $this->syslog( __FUNCTION__, __LINE__, "WARNING: Structure differences" );
-          $this->recursive_dump($structure_deltas,"(marker) ------ --- -- - ");
+          $this->
+            syslog( __FUNCTION__, __LINE__, "WARNING: Structure differences" )->
+            recursive_dump($structure_deltas,"(marker) ------ --- -- - ");
         }
       }
       extract($structure_deltas);

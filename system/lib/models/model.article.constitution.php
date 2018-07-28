@@ -13,7 +13,7 @@ class ConstitutionArticleModel extends DatabaseUtility {
   
   var $article_title_vc512 = NULL;
   var $article_content_vc8192 = NULL;
-  var $constitution_ConstitutionVersion;
+  var $constitution_ConstitutionVersionModel;
   var $slug_vc255 = '';
   var $revision_int8 = 0;
   var $created_dtm;

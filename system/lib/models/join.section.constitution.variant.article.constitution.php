@@ -12,7 +12,7 @@
 class ConstitutionArticleVariantConstitutionSectionJoin extends DatabaseUtility {
   
   // Join table model
-  var $constitution_article_variant_ConstitutionArticleVariant;
+  var $constitution_article_variant_ConstitutionArticleVariantModel;
   var $constitution_section_ConstitutionSectionModel;
 
   function __construct() {
@@ -23,8 +23,8 @@ class ConstitutionArticleVariantConstitutionSectionJoin extends DatabaseUtility 
     }
   }
 
-  function & set_constitution_article_variant($v) { $this->constitution_article_variant_ConstitutionArticleVariant = $v; return $this; }
-  function get_constitution_article_variant($v = NULL) { if (!is_null($v)) $this->set_constitution_article_variant($v); return $this->constitution_article_variant_ConstitutionArticleVariant; }
+  function & set_constitution_article_variant($v) { $this->constitution_article_variant_ConstitutionArticleVariantModel = $v; return $this; }
+  function get_constitution_article_variant($v = NULL) { if (!is_null($v)) $this->set_constitution_article_variant($v); return $this->constitution_article_variant_ConstitutionArticleVariantModel; }
 
   function & set_constitution_section($v) { $this->constitution_section_ConstitutionSectionModel = $v; return $this; }
   function get_constitution_section($v = NULL) { if (!is_null($v)) $this->set_constitution_section($v); return $this->constitution_section_ConstitutionSectionModel; }

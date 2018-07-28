@@ -13,7 +13,7 @@ class ConstitutionCommentaryConstitutionSectionJoin extends DatabaseUtility {
   
   // Join table model
   var $constitution_commentary_ConstitutionCommentaryModel;
-  var $constitution_section_ConstitutionSection;
+  var $constitution_section_ConstitutionSectionModel;
 
   function __construct() {
     parent::__construct();
@@ -26,8 +26,8 @@ class ConstitutionCommentaryConstitutionSectionJoin extends DatabaseUtility {
   function & set_constitution_commentary($v) { $this->constitution_commentary_ConstitutionCommentaryModel = $v; return $this; }
   function get_constitution_commentary($v = NULL) { if (!is_null($v)) $this->set_constitution_commentary($v); return $this->constitution_commentary_ConstitutionCommentaryModel; }
 
-  function & set_constitution_section($v) { $this->constitution_section_ConstitutionSection = $v; return $this; }
-  function get_constitution_section($v = NULL) { if (!is_null($v)) $this->set_constitution_section($v); return $this->constitution_section_ConstitutionSection; }
+  function & set_constitution_section($v) { $this->constitution_section_ConstitutionSectionModel = $v; return $this; }
+  function get_constitution_section($v = NULL) { if (!is_null($v)) $this->set_constitution_section($v); return $this->constitution_section_ConstitutionSectionModel; }
 
 }
 

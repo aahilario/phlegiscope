@@ -13,7 +13,7 @@ class ConstitutionCommentaryConstitutionVersionJoin extends DatabaseUtility {
   
   // Join table model
   var $constitution_commentary_ConstitutionCommentaryModel;
-  var $constitution_version_ConstitutionVersion;
+  var $constitution_version_ConstitutionVersionModel;
 
   function __construct() {
     parent::__construct();
@@ -26,8 +26,8 @@ class ConstitutionCommentaryConstitutionVersionJoin extends DatabaseUtility {
   function & set_constitution_commentary($v) { $this->constitution_commentary_ConstitutionCommentaryModel = $v; return $this; }
   function get_constitution_commentary($v = NULL) { if (!is_null($v)) $this->set_constitution_commentary($v); return $this->constitution_commentary_ConstitutionCommentaryModel; }
 
-  function & set_constitution_version($v) { $this->constitution_version_ConstitutionVersion = $v; return $this; }
-  function get_constitution_version($v = NULL) { if (!is_null($v)) $this->set_constitution_version($v); return $this->constitution_version_ConstitutionVersion; }
+  function & set_constitution_version($v) { $this->constitution_version_ConstitutionVersionModel = $v; return $this; }
+  function get_constitution_version($v = NULL) { if (!is_null($v)) $this->set_constitution_version($v); return $this->constitution_version_ConstitutionVersionModel; }
 
 }
 

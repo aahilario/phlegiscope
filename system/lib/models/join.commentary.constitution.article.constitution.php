@@ -12,7 +12,7 @@
 class ConstitutionArticleConstitutionCommentaryJoin extends DatabaseUtility {
   
   // Join table model
-  var $constitution_article_ConstitutionArticle;
+  var $constitution_article_ConstitutionArticleModel;
   var $constitution_commentary_ConstitutionCommentaryModel;
 
   function __construct() {
@@ -23,8 +23,8 @@ class ConstitutionArticleConstitutionCommentaryJoin extends DatabaseUtility {
     }
   }
 
-  function & set_constitution_article($v) { $this->constitution_article_ConstitutionArticle = $v; return $this; }
-  function get_constitution_article($v = NULL) { if (!is_null($v)) $this->set_constitution_article($v); return $this->constitution_article_ConstitutionArticle; }
+  function & set_constitution_article($v) { $this->constitution_article_ConstitutionArticleModel = $v; return $this; }
+  function get_constitution_article($v = NULL) { if (!is_null($v)) $this->set_constitution_article($v); return $this->constitution_article_ConstitutionArticleModel; }
 
   function & set_constitution_commentary($v) { $this->constitution_commentary_ConstitutionCommentaryModel = $v; return $this; }
   function get_constitution_commentary($v = NULL) { if (!is_null($v)) $this->set_constitution_commentary($v); return $this->constitution_commentary_ConstitutionCommentaryModel; }

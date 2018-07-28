@@ -12,6 +12,7 @@
 class ConstitutionSectionModel extends DatabaseUtility {
   
   var $section_content_vc8192;
+  var $variant_ConstitutionArticleVariant;
   var $created_dtm;
   var $updated_dtm;
   var $slug_vc255uniq;

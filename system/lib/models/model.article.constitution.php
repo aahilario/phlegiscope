@@ -28,5 +28,7 @@ class ConstitutionArticleModel extends DatabaseUtility {
   function & set_updated($v) { $this->updated_dtm = $v; return $this; } function get_updated($v = NULL) { if (!is_null($v)) $this->set_updated($v); return $this->updated_dtm; }
   function & set_revision($v) { $this->revision_int8 = $v; return $this; } function get_revision($v = NULL) { if (!is_null($v)) $this->set_revision($v); return $this->revision_int8; }
   function & set_article_title($v) { $this->article_title_vc512 = $v; return $this; } function get_article_title($v = NULL) { if (!is_null($v)) $this->set_article_title($v); return $this->article_title_vc512; }
+  function & set_article_content($v) { $this->article_content_vc8192 = $v; return $this; } function get_article_content($v = NULL) { if (!is_null($v)) $this->set_article_content($v); return $this->article_content_vc8192; }
+  function & set_constitution($v) { $this->constitution_ConstitutionVersion = $v; return $this; } function get_constitution($v = NULL) { if (!is_null($v)) $this->set_constitution($v); return $this->constitution_ConstitutionVersion; }
 }
 

@@ -115,7 +115,7 @@ class {$classname} {$base} {
 
 EOH;
     }/*}}}*/
-     else if ( 1 == preg_match('/(.*)Utility$/i', $classname) && !file_exists(SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}") ) {/*{{{*/
+     else if ( (1 == preg_match('/(.*)Utility$/i', $classname)) && !file_exists(SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}") ) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/{$target_filename}";
       $base = 'extends RawparseUtility';
       $classdef = <<<EOH
@@ -206,7 +206,7 @@ class {$classname} {$base} {
 
 EOH;
     }/*}}}*/
-     else if (!(1 == preg_match('@^pie.simple@i',$target_filename))) {/*{{{*/
+    else if (defined('ENABLE_PIE_SIMPLE_CLASSGEN') && constant('ENABLE_PIE_SIMPLE_CLASSGEN') && !(1 == preg_match('@^pie.simple@i',$target_filename))) {/*{{{*/
       $target_filename = SYSTEM_BASE . "/lib/sitehandlers/{$target_filename}";
       $base = 'extends LegiscopeBase';
       $classdef = <<<EOH

@@ -332,7 +332,7 @@ EOS;
       if ( class_exists($model_match,TRUE) ) {
         if ( $debug_method ) 
           $this->syslog(__FUNCTION__, __LINE__, "(marker) Forcing use of class attrname {$attrinfo['type']} => {$model_match}"  );
-        $attrinfo['propername'] = "{$attrinfo['type']}Model";
+        $attrinfo['propername'] = $model_match;
         $is_ftref = TRUE;
       }
       else {
@@ -382,7 +382,7 @@ EOS;
         recursive_dump($join_attrdefs, "(marker)")
         ;
 
-      if ( class_exists($join_attrdefs['type']) ) {
+      if ( class_exists($join_attrdefs['type'],TRUE) || $is_ftref ) {
         $ft_propername = join('_',camelcase_to_array($join_attrdefs['propername']));
         $typemap['properties'] = <<<EOS
 INT(11) NOT NULL REFERENCES `{$ft_propername}` (`id`) ON UPDATE CASCADE ON DELETE CASCADE 

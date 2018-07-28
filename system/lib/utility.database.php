@@ -292,7 +292,6 @@ EOS;
   private final function fetch_typemap(& $attrinfo, $mode = NULL) {/*{{{*/
 
     // Get type map information for a SINGLE model attribute.
-    // $debug_method =  C('DEBUG_'.__FUNCTION__); // 1 == preg_match('@(.*)Join$@i', get_class($this)); //  FALSE; // get_class($this) == 'SenateCommitteeReportDocumentModel' ;
     $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
 
     $type_map = array(
@@ -330,14 +329,14 @@ EOS;
     if ( !array_key_exists($matches[1][0], $type_map) ) {
       // Check for class name in typespec
       $model_match = "{$attrinfo['type']}Model";
-      if ( class_exists($model_match,FALSE) ) {
+      if ( class_exists($model_match,TRUE) ) {
         if ( $debug_method ) 
           $this->syslog(__FUNCTION__, __LINE__, "(marker) Forcing use of class attrname {$attrinfo['type']} => {$model_match}"  );
         $attrinfo['propername'] = "{$attrinfo['type']}Model";
         $is_ftref = TRUE;
       }
       else {
-        $this->syslog(__FUNCTION__, __LINE__, "(marker) No type found matching name '{$attrinfo['type']}' or '{$model_match}'"  );
+        $this->syslog(__FUNCTION__, __LINE__, "(marker) No type found matching name '{$attrinfo['type']}' => '{$model_match}'"  );
       }
     }
     else {
@@ -349,10 +348,6 @@ EOS;
       $modifier_desc = empty($modifier) ? "empty" : "'{$modifier}'";
       $this->syslog(__FUNCTION__, __LINE__, "(marker) Called with {$modifier_desc} array n = " . count($attrinfo)  );
       $this->recursive_dump($attrinfo, "(marker)");
-      // $this->log_stack();
-    }
-
-    if ($debug_method || C('DEBUG_' . strtoupper(get_class($this)))) {
       $this->syslog(__FUNCTION__, __LINE__, "(marker) Type spec '{$attrinfo['type']}'" );
       $this->recursive_dump($matches, "(marker) {$attrinfo['type']}");
     }
@@ -379,6 +374,12 @@ EOS;
 
       $join_attrdefs = $this->get_attrdefs();
       $join_attrdefs = $join_attrdefs[$fieldname];
+
+      if ( $is_ftref ) $join_attrdefs['propername'] = $attrinfo['propername'];
+
+      $this->syslog(__FUNCTION__, __LINE__, "(marker)Join Attrdefs" );
+      $this->recursive_dump($join_attrdefs, "(marker)");
+
       if ( class_exists($join_attrdefs['type']) ) {
         $ft_propername = join('_',camelcase_to_array($join_attrdefs['propername']));
         $typemap['properties'] = <<<EOS
@@ -1917,7 +1918,7 @@ EOS;
 
   final protected function syslog_preamble($fxn, $line) {/*{{{*/
     $line = is_null($line) ? "" : "({$line})";
-    return (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :: {$fxn}{$line}: ";
+    return (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :".(wp_get_current_user()->exists() ? "[*]" : NULL).": {$fxn}{$line}: ";
   }/*}}}*/
 
   protected function recursive_file_dump($filename, $a, $depth, $prefix) {/*{{{*/

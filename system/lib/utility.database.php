@@ -377,6 +377,7 @@ EOS;
       // Add missing foreign table reference
       if ( $is_ftref ) $join_attrdefs['propername'] = $attrinfo['propername'];
 
+      if ( $debug_method )
       $this->
         syslog(__FUNCTION__, __LINE__, "(marker)Join Attrdefs" )->
         recursive_dump($join_attrdefs, "(marker)")
@@ -387,7 +388,8 @@ EOS;
         $typemap['properties'] = <<<EOS
 INT(11) NOT NULL REFERENCES `{$ft_propername}` (`id`) ON UPDATE CASCADE ON DELETE CASCADE 
 EOS;
-        $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
+        // Comment out to suppress UNIQUE KEY constraint 
+        // $typemap['joint_unique'] = '`' . $typemap['fieldname'] . '`'; 
       }
       if ($debug_method) {
         $this->
@@ -632,7 +634,7 @@ EOH;
 
   function & join_all() {/*{{{*/
     $join_names = $this->get_join_names();
-    if ( $this->debug_method ) {
+    if ( C('DEBUG_'.__FUNCTION__,FALSE) || $this->debug_method ) {
        $this->recursive_dump($this->join_attrs,"(marker) - -- - CURRENT - - -- -");
        $this->recursive_dump($join_names,"(marker) - -- - ALL ATTRS - -- -");
     }
@@ -652,7 +654,8 @@ EOH;
     return is_null($specific_item) ? $this->join_props : array_element($this->join_props,$specific_item);
   }/*}}}*/
 
-  function get_joins_by_model($model_typename = NULL, $assume_unique_attrs = TRUE) {/*{{{*/
+  function get_joins_by_model($model_typename = NULL, $assume_unique_attrs = TRUE)
+  {/*{{{*/
     // Pivot the list of Join attributes around the Join object name, return joins keyed by model name
     /*
       Source:  (array) representative =>
@@ -677,7 +680,8 @@ EOH;
     return is_null($model_typename) ? $by_modelname : array_element($by_modelname,$model_typename);
   }/*}}}*/
 
-  function create_joins( $modelname_or_attrname, & $foreign_keys, $allow_update = FALSE, $full_match = TRUE ) {/*{{{*/
+  function create_joins( $modelname_or_attrname, & $foreign_keys, $allow_update = FALSE, $full_match = TRUE ) 
+  {/*{{{*/
 
     // Parameters:
     // $model_or_attrname (string):  Model foreign table
@@ -698,11 +702,13 @@ EOH;
     $this->filter_nested_array($join_attrdefs,'propername,joinobject[joinobject*=.*|i][propername*='.$modelname.']');
 
     if ( !$this->in_database() ) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: Nothing to join. ID = (" . (gettype($this->get_id())) . ")" . (0 < intval($this->get_id()) ? $this->get_id() : "")); 
-      $this->recursive_dump($join_attrdefs, "(marker) - -- ---");
+      $this->
+        syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: Nothing to join. ID = (" . (gettype($this->get_id())) . ")" . (0 < intval($this->get_id()) ? $this->get_id() : ""))->
+        recursive_dump($join_attrdefs, "(marker) - -- ---");
     } else if (!is_array($join_attrdefs)) {
-      $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: No match among keys"); 
-      $this->recursive_dump($this->get_attrdefs(), "(marker) - -- ---");
+      $this->
+        syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- WARNING: No match among keys")->
+        recursive_dump($this->get_attrdefs(), "(marker) - -- ---");
     } else if (0 == count($join_attrdefs)) {
       $this->syslog( __FUNCTION__, __LINE__, "(marker) --- --- --- - - - --- --- --- ERROR: Multiple or zero matches for {$modelname}. Available attributes are:");
     } else if (1 == count($join_attrdefs)) {

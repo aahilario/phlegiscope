@@ -1430,15 +1430,19 @@ EOH;
     // Data received:
     // - $_REQUEST['slug']: Constitution Article table slug
     // - $_REQUEST['selected']: Constitution Section link slug
-    // - $_REQUEST['sections']: Array of Section slugs
+    // - $_REQUEST['sections']: Array of Section slugs from a row of comparable Section entries
     // Generate markkup showing comments attached to comparable Sections 
+    //
+    // Relationships:
+    // Commentary -> Section -> SectionVariant -> Article -> Version
+    //
     $user = wp_get_current_user();
 
     $debug_method = TRUE;// C('DEBUG_'.__FUNCTION__,FALSE);
 
     $constitution_version    = new ConstitutionVersionModel();
-    $article_variants        = new ConstitutionArticleVariantModel();
     $constitution_article    = new ConstitutionArticleModel();
+    $section_variants        = new ConstitutionSectionVariantsModel();
     $constitution_section    = new ConstitutionSectionModel();
     $constitution_commentary = new ConstitutionCommentaryModel();
 
@@ -1454,51 +1458,87 @@ EOH;
         recursive_dump($_REQUEST, "(marker) -- - --- ");
     }
 
-    if ( $user->exists() ) {
+    $commentary_links = array();
+    $version_to_article = NULL;
+
+    if ( $user->exists() ) {/*{{{*/
       // Database reload tests and updates only occur when the remote user is authenticated.
       $constitution_record = NULL;
+
       $got_version = $constitution_version->
-        join_all()->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- -- -- Retrieving Version record rev {$const_ver}")->
         where(array('revision' => $const_ver))->
         record_fetch($constitution_record);
+      $constitution_version->recursive_dump($constitution_record,"(marker) -- Version -- --");
 
       $article_in_db = $constitution_article->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- -- -- Retrieving Article record slug '{$article}'")->
         join_all()->
         where(array('slug' => $article))->
         record_fetch($article_record);
+      $constitution_version->recursive_dump($article_record,"(marker) -- Article -- --");
 
-      if ( !$article_in_db ) {
+      if ( !$article_in_db ) {/*{{{*/
+
         $article_record = array(
           'slug'            => $article,
           'constitution'    => $got_version ? $constitution_record['id'] : 1,
-          'created'         => time(),
-          'updated'         => time(),
+          'created'         => date('Y-m-d H:i:s', time()),
+          'updated'         => date('Y-m-d H:i:s', time()),
           'revision'        => $const_ver,
           'article_content' => ' ',
           'article_title'   => $slug,
         );
+
         $stow_result = $constitution_article->
+          syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$selected} Stowing article record '{$article}'")->
           set_contents_from_array($article_record)->
           stow();
+
         $constitution_article->
           syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$selected} Stow result: " . $stow_result)
           ;
+
+        if ( 0 < $stow_result ) {
+          $article_record['id'] = $stow_result;
+          $article_in_db = TRUE;
+        }
+      }/*}}}*/
+
+        $constitution_article_joins = $constitution_article->get_joins();
+        $constitution_article->
+          syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- Class " . get_class($constitution_article) . " get_joins():")->
+          recursive_dump($constitution_article_joins, "(marker) -- - ---"); 
+
+
+      if ( $article_in_db && is_null($article_record['constitution']['join']) ) {
+        // Experimental: Join ConstitutionVersionModel -> ConstitutionArticleModel 
+        $version_to_article = array($constitution_record['id'] => array($article_record['id']));
+        $result = $constitution_article->
+          create_joins('ConstitutionVersionModel',$version_to_article,TRUE);
+
+        $constitution_article->
+          syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- - Executed ConstitutionArticleModel::create_joins(), result " . gettype($result))->
+          recursive_dump($result, "(marker) -- - --- -");
       }
+
+      $article_in_db = $constitution_article->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- -- -- Retrieving Article record slug '{$article}'")->
+        join_all()->
+        where(array('slug' => $article))->
+        record_fetch($article_record);
 
       $constitution_article->
         syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$selected} Article ID #" . $constitution_article->get_id())->
         recursive_dump($article_record, "(marker) -- - ---" );
         ;
 
-      $constitution_section->debug_final_sql = TRUE;
-      $section_in_db = $constitution_section->
-        //join_all()->
-        where(array('slug' => $selected))->
-        recordfetch_setup()->
-        recordfetch($section);
-    }
+    }/*}}}*/
 
-    $commentary_links = array();
+    $variants_record = NULL;
+    $article_record = NULL;
+    $section_record = NULL;
+    $variants_stored_in_db = FALSE;
 
     if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $section_slug ) {
       // Skip empty ident
@@ -1506,9 +1546,102 @@ EOH;
       if ( 0 == strlen($ident) ) 
         continue;
 
-      // Test for target file
+      // Derive source file/constitution_commentary_model.linkhash
       $filename = hash('sha256', $ident.NONCE_SALT);
       $filepath = "${cache_path}/{$filename}";
+
+      // This method is only called after handle_stash_post,
+      // and each of the sections requested have presumably
+      // been successfully recorded in JSON files.
+      $section_record_in_db = $constitution_section->
+        join_all()->
+        where(array("slug" => $section_slug))->
+        record_fetch($section_record);
+
+      $constitution_section->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- Section fetch result " . ($section_record_in_db ? "TRUE" : "FALSE") )->
+        recursive_dump( $section_record, "(marker) -- 0 0 ");
+
+      if ( $section_record_in_db ) {/*{{{*/
+        if ( is_null($variants_record) ) {
+          $variants_stored_in_db = $section_variants->
+            where(array("id" => $section_record['variant']['join']['id']))->
+            record_fetch($variants_record);
+          if ( !$variants_stored_in_db ) {
+            $section_count = count($_REQUEST['sections']);
+            $variants_record = NULL;
+            $section_variants->
+              syslog(  __FUNCTION__, __LINE__, "(marker) -- Must generate a single section variant record for sections[{$section_count}]");
+          }
+          else $section_variants->
+            syslog(  __FUNCTION__, __LINE__, "(marker) -- [1] Retrieved variants record #{$variants_record['id']}");
+        }
+      }/*}}}*/
+      else {/*{{{*/
+        $constitution_section->
+          syslog(  __FUNCTION__, __LINE__, "(marker) -- No section matching '{$section_slug}', hence no variants.  Generating.");
+      }/*}}}*/
+
+      // Retrieve or create a section variant record that ties together
+      // comparable sections (and hence the comment records)
+      while ( is_null($variants_record) ) {/*{{{*/
+        if ( is_null($article_record) ) {
+          $article_record_in_db = $constitution_article->
+            syslog(  __FUNCTION__, __LINE__, "(marker) --")->
+            join_all()->
+            where(array("slug" => $article))->
+            record_fetch($article_record);
+
+          if ( !$article_record_in_db ) {
+            // Suppress variants record check
+            $constitution_article->
+              syslog(  __FUNCTION__, __LINE__, "(marker) -- No article found matching slug '{$article}'. Inhibiting Section variant usage.");
+            $variants_record = array();
+            break;
+          }
+          else
+            $constitution_article->
+              syslog(  __FUNCTION__, __LINE__, "(marker) -- Have ID #{$article_record['id']} for '{$article}'.")->
+              recursive_dump($article_record, "(marker) --");
+        }
+
+        $variants_stored_in_db = FALSE;
+        if ( $section_record_in_db ) {
+          $variants_stored_in_db = $section_variants->
+            join_all()->
+            where(array("id" => $section_record["variant"]))->
+            record_fetch($variants_record);
+        }
+
+        if ( !$variants_stored_in_db ) {
+          $variant_record_id = $section_variants->
+            set_contents_from_array(array(
+              'article' => $constitution_article->get_id()
+            ))->
+            stow();
+
+          if ( $debug_method ) $section_variants->
+            syslog(  __FUNCTION__, __LINE__, "(marker) -- Generated variants record #{$variant_record_id}");
+
+          if ( 0 < $variant_record_id ) {
+
+            $variants_record = array('id' => $variant_record_id);
+            $variants_stored_in_db = TRUE;
+
+            $article_to_variants = array($variants_record['id'] => array($article_record['id']));
+            $result = $section_variants->
+              create_joins('ConstitutionArticleModel',$article_to_variants,TRUE);
+            $section_variants->
+              syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- - Executed ConstitutionSectionVariantsModel::create_joins(), result " . gettype($result))->
+              recursive_dump($result, "(marker) -- - --- -");
+ 
+          }
+        }
+        else $section_variants->
+          syslog(  __FUNCTION__, __LINE__, "(marker) -- [2] Retrieved variants record #{$variants_record['id']}");
+
+        break;
+      }/*}}}*/
 
       // Fetch JSON-wrapped section 
       $section_json = file_get_contents($filepath);
@@ -1516,9 +1649,10 @@ EOH;
 
       // Update Section JSON file
       $updated = FALSE;
+
       if ( !array_key_exists('constitution_version', $section) ) {
-        $updated = TRUE;
         $section['constitution_version'] = $const_ver;
+        $updated = TRUE;
       }
 
       if ( !array_key_exists('linkset', $section) ) {
@@ -1535,10 +1669,82 @@ EOH;
         $constitution_section->syslog(  __FUNCTION__, __LINE__, "(marker) -- MATCH Got link {$filename} {$component['link']}");
       }
 
+      if ( !$section_record_in_db && is_array($variants_record) && array_key_exists('id', $variants_record) ) {
+        $section_id = $constitution_section->
+          set_contents_from_array(array(
+            'section_content' => $section['content'],
+            'variant' => $variants_record['id'],
+            'created' => date('Y-m-d H:i:s', time()),
+            'updated' => date('Y-m-d H:i:s', time()),
+            'slug' => $section_slug,
+          ))->
+          stow();
+        if( 0 < $section_id ) { 
+          $section_record['id'] = $section_id;
+          $constitution_section->
+            syslog( __FUNCTION__, __LINE__, "(marker) -- Recorded section, storing commentary using section ID #{$section_id}" );
+
+          // Experimental: Join Section record to SectionVariant 
+          $section_to_variant = array($section_record['id'] => array($variants_record['id']));
+          $result = $constitution_section->
+            create_joins('ConstitutionSectionVariantsModel',$section_to_variant,TRUE);
+          $constitution_section->
+            syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- - Executed ConstitutionSectionVariantsModel::create_joins(), result " . gettype($result))->
+            recursive_dump($result, "(marker) -- - --- -");
+        }
+        else {
+          $constitution_section->
+            syslog( __FUNCTION__, __LINE__, "(marker) -- No section record.  Will not record comment structure in DB." );
+        }
+      }
+
       if ( 0 < count($section['linkset']['link']) ) {
         foreach ( $section['linkset']['link'] as $linkhash => $component ) {
+          if (!$constitution_commentary->
+            syslog( __FUNCTION__, __LINE__, "(marker) -- Processing commentary {$linkhash}..." )->
+            join_all()->
+            where(array("AND" => array(
+              'linkhash' => $linkhash,
+            )))->
+            record_fetch($commentary_record)) {/*{{{*/
+
+            $commentary_id = $constitution_commentary->
+              syslog( __FUNCTION__, __LINE__, "(marker) -- Inserting commentary for Section ID#{$section_record['id']} {$linkhash}..." )->
+              set_contents_from_array(array(
+                'section'  => $section_record['id'],
+                'linkhash' => $linkhash,
+                'summary'  => $component['summary'],
+                'title'    => $component['title'],
+                'link'     => $component['link'],
+                'approved' => $component['approved'] ? "1" : "0",
+                'added'    => date('Y-m-d H:i:s', $component['added']),
+                'updated'  => date('Y-m-d H:i:s', $component['updated']),
+              ))->
+              insert();
+
+            if ( 0 < $commentary_id ) {
+
+              // Experimental: Join Section record to SectionVariant 
+              $commentary_to_section = array($commentary_id => array($section_record['id']));
+              $result = $constitution_commentary->
+                syslog( __FUNCTION__, __LINE__, "(marker) -- Recorded commentary #{$commentary_id}.{$section_record['id']}.{$variants_record['id']}." )->
+                create_joins('ConstitutionSectionModel',$commentary_to_section,TRUE);
+              $constitution_commentary->
+                syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- - Executed ConstitutionSectionVariantsModel::create_joins(), result " . gettype($result))->
+                recursive_dump($result, "(marker) -- - --- -");
+            }
+            else
+              $constitution_commentary->
+                syslog( __FUNCTION__, __LINE__, "(marker) -- Unable to record commentary link #___.{$section_record['id']}.{$variants_record['id']}  {$component['link']} ({$linkhash})." );
+          }/*}}}*/
+          else {
+            $constitution_commentary->
+              syslog( __FUNCTION__, __LINE__, "(marker) -- Retrieved record #{$commentary_record['id']}" )->
+              recursive_dump($commentary_record, "(marker} ->");
+          }
+
           $commentary_links[$linkhash] = $component;
-          if ( $debug_method ) $constitution_section->syslog(  __FUNCTION__, __LINE__, "(marker) -- Stash Got link {$filename} {$component['link']}");
+          if ( $debug_method ) $constitution_section->syslog(  __FUNCTION__, __LINE__, "(marker) -- Variant #{$variants_record['id']} Stash Got link {$filename} {$component['link']}");
         }
       }
 
@@ -1564,8 +1770,8 @@ EOH;
     $debug_method = TRUE; // C('DEBUG_'.__FUNCTION__,FALSE); 
 
     $consti_version          = new ConstitutionVersionModel();
-    $article_variants        = new ConstitutionArticleVariantModel();
     $article_model           = new ConstitutionArticleModel();
+    $section_variants        = new ConstitutionSectionVariantsModel();
     $section_model           = new ConstitutionSectionModel();
     $constitution_commentary = new ConstitutionCommentaryModel();
 

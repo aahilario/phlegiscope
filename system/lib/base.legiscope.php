@@ -1593,7 +1593,7 @@ EOH;
 
           }/*}}}*/
           else {
-            $constitution_commentary
+            if ( $debug_method && $user->exists() ) $constitution_commentary
               ->syslog( __FUNCTION__, __LINE__, "(marker) --<<< {$component['summary']}" )
               ->recursive_dump($commentary_record, "(marker) --<<<" );
           }

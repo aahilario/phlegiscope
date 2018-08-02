@@ -29,5 +29,28 @@ class ConstitutionSectionConstitutionSectionVariantsJoin extends DatabaseUtility
   function & set_constitution_section_variants($v) { $this->constitution_section_variants_ConstitutionSectionVariantsModel = $v; return $this; }
   function get_constitution_section_variants($v = NULL) { if (!is_null($v)) $this->set_constitution_section_variants($v); return $this->constitution_section_variants_ConstitutionSectionVariantsModel; }
 
+  function & fetch_by_linked_sections( & $joined_table, $collected_sections ) 
+  {/*{{{*/
+    $joined_table = [];
+
+    if ( !( 0 < count($collected_sections) ) ) 
+      return $this;
+
+    $section_keys = join(',',array_keys($collected_sections));
+
+    $sql = <<<EOS
+SELECT v.id variants, j.id joins, s.id sections 
+FROM  `constitution_section_variants_model` v
+  LEFT JOIN `constitution_section_constitution_section_variants_join` j ON j.`constitution_section_variants` = v.`id`
+  LEFT JOIN `constitution_section_model` s ON j.`constitution_section` = s.`id`
+WHERE
+  s.id IN ({$section_keys}) 
+EOS;
+    $this
+      ->syslog( __FUNCTION__, __LINE__, "(marker) -- QUERY: " . preg_replace('/(\r|\n)/',' ',$sql) );
+    return $this->query($sql)->record_fetch_continuation($joined_table);
+  }/*}}}*/
+
+
 }
 

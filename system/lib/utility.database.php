@@ -636,7 +636,7 @@ EOH;
     $join_names = $this->get_join_names();
     if ( C('DEBUG_'.__FUNCTION__,FALSE) || $this->debug_method ) {
        $this->recursive_dump($this->join_attrs,"(marker) - -- - CURRENT - - -- -");
-       $this->recursive_dump($join_names,"(marker) - -- - ALL ATTRS - -- -");
+       $this->recursive_dump($join_names,"(marker) - -- - ALL ".get_class($this)." ATTRS - -- -");
     }
     return $this->join($join_names);
   }/*}}}*/
@@ -733,16 +733,17 @@ EOH;
         $foreign_attrname = $foreign_attrname[0];
 
         if ( $debug_method ) {/*{{{*/
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute '{$attrname}' for Join {$modelname}");
-          $this->recursive_dump($foreign_keys, "(marker) --- -- -");
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Attribute definitions " . gettype($join_attrdefs));
-          $this->recursive_dump($attprops, "(marker) - -- ---");
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attributes");
-          $this->recursive_dump($joinobj_attrdefs, "(marker) - -- ---");
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for self: " . $self_attrname);
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for {$modelname}: " . $foreign_attrname);
-          $this->syslog( __FUNCTION__, __LINE__, "(marker) Full attribute defs:");
-          $this->recursive_dump($this->get_attrdefs(),"(marker) - * * get_attrdefs() * * -");
+          $this
+            ->syslog( __FUNCTION__, __LINE__, "(marker) Attribute '{$attrname}' for Join {$modelname}")
+            ->recursive_dump($foreign_keys, "(marker) --- -- -")
+            ->syslog( __FUNCTION__, __LINE__, "(marker) Attribute definitions " . gettype($join_attrdefs))
+            ->recursive_dump($attprops, "(marker) - -- ---")
+            ->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attributes")
+            ->recursive_dump($joinobj_attrdefs, "(marker) - -- ---")
+            ->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for self: " . $self_attrname)
+            ->syslog( __FUNCTION__, __LINE__, "(marker) JOIN attrname for {$modelname}: " . $foreign_attrname)
+            ->syslog( __FUNCTION__, __LINE__, "(marker) Full attribute defs:")
+            ->recursive_dump($this->get_attrdefs(),"(marker) - * * get_attrdefs() * * -");
         }/*}}}*/
 
         // TODO: Handle larger arrays of more than a handful of foreign Joins 
@@ -783,7 +784,9 @@ EOH;
             }
             $joinobj->set_contents_from_array($data);  
             $new_joinid = $joinobj->stow();
-            $foreign_keys[$fk_or_dummy]['joinid'] = $new_joinid;
+            // If parameter #2 ($foreign_keys) contains an array of scalars, skipit.
+            if ( is_array($foreign_keys[$fk_or_dummy]) /* $foreignkey */ )
+              $foreign_keys[$fk_or_dummy]['joinid'] = $new_joinid;
             if ( $debug_method ) {
               $join_exists  = $join_present ? ("#{$join_id} in DB updated") : "created as #{$new_joinid}";
               $this->syslog( __FUNCTION__, __LINE__, "(marker) - -- JOIN ". get_class($joinobj) ." {$join_exists} to {$modelname}" );
@@ -1553,6 +1556,14 @@ EOS;
     return $this->recordfetch($single_record, FALSE, TRUE);
   }/*}}}*/
 
+  function record_fetch_continuation(& $single_record)
+  {/*{{{*/
+    if ( !$this->recordfetch($single_record, FALSE, TRUE) )
+      $single_record = NULL;
+    return $this;
+  }/*}}}*/
+
+
   function recordfetch(& $single_record, $update_model = FALSE, $execute_setup = FALSE) {/*{{{*/
     $single_record = array();
     if ( $execute_setup ) $this->recordfetch_setup();
@@ -1948,12 +1959,13 @@ EOS;
     return (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :".(wp_get_current_user()->exists() ? "[*]" : NULL).": {$fxn}{$line}: ";
   }/*}}}*/
 
-  protected function recursive_file_dump($filename, $a, $depth, $prefix) {/*{{{*/
+  protected function & recursive_file_dump($filename, $a, $depth, $prefix) {/*{{{*/
     $filehandle = fopen($filename,'w');
     if ( !(FALSE == $filehandle) ) {
       $this->recursive_fdump($filehandle, $a, $depth, $prefix);
       fclose($filehandle);
     }
+    return $this;
   }/*}}}*/
 
   protected function recursive_fdump(& $h, $a, $depth = 0, $prefix = '') {/*{{{*/
@@ -1971,8 +1983,9 @@ EOS;
   }/*}}}*/
 
   final function & recursive_dump($a, $prefix = NULL) {/*{{{*/
-    if ( !is_array($a) ) return;
-    if ( !$this->logging_ok($prefix) ) return;
+    if ( C('SUPPRESS_ARRAY_DUMP',FALSE) ) return $this;
+    if ( !is_array($a) ) return $this;
+    if ( !$this->logging_ok($prefix) ) return $this;
     $this->recursive_dump_worker($a, 0, $prefix);
     return $this;
   }/*}}}*/
@@ -2005,7 +2018,7 @@ EOS;
             $logstring .= "[EMPTY]";
         }
         else
-          $logstring .= substr("{$val}",0,500) . (strlen("{$val}") > 500 ? '...' : '');
+          $logstring .= substr("{$val}",0,100) . (strlen("{$val}") > 100 ? '...' : '');
         syslog( LOG_INFO, $logstring );
       }
     }

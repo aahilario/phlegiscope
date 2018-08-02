@@ -31,5 +31,37 @@ class ConstitutionCommentaryModel extends DatabaseUtility {
   function & set_approved($v) { $this->approved_bool = $v; return $this; } function get_approved($v = NULL) { if (!is_null($v)) $this->set_approved($v); return $this->approved_bool; }
   function & set_added($v) { $this->added_dtm = $v; return $this; } function get_added($v = NULL) { if (!is_null($v)) $this->set_added($v); return $this->added_dtm; }
   function & set_updated($v) { $this->updated_dtm = $v; return $this; } function get_updated($v = NULL) { if (!is_null($v)) $this->set_updated($v); return $this->updated_dtm; }
+
+  function & fetch_by_linkhash( &$commentary_record, $linkhash )
+  {/*{{{*/
+    $commentary_record = [];
+    $result = $this
+      ->set_id(NULL)
+      ->syslog( __FUNCTION__, __LINE__, "(marker) -- Processing commentary {$linkhash}..." )
+      ->join_all()
+      ->where(array("AND" => array('linkhash' => $linkhash)))
+      ->record_fetch($commentary_record);
+    if ( $result )
+      $this
+        ->syslog( __FUNCTION__, __LINE__, "(marker) -- DB -- Retrieved commentary #{$commentary_record['id']}" )
+        ->recursive_dump($commentary_record, "(marker}    DB ->");
+    return $result;
+  }/*}}}*/
+
+  function store_commentary_record( $commentary_record, $stow_data )
+  {/*{{{*/
+    $commentary_id = $this
+      ->syslog( __FUNCTION__, __LINE__, "(marker) -- Inserting commentary for Section ID#{$stow_data['section']} {$stow_data['linkhash']}..." )
+      ->set_contents_from_array($stow_data)
+      ->stow();
+    if ( !(0 < $commentary_id) ) {
+      $this
+        ->syslog( __FUNCTION__, __LINE__, "(marker) -- Unable to record commentary link #___.{$stow_data['section']}.{$variants_record['id']}  {$component['link']} ({$linkhash})." );
+
+    }
+    return $commentary_id;
+  }/*}}}*/
+
+
 }
 

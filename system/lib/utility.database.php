@@ -1544,8 +1544,7 @@ EOS;
     return $this->query_result;
   }/*}}}*/
 
-  function & recordfetch_setup() {/*{{{*/
-    $sql = '';
+  function & recordfetch_setup($sql = '') {/*{{{*/
     if ( FALSE == ($this->attrlist = $this->prepare_select_sql($sql)) ) return FALSE;
     if ( $this->debug_method ) $this->syslog(__FUNCTION__,__LINE__,"(marker)  -- - - -- - --- - - Executing {$sql}"); 
     return $this->query($sql);
@@ -1563,9 +1562,17 @@ EOS;
     return $this;
   }/*}}}*/
 
+  function & raw_recordfetch(& $single_record)
+  {
+    if ( TRUE == ( $result = self::$dbhandle->recordfetch($single_record) ) )
+      $single_record = array_combine($single_record['attrnames'], $single_record['values']); 
+    else
+      $single_record = NULL;
+    return $result;
+  }
 
   function recordfetch(& $single_record, $update_model = FALSE, $execute_setup = FALSE) {/*{{{*/
-    $single_record = array();
+    $single_record = [];
     if ( $execute_setup ) $this->recordfetch_setup();
     $a = self::$dbhandle->recordfetch($single_record);
     if ( $a == TRUE ) {

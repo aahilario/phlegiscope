@@ -36,7 +36,11 @@ class ConstitutionSectionConstitutionSectionVariantsJoin extends DatabaseUtility
     if ( !( 0 < count($collected_sections) ) ) 
       return $this;
 
-    $section_keys = join(',',array_keys($collected_sections));
+    $keys = [];
+    foreach ( $collected_sections as $path ) 
+      $keys[] = $path['section']; 
+
+    $section_keys = join(',',$keys);
 
     $sql = <<<EOS
 SELECT v.id variants, j.id joins, s.id sections 

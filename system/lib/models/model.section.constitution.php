@@ -83,5 +83,57 @@ class ConstitutionSectionModel extends DatabaseUtility {
     return $this;
   }/*}}}*/
 
+  function & fetch_related_sections( & $all_section_records, $slug ) 
+  {/*{{{*/
+    // SectionVariants <- SectionSectionVariantJoin <-> Section
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
+    $sql = <<<EOS
+SELECT a.section_variant, s2.`id` section, s2.`slug`, cm.`id` commentary, cm.`id` commentary, cm.`title`, cm.`link`, cm.`linkhash`, cm.`approved`, cm.`summary` FROM (
+  SELECT v.id section_variant FROM
+    `constitution_section_model` s1 
+    LEFT JOIN `constitution_section_constitution_section_variants_join` sj
+      ON s1.`id` = sj.`constitution_section`
+    LEFT JOIN `constitution_section_variants_model` v 
+      ON sj.`constitution_section_variants` = v.`id`
+  WHERE s1.`slug` = '{$slug}') a 
+LEFT JOIN `constitution_section_constitution_section_variants_join` ssv
+  ON a.`section_variant` = ssv.constitution_section_variants
+LEFT JOIN `constitution_section_model` s2
+  ON ssv.`constitution_section` = s2.id
+LEFT JOIN `constitution_commentary_constitution_section_join` csj
+  ON s2.id = csj.`constitution_section`
+LEFT JOIN `constitution_commentary_model` cm
+  ON csj.`constitution_commentary` = cm.id
+ORDER BY length(cm.summary) DESC
+EOS;
+    $sql = preg_replace('@(\r|\n)@',' ',$sql);
+    $this->query($sql);
+    $section_record      = [];
+
+    if ( array_key_exists('linkset', $all_section_records) ) {
+      $n = 0;
+      while ( $this->raw_recordfetch( $section_record ) ) {
+        $n++;
+        $all_section_records['linkset']['link'][$section_record['linkhash']] = [
+          'link'    => $section_record['link'],
+          'title'   => $section_record['title'],
+          'summary' => $section_record['summary'],
+        ];
+      }
+      $all_section_records['linkset']['links'] = $n;
+    }
+    else {
+      $all_section_records = [];
+      while ( $this->raw_recordfetch( $section_record ) ) {
+        $all_section_records[] = $section_record;
+        $section_record = [];
+      }
+    }
+    if ( 0 == count($all_section_records) ) 
+      $all_section_records = NULL;
+    if ( $debug_method ) $this
+      ->syslog( __FUNCTION__, __LINE__, "(marker) -- Query: {$sql}" );
+    return $this;
+  } /*}}}*/
 }
 

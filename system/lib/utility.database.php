@@ -540,7 +540,7 @@ EOH;
     $is_join_table   = 1 == preg_match('@(.*)Join$@i',get_class($this));
     $members         = $this->fetch_property_list($is_join_table);
 
-    if ( wp_get_current_user()->exists() && C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {/*{{{*/
+    if ( function_exists('wp_get_current_user') && wp_get_current_user()->exists() && C('LS_SYNCHRONIZE_MODEL_STRUCTURE') ) {/*{{{*/
 
       // Determine if the backing table exists; construct it if it does not.
       if ( $debug_method ) $this->recursive_dump($members,"(marker) - From fetch_property_list");
@@ -1963,7 +1963,7 @@ EOS;
 
   final protected function syslog_preamble($fxn, $line) {/*{{{*/
     $line = is_null($line) ? "" : "({$line})";
-    return (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :".(wp_get_current_user()->exists() ? "[*]" : NULL).": {$fxn}{$line}: ";
+    return (C('DEBUGLOG_FILENAME') ? join('.',array_reverse(camelcase_to_array(get_class($this)))) . '.php' : get_class($this)) . " :".(function_exists('wp_get_current_user') && wp_get_current_user()->exists() ? "[*]" : NULL).": {$fxn}{$line}: ";
   }/*}}}*/
 
   protected function & recursive_file_dump($filename, $a, $depth, $prefix) {/*{{{*/

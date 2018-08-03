@@ -5,7 +5,8 @@ var intrasection_links = 0;
 var enable_stash_code = 0;
 var enable_html_extractor = 0;
 
-function generate_toc_div(container) {//{{{
+function generate_toc_div(container)
+{//{{{
   var tocdiv = document.createElement('DIV');
   // Generate empty TOC div
   $(tocdiv)
@@ -25,7 +26,7 @@ function generate_toc_div(container) {//{{{
       'z-index'          : '10',
       'top'              : '50px',
       'left'             : '10px',
-      'border'           : 'solid 3px #DDD'
+      'border'           : 'solid 1px #DDD'
     })
     .text("");
 
@@ -85,14 +86,15 @@ function scroll_to_anchor(event,context,prefix){//{{{
   anchor_id = $(self).attr('href').replace(/#/,'').replace(/^\/(constitutions\/)?/,prefix);
 
   document.title = $(self).text();
+
   $('#'+anchor_id).parents('TD').first().each(function(){
     var self = this;
     var offset_top = $(self).offset().top.toFixed(0);
-    var parent_offset_top = $(self).parents('TR').offset().top.toFixed(0);
+    var parent_offset_top = +($(self).parents('TR').offset().top).toFixed(0);
     
     if (parent_offset_top === undefined) {
       $('html, body').animate({
-        scrollTop: $(self).offset().top.toFixed(0)
+        scrollTop: +($(self).offset().top).toFixed(0)-20
       });
     }
     else {
@@ -100,7 +102,7 @@ function scroll_to_anchor(event,context,prefix){//{{{
         var self = this;
         // FIXME: Implement YFE 
         $('html, body').animate({
-          scrollTop: ($(self).offset().top - 20).toFixed(0),
+          scrollTop: +($(self).offset().top).toFixed(0)-20,
           backgroundColor: '#FFFFFF'
         });
       });
@@ -109,10 +111,9 @@ function scroll_to_anchor(event,context,prefix){//{{{
   });
   if ($('#'+anchor_id).parents('TR').length === 0) {
     $('html, body').animate({
-      scrollTop: $('#'+anchor_id).offset().top.toFixed(0)
+      scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)-20
     });
   }
-  document.location = '#'+anchor_id.replace(/^a-/,'');
 }//}}}
 
 function construct_commentary_box(data,row,colspan)
@@ -366,12 +367,23 @@ function set_section_cell_handler(column_index,slug,context) {//{{{
   parser = null;
 }//}}}
 
+function update_toc_size()
+{
+  if ( !('undefined' === typeof($('#toc').data('rightedge'))) ) {
+    $('#toc').css({
+      'width' : (+Number.parseInt($('#toc').data('rightedge'))-20)+'px'
+    });
+  }
+  $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'});
+}
+
 function raise_toc_on_mousemove(event) {//{{{
   var offsetedge = Number.parseInt(event.pageX);
   var triggeredge = Number.parseInt($('#toc').data('floatedge'));
   clearTimeout($('#toc').data('timer_fade'));
+  update_toc_size();
   if ( offsetedge + 10 < triggeredge ) {
-    $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'}).fadeIn(100);
+    $('#toc').fadeIn(100);
   }
   $('#toc').data('timer_fade',setTimeout(function(){
     $('#toc').fadeOut(1000);
@@ -508,6 +520,15 @@ $(document).ready(function() {
           set_section_cell_handler(column_index,slug,td);
         });
       });
+
+    if ( 'undefined' === typeof( $('#toc').data('rightedge')) ) {
+      var table_offset = $('#h-'+slug+' ~ table').first().offset();
+      if ( !('undefined' === typeof(table_offset) ) ) { 
+        $('#toc').data('rightedge', +table_offset.left-15);
+        update_toc_size();
+      }
+    }
+
 
     // TODO: Replace references to articles ("in Article X...") with links to local anchors.
 
@@ -735,7 +756,7 @@ $(document).ready(function() {
       $(table).find('tr').find('.concom-2').each(function(){$(this).hide();});
       $(table).find('tr').find('td').each(function(){
         if ( $(this).hasClass('header-full') )
-          $(this).attr('colspan','2');
+          $(this).attr('colspan','2').css({'text-align' : 'center'});
         else
           $(this).attr('colspan','1');
       });
@@ -837,6 +858,6 @@ $(document).ready(function() {
       $(this).click();
       $(this).parentsUntil('TD').parents().first().click();
     });
-  },200);
+  },400);
 
 });

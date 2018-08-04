@@ -36,12 +36,14 @@ function generate_toc_div(container)
   return tocdiv;
 }//}}}
 
-function highlight_toc_entry(id) {//{{{
+function highlight_toc_entry(id)
+{//{{{
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
   $('#toc').find('#link-'+id).css({ 'background-color' : '#DDD' });
 }//}}}
 
-function defer_toc_highlight(interval) {//{{{
+function defer_toc_highlight(interval)
+{//{{{
   var matched = 0;
   clearTimeout(timer_id);
   timer_id = 0;
@@ -104,6 +106,11 @@ function scroll_to_anchor(event,context,prefix){//{{{
         $('html, body').animate({
           scrollTop: +($(self).offset().top).toFixed(0)-20,
           backgroundColor: '#FFFFFF'
+        },{
+          complete : (function(){ 
+            document.location = '#'+anchor_id; 
+            $('html, body').scrollTop(+($(self).offset().top).toFixed(0)-20);
+          })
         });
       });
     }
@@ -112,8 +119,14 @@ function scroll_to_anchor(event,context,prefix){//{{{
   if ($('#'+anchor_id).parents('TR').length === 0) {
     $('html, body').animate({
       scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)-20
+    },{
+      complete : (function(){ 
+        document.location = '#'+anchor_id; 
+        $('html, body').scrollTop(+($(self).offset().top).toFixed(0)-20);
+      })
     });
   }
+  
 }//}}}
 
 function construct_commentary_box(data,row,colspan)
@@ -249,7 +262,8 @@ function handle_comment_linkbox_raise(event,context,slug)
     $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
 }//}}}
 
-function set_section_cell_handler(column_index,slug,context) {//{{{
+function set_section_cell_handler(column_index,slug,context)
+{//{{{
 
   var self = $(context);
   var toc = $('#toc').data('toc');
@@ -377,7 +391,8 @@ function update_toc_size()
   $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'});
 }
 
-function raise_toc_on_mousemove(event) {//{{{
+function raise_toc_on_mousemove(event) 
+{//{{{
   var offsetedge = Number.parseInt(event.pageX);
   var triggeredge = Number.parseInt($('#toc').data('floatedge'));
   clearTimeout($('#toc').data('timer_fade'));
@@ -390,7 +405,8 @@ function raise_toc_on_mousemove(event) {//{{{
   },3000));
 }//}}}
 
-function handle_window_scroll(event) {//{{{
+function handle_window_scroll(event)
+{//{{{
   clearTimeout($('#toc').data('timer_fade'));
   var offsetedge = Number.parseInt(event.pageX);
   var triggeredge = Number.parseInt($('#toc').data('floatedge'));
@@ -844,6 +860,10 @@ $(document).ready(function() {
 
   // Attach handler that triggers reappearance of TOC on mouse movement
   $(window).mousemove(function(event){
+    raise_toc_on_mousemove(event);
+  });
+
+  $('div#content').click(function(event){
     raise_toc_on_mousemove(event);
   });
 

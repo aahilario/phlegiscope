@@ -630,10 +630,12 @@ $(document).ready(function() {
     }
 
     var visible_columns = 0;
+
     jQuery.each($(table).find('TR'), function(tr_index, tr) {
       // TR context
       var previous_column_cell = null;
       var row_visible_cells = 0;
+
       jQuery.each($(tr).children(), function(td_index,td){
         // TD context
         // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
@@ -686,26 +688,33 @@ $(document).ready(function() {
           // Uncommment to restrict to 1987 constitution and latest ConCom draft
           // $(td).attr('colspan','2');
           $(td).addClass('header-full');
+          row_visible_cells++; 
         }
         else if ( td_index == 1 ) {
           // Increase reading space by collapsing 27 June draft column
           $(td).hide();
         }
         else {
-          row_visible_cells++; 
+          // TODO: Replace with cell labeling
           if ( td_index == 3 ) {
             if ( $(previous_column_cell).text().length == $(td).text().length && $(td).text().length == 0 ) {
               $(previous_column_cell).hide();
               $(td).attr('colspan','2');
-              row_visible_cells--;
             }
             else if ( $(previous_column_cell).text() == $(td).text() ) {
+              // Merge text of identical 9 July and Final Draft cells
               if ( $(previous_column_cell).text().length > 0 ) {
                 $(previous_column_cell).hide();
                 $(td).attr('colspan','2');
-                row_visible_cells--;
+                row_visible_cells++; 
               }
             }
+            else if ( $(td).text().length > 0 ) 
+              row_visible_cells++; 
+          }
+          else if ( td_index == 0 ) {
+            if ( $(td).text().length > 0 ) 
+              row_visible_cells++; 
           }
           if ( $(td).text().length > 0 ) {
             // Store Article table parameters for /stash/
@@ -725,8 +734,8 @@ $(document).ready(function() {
           }
         }
 
-        // Force automatic height computation
-        $(td).css({'height' : 'auto'});
+        // Force automatic height computation, override WordPress editor
+        $(td).css({'height' : 'auto', 'vertical-align' : 'top'});
 
         if ( intrasection_links > 0 ) {//{{{
           // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
@@ -759,15 +768,21 @@ $(document).ready(function() {
 
         previous_column_cell = $(td);
       });
+
       if ( tr_index > 0 ) {
+        // Skip header column
         if ( row_visible_cells > visible_columns )
           visible_columns = row_visible_cells;
       }
 
-      $(tr).css({'height':'auto'});
+      if ( row_visible_cells == 0 ) {
+        $(tr).remove();
+      }
+      else
+        $(tr).css({'height':'auto'});
     });
 
-    if ( visible_columns < 3 ) {
+    if ( 0 < visible_columns && visible_columns < 3 ) {
       $(table).find('tr').find('.concom-1').each(function(){$(this).hide();});
       $(table).find('tr').find('.concom-2').each(function(){$(this).hide();});
       $(table).find('tr').find('td').each(function(){

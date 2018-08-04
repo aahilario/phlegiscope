@@ -1,5 +1,4 @@
 $ = jQuery;
-var timer_id = 0;
 var enable_copy = 0;
 var intrasection_links = 0;
 var enable_stash_code = 0;
@@ -32,7 +31,13 @@ function generate_toc_div(container)
 
   // Add TOC div to WordPress content DIV
   $(container).append(tocdiv);
-  $('#toc').data({'prior' : 0, 'floatedge' : 0, 'timer_fade' : 0, 'table_count' : 0});
+  $('#toc').data({
+    'prior'       : 0,
+    'floatedge'   : 0,
+    'timer_fade'  : 0,
+    'toc_hltime'  : 0,
+    'table_count' : 0
+  });
   return tocdiv;
 }//}}}
 
@@ -45,9 +50,11 @@ function highlight_toc_entry(id)
 function defer_toc_highlight(interval)
 {//{{{
   var matched = 0;
-  clearTimeout(timer_id);
-  timer_id = 0;
-  timer_id = setTimeout(function() {
+
+  if ( $('#toc').data('toc_hltime') > 0 ) 
+    clearTimeout($('#toc').data('toc_hltime'));
+
+  $('#toc').data('toc_hltime',setTimeout(function() {
     var toc = $('#toc').data('toc');
     var window_halfheight = Number.parseInt(Number.parseInt($(window).innerHeight().toFixed(0)) / 2);
     var scroll_y = Number.parseInt($(window).scrollTop().toFixed(0)) + window_halfheight;
@@ -66,17 +73,18 @@ function defer_toc_highlight(interval)
         }
         catch(e) {
         }
-        clearTimeout(timer_id);
-        timer_id = 0;
+        clearTimeout($('#toc').data('toc_hltime'));
+        $('#toc').data('toc_hltime',0);
       }
       else {
         $('#toc').data('prior',index);
       }
     });
-  },interval);
+  },interval));
 }//}}}
 
-function scroll_to_anchor(event,context,prefix){//{{{
+function scroll_to_anchor(event,context,prefix)
+{//{{{
 
   var self = context;
   var anchor_id;
@@ -382,14 +390,14 @@ function set_section_cell_handler(column_index,slug,context)
 }//}}}
 
 function update_toc_size()
-{
+{//{{{
   if ( !('undefined' === typeof($('#toc').data('rightedge'))) ) {
     $('#toc').css({
       'width' : (+Number.parseInt($('#toc').data('rightedge'))-20)+'px'
     });
   }
   $('#toc').css({'max-height' : ($(window).innerHeight()-90)+'px'});
-}
+}//}}}
 
 function raise_toc_on_mousemove(event) 
 {//{{{
@@ -438,12 +446,13 @@ $(document).ready(function() {
   // Stylesheet injection
   // Add external link icon to custom CSS
   var wp_custom_css = $('head').find('style#wp-custom-css').text() + ".external-link { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAXklEQVQoka2QwQ3AMAwCs1N28k7eiZ3oI7IcU6efBomXOREyxhUZ2brTdNAcVB2BaJgCVcDAalJLXsB+iLAjm1pAwzHWHD3gWMcMg/ERMjKfFOHVqMEGqEM/gKP/6gE2f+h+Z5P45wAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 17px; }";
+
   $('head').find('style#wp-custom-css').text(wp_custom_css);
 
   // Add anchors to each article header
 
   // Iterate through each H1 Article header
-  $("div.entry-content").find('H1').each(function(article_index){
+  $("div.entry-content").find('H1').each(function(article_index){//{{{
 
     // The variables 
     //     article_index, 
@@ -551,10 +560,9 @@ $(document).ready(function() {
     // Append Article link (and an explicit line break) to the TOC container 
     $(tocdiv).append(link);
     $(tocdiv).append(document.createElement('BR'));
-  });
+  });//}}}
 
-
-  // This placeholder image serves no function
+  // The placeholder image serves no function
   $('div.post-thumbnail').first().find('img.wp-post-image').remove();
 
   // Since the site will only be serving the Constitution for a while,
@@ -607,6 +615,7 @@ $(document).ready(function() {
   }
 
   jQuery.each($('div.site-inner').find('table'),function(index,table){
+
     // Table context
     var tabledef = { 
       n : index,
@@ -631,10 +640,12 @@ $(document).ready(function() {
 
     var visible_columns = 0;
 
-    jQuery.each($(table).find('TR'), function(tr_index, tr) {
+    jQuery.each($(table).find('TR'), function(tr_index, tr) {//{{{
       // TR context
       var previous_column_cell = null;
       var row_visible_cells = 0;
+
+      $(tr).data('offset', $(tr).offset());
 
       jQuery.each($(tr).children(), function(td_index,td){
         // TD context
@@ -706,15 +717,20 @@ $(document).ready(function() {
               if ( $(previous_column_cell).text().length > 0 ) {
                 $(previous_column_cell).hide();
                 $(td).attr('colspan','2');
-                row_visible_cells++; 
               }
             }
-            else if ( $(td).text().length > 0 ) 
-              row_visible_cells++; 
+            else if ( $(td).text().length > 0 ) { 
+              if ( tr_index > 0 )
+                row_visible_cells++;
+            }
           }
-          else if ( td_index == 0 ) {
+          else if ( tr_index > 0 ) {
             if ( $(td).text().length > 0 ) 
               row_visible_cells++; 
+          }
+          else if ( tr_index == 0 && td_index == 0 ) {
+            // Only count the first visible cell
+            row_visible_cells++;
           }
           if ( $(td).text().length > 0 ) {
             // Store Article table parameters for /stash/
@@ -780,7 +796,7 @@ $(document).ready(function() {
       }
       else
         $(tr).css({'height':'auto'});
-    });
+    });//}}}
 
     if ( 0 < visible_columns && visible_columns < 3 ) {
       $(table).find('tr').find('.concom-1').each(function(){$(this).hide();});
@@ -794,6 +810,7 @@ $(document).ready(function() {
     }
 
     table_count++;
+
     $('#toc').data('table_count',table_count);
 
     if ( enable_stash_code > 0 ) {

@@ -41,6 +41,44 @@ function generate_toc_div(container)
   return tocdiv;
 }//}}}
 
+function generate_debug_view(container)
+{
+  var debugdiv = document.createElement('DIV');
+  // Generate empty TOC div
+  $(debugdiv)
+    .attr('id','debug')
+    .css({
+      'width'            : '180px',
+      'max-height'       : ($(window).innerHeight()-90)+'px',
+      'background-color' : '#FFF',
+      'padding'          : '5px 0 5px 0',
+      'margin-left'      : '5px',
+      'overflow'         : 'scroll',
+      'overflow-x'       : 'hidden',
+      'display'          : 'block',
+      'float'            : 'right',
+      'clear'            : 'none',
+      'position'         : 'fixed',
+      'z-index'          : '10',
+      'top'              : '50px',
+      'left'             : (+$(window).innerWidth()-220)+'px',
+      'border'           : 'solid 1px #DDD'
+    })
+    .text("");
+
+  // Add TOC div to WordPress content DIV
+  $(container).append(debugdiv);
+  $('#toc').data({
+    'prior'       : 0,
+    'floatedge'   : 0,
+    'timer_fade'  : 0,
+    'toc_hltime'  : 0,
+    'table_count' : 0
+  });
+  return debugdiv;
+
+}
+
 function highlight_toc_entry(id)
 {//{{{
   $('#toc').find('A').css({ 'background-color' : 'transparent' });
@@ -424,6 +462,12 @@ function handle_window_scroll(event)
   $('#toc').data('timer_fade',setTimeout(function(){
     $('#toc').fadeOut(3000);
   },3000));
+  /// DEBUG //////////////////////////////////////////////
+  $('#debug').empty().append(
+    $(document.createElement('SPAN'))
+      .text(Number.parseInt($(window).scrollTop().toFixed(0)))
+  );
+  /// DEBUG //////////////////////////////////////////////
   defer_toc_highlight(200);
 }//}}}
 
@@ -435,10 +479,11 @@ $(document).ready(function() {
   // 6 July 2018
   // #StopTheKillings
 
-  var preamble_y = 0;
-  var preamble_offset = 0;
   var toc = new Array();
   var tocdiv = generate_toc_div($('#page'));
+  /// DEBUG //////////////////////////////////////////////
+  var debugview = generate_debug_view($('#page'));
+  /// DEBUG //////////////////////////////////////////////
   var parser = document.createElement('A');
 
   parser.href = document.location;

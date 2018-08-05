@@ -42,7 +42,7 @@ function generate_toc_div(container)
 }//}}}
 
 function generate_debug_view(container)
-{
+{//{{{
   var debugdiv = document.createElement('DIV');
   // Generate empty TOC div
   $(debugdiv)
@@ -77,7 +77,7 @@ function generate_debug_view(container)
   });
   return debugdiv;
 
-}
+}//}}}
 
 function highlight_toc_entry(id)
 {//{{{
@@ -118,6 +118,10 @@ function defer_toc_highlight(interval)
         $('#toc').data('prior',index);
       }
     });
+    $('#debug').empty().append(
+      $(document.createElement('SPAN'))
+        .text(Number.parseInt($(window).scrollTop().toFixed(0)))
+    );
   },interval));
 }//}}}
 
@@ -463,10 +467,6 @@ function handle_window_scroll(event)
     $('#toc').fadeOut(3000);
   },3000));
   /// DEBUG //////////////////////////////////////////////
-  $('#debug').empty().append(
-    $(document.createElement('SPAN'))
-      .text(Number.parseInt($(window).scrollTop().toFixed(0)))
-  );
   /// DEBUG //////////////////////////////////////////////
   defer_toc_highlight(200);
 }//}}}

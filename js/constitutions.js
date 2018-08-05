@@ -151,7 +151,7 @@ function scroll_to_anchor(event,context,prefix)
     
     if (parent_offset_top === undefined) {
       $('html, body').animate({
-        scrollTop: +($(self).offset().top).toFixed(0)-20
+        scrollTop: +($(self).offset().top).toFixed(0)
       });
     }
     else {
@@ -159,12 +159,12 @@ function scroll_to_anchor(event,context,prefix)
         var self = this;
         // FIXME: Implement YFE 
         $('html, body').animate({
-          scrollTop: +($(self).offset().top).toFixed(0)-20,
+          scrollTop: +($(self).offset().top).toFixed(0),
           backgroundColor: '#FFFFFF'
         },{
           complete : (function(){ 
             document.location = '#'+anchor_id; 
-            $('html, body').scrollTop(+($(self).offset().top).toFixed(0)-20);
+            $('html, body').scrollTop(+($(self).offset().top).toFixed(0));
           })
         });
       });
@@ -173,11 +173,11 @@ function scroll_to_anchor(event,context,prefix)
   });
   if ($('#'+anchor_id).parents('TR').length === 0) {
     $('html, body').animate({
-      scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)-20
+      scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)
     },{
       complete : (function(){ 
         document.location = '#'+anchor_id; 
-        $('html, body').scrollTop(+($(self).offset().top).toFixed(0)-20);
+        $('html, body').scrollTop(+($(self).offset().top).toFixed(0));
       })
     });
   }
@@ -540,8 +540,8 @@ $(document).ready(function() {
       .click(function(event){
         var self = this;
         var targete = '#'+$(self).attr('id').replace(/link-/,'a-');
-        highlight_toc_entry(slug);
         scroll_to_anchor(event,$(targete),'a-');
+        highlight_toc_entry(slug);
       })
       ;
     // Record TOC entry for use in animating TOC highlight updates.

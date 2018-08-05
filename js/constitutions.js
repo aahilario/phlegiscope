@@ -3,6 +3,7 @@ var enable_copy = 0;
 var intrasection_links = 0;
 var enable_stash_code = 0;
 var enable_html_extractor = 0;
+var enable_debug_indicator = 0;
 
 function generate_toc_div(container)
 {//{{{
@@ -43,6 +44,10 @@ function generate_toc_div(container)
 
 function generate_debug_view(container)
 {//{{{
+
+  if ( !(enable_debug_indicator > 0) )
+    return null;
+
   var debugdiv = document.createElement('DIV');
   // Generate empty TOC div
   $(debugdiv)
@@ -94,34 +99,34 @@ function defer_toc_highlight(interval)
 
   $('#toc').data('toc_hltime',setTimeout(function() {
     var toc = $('#toc').data('toc');
-    var window_halfheight = Number.parseInt(Number.parseInt($(window).innerHeight().toFixed(0)) / 2);
-    var scroll_y = Number.parseInt($(window).scrollTop().toFixed(0)) + window_halfheight;
-    if ( typeof toc === 'object' && toc.length > 0 )
-    toc.forEach(function(toc_entry, index) {
-      if ( matched > 0 ) return;
-      if ( scroll_y < Number.parseInt(toc_entry.offset) ) {
-        var entry = $('#toc').data('toc');
-        toc_entry = toc[Number.parseInt($('#toc').data('prior'))];
-        document.title = $('#link-'+toc_entry.id).text();
-        // Set TOC trigger edge as left table edge
-        try {
-          $('#toc').data('floatedge',Number.parseInt($('#'+toc_entry.id).offset().left));
-          matched = 1;
-          highlight_toc_entry(toc_entry.id);
-        }
-        catch(e) {
-        }
-        clearTimeout($('#toc').data('toc_hltime'));
-        $('#toc').data('toc_hltime',0);
-      }
-      else {
-        $('#toc').data('prior',index);
-      }
-    });
-    $('#debug').empty().append(
-      $(document.createElement('SPAN'))
-        .text(Number.parseInt($(window).scrollTop().toFixed(0)))
-    );
+    var toc_current = $('#toc').data('toc-current');
+    if ( !(undefined === typeof(toc_current)) ) {
+      highlight_toc_entry(toc_current);
+    }
+    if ( enable_debug_indicator > 0 )
+    {//{{{
+      /// DEBUG //////////////////////////////////////////////
+      var top_edge = +Number.parseInt($(window).scrollTop().toFixed(0)); 
+      var bottom_edge = +top_edge+Number.parseInt($(window).innerHeight().toFixed(0));
+      $('#debug').empty()
+        .append(
+            $(document.createElement('SPAN'))
+            .text(top_edge)
+            )
+        .append($(document.createElement('BR')))
+        .append(
+            $(document.createElement('SPAN'))
+            .text(bottom_edge)
+            )
+        .append($(document.createElement('BR')))
+        .append(
+            $(document.createElement('DIV'))
+            .attr('id','current-td')
+            .text($('#toc').data('toc-current'))
+            )
+        ;
+      /// DEBUG //////////////////////////////////////////////
+    }//}}}
   },interval));
 }//}}}
 
@@ -466,8 +471,6 @@ function handle_window_scroll(event)
   $('#toc').data('timer_fade',setTimeout(function(){
     $('#toc').fadeOut(3000);
   },3000));
-  /// DEBUG //////////////////////////////////////////////
-  /// DEBUG //////////////////////////////////////////////
   defer_toc_highlight(200);
 }//}}}
 
@@ -496,6 +499,7 @@ $(document).ready(function() {
 
   // Add anchors to each article header
 
+  // BUILD TOC
   // Iterate through each H1 Article header
   $("div.entry-content").find('H1').each(function(article_index){//{{{
 
@@ -504,8 +508,8 @@ $(document).ready(function() {
     //     toc_index, 
     //     column_index, and 
     //     toc.section[column_index],
-    //     toc.subsection[column_index] are
-    //   used to generate anchor links.
+    //     toc.subsection[column_index] 
+    // are used to generate anchor links.
     var article_text = $(this).text();
     var slug = article_text.toLowerCase().replace(/\n/,' ').replace(/[^a-z ]/g,' ').replace(/[ ]{1,}/,' ').replace(/[ ]*$/,'').replace(/[ ]{1,}/g,'-');
     var link = document.createElement('A');
@@ -522,6 +526,7 @@ $(document).ready(function() {
     // Prepare TOC link
     $(link).attr('id','link-'+slug)
       .addClass('toc-link')
+      .addClass('toc-real')
       .css({
         'white-space'  : 'nowrap',
         'display'      : 'block',
@@ -535,6 +540,7 @@ $(document).ready(function() {
       .click(function(event){
         var self = this;
         var targete = '#'+$(self).attr('id').replace(/link-/,'a-');
+        highlight_toc_entry(slug);
         scroll_to_anchor(event,$(targete),'a-');
       })
       ;
@@ -557,6 +563,9 @@ $(document).ready(function() {
         'text-decoration' : 'none',
         'color'           : 'black',
         'padding-top'     : '10px',
+        'height'          : '1px',
+        'display'         : 'block',
+        'clear'           : 'both',
         'box-shadow'      : '0 0 0 0' 
       })
       .attr('href',parser.pathname+'#'+slug)
@@ -574,23 +583,31 @@ $(document).ready(function() {
       ;
 
     // Get the first table following an h-<slug> H1
-    $('#h-'+slug+' ~ table').first()
-      // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
-      // and turn those string fragments into HTML anchors.
-      .attr('id',slug)
-      // First, highlight weasel words
-      // Replacing HTML damages DOM attributes
-      .find('TR').each(function(row_index){
-        jQuery.each($(this).find('TD'),function(column_index,td){
-          var ww = $(td).html()
-            .replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>')
-            .replace(/^SECTION ([0-9]{1,})./i, '<strong>SECTION $1.</strong>')
-            ;
-          $(td).html(ww);
-          set_section_cell_handler(column_index,slug,td);
+    $('#h-'+slug+' ~ table').first().each(function(){
+      var self = this;
+      $(self)
+        // At this point, we can alter the "Section X" text inside tables (the one with id {slug}),
+        // and turn those string fragments into HTML anchors.
+        .attr('id',slug)
+        // First, highlight weasel words
+        // Replacing HTML damages DOM attributes
+        .find('TR').each(function(row_index){
+          var row = this;
+          jQuery.each($(row).find('TD'),function(column_index,td){
+            var ww = $(td).html()
+              .replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>')
+              .replace(/^SECTION ([0-9]{1,})./i, '<strong>SECTION $1.</strong>')
+              ;
+            $(td).html(ww);
+            set_section_cell_handler(column_index,slug,td);
+          });
         });
-      });
+      // Make it's left edge the trigger edge
+      $('#toc').data('floatedge',$(self).offset().left );
+    });
 
+
+    // Do once:  Set right edge of TOC DIV
     if ( 'undefined' === typeof( $('#toc').data('rightedge')) ) {
       var table_offset = $('#h-'+slug+' ~ table').first().offset();
       if ( !('undefined' === typeof(table_offset) ) ) { 
@@ -607,7 +624,7 @@ $(document).ready(function() {
     $(tocdiv).append(document.createElement('BR'));
   });//}}}
 
-  // The placeholder image serves no function
+    // The placeholder image serves no function
   $('div.post-thumbnail').first().find('img.wp-post-image').remove();
 
   // Since the site will only be serving the Constitution for a while,
@@ -659,7 +676,7 @@ $(document).ready(function() {
     $('#page').append(html_extractor);
   }
 
-  jQuery.each($('div.site-inner').find('table'),function(index,table){
+  jQuery.each($('div.site-inner').find('table'),function(index,table){//{{{
 
     // Table context
     var tabledef = { 
@@ -685,6 +702,8 @@ $(document).ready(function() {
 
     var visible_columns = 0;
 
+    // Hide cells that duplicate a previous revision's content
+    // Extract modified DOM tables (when enable_html_extractor > 0)
     jQuery.each($(table).find('TR'), function(tr_index, tr) {//{{{
       // TR context
       var previous_column_cell = null;
@@ -692,7 +711,7 @@ $(document).ready(function() {
 
       $(tr).data('offset', $(tr).offset());
 
-      jQuery.each($(tr).children(), function(td_index,td){
+      jQuery.each($(tr).children(), function(td_index,td){//{{{
         // TD context
         // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
         // 1. Locate and modify toc-section anchors
@@ -702,11 +721,11 @@ $(document).ready(function() {
         if ( enable_stash_code > 0 ) {
           if ( undefined === tabledef.sections[td_index] )
             tabledef.sections[td_index] = {
-              current_ident : null,
-              current_slug : null,
+              current_ident   : null,
+              current_slug    : null,
               current_section : null,
-              subsection_num : null,
-              contents : new Array()
+              subsection_num  : null,
+              contents        : new Array()
             };
         }
 
@@ -717,6 +736,17 @@ $(document).ready(function() {
           $(td).addClass("concom-"+td_index);
         }
  
+        // Identify table to which this cell belongs
+        $(td).mouseover(function(event){
+          var self = this;
+          $(self)
+            .parents('TABLE').first().each(function(){
+              var slug = $(this).attr('id');
+              $('#toc').data('toc-current',slug);
+              defer_toc_highlight(100);
+            });
+        });
+
         // 1. Locate and modify toc-section anchors: Make links point to /constitutions/ section preview. 
         $(td).find('[class*=toc-section]').each(function(){
           var slug = $(this).data('slug');
@@ -784,6 +814,7 @@ $(document).ready(function() {
               content        : $(td).text()
             };
           }
+
           if ( enable_html_extractor > 0 ) {
             // Add table cell to html-extractor
             var clone = $(td).clone().addClass('final-20180717');
@@ -828,7 +859,7 @@ $(document).ready(function() {
         });
 
         previous_column_cell = $(td);
-      });
+      });//}}}
 
       if ( tr_index > 0 ) {
         // Skip header column
@@ -880,9 +911,10 @@ $(document).ready(function() {
       $('#html-extractor')
         .append($(table).clone());
     }
-  });
+  });//}}}
 
-  if ( enable_html_extractor > 0 ) {
+  if ( enable_html_extractor > 0 ) 
+  {//{{{
     // Clean up the HTML extractor's cells.  Replace TD contents with text.
     jQuery.each($('div#html-extractor').find('table'),function(index,table){
       jQuery.each($(table).find('TR'), function(tr_index, tr) {
@@ -892,7 +924,7 @@ $(document).ready(function() {
         });
       });
     });
-  }
+  }//}}}
 
   // If the requested URL contains a hash part, extract that text and 
   //   place above the "Available Formats" table

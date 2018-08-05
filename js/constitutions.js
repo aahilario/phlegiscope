@@ -163,7 +163,7 @@ function scroll_to_anchor(event,context,prefix)
           backgroundColor: '#FFFFFF'
         },{
           complete : (function(){ 
-            document.location = '#'+anchor_id; 
+            document.location = '#'+anchor_id.replace(/^a-/i,''); 
             $('html, body').scrollTop(+($(self).offset().top).toFixed(0));
           })
         });
@@ -176,7 +176,7 @@ function scroll_to_anchor(event,context,prefix)
       scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)
     },{
       complete : (function(){ 
-        document.location = '#'+anchor_id; 
+        document.location = '#'+anchor_id.replace(/^a-/i,''); 
         $('html, body').scrollTop(+($(self).offset().top).toFixed(0));
       })
     });
@@ -568,7 +568,7 @@ $(document).ready(function() {
         'clear'           : 'both',
         'box-shadow'      : '0 0 0 0' 
       })
-      .attr('href',parser.pathname+'#'+slug)
+      .attr('href','#'+slug)
       .append('&nbsp;')
       .addClass('toc-anchor');
 

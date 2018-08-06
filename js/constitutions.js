@@ -1,6 +1,7 @@
 $ = jQuery;
 var enable_copy = 0;
 var intrasection_links = 0;
+var intradoc_links = 0;
 var enable_stash_code = 0;
 var enable_html_extractor = 0;
 var enable_debug_indicator = 0;
@@ -616,7 +617,6 @@ $(document).ready(function() {
       }
     }
 
-
     // TODO: Replace references to articles ("in Article X...") with links to local anchors.
 
     // Append Article link (and an explicit line break) to the TOC container 
@@ -709,8 +709,6 @@ $(document).ready(function() {
       var previous_column_cell = null;
       var row_visible_cells = 0;
 
-      $(tr).data('offset', $(tr).offset());
-
       jQuery.each($(tr).children(), function(td_index,td){//{{{
         // TD context
         // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
@@ -730,7 +728,11 @@ $(document).ready(function() {
         }
 
         // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
-        $(td).data('index',td_index);
+        $(td)
+          .data('index',td_index)
+          // Force automatic height computation, override WordPress editor
+          .css({'height' : 'auto', 'vertical-align' : 'top'});
+
         // Add column classname to ConCom draft sections
         if ( td_index > 0 ) {
           $(td).addClass("concom-"+td_index);
@@ -778,7 +780,8 @@ $(document).ready(function() {
         }
         else if ( td_index == 1 ) {
           // Increase reading space by collapsing 27 June draft column
-          $(td).hide();
+          $(td).remove();
+          return;
         }
         else {
           // TODO: Replace with cell labeling
@@ -826,9 +829,6 @@ $(document).ready(function() {
           }
         }
 
-        // Force automatic height computation, override WordPress editor
-        $(td).css({'height' : 'auto', 'vertical-align' : 'top'});
-
         if ( intrasection_links > 0 ) {//{{{
           // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
           var section_match = new RegExp('section [0-9]{1,}( of article [XIV]{1,})*','gi');
@@ -840,7 +840,7 @@ $(document).ready(function() {
           }
         }//}}}
 
-        jQuery.each($(td).find('A'),function(a_index,anchor){
+        if ( intradoc_links > 0 ) jQuery.each($(td).find('A'),function(a_index,anchor){
           // Separately: If this cell contains any A tags linking to any other cell in this document,
           // we add a click handler that causes the browser to scroll that target into view.
           if ( $(anchor).hasClass('toc-section') ) {

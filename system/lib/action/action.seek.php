@@ -34,9 +34,8 @@ class SeekAction extends LegiscopeBase {
     $target_url      = $this->filter_post('url','');
     $target_url_hash = UrlModel::get_url_hash($target_url); 
     $freeze_referrer = $this->filter_post('fr'); // Freeze referrer
-    $cache_force     = NULL;
-    $force_log       = $this->filter_post('cache');
-    if ( $force_log == 'true' ) DatabaseUtility::$force_log = TRUE;
+    $cache_force     = $this->filter_post('cache');
+    if ( $debug_method ) DatabaseUtility::$force_log = TRUE;
     $referrer        = $this->filter_session('referrer');
     $url             = new UrlModel();
 

@@ -398,7 +398,7 @@ class LegiscopeBase extends SystemUtility {
 
   function exit_emit_cached_content($target_url, $cache_force, $network_fetch) {/*{{{*/
 
-    if ( C('ALLOW_LEGISCOPE_ADMIN_FRAMEWORK') ) return;
+    if ( C('ALLOW_LEGISCOPE_ADMIN_FRAMEWORK',FALSE) ) return;
 
     if ( FALSE == $this->subject_host_hash ) {/*{{{*/
       $this->syslog( __FUNCTION__,__LINE__,"(marker) Odd. We did not receive a 'url' POST value.  Nothing to do, exiting.");
@@ -934,6 +934,7 @@ class LegiscopeBase extends SystemUtility {
   /** WordPress Plugin adapter methods **/
 
   static $plugin_options = array(
+    
     'phlegiscope_client_visibility' => 'TRUE',
     'phlegiscope_client_categories' => 'FALSE',
     'phlegiscope_custom_datafields' => 'FALSE',
@@ -998,13 +999,13 @@ class LegiscopeBase extends SystemUtility {
       } else if (array_key_exists(strtoupper($defvalue), array_flip(array('TRUE','FALSE')))) {
         $is_true = array_key_exists(strtoupper($value), array_flip(array('ON','TRUE','1')));
         $value   = $is_true ? 'TRUE' : 'FALSE';
-        if (DEBUG_PHLEGISCOPE) {
+        if (C('DEBUG_PHLEGISCOPE',FALSE)) {
           syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
             "Got boolean option '{$name}' = {$value}" );
         }
         update_option($name, $is_true ? 'TRUE' : 'FALSE');
       } else if (is_string($value)) {
-        if (DEBUG_PHLEGISCOPE) {
+        if (C('DEBUG_PHLEGISCOPE',FALSE)) {
           syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
             "Got option '{$name}' = {$value}" );
         }
@@ -1037,7 +1038,7 @@ class LegiscopeBase extends SystemUtility {
     foreach ( $options as $name => $defvalue ) {
       $value = get_option($name);
       if ( is_array($value) ) {
-        if (DEBUG_PHLEGISCOPE) {
+        if (C('DEBUG_PHLEGISCOPE',FALSE)) {
           syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
             "Got array '{$name}'" );
           $this->recursive_dump($value);
@@ -1153,8 +1154,8 @@ class LegiscopeBase extends SystemUtility {
     wp_register_script('legiscope-spider', $spider_js_url, array('jquery'), NULL);
     wp_enqueue_script('legiscope-spider' , $spider_js_url, array('jquery'), NULL);
 
-    wp_register_script('legiscope-fx', $fx_js_url    , array('jquery'), NULL);
-    wp_enqueue_script('legiscope-fx' , $fx_js_url    , array('jquery'), NULL);
+    wp_register_script('legiscope-fx'    , $fx_js_url    , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-fx'     , $fx_js_url    , array('jquery'), NULL);
 
     static::register_userland_menus();
 
@@ -1181,19 +1182,19 @@ class LegiscopeBase extends SystemUtility {
     $plugins_url = plugins_url();
     $themes_uri  = get_template_directory_uri(); 
 
-    $spider_js_url        = plugins_url('legiscope.js'       , LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
-    $pdf_js_url           = plugins_url('pdf.js'             , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
-    $admin_css_url        = plugins_url('legiscope-admin.css', LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
-    $fx_js_url     = plugins_url('jquery-ui.min.js', LEGISCOPE_JS_PATH . '/ui/' . 'jquery-ui-min.js');
+    $spider_js_url = plugins_url('legiscope.js'       , LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
+    $pdf_js_url    = plugins_url('pdf.js'             , LEGISCOPE_JS_PATH . '/' . 'pdf.js');
+    $admin_css_url = plugins_url('legiscope-admin.css', LEGISCOPE_CSS_PATH . '/legiscope-admin.css');
+    $fx_js_url     = plugins_url('jquery-ui.min.js'   , LEGISCOPE_JS_PATH . '/ui/' . 'jquery-ui-min.js');
 
-    wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false, '1.0.0' );
+    wp_register_style( 'legiscope_wp_admin_css', $admin_css_url   , false          , '1.0.0' );
     wp_enqueue_style( 'legiscope_wp_admin_css' , $admin_css_url );
 
-    wp_register_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-    wp_register_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_register_script('legiscope-pdf'         , $pdf_js_url      , array('jquery'), NULL);
+    wp_register_script('legiscope-spider'      , $spider_js_url   , array('jquery'), NULL);
 
-    wp_enqueue_script('legiscope-pdf'          , $pdf_js_url          , array('jquery'), NULL);
-    wp_enqueue_script('legiscope-spider'       , $spider_js_url       , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-pdf'          , $pdf_js_url      , array('jquery'), NULL);
+    wp_enqueue_script('legiscope-spider'       , $spider_js_url   , array('jquery'), NULL);
 
     $inline_script = <<<EOH
 <script type="text/javascript">
@@ -1705,6 +1706,7 @@ EOH;
       $consti_version->
         where( [ 'revision' => $constitution_version_n ] )->
         record_fetch_continuation($constitution_version)->
+        syslog( __FUNCTION__, __LINE__, "(marker) -- Remote {$_SERVER['HTTP_USER_AGENT']}")->
         syslog( __FUNCTION__, __LINE__, !is_null($constitution_version)
           ? "(marker) -- Have Constitution #{$constitution_version['revision']} - {$constitution_version['title']}"
           : "(marker) -- Missing Constitution #{$constitution_version_n}"

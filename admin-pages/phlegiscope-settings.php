@@ -9,13 +9,13 @@
 
     <input type="hidden" name="action" value="update"/>
     <h3>Global Plugin Settings</h3>
-    <p>Set up how your server responds to PHLegiScope submissions.<br/>
+    <p>Set up how your server responds to LegiscopePH submissions.<br/>
     </p>
     <table class="form-table">
       <tbody>
         <!-- --!>
         <tr valign="top">
-          <th scope="row">Accept anonymous submissions</th>
+          <th scope="row">Database Name</th>
           <td>
             <fieldset>
             <legend class="screen-reader-text"><span>Allow an unregistered PHLegiscope extension user (i.e. one that does not have a <?php echo $menu_title; ?> account) to submit tracking reports.</span></legend>
@@ -28,7 +28,7 @@
         </tr>
         <!-- --!>
         <tr valign="top">
-          <th scope="row">OPTION SHORTDESC</th>
+          <th scope="row">Database Host</th>
           <td>
             <fieldset>
               <legend class="screen-reader-text"><span>OPTION DESC</span></legend>

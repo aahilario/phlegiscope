@@ -1,8 +1,8 @@
 <div id="controlpanel" class="panels">
 
-  <input class="controlpanel-textinput" id="siteURL" type="text" />
+  <input class="controlpanel-textinput" id="siteURL" type="text" title="Site URL" />
   <span id="search-wait"></span>
-  <input class="controlpanel-textinput" id="keywords" type="text" />
+  <input class="controlpanel-textinput" id="keywords" type="text" title="Search text" />
   <div class="readout full-width" id="time-delta">&nbsp;</div>
 
   <label for="proxy">Proxy <input id="proxy" type="checkbox" value="1" /></label>
@@ -17,7 +17,7 @@
     <hr class="linkset"/>
     <ul id="systemrootlinks" class="link-cluster">
       <?php // http://www.gov.ph/section/legis/republic-acts/page/2 ?>
-      <li><a class="legiscope-remote" href="http://www.gov.ph">Official Gazette</a></li>
+      <li><a class="legiscope-remote" href="http://www.officialgazette.gov.ph">Official Gazette</a></li>
       <li><a class="legiscope-remote" href="http://www.gov.ph/section/legis/republic-acts/page/1">Official Gazette RAs</a></li>
       <li><a class="legiscope-remote" href="http://www.senate.gov.ph">Senate</a></li>
       <li><a class="legiscope-remote" href="http://www.congress.gov.ph">Congress</a></li> 
@@ -42,6 +42,7 @@
 
   <div class="contenttabs" id="contenttabs"></div>
   <div class="contentwindow hidden" id="processed"></div>
+  <div class="contenttabs" id="schema"></div>
 
 </div>
 

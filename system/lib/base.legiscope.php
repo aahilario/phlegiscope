@@ -171,6 +171,7 @@ class LegiscopeBase extends SystemUtility {
     $actions_match  = array();
     $actions_lookup = array(
       'seek',
+      'system',
       'link',
       'reorder',
       'keyword',
@@ -381,13 +382,29 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
-  function raw_json_reply(array & $json_reply) {
+  protected function empty_unauthed_json_reply( $functionname, $linenum, $json_reply = [] )
+  {/*{{{*/
+    if ( !function_exists('wp_get_current_user') ) {
+      $this->syslog( __FUNCTION__,__LINE__,"(marker) CRITICAL - Unable to test if JSON request originates from authenticated client.");
+      return false;
+    }
+    $user = wp_get_current_user();
+    if ( !$user->exists() ) {
+      $this->
+        syslog( __FUNCTION__,__LINE__,"(marker) Unauthenticated user {$_SERVER['REMOTE_ADDR']} attempting Legiscope ".__FUNCTION__." operation.");
+      raw_json_reply($json_reply);
+    }
+    return true;
+  } /*}}}*/
+
+  function raw_json_reply(array & $json_reply) 
+  {/*{{{*/
     $pagecontent = static::safe_json_encode($json_reply);
     header('Content-Type: application/json');
     header('Content-Length: ' . strlen($pagecontent));
     echo $pagecontent;
     exit(0);
-  }
+  }/*}}}*/
 
   function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
@@ -1781,7 +1798,7 @@ EOH;
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width">
-  <meta name="robots" content="noindex,follow">
+  <meta name="robots" content="follow">
   <script type="text/javascript" src="https://{$server_name}/wp-includes/js/jquery/jquery.js?ver=1.12.4"></script>
   <title>{$json['title']}</title>
   <style type="text/css">

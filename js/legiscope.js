@@ -7,26 +7,26 @@ var preload_a = null;
 var preload_n = 0;
 
 function set_hoststats(m) {
-  jQuery('ul[id=wp-admin-bar-root-legiscope]').remove();
-  jQuery(m).insertAfter(
-    jQuery('div[id=wp-toolbar]').find('ul[class*=ab-top-menu]').last()
+  $('ul[id=wp-admin-bar-root-legiscope]').remove();
+  $(m).insertAfter(
+    $('div[id=wp-toolbar]').find('ul[class*=ab-top-menu]').last()
   );
 }
 
 function replace_contentof(a,c) {
   var count_alternates = 0;
-  jQuery('div[class*=alternate-'+a+']').each(function(){
+  $('div[class*=alternate-'+a+']').each(function(){
     count_alternates++;
   }); 
-  var target = count_alternates == 1 ? ('#'+jQuery('div[class*=alternate-'+a+']').attr('id')) : ('#'+a);
-  jQuery(target).children().remove();
-  jQuery(target).html('');
-  jQuery(target).append(c);
+  var target = count_alternates == 1 ? ('#'+$('div[class*=alternate-'+a+']').attr('id')) : ('#'+a);
+  $(target).children().remove();
+  $(target).html('');
+  $(target).append(c);
 }
 
 function update_a_age(data) {
   if ( data && data.age && data.urlhash ) {
-    jQuery('a[id='+data.urlhash+']')
+    $('a[id='+data.urlhash+']')
       .removeClass('age-newfetch')
       .removeClass('age-recent')
       .removeClass('age-10')
@@ -42,15 +42,15 @@ function update_a_age(data) {
 }
 
 function display_wait_notification() { 
-  jQuery('#search-wait').children().remove();
-  jQuery('#search-wait').append(jQuery(document.createElement('IMG'))
+  $('#search-wait').children().remove();
+  $('#search-wait').append($(document.createElement('IMG'))
     .attr('src', 'data:image/gif;base64,R0lGODlhEAAQALMAAP8A/7CxtXBxdX1+gpaXm6OkqMnKzry+womLj7y9womKjwAAAAAAAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQBCgAAACwAAAAAEAAQAAAESBDICUqhmFqbZwjVBhAE9n3hSJbeSa1sm5HUcXQTggC2jeu63q0D3PlwAB3FYMgMBhgmk/J8LqUAgQBQhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAES3DJuUKgmFqb5znVthQF9h1JOJKl96UT27oZSRlGNxHEguM6Hu+X6wh7QN2CRxEIMggExumkKKLSCfU5GCyu0Sm36w3ryF7lpNuJAAAh+QQBCgALACwAAAAAEAAQAAAESHDJuc6hmFqbpzHVtgQB9n3hSJbeSa1sm5GUIHRTUSy2jeu63q0D3PlwCx1lMMgQCBgmk/J8LqULBGJRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuYyhmFqbpxDVthwH9n3hSJbeSa1sm5HUMHRTECy2jeu63q0D3PlwCx0FgcgUChgmk/J8LqULAmFRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuYSgmFqb5xjVthgG9n3hSJbeSa1sm5EUgnTTcSy2jeu63q0D3PlwCx2FQMgEAhgmk/J8LqWLQmFRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJucagmFqbJ0LVtggC9n3hSJbeSa1sm5EUQXSTYSy2jeu63q0D3PlwCx2lUMgcDhgmk/J8LqWLQGBRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuRCimFqbJyHVtgwD9n3hSJbeSa1sm5FUUXSTICy2jeu63q0D3PlwCx0lEMgYDBgmk/J8LqWLw2FRhV6z2q0VF94iJ9pOBAAh+QQBCgALACwAAAAAEAAQAAAESHDJuQihmFqbZynVtiAI9n3hSJbeSa1sm5FUEHTTMCy2jeu63q0D3PlwCx3lcMgIBBgmk/J8LqULg2FRhV6z2q0VF94iJ9pOBAA7')
     .attr('id', 'busy-notification-wait')
   );
 }
 
 function remove_wait_notification() {
-  jQuery('#search-wait').children().remove();
+  $('#search-wait').children().remove();
 }
 
 function preload_worker() {
@@ -58,41 +58,41 @@ function preload_worker() {
 
     var hashpair   = preload_a[preload_n++];
     var hash       = hashpair.hash;
-    var live       = jQuery('#seek').prop('checked') ? jQuery('#seek').prop('checked') : hashpair.live;
-    var linkstring = jQuery('a[id='+hash+']').attr('href');
+    var live       = $('#seek').prop('checked') ? $('#seek').prop('checked') : hashpair.live;
+    var linkstring = $('a[id='+hash+']').attr('href');
 
-    if ( jQuery('a[id='+hash+']').hasClass('no-autospider') ) return false;
+    if ( $('a[id='+hash+']').hasClass('no-autospider') ) return false;
 
-    jQuery('a[id='+hash+']').addClass('uncached').removeClass('cached').removeClass('traverse');
+    $('a[id='+hash+']').addClass('uncached').removeClass('cached').removeClass('traverse');
 
     if (!linkstring || !(0 < linkstring.length) ) {
-      if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
+      if ( $('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
     }
     else
-    jQuery.ajax({
+    $.ajax({
       type     : 'POST',
       url      : '/seek/',
       data     : { 
         url      : linkstring,
-        update   : jQuery('#update').prop('checked'),
-        proxy    : jQuery('#proxy').prop('checked'),
-        debug    : jQuery('#debug').prop('checked'),
+        update   : $('#update').prop('checked'),
+        proxy    : $('#proxy').prop('checked'),
+        debug    : $('#debug').prop('checked'),
         modifier : live,
         fr       : true,
-        linktext : jQuery('a[class*=legiscope-remote][id='+hash+']').html()
+        linktext : $('a[class*=legiscope-remote][id='+hash+']').html()
       },
       cache    : false,
       dataType : 'json',
       async    : true,
       beforeSend : (function() {
         display_wait_notification();
-        jQuery('#doctitle').html('Loading '+linkstring);
+        $('#doctitle').html('Loading '+linkstring);
       }),
       complete : (function(jqueryXHR, textStatus) {
         remove_wait_notification();
       }),
       success  : (function(data, httpstatus, jqueryXHR) {
-        jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
+        $('a[id='+hash+']').addClass('cached').removeClass('uncached');
         if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
         else
         if ( data && data.content ) replace_contentof(data && data.rootpage ? 'processed' : 'content',data.content);
@@ -100,7 +100,7 @@ function preload_worker() {
         if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
         if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
         update_a_age(data);
-        if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker();}),100);
+        if ( $('#spider').prop('checked') ) setTimeout((function(){preload_worker();}),100);
       })
     });
   } 
@@ -108,43 +108,43 @@ function preload_worker() {
 
 function preload_worker_unconditional() {
 
-  var hash       = jQuery("div[id=content]").find('a[class*=legiscope-remote][class*=traverse]').first().attr('id');
-  var live       = jQuery('#seek').prop('checked');
-  var linkstring = jQuery('a[id='+hash+']').attr('href');
+  var hash       = $("div[id=content]").find('a[class*=legiscope-remote][class*=traverse]').first().attr('id');
+  var live       = $('#seek').prop('checked');
+  var linkstring = $('a[id='+hash+']').attr('href');
 
-  if ( jQuery('a[id='+hash+']').hasClass('no-autospider') ) return false;
+  if ( $('a[id='+hash+']').hasClass('no-autospider') ) return false;
 
-  jQuery('a[id='+hash+']').addClass('uncached').removeClass('traverse');
+  $('a[id='+hash+']').addClass('uncached').removeClass('traverse');
 
   if (!linkstring || !(0 < linkstring.length) ) {
-    if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
+    if ( $('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
     return false;
   }
   else
-  jQuery.ajax({
+  $.ajax({
     type     : 'POST',
     url      : '/seek/',
     data     : { 
       url      : linkstring,
-      debug    : jQuery('#debug').prop('checked'),
-      update   : jQuery('#update').prop('checked'),
-      proxy    : jQuery('#proxy').prop('checked'),
+      debug    : $('#debug').prop('checked'),
+      update   : $('#update').prop('checked'),
+      proxy    : $('#proxy').prop('checked'),
       modifier : live,
       fr       : true,
-      linktext : jQuery('a[class*=legiscope-remote][id='+hash+']').html()
+      linktext : $('a[class*=legiscope-remote][id='+hash+']').html()
     },
     cache    : false,
     dataType : 'json',
     async    : true,
     beforeSend : (function() {
       display_wait_notification();
-      jQuery('#doctitle').html('Loading '+linkstring);
+      $('#doctitle').html('Loading '+linkstring);
     }),
     complete : (function(jqueryXHR, textStatus) {
       remove_wait_notification();
     }),
     success  : (function(data, httpstatus, jqueryXHR) {
-      jQuery('a[id='+hash+']').addClass('cached').removeClass('uncached');
+      $('a[id='+hash+']').addClass('cached').removeClass('uncached');
       if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
       else
       if ( data && data.content ) replace_contentof(data && data.rootpage ? 'processed' : 'content',data.content);
@@ -152,21 +152,21 @@ function preload_worker_unconditional() {
       if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
       if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
       update_a_age(data);
-      if ( jQuery('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
+      if ( $('#spider').prop('checked') ) setTimeout((function(){preload_worker_unconditional();}),100);
     })
   });
   return false;
 }
 
 function preload(components) {
-  jQuery.ajax({
+  $.ajax({
     type     : 'POST',
     url      : '/preload/',
     data     : { 
       links    : components,
-      debug    : jQuery('#debug').prop('checked'),
-      update   : jQuery('#update').prop('checked'),
-      modifier : jQuery('#seek').prop('checked')
+      debug    : $('#debug').prop('checked'),
+      update   : $('#update').prop('checked'),
+      modifier : $('#seek').prop('checked')
     },
     cache    : false,
     dataType : 'json',
@@ -194,16 +194,16 @@ function preload(components) {
         preload_n++;
       }
       preload_n = 0;
-      jQuery('#preload').prop('checked') ? preload_worker() : preload_worker_unconditional();
+      $('#preload').prop('checked') ? preload_worker() : preload_worker_unconditional();
     })
   });
 }
 
 function handle_link_marker_click(m) {
-  jQuery.ajax({
+  $.ajax({
     type     : 'POST',
     url      : '/link/',
-    data     : { url : jQuery('[id=currenturl-reflexive]').html(), link : jQuery(m).attr('id'), cache : jQuery('#cache').prop('checked') },
+    data     : { url : $('[id=currenturl-reflexive]').html(), link : $(m).attr('id'), cache : $('#cache').prop('checked') },
     cache    : false,
     dataType : 'json',
     async    : true,
@@ -218,24 +218,24 @@ function handle_link_marker_click(m) {
 			var state = data.state ? (parseInt(data.state) == 1 ? true : false) : false;
 			if ( 'strings' == typeof linkset ) {
 				replace_contentof('linkset', linkset);
-        initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
+        initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
 			}
-			jQuery(m).prop('checked', state);
+			$(m).prop('checked', state);
 			if ( state ) {
-				jQuery(m)
+				$(m)
 					.parentsUntil('div[class*=linkset]')
 			    .parent()
 					.children('ul[class*=link-cluster]')
 					.first()
-					.prepend(jQuery(m).parent().detach());
+					.prepend($(m).parent().detach());
 		  }
 			else {
-				jQuery(m)
+				$(m)
 					.parentsUntil('div[class*=linkset]')
 			    .parent()
 					.children('ul[class*=link-cluster]')
 					.last()
-					.append(jQuery(m).parent().detach());
+					.append($(m).parent().detach());
 			}
     })
   });
@@ -244,22 +244,22 @@ function handle_link_marker_click(m) {
 
 function initialize_linkset_clickevents(linkset,childtag) {
   var child_tags = typeof childtag == 'undefined' ? 'li' : childtag;
-  jQuery(linkset).on('contextmenu',function(){
+  $(linkset).on('contextmenu',function(){
     return false;
   }).unbind('click').click(function(e){
 
-    if (!jQuery('#spider').prop('checked')) {
+    if (!$('#spider').prop('checked')) {
       window.alert("Enable 'Spider' option to trigger preload");
       return;
     }
-    var components = new Array(jQuery(this).children(child_tags).length);
+    var components = new Array($(this).children(child_tags).length);
     var component_index = 0;
-    jQuery(this).children(child_tags).find('a').each(function(){
-      if ( jQuery(this).hasClass('no-autospider') ) return true;
-      if ( jQuery(this).hasClass('cached') && !jQuery('#spider').prop('checked') ) return true;
-      if ( jQuery(this).hasClass('uncached') ) jQuery(this).addClass('traverse');
+    $(this).children(child_tags).find('a').each(function(){
+      if ( $(this).hasClass('no-autospider') ) return true;
+      if ( $(this).hasClass('cached') && !$('#spider').prop('checked') ) return true;
+      if ( $(this).hasClass('uncached') ) $(this).addClass('traverse');
       if ( component_index > 300 ) return true;
-      var linkset_child = jQuery(this).attr('id');
+      var linkset_child = $(this).attr('id');
       components[component_index] = linkset_child; 
       component_index++;
       return true;
@@ -267,15 +267,15 @@ function initialize_linkset_clickevents(linkset,childtag) {
     preload(components);
 
   }).find(child_tags).each(function(){
-    jQuery(this).find('a[class*=legiscope-remote]').first().each(function(){
-      var link_id = jQuery(this).attr('id');
-      if ( jQuery(this).parentsUntil('ul').first().parent().attr('id') == 'systemrootlinks' ) return true;
-      if ( link_id.length > 0 && jQuery(this).hasClass('markable') ) {
-				var link_marked = jQuery(this).hasClass('is-source-root');
-        jQuery(this).parent().first().each(function(){
-          jQuery(this).children('input[id=m-'+link_id+']').remove();
-          jQuery(this).prepend(
-            jQuery(document.createElement('INPUT'))
+    $(this).find('a[class*=legiscope-remote]').first().each(function(){
+      var link_id = $(this).attr('id');
+      if ( $(this).parentsUntil('ul').first().parent().attr('id') == 'systemrootlinks' ) return true;
+      if ( link_id.length > 0 && $(this).hasClass('markable') ) {
+				var link_marked = $(this).hasClass('is-source-root');
+        $(this).parent().first().each(function(){
+          $(this).children('input[id=m-'+link_id+']').remove();
+          $(this).prepend(
+            $(document.createElement('INPUT'))
               .attr('type','checkbox')
               .attr('value','1')
               .attr('id','m-'+link_id)
@@ -286,30 +286,30 @@ function initialize_linkset_clickevents(linkset,childtag) {
       }
       return true;
     });
-    jQuery(this).on('contextmenu', function(){
+    $(this).on('contextmenu', function(){
       return false;
     }).mouseup(function(e){
-      if (2 == parseInt(jQuery(e).prop('button'))) {
-        jQuery(this).parent().click();
+      if (2 == parseInt($(e).prop('button'))) {
+        $(this).parent().click();
       }
       return false;
     });
   });
-  jQuery('input[class*=link-marker]')
+  $('input[class*=link-marker]')
     .unbind('click')
     .on('click',function(e){
       e.stopPropagation();
       e.preventDefault();
-      return handle_link_marker_click(jQuery(this)); 
+      return handle_link_marker_click($(this)); 
     })
 	  .each(function(){
-			if ( jQuery(this).prop('checked') ) {
-				jQuery(this)
+			if ( $(this).prop('checked') ) {
+				$(this)
 					.parentsUntil('div[class*=linkset]')
 			    .parent()
 					.children('ul[class*=link-cluster]')
 					.first()
-					.prepend(jQuery(this).parent().detach());
+					.prepend($(this).parent().detach());
 		  }
 		});
 }
@@ -327,15 +327,15 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
   var targetframe    = data && data.targetframe   ?data.targetframe       : '[class*=alternate-content]';
 
   if ( data && data.clicked ) {
-     jQuery('a').removeClass('clicked');
-     jQuery('a[id='+data.clicked+']').addClass('clicked');
+     $('a').removeClass('clicked');
+     $('a[id='+data.clicked+']').addClass('clicked');
   }
 
-  jQuery('div[class*=contentwindow]').each(function(){
-    if (jQuery(this).attr('id') == 'processed') return true;
+  $('div[class*=contentwindow]').each(function(){
+    if ($(this).attr('id') == 'processed') return true;
     if (retainoriginal)
-    if (jQuery(this).attr('id') == 'content') return true;
-    jQuery(this).children().remove();
+    if ($(this).attr('id') == 'content') return true;
+    $(this).children().remove();
     return true;
   });
 
@@ -346,18 +346,18 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
   update_a_age(data);
 
   if ( /^application\/pdf/.test(contenttype) ) {
-    if ( !(jQuery('#spider').prop('checked')) ) {
-      var target_container = jQuery(retainoriginal ? ('#'+jQuery(targetframe).first().attr('id')) : '#subcontent');
+    if ( !($('#spider').prop('checked')) ) {
+      var target_container = $(retainoriginal ? ('#'+$(targetframe).first().attr('id')) : '#subcontent');
       display_wait_notification();
       PDFJS.getDocument('/fetchpdf/'+data.urlhash).then(function(pdf){
         var np = pdf.numPages;
         for ( var pagecounter = 1 ; pagecounter <= np ; pagecounter++ ) { 
-          if ( pagecounter == 1 ) jQuery(target_container).children().remove();
+          if ( pagecounter == 1 ) $(target_container).children().remove();
           pdf.getPage(pagecounter).then(function(page){
-            var pagecount = jQuery(target_container).children().length;
+            var pagecount = $(target_container).children().length;
             var target_name = "pdfdoc-"+pagecount;
-            jQuery('#doctitle').html("Target: "+target_name);
-            jQuery(target_container).append(jQuery(document.createElement('CANVAS'))
+            $('#doctitle').html("Target: "+target_name);
+            $(target_container).append($(document.createElement('CANVAS'))
               .addClass('inline-pdf')
               .attr('id', target_name)
             );
@@ -367,7 +367,7 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
             if ( typeof canvas != 'undefined' && canvas != null) {
               var context = canvas.getContext('2d');
               canvas.height = viewport.height;
-              canvas.width = jQuery(canvas).parent().first().outerWidth();
+              canvas.width = $(canvas).parent().first().outerWidth();
               var renderContext = {
                 canvasContext : context,
                 viewport : viewport
@@ -389,72 +389,72 @@ function std_seek_response_handler(data, httpstatus, jqueryXHR) {
     if ( /^text\/html/.test(contenttype) ) {
       if ( linkset && linkset.length > 0 ) {
         replace_contentof('linkset', linkset);
-        initialize_linkset_clickevents(jQuery('ul[class*=link-cluster]'),'li');
+        initialize_linkset_clickevents($('ul[class*=link-cluster]'),'li');
       }
     }
-    jQuery('#siteURL').val(referrer);
-    replace_contentof('referrer',jQuery(document.createElement('A'))
+    $('#siteURL').val(referrer);
+    replace_contentof('referrer',$(document.createElement('A'))
       .addClass('legiscope-remote')
       .attr('href', referrer)
       .html('Back')
     );
     replace_contentof('currenturl',
-      jQuery(document.createElement('A'))
+      $(document.createElement('A'))
       .attr('href', data && data.url ? data.url : '')
       .attr('target','blank')
 			.attr('id','currenturl-reflexive')
       .append(data && data.url ? data.url : 'No Link')
     );
     initialize_authentication_inputs();
-    if ( data && data.defaulttab ) jQuery('#tab_'+data.defaulttab).click();
+    if ( data && data.defaulttab ) $('#tab_'+data.defaulttab).click();
   }
   initialize_remote_links(); 
   setTimeout(function(){ 
-    var seek_enabled    = jQuery('#seek').prop('checked');
+    var seek_enabled    = $('#seek').prop('checked');
     if ( !seek_enabled ) return false;
-    var component_count = jQuery("span[class*=search-match-searchlisting]").length || jQuery("div[id=content]").find('a[class*=legiscope-remote]').length;
+    var component_count = $("span[class*=search-match-searchlisting]").length || $("div[id=content]").find('a[class*=legiscope-remote]').length;
     var component_index = 0;
     if ( 0 == component_count ) {
-      jQuery("div[id=content]").children('a').each(function(){
+      $("div[id=content]").children('a').each(function(){
         component_count++;
         return true;
       });
     }
-    jQuery('#doctitle').html("Seek: +"+component_count);
+    $('#doctitle').html("Seek: +"+component_count);
     if ( 0 == component_count ) return false;
     if ( components > 300 ) components = 300;
     var components = new Array(component_count);
-    jQuery("div[id=content]").find('a[class*=legiscope-remote]').each(function(){
-      if ( jQuery(this).hasClass('no-autospider') ) return true;
-      if ( jQuery(this).hasClass('cached') ) return true;
-      if ( jQuery(this).hasClass('uncached') ) jQuery(this).addClass('traverse');
+    $("div[id=content]").find('a[class*=legiscope-remote]').each(function(){
+      if ( $(this).hasClass('no-autospider') ) return true;
+      if ( $(this).hasClass('cached') ) return true;
+      if ( $(this).hasClass('uncached') ) $(this).addClass('traverse');
       if ( component_index > 300 ) return true;
-      var linkset_child = jQuery(this).attr('id');
+      var linkset_child = $(this).attr('id');
       components[component_index] = linkset_child; 
       component_index++;
       return true;
     });
     preload(components);
-    jQuery('a[class*=pull-in]').first().click(); 
+    $('a[class*=pull-in]').first().click(); 
     return true; 
   },1);
   return true;
 }
 
 function load_content_window(a,ck,obj,data,handlers) {
-  var object_text = typeof obj != 'undefined' ? jQuery(obj).html() : null;
-  var std_data = (jQuery('#metalink').html().length > 0)
-    ? { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), debug : jQuery('#debug').prop('checked'), linktext : object_text, metalink : jQuery('#metalink').html() } 
-    : { url : a, update : jQuery('#update').prop('checked'), modifier : ck || jQuery('#seek').prop('checked'), proxy : jQuery('#proxy').prop('checked'), cache : jQuery('#cache').prop('checked'), debug : jQuery('#debug').prop('checked'), linktext : object_text }
+  var object_text = typeof obj != 'undefined' ? $(obj).html() : null;
+  var std_data = ($('#metalink').html().length > 0)
+    ? { url : a, update : $('#update').prop('checked'), modifier : ck || $('#seek').prop('checked'), proxy : $('#proxy').prop('checked'), cache : $('#cache').prop('checked'), debug : $('#debug').prop('checked'), linktext : object_text, metalink : $('#metalink').html() } 
+    : { url : a, update : $('#update').prop('checked'), modifier : ck || $('#seek').prop('checked'), proxy : $('#proxy').prop('checked'), cache : $('#cache').prop('checked'), debug : $('#debug').prop('checked'), linktext : object_text }
     ;
   var async = (data && data.async) ? data.async : true;
   if ( typeof data != "undefined" && typeof data != "null" ) {
     for ( var i in data ) {
       var element = data[i];
-      jQuery(std_data).prop(i, element);
+      $(std_data).prop(i, element);
     }
   }
-  jQuery.ajax({
+  $.ajax({
     type     : 'POST',
     url      : '/seek/',
     data     : std_data,
@@ -462,7 +462,7 @@ function load_content_window(a,ck,obj,data,handlers) {
     dataType : 'json',
     async    : async,
     beforeSend : (handlers && handlers.beforeSend) ? handlers.beforeSend : (function() {
-      jQuery('a[class*=legiscope-remote]').unbind('click');
+      $('a[class*=legiscope-remote]').unbind('click');
       display_wait_notification();
     }),
     complete : (handlers && handlers.complete) ? handlers.complete : (function(jqueryXHR, textStatus) {
@@ -473,32 +473,68 @@ function load_content_window(a,ck,obj,data,handlers) {
   return false;
 }
 
+function initialize_systemrootlinks() {
+  $.ajax({
+    type     : 'GET',
+    url      : '/system/',
+    data     : { fragment : 'systemrootlinks' },
+    cache    : false,
+    dataType : 'json',
+    async    : false,
+    beforeSend : (function() {
+      display_wait_notification();
+      $('#currenturl').html("");
+    }),
+    complete : (function(jqueryXHR, textStatus) {
+      remove_wait_notification();
+    }),
+    success  : (function(data, httpstatus, jqueryXHR) {
+      if ( data && data.links ) {
+        $('#systemrootlinks').empty();
+        for ( var index in data.links ) {
+          var record = data.links[index];
+          var host = record.host;
+          var hash = record.hash;
+          var link = $(document.createElement('LI'))
+            .append($(document.createElement('A'))
+                .addClass('legiscope-remote')
+                .attr('href','http://'+host)
+                .attr('id',hash)
+                .text(host)
+                );
+          $('#systemrootlinks').append(link);
+        }
+      }
+    })
+  });
+}
+
 function initialize_remote_links() {
 
-  jQuery('a[class*=metapager]').unbind('click').click(function(e){
-    var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
-    var content = jQuery('span[id='+content_id+']').html();
-    var data = jQuery('#jumpto') && jQuery('#jumpto').val() ?  { 'LEGISCOPE' : { coPage : jQuery('#jumpto').val() } } : null;
-    jQuery('#metalink').html(content);
+  $('a[class*=metapager]').unbind('click').click(function(e){
+    var content_id = /^switch-/.test($(this).attr('id')) ? ('content-'+$(this).attr('id').replace(/^switch-/,'')) : null;
+    var content = $('span[id='+content_id+']').html();
+    var data = $('#jumpto') && $('#jumpto').val() ?  { 'LEGISCOPE' : { coPage : $('#jumpto').val() } } : null;
+    $('#metalink').html(content);
     e.stopPropagation();
-    load_content_window(jQuery(this).attr('href'), jQuery(e).attr('metaKey') || jQuery('#seek').prop('checked'), jQuery(this), data);
-    jQuery('#metalink').html('');
+    load_content_window($(this).attr('href'), $(e).attr('metaKey') || $('#seek').prop('checked'), $(this), data);
+    $('#metalink').html('');
     return false;
   });
 
-  jQuery('span[class*=legiscope-refresh]').unbind('mouseout');
-  jQuery('span[class*=legiscope-refresh]').mouseout(function(){
-    jQuery(this).parent().children('span[class*=legiscope-refresh]').each(function(){
-      jQuery(this)
+  $('span[class*=legiscope-refresh]').unbind('mouseout');
+  $('span[class*=legiscope-refresh]').mouseout(function(){
+    $(this).parent().children('span[class*=legiscope-refresh]').each(function(){
+      $(this)
         .addClass('hover')
         .unbind('click')
         .click(function(e){
           e.stopPropagation();
-          load_content_window(jQuery(this).parent().children('a').attr('href'),'reload',null);
+          load_content_window($(this).parent().children('a').attr('href'),'reload',null);
           return false;
         }).mouseout(function(){
           var subject = this;
-          setTimeout(function(){jQuery(subject).removeClass('hover');},1000);
+          setTimeout(function(){$(subject).removeClass('hover');},1000);
           return true;
         });
       return true;
@@ -508,13 +544,13 @@ function initialize_remote_links() {
 
   enable_proxied_links('legiscope-remote');
 
-  jQuery('a[class*=fauxpost]').unbind('click').click(function(e){
-    var content_id = /^switch-/.test(jQuery(this).attr('id')) ? ('content-'+jQuery(this).attr('id').replace(/^switch-/,'')) : null;
-    var content = jQuery('span[id='+content_id+']').html();
-    jQuery('#metalink').html(content);
+  $('a[class*=fauxpost]').unbind('click').click(function(e){
+    var content_id = /^switch-/.test($(this).attr('id')) ? ('content-'+$(this).attr('id').replace(/^switch-/,'')) : null;
+    var content = $('span[id='+content_id+']').html();
+    $('#metalink').html(content);
     e.stopPropagation();
-    load_content_window(jQuery(this).attr('href'), jQuery(e).attr('metaKey') || jQuery('#seek').prop('checked'), jQuery(this));
-    jQuery('#metalink').html('');
+    load_content_window($(this).attr('href'), $(e).attr('metaKey') || $('#seek').prop('checked'), $(this));
+    $('#metalink').html('');
     return false;
   });
 
@@ -522,31 +558,31 @@ function initialize_remote_links() {
 }
 
 function initialize_spider_tabs() {
-  jQuery('#contenttabs').children().remove();
-  jQuery('#sitecontent').children().each(function(){
-    if ( jQuery(this).attr('id') == 'contenttabs' ) return;
-    jQuery('#contenttabs').append(
-      jQuery(document.createElement('SPAN'))
-        .attr('id','tab_'+jQuery(this).attr('id'))
+  $('#contenttabs').children().remove();
+  $('#sitecontent').children().each(function(){
+    if ( $(this).attr('id') == 'contenttabs' ) return;
+    $('#contenttabs').append(
+      $(document.createElement('SPAN'))
+        .attr('id','tab_'+$(this).attr('id'))
         .addClass('contenttab')
-        .html(jQuery(this).attr('id').toUpperCase())
+        .html($(this).attr('id').toUpperCase())
         .unbind('click')
         .click(function(e){
-          var target = jQuery(this).attr('id').replace(/^tab_/,'');
-          jQuery('#contenttabs').children().removeClass('activetab').removeClass('inactivetab');
-          jQuery('#contenttabs').addClass('inactivetab');
-          jQuery(this).addClass('activetab').removeClass('inactivetab');
-          jQuery('div[class*=contentwindow]').addClass('hidden');
-          jQuery('div[id='+target+']').removeClass('hidden');
+          var target = $(this).attr('id').replace(/^tab_/,'');
+          $('#contenttabs').children().removeClass('activetab').removeClass('inactivetab');
+          $('#contenttabs').addClass('inactivetab');
+          $(this).addClass('activetab').removeClass('inactivetab');
+          $('div[class*=contentwindow]').addClass('hidden');
+          $('div[id='+target+']').removeClass('hidden');
         })
     );
   }); 
-  jQuery('#contenttabs').append(
-    jQuery(document.createElement('SPAN'))
+  $('#contenttabs').append(
+    $(document.createElement('SPAN'))
       .attr('id','currenturl')
       .addClass('contenttab')
   ).prepend(
-    jQuery(document.createElement('SPAN'))
+    $(document.createElement('SPAN'))
       .attr('id','referrer')
       .addClass('contenttab')
   );
@@ -554,17 +590,17 @@ function initialize_spider_tabs() {
 
 function enable_proxied_links(classname,handlers) {
   var handler = typeof handlers == 'undefined' ? {} : handlers; 
-  jQuery('a[class*='+classname+']').each(function() {
-    jQuery(this)
+  $('a[class*='+classname+']').each(function() {
+    $(this)
       .removeClass('proxied')
       .addClass('proxied')
       .unbind('click')
       .click(function(e){
         e.stopPropagation();
         return load_content_window(
-          jQuery(this).attr('href'),
-          jQuery(e).attr('metaKey'),
-          jQuery(this),
+          $(this).attr('href'),
+          $(e).attr('metaKey'),
+          $(this),
           { async : true },
           handler
         );
@@ -574,28 +610,28 @@ function enable_proxied_links(classname,handlers) {
 }
 
 function initialize_hot_search(s,url) {
-  jQuery(s).keyup(function(e) {
+  $(s).keyup(function(e) {
     var self = this;
     if ( typeof hotsearch_timer != 'null' ) {
       clearTimeout(hotsearch_timer);
       hotsearch_timer = null;
     }
-    jQuery(this).addClass('hotsearch-active');
-    jQuery('#doctitle').html(jQuery(this).val());
+    $(this).addClass('hotsearch-active');
+    $('#doctitle').html($(this).val());
     hotsearch_timer = setTimeout((function(){
-      jQuery(self).removeClass('hotsearch-active');
+      $(self).removeClass('hotsearch-active');
       clearTimeout(hotsearch_timer);
       hotsearch_timer = null;
-      jQuery.ajax({
+      $.ajax({
         type     : 'POST',
         url      : url,
-        data     : { fragment : jQuery(s).val(), proxy : jQuery('#proxy').prop('checked') },
+        data     : { fragment : $(s).val(), proxy : $('#proxy').prop('checked') },
         cache    : false,
         dataType : 'json',
         async    : true,
         beforeSend : (function() {
           display_wait_notification();
-          jQuery('#currenturl').html("");
+          $('#currenturl').html("");
         }),
         complete : (function(jqueryXHR, textStatus) {
           remove_wait_notification();
@@ -610,12 +646,12 @@ function initialize_hot_search(s,url) {
           if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
           if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
           update_a_age(data);
-          jQuery('#currenturl').html((0 < returns) ? ("Matches: "+returns) : "");
+          $('#currenturl').html((0 < returns) ? ("Matches: "+returns) : "");
           if ( !(0 < returns) ) {
             replace_contentof('subcontent',"<h2>No matches</h2>");
             return;
           }
-          replace_contentof('subcontent',jQuery(document.createElement('UL')).attr('id','searchresults'));
+          replace_contentof('subcontent',$(document.createElement('UL')).attr('id','searchresults'));
           for ( var r in records ) {
             var record = records[r];
             var meta = record.meta ? record.meta : '';
@@ -623,18 +659,18 @@ function initialize_hot_search(s,url) {
             var referrerset = document.createElement('UL');
             for ( var m in referrers ) {
               var referrer_url = referrers[m];
-              jQuery(referrerset).append(jQuery(document.createElement('LI'))
-                .append(jQuery(document.createElement('A'))
+              $(referrerset).append($(document.createElement('LI'))
+                .append($(document.createElement('A'))
                   .attr('href', referrer_url)
                   .addClass('legiscope-remote')
                   .html(referrer_url)
                 )
               );
             }
-            jQuery('ul[id=searchresults]').append(
-              jQuery(document.createElement('LI'))
+            $('ul[id=searchresults]').append(
+              $(document.createElement('LI'))
                 .addClass('search-match')
-                .append(jQuery(document.createElement('A'))
+                .append($(document.createElement('A'))
                   .attr('href', record.url)
                   .attr('id','match-'+record.hash)
                   .addClass('legiscope-remote')
@@ -642,15 +678,15 @@ function initialize_hot_search(s,url) {
                   .addClass('cached')
                   .html(record.sn)
                 )
-                .append(jQuery(document.createElement('SPAN'))
+                .append($(document.createElement('SPAN'))
                   .attr('id','url-'+record.hash)
                   .addClass('search-hit-category')
                   .html('&nbsp;|&nbsp;' + record.category)
                 )
-                .append(jQuery(document.createElement('SPAN'))
+                .append($(document.createElement('SPAN'))
                   .attr('id','url-'+record.hash)
                   .addClass('search-hit-url')
-                  .append(jQuery(document.createElement('A'))
+                  .append($(document.createElement('A'))
                     .attr('href', record.url)
                     .attr('id','match-link-'+record.hash)
                     .addClass('legiscope-remote')
@@ -659,59 +695,60 @@ function initialize_hot_search(s,url) {
                     .html(record.url)
                   )
                 )
-                .append(jQuery(document.createElement('SPAN'))
+                .append($(document.createElement('SPAN'))
                   .attr('id','title-'+record.hash)
                   .addClass('search-hit-title')
                   .html(record && record.title ? record.title : '')
                 )
-                .append(jQuery(document.createElement('SPAN'))
+                .append($(document.createElement('SPAN'))
                   .attr('id','description-'+record.hash)
                   .addClass('search-hit-desc')
                   .html(record.description)
                 )
-                .append(jQuery(referrerset))
+                .append($(referrerset))
             );
             count++;
             if ( count > 500 ) break;
           }
-          if ( data && data.focus_siteurl) jQuery('#siteURL').focus();
+          if ( data && data.focus_siteurl) $('#siteURL').focus();
           initialize_remote_links();
-          jQuery('#tab_processed').click();
+          $('#tab_processed').click();
         })
       });
 
     }),1000);
   });
-  jQuery(s).focus().select().val('');
+  $(s).focus().select().val('');
 }
 
 function initialize_authentication_inputs() {
-  jQuery('[class*=authentication-tokens]').unbind('keyup');
-  jQuery('[class*=authentication-tokens]').keyup(function(e){
-    if (jQuery(e).attr('keyCode') == 13) {
+  $('[class*=authentication-tokens]').unbind('keyup');
+  $('[class*=authentication-tokens]').keyup(function(e){
+    if ($(e).attr('keyCode') == 13) {
       // Gather all input fields with the given selector class name,
       // and execute a /seek/ action 
       var data = {};
-      jQuery('[class*=authentication-tokens]').each(function(){
-        if (jQuery(this).attr('id') == 'authentication-target-url') return;
-        var name = jQuery(this).attr('name');
-        var val  = jQuery(this).val();
-        jQuery(data).prop(name, val);
+      $('[class*=authentication-tokens]').each(function(){
+        if ($(this).attr('id') == 'authentication-target-url') return;
+        var name = $(this).attr('name');
+        var val  = $(this).val();
+        $(data).prop(name, val);
       });
-      load_content_window(jQuery('[id=authentication-target-url]').val(), 'false', null, data);
+      load_content_window($('[id=authentication-target-url]').val(), 'false', null, data);
     }
     return true;
   });
 }  
 
 function initialize_spider() {
-  jQuery('#siteURL').keydown(function(e){
-    if( jQuery(e).attr('keyCode') == 13) {
-      load_content_window(jQuery(this).val(), jQuery(e).attr('metaKey'), null, null);
+  $('#siteURL').keydown(function(e){
+    if( $(e).attr('keyCode') == 13) {
+      load_content_window($(this).val(), $(e).attr('metaKey'), null, null);
       return false;
     }
     return true;
   });
+  initialize_systemrootlinks();
   initialize_remote_links();
   initialize_spider_tabs();
   initialize_hot_search('[id=keywords]','/keyword/');
@@ -722,46 +759,46 @@ var current_re = null;
 var match_counter = 0;
 
 function execute_filter(s,c,a) {
-  var empty_match = jQuery(s).val().length == 0;
+  var empty_match = $(s).val().length == 0;
   var sp = s;
   var cp = c;
   var ap = a;
   match_counter = 0;
-  jQuery(c).find('[class*='+a+']').each(function(){
-    var id = jQuery(this).attr('id');
-    if (empty_match || current_re.test(jQuery(this).text().replace(/ñ/gi,'n'))) {
-      jQuery('li[id=line-'+id+']').removeClass('hidden');
+  $(c).find('[class*='+a+']').each(function(){
+    var id = $(this).attr('id');
+    if (empty_match || current_re.test($(this).text().replace(/ñ/gi,'n'))) {
+      $('li[id=line-'+id+']').removeClass('hidden');
     } else {
-      jQuery('li[id=line-'+id+']').addClass('hidden');
+      $('li[id=line-'+id+']').addClass('hidden');
     }
-    jQuery(this).removeClass(a);
+    $(this).removeClass(a);
   });
-  if ( match_counter > 0 ) jQuery(s).removeClass('hotsearch-active');
+  if ( match_counter > 0 ) $(s).removeClass('hotsearch-active');
 }
 
 function initialize_filter(s,c,a) {
-  jQuery(s).unbind('click').click(function(e){
+  $(s).unbind('click').click(function(e){
     e.stopPropagation();
     e.preventDefault();
     return false;
   });
-  jQuery(s).unbind('keyup').keyup(function(e){
+  $(s).unbind('keyup').keyup(function(e){
     if ( typeof match_timeout != 'null' ) {
       clearTimeout(match_timeout);
       match_timeout = null;
     }
     current_re = null;
-    current_re = new RegExp(jQuery(this).val(),'gi');
+    current_re = new RegExp($(this).val(),'gi');
     match_timeout = setTimeout((function() { 
-      jQuery(s).addClass('hotsearch-active');
-      if ( 0 < jQuery(s).val().length ) {
-        jQuery(c).find('[class*=invalidated]').addClass('hidden');
-        jQuery(c).find('[class*=matchable]').addClass(a);
+      $(s).addClass('hotsearch-active');
+      if ( 0 < $(s).val().length ) {
+        $(c).find('[class*=invalidated]').addClass('hidden');
+        $(c).find('[class*=matchable]').addClass(a);
         execute_filter(s,c,a); 
       } else {
-        jQuery(c).find('[class*=invalidated]').removeClass('hidden');
-        jQuery(c).find('[class*=matchable]').removeClass(a).removeClass('hidden').parent().removeClass('hidden');
-        jQuery(s).removeClass('hotsearch-active');
+        $(c).find('[class*=invalidated]').removeClass('hidden');
+        $(c).find('[class*=matchable]').removeClass(a).removeClass('hidden').parent().removeClass('hidden');
+        $(s).removeClass('hotsearch-active');
       }
     }),700);
   });
@@ -770,7 +807,7 @@ function initialize_filter(s,c,a) {
 function initialize_dossier_triggers() {
   enable_proxied_links('human-element-dossier-trigger',{
     beforeSend : (function() {
-      jQuery('#doctitle').html("Dossier loader triggered. Please wait.");
+      $('#doctitle').html("Dossier loader triggered. Please wait.");
       display_wait_notification();
     }),
     complete : (function(jqueryXHR, textStatus) {
@@ -781,7 +818,7 @@ function initialize_dossier_triggers() {
       var url = data.url;
       var contenttype = data.contenttype ? data.contenttype : '';
       var linkset = data.linkset ? data.linkset : null;
-      jQuery('#doctitle').html("Legiscope");
+      $('#doctitle').html("Legiscope");
 
       if ( data && data.hoststats ) set_hoststats(data.hoststats);
       if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
@@ -792,7 +829,7 @@ function initialize_dossier_triggers() {
       if ( /^text\/html/.test(contenttype) ) {
         if ( typeof linkset != 'null' ) {
           replace_contentof('linkset', linkset);
-          initialize_linkset_clickevents(jQuery('ul[id=house-bills-by-rep]'),'li');
+          initialize_linkset_clickevents($('ul[id=house-bills-by-rep]'),'li');
         }
         if ( data && data.subcontent ) replace_contentof('subcontent', data.subcontent);
         else
@@ -800,7 +837,7 @@ function initialize_dossier_triggers() {
         initialize_remote_links(); 
       }
       replace_contentof('currenturl',
-        jQuery(document.createElement('a'))
+        $(document.createElement('a'))
         .attr('href', url)
         .attr('target','blank')
 				.attr('id','currenturl-reflexive')
@@ -812,25 +849,25 @@ function initialize_dossier_triggers() {
 }
 
 function update_representatives_avatars() {
-  jQuery('img[class*=representative-avatar][src=""]').first().each(function(){
-    var avatar_id = jQuery(this).attr('id').replace(/^image-/,'imagesrc-');
-    if ( jQuery(this).attr('src').length > 0 && !/^data:/.test(jQuery(this).attr('src')) ) {
+  $('img[class*=representative-avatar][src=""]').first().each(function(){
+    var avatar_id = $(this).attr('id').replace(/^image-/,'imagesrc-');
+    if ( $(this).attr('src').length > 0 && !/^data:/.test($(this).attr('src')) ) {
       setTimeout((function(){update_representatives_avatars();}),100);
       return true;
     }
-    var no_replace = jQuery('input[id='+avatar_id+']').hasClass('no-replace');
-    var alt_name = no_replace ? (jQuery(this).attr('id')+'-alt') : jQuery(this).attr('id'); 
-    var member_uuid = jQuery(this).attr('id').replace(/^image-/,'');
-    var avatar_url = jQuery('input[id='+avatar_id+']').val();
-    jQuery(this).attr('id', alt_name);
-    jQuery.ajax({
+    var no_replace = $('input[id='+avatar_id+']').hasClass('no-replace');
+    var alt_name = no_replace ? ($(this).attr('id')+'-alt') : $(this).attr('id'); 
+    var member_uuid = $(this).attr('id').replace(/^image-/,'');
+    var avatar_url = $('input[id='+avatar_id+']').val();
+    $(this).attr('id', alt_name);
+    $.ajax({
       type     : 'POST',
       url      : '/seek/',
       data     : { 
         url         : avatar_url,
-        debug       : jQuery('#debug').prop('checked'),
-        modifier    : jQuery('#spider').prop('checked'),
-        cache       : jQuery('#cache').prop('checked'),
+        debug       : $('#debug').prop('checked'),
+        modifier    : $('#spider').prop('checked'),
+        cache       : $('#cache').prop('checked'),
         member_uuid : member_uuid,
         no_replace  : no_replace,
         fr          : true
@@ -847,17 +884,17 @@ function update_representatives_avatars() {
       success  : (function(data, httpstatus, jqueryXHR) {
         var altmarkup = data.altmarkup ? data.altmarkup : null;
         var total_image_width = 0;
-        jQuery('img[id='+alt_name+']').attr('src', altmarkup);
+        $('img[id='+alt_name+']').attr('src', altmarkup);
         if ( data && data.hoststats ) set_hoststats(data.hoststats);
         if ( data && data.lastupdate ) replace_contentof('lastupdate',data.lastupdate);
         if ( data && data.timedelta ) replace_contentof('time-delta', data.timedelta);
         if ( data && data.systemrootlinks ) replace_contentof('systemrootlinks',data.systemrootlinks);
         update_a_age(data);
         if ( !no_replace ) {
-          jQuery("div[class=dossier-strip]").find("img").each(function(){
-            total_image_width += (jQuery(this).outerWidth() + 4);
+          $("div[class=dossier-strip]").find("img").each(function(){
+            total_image_width += ($(this).outerWidth() + 4);
           });
-          jQuery("div[class=dossier-strip]").width(total_image_width);
+          $("div[class=dossier-strip]").width(total_image_width);
         }
         setTimeout((function(){update_representatives_avatars();}),10);
       })
@@ -868,8 +905,8 @@ function update_representatives_avatars() {
 
 function initialize_traversable(c) {
   var selector = c && (0<c.length) ? c : 'div[class*=committee-leader-box]';
-  jQuery(selector).find("a[class*=no-autospider]").each(function(){
-    jQuery(this).addClass('traverse');
+  $(selector).find("a[class*=no-autospider]").each(function(){
+    $(this).addClass('traverse');
   });
 }
 

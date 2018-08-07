@@ -11,11 +11,29 @@ function C($constant_name, $if_unset = FALSE ) {
   return defined($constant_name) ? constant($constant_name) : $if_unset;
 }
 
+function filter_request($v, $if_unset = NULL, $maxlen = 255, $filter_regex = NULL, $filter_repl = NULL)
+{
+  return isset($_REQUEST[$v]) && (is_array($_REQUEST[$v]) || 0 < strlen(trim($_REQUEST[$v]))) 
+    ? (is_array($_REQUEST[$v]) 
+      ? $_REQUEST[$v] 
+      : is_null($filter_regex) 
+        ? substr(trim($_REQUEST[$v]),0,$maxlen)
+        : preg_replace($regex, $filter_repl, substr($_REQUEST[$v],0,$maxlen)))
+    : $if_unset; 
+}
+
 function filter_post($v, $if_unset = NULL) {
   return isset($_POST[$v]) && (is_array($_POST[$v]) || 0 < strlen(trim($_POST[$v]))) 
     ? (is_array($_POST[$v]) ? $_POST[$v] : trim($_POST[$v]))
     : $if_unset; 
 }
+
+function filter_server($v, $if_unset = NULL) {
+  return isset($_SERVER[$v]) && (is_array($_SERVER[$v]) || 0 < strlen(trim($_SERVER[$v]))) 
+    ? (is_array($_SERVER[$v]) ? $_SERVER[$v] : trim($_SERVER[$v]))
+    : $if_unset; 
+}
+
 
 require_once( SYSTEM_BASE . "/../PHPWebDriver/WebDriver.php");
 

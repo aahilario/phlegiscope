@@ -18,21 +18,6 @@ class SeekAction extends LegiscopeBase {
     $this->debug_handler_names = C('DEBUG_HANDLER_NAMES');
   }
 
-  protected function empty_unauthed_json_reply( $functionname, $linenum, $json_reply = [] )
-  {
-    if ( !function_exists('wp_get_current_user') ) {
-      $this->syslog( __FUNCTION__,__LINE__,"(marker) CRITICAL - Unable to test if JSON request originates from authenticated client.");
-      return false;
-    }
-    $user = wp_get_current_user();
-    if ( !$user->exists() ) {
-      $this->
-        $this->syslog( __FUNCTION__,__LINE__,"(marker) Unauthenticated user {$_SERVER['REMOTE_ADDR']} attempting Legiscope ".__FUNCTION__." operation.");
-      raw_json_reply($json_reply);
-    }
-    return true;
-  } 
-
   function seek() {/*{{{*/
 
     // Perform an HTTP GET

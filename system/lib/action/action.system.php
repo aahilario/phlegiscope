@@ -44,7 +44,7 @@ class SystemAction extends LegiscopeBase {
     $fragment = $this->filter_request('fragment',NULL,255,'/[^a-z]/i');
 
     $this
-      ->syslog( __FUNCTION__,__LINE__,"(marker) Handle Legiscope panel {$method} request for {$fragment}")
+      ->syslog( __FUNCTION__,__LINE__,"(marker) Handle Legiscope panel {$method} request for {$fragment} " . get_option('blog_public') ? "Public" : "Private")
       ->recursive_dump($_REQUEST, "(marker) ---")
       ->empty_unauthed_json_reply( __FUNCTION__, __LINE__ );
 

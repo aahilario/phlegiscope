@@ -227,7 +227,7 @@ class LegiscopeBase extends SystemUtility {
         $request_uri = explode('/',trim($host,'/'));
       } else {
         if ( !$this->get_hostmodel()->in_database() ) {
-          $this->get_hostmodel()->stow();
+          $this->get_hostmodel()/*->set_linkset_root(TRUE)*/->stow();
         } else  {
           $this->get_hostmodel()->increment_hits(TRUE);
         }
@@ -381,18 +381,18 @@ class LegiscopeBase extends SystemUtility {
 
   }/*}}}*/
 
+  function raw_json_reply(array & $json_reply) {
+    $pagecontent = static::safe_json_encode($json_reply);
+    header('Content-Type: application/json');
+    header('Content-Length: ' . strlen($pagecontent));
+    echo $pagecontent;
+    exit(0);
+  }
+
   function exit_cache_json_reply(array & $json_reply, $class_match = 'LegiscopeBase') {/*{{{*/
     if ( get_class($this) == $class_match ) {/*{{{*/
       //$cache_force = $this->filter_post('cache');
-      $pagecontent = static::safe_json_encode($json_reply);
-      header('Content-Type: application/json');
-      header('Content-Length: ' . strlen($pagecontent));
-      $this->flush_output_buffer();
-      // if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-      //  file_put_contents($this->seek_cache_filename, $pagecontent);
-      //}
-      echo $pagecontent;
-      exit(0);
+      $this->raw_json_reply($json_reply);
     }/*}}}*/
   }/*}}}*/
 
@@ -1927,6 +1927,13 @@ EOH;
     // See ../phlegiscope.php add_action(__FUNCTION__, ...)
     // Intercept GET request where REQUEST_URI contains prefix '^/constitutions/' or '^/stash/'
 
+    closelog();
+    openlog( basename(__FILE__), LOG_PID | LOG_NDELAY, LOG_LOCAL1 );
+    syslog( LOG_INFO, "TICKER TICKER TICKER {$_SERVER['REMOTE_ADDR']}");
+    
+    if ( function_exists('wp_get_current_user') )
+      syslog( LOG_INFO, "AUTHABLE AUTHABLE AUTHABLE {$_SERVER['REMOTE_ADDR']}");
+
     // Only accept up to 255 characters in REQUEST_URI
     $restricted_request_uri = substr($_SERVER['REQUEST_URI'], 0, 255); 
     if ( 1 === preg_match('/^\/constitutions\//i', $restricted_request_uri) ) {
@@ -1958,6 +1965,9 @@ EOH;
       header('Content-Type: text/json');
       header('Content-Length: ' . strlen($response_json));
       die($response_json);
+    }
+    else {
+      static::model_action();
     }
   }/*}}}*/
 

@@ -21,11 +21,22 @@ class SeekAction extends LegiscopeBase {
   function seek() {/*{{{*/
 
     // Perform an HTTP GET
+    $json_reply   = array();
+
+    if ( function_exists('wp_get_current_user') ) {
+      $user = wp_get_current_user();
+      if ( !$user->exists() ) {
+        $this->
+          $this->syslog( __FUNCTION__,__LINE__,"(marker) Unauthenticated user {$_SERVER['REMOTE_ADDR']} attempting Legiscope ".__FUNCTION__." operation.");
+          raw_json_reply($json_reply);
+      }
+    }
+    else {
+      $this->syslog( __FUNCTION__,__LINE__,"(marker) CRITICAL - Unable to test if JSON request originates from authenticated client.");
+    }
+
     ob_start();
 
-    $invocation_delta = microtime(TRUE);
-
-    $json_reply   = array();
     $this->update_existing = $this->filter_post('update') == 'true'; 
     $modifier        = $this->filter_post('modifier');
     $metalink        = $this->filter_post('metalink');

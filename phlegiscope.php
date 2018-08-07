@@ -14,6 +14,7 @@ License: Unspecified
 define( 'DEBUG_PHLEGISCOPE', TRUE );
 
 require_once('system/wordpress-adapter.php');
+// Termination may occur here, in LegiscopeBase::model_action()
 require_once('system/core.php');
 
 ////////////////////////////////////////////////////////////////

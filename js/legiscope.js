@@ -497,11 +497,11 @@ function initialize_systemrootlinks() {
           var hash = record.hash;
           var link = $(document.createElement('LI'))
             .append($(document.createElement('A'))
-                .addClass('legiscope-remote')
-                .attr('href','http://'+host)
-                .attr('id',hash)
-                .text(host)
-                );
+              .addClass('legiscope-remote')
+              .attr('href','http://'+host)
+              .attr('id',hash)
+              .text(host)
+            );
           $('#systemrootlinks').append(link);
         }
       }
@@ -741,6 +741,7 @@ function initialize_authentication_inputs() {
 }  
 
 function initialize_spider() {
+  setTimeout(function(){
   $('#siteURL').keydown(function(e){
     if( $(e).attr('keyCode') == 13) {
       load_content_window($(this).val(), $(e).attr('metaKey'), null, null);
@@ -752,6 +753,7 @@ function initialize_spider() {
   initialize_remote_links();
   initialize_spider_tabs();
   initialize_hot_search('[id=keywords]','/keyword/');
+  },1000);
 }
 
 var match_timeout = null;

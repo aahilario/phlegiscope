@@ -16,7 +16,7 @@ class SystemAction extends LegiscopeBase {
   }
 
   function systemrootlinks( $method )
-  {
+  {/*{{{*/
     if ( !($method == "GET") )
       $this->raw_json_reply([]);
 
@@ -30,16 +30,17 @@ class SystemAction extends LegiscopeBase {
     $json = [ 'links' => [] ];
 
     while ( $hostmodel->recordfetch($record) ) {
-        $hostmodel->syslog( __FUNCTION__,__LINE__,"(marker) -- {$record['hostname']}");
-        $json['links'][] = [ 'host' => $record['hostname'], 'hash' => $record['hostname_hash'] ];
+      $hostmodel->syslog( __FUNCTION__,__LINE__,"(marker) -- {$record['hostname']}");
+      $json['links'][] = [ 'host' => $record['hostname'], 'hash' => $record['hostname_hash'] ];
     }
 
     $this->raw_json_reply( $json );
-  }
+  }/*}}}*/
 
   function system()
-  {
+  {/*{{{*/
 
+    // TODO: Entrypoint is in LegiscopeBase::wordpress_init() -> model_action() 
     $method   = $this->filter_server('REQUEST_METHOD');
     $fragment = $this->filter_request('fragment',NULL,255,'/[^a-z]/i');
 
@@ -52,18 +53,13 @@ class SystemAction extends LegiscopeBase {
     if ( method_exists( $this, $fragment ) && is_callable( [ $this, $fragment ], FALSE, $callable_method ) )
       call_user_func( [ $this, $fragment ], $method );
 
-    $cache_force = $this->filter_post('cache');
-    $json_reply  = array('std' => 'class');
-    $response    = json_encode($json_reply);
-    header('Content-Type: application/json');
-    header('Content-Length: ' . strlen($response));
-    $this->flush_output_buffer();
-    if ( C('ENABLE_GENERATED_CONTENT_BUFFERING') || ($cache_force == 'true') ) {
-      file_put_contents($this->seek_cache_filename, $response);
-    }
-    echo $response;
+    $noresponse = [];
+    $this
+      ->raw_json_reply( $noresponse );
+
     exit(0);
-  }
+
+  }/*}}}*/
 
 }
 

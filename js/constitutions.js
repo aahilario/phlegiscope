@@ -203,8 +203,47 @@ Lecturer.prototype =
   }//}}}
   ,
 
+  editable_link_click_event : function(event)
+  {//{{{
+    var clickable = event.target;
+    var clickable_id = $(clickable).attr('id').replace(/^link-/,'');
+    event.preventDefault();
+    event.stopPropagation();
+    document.title = $(clickable).text();
+    $('#comment-title').val($(clickable).text());
+    $('#comment-url').val($(clickable).attr('href'));
+    $('#comment-summary').val($('#comment-'+clickable_id).text());
+    $('#comment-url').data('match',clickable_id);
+  }//}}}
+  ,
+
+  remove_comment_link : function(event)
+  {//{{{
+    var Self = this;
+    var clickable = event.target;
+    var containing_table = $(clickable).parentsUntil('table').parent().first();
+    jQuery.ajax({
+      type : 'DELETE',
+      url  : '/stash/'+$(clickable).data('section')+'/'+$(clickable).attr('id'),
+      cache : false,
+      dataType : 'json',
+      async : true,
+      beforeSend : (function(jqueryXHR, setttings) {
+      }),
+      complete : (function(jqueryXHR, textStatus) {
+      }),
+      success  : (function(data, httpstatus, jqueryXHR) {
+        jQuery.each($(containing_table).find('TR[class*=comment-target]'),function(dummy,tr){
+          $(tr).removeClass('comment-target').find('TD').first().click();
+        });
+      })
+    });
+  }//}}}
+  ,
+
   construct_commentary_box : function(data,row,colspan)
   {//{{{
+    var Self = this;
     var slug = data && data.slug ? '-'+data.slug : '';
     var new_cell = $(document.createElement('TD'))
       .attr('colspan',colspan)
@@ -218,9 +257,20 @@ Lecturer.prototype =
       .addClass('commentary-boxes')
       .append(new_cell)
       ;
+    jQuery.each($(new_row).find('A[class~=editable]'),function(linkindex, anchor){
+      $(anchor).click(Self.editable_link_click_event);
+    });
+    jQuery.each($(new_row).find('[class~=trash]'),function(linkindex, clickable){
+      $(clickable)
+        .data('section',data.slug)
+        .click(Self.remove_comment_link);
+    });
     $('#page').find('[class~=commentary-boxes]').hide();
     $('#page').find('[id=commentary-box'+slug+']').empty().remove();
-    $(row).after(new_row);
+    $(row)
+      .data('columns', colspan )
+      .addClass('comment-target')
+      .after(new_row);
   }//}}}
   ,
 
@@ -274,6 +324,15 @@ Lecturer.prototype =
     var links = new Array();
     var row = $(self).parents('TR').first();
     var colspan = 0;
+    // Remove 'comment-target' class from all rows in this cell's parent table
+    jQuery.each($(row)
+      .parentsUntil('table')
+      .first()
+      .parent()
+      .find('TR[class~=comment-target]'),
+      function(dummy,tr){
+        $(tr).removeClass('comment-target');
+      });
     // Count visible columns in the row containing this cell.
     jQuery.each($(row).find('TD:visible'),function(column_index, td){
       var t_colspan = $(td).attr('colspan');
@@ -292,7 +351,7 @@ Lecturer.prototype =
         data     : { 
           sections : links,
           selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id'),
-          slug     : $(self).parentsUntil('TABLE').parent().attr('id')
+          slug     : $(self).parentsUntil('TABLE').parent().attr('id'),
         },
         cache    : false,
         dataType : 'json',
@@ -310,13 +369,16 @@ Lecturer.prototype =
             var title = $('#comment-title').val();
             var link  = $('#comment-url').val();
             var summary = $('#comment-summary').val();
+            var match = $('#comment-url').data('match');
             if ( link.length > 0 && title.length > 0 )
               jQuery.ajax({
                 type     : 'POST',
                 url      : '/stash/'+slug,
                 data     : {
                   selected : $(self).find('A').attr('id') === undefined ? null : $(self).find('A').attr('id').replace(/^a-/i,''),
+                  column   : $(self).data('index'),
                   slug     : slug,
+                  match    : match,
                   title    : title,
                   link     : link,
                   summary  : summary,
@@ -330,6 +392,7 @@ Lecturer.prototype =
                 success  : (function(data, httpstatus, jqueryXHR) {
                   Self.construct_commentary_box(data,row,colspan);
                   $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
+                  $('#comment-url').data('match',null);
                 })
               });
           });
@@ -604,7 +667,9 @@ Lecturer.prototype =
               .replace(/((provided )?(for )?by law)/i, '<span style="color: red; font-weight: bold">$1</span>')
               .replace(/^SECTION ([0-9]{1,})./i, '<strong>SECTION $1.</strong>')
               ;
-            $(td).html(ww);
+            $(td)
+              .data('index',column_index)
+              .html(ww);
             Self.set_section_cell_handler(column_index,slug,td);
           });
         });
@@ -642,11 +707,10 @@ Lecturer.prototype =
   }//}}}
   ,
 
-  prepare_table_presentation : function(index,table)
+  prepare_table_presentation : function(Self,index,table)
   {//{{{
 
     // Table context
-    var Self = this;
     var tabledef = { 
       n : index,
       title : null,
@@ -678,13 +742,14 @@ Lecturer.prototype =
       var row_visible_cells = 0;
 
       jQuery.each($(tr).children(), function(td_index,td){//{{{
+
         // TD context
         // 0. Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
         // 1. Locate and modify toc-section anchors
         // 2. Modify substrings "Section XXX" and convert to links pointing WITHIN the Article table. 
         // 3. Apply column span mod and collapse middle columns
 
-        if ( Self.enable_stash_code > 0 ) {
+        if ( this.enable_stash_code > 0 ) {
           if ( undefined === tabledef.sections[td_index] )
             tabledef.sections[td_index] = {
               current_ident   : null,
@@ -695,11 +760,8 @@ Lecturer.prototype =
             };
         }
 
-        // Modify table cells: Mark cells by column (1987 Consti and Draft Provisions)
-        $(td)
-          .data('index',td_index)
-          // Force automatic height computation, override WordPress editor
-          .css({'height' : 'auto', 'vertical-align' : 'top'});
+        // Force automatic height computation, override WordPress editor
+        $(td).css({'height' : 'auto', 'vertical-align' : 'top'});
 
         // Add column classname to ConCom draft sections
         if ( td_index > 0 ) {
@@ -707,8 +769,9 @@ Lecturer.prototype =
         }
 
         // Identify table to which this cell belongs
-        //$(td).mouseover(Self.mark_highlighted_cell);
-        $(td).mouseover(function(event){Self.mark_highlighted_cell(event);});
+        $(td).mouseover( function(event){
+          Self.mark_highlighted_cell(event);
+        });
 
         // 1. Locate and modify toc-section anchors: Make links point to /constitutions/ section preview. 
         $(td).find('[class*=toc-section]').each(function(){
@@ -904,7 +967,7 @@ Lecturer.prototype =
     
     // Stylesheet injection
     // Add external link icon to custom CSS
-    var wp_custom_css = $('head').find('style#wp-custom-css').text() + ".external-link { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAXklEQVQoka2QwQ3AMAwCs1N28k7eiZ3oI7IcU6efBomXOREyxhUZ2brTdNAcVB2BaJgCVcDAalJLXsB+iLAjm1pAwzHWHD3gWMcMg/ERMjKfFOHVqMEGqEM/gKP/6gE2f+h+Z5P45wAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 17px; }";
+    var wp_custom_css = $('head').find('style#wp-custom-css').text() + ".external-link { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAXklEQVQoka2QwQ3AMAwCs1N28k7eiZ3oI7IcU6efBomXOREyxhUZ2brTdNAcVB2BaJgCVcDAalJLXsB+iLAjm1pAwzHWHD3gWMcMg/ERMjKfFOHVqMEGqEM/gKP/6gE2f+h+Z5P45wAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 17px; } .trash { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAAH6ji2bAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4ggJDh0UNQiBCQAAAZhJREFUOMvF1D9rVFEQBfDfy0ZRLDYBo4iVjY3CCmLhn05wG2tbUfwENhZ2Cgr6EQJhOwttLEXURgMhlbETttIQYm8K42YtPE+uNzFZUPDA8ObdmXl37jlzHz+xocAUhlN5GZeR+QYDHGrDX5qd8jp5nsBZnMaBNjhbZy9nobUedPEe7zDddgVNjDaCVXxVoZPNVjAXfwmHMVMmXsTzbHwG5+L38AlH2sRujr+SfhbxLG0Myyb3RFP0uIaFKr4/rF2pC+dD0kYOtA0zOeFSEubS72yhi15FeW3LLblr+IyrRV+bSbqHR+XWwxQ9jW5T0XAQ6rbRU2rZ1CM4ESZOnK7e14u5Xd1JmZf4gG9V4U0cw6izi7QP8SISnkcft/AEB/F6t5locBc3CoaOh/f1quYo9uUIrXgLeFBesjsp3sIo/iQ2Ss1mvvEbuhF8kA77uBD/cqzJWj/+IDXdP6lSXt3H+IhruJ/1N7iNk3j1V/Pwzwfsv32w5nAc/ka4VKjYT3wL14ucTv0/rnEq1/n7Hj+NcXLepuYXfgAndG9Ps8hKVAAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 10px; padding-right: 10px; height: 16px;} ";
 
     $('head').find('style#wp-custom-css').text(wp_custom_css);
 
@@ -968,7 +1031,9 @@ Lecturer.prototype =
       $('#page').append(html_extractor);
     }
 
-    jQuery.each($('div.site-inner').find('table'),Self.prepare_table_presentation);
+    jQuery.each($('div.site-inner').find('table'),function(index,table){
+      Self.prepare_table_presentation(Self,index,table);
+    });
 
     if ( this.enable_html_extractor > 0 ) 
     {//{{{

@@ -48,13 +48,30 @@ class ConstitutionCommentaryModel extends DatabaseUtility {
     return $result;
   }/*}}}*/
 
-  function store_commentary_record( $commentary_record, $stow_data )
+  function store_commentary_record( & $commentary_record, $stow_data )
   {/*{{{*/
     $commentary_id = $this
       ->syslog( __FUNCTION__, __LINE__, "(marker) -- Inserting commentary for Section ID#{$stow_data['section']} {$stow_data['linkhash']}..." )
       ->set_contents_from_array($stow_data)
       ->stow();
-    if ( !(0 < $commentary_id) ) {
+    if ( 0 < $commentary_id ) {
+      $join_id = $this
+        ->get_join_object('section','join')
+        ->set_id(NULL)
+        ->set_constitution_commentary($commentary_id)
+        ->set_constitution_section($stow_data['section'])
+        ->stow();
+      $this
+        ->syslog( __FUNCTION__, __LINE__, "(marker) -- Created join [{$commentary_id},{$stow_data['section']}] #{$join_id}" );
+
+      $commentary_record = $stow_data;
+      $commentary_record['id'] = $commentary_id;
+      $commentary_record['section'] = [
+        'join' => ['id' => $join_id ],
+        'data' => ['id' => $commentary_record['section'] ]
+      ];
+    }
+    else {
       $this
         ->syslog( __FUNCTION__, __LINE__, "(marker) -- Unable to record commentary link #___.{$stow_data['section']}.{$variants_record['id']}  {$component['link']} ({$linkhash})." );
 

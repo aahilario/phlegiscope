@@ -88,7 +88,9 @@ class ConstitutionSectionModel extends DatabaseUtility {
     // SectionVariants <- SectionSectionVariantJoin <-> Section
     $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
     $sql = <<<EOS
-SELECT a.section_variant, s2.`id` section, s2.`slug`, cm.`id` commentary, cm.`id` commentary, cm.`title`, cm.`link`, cm.`linkhash`, cm.`approved`, cm.`summary` FROM (
+SELECT a.section_variant, csj.`id` commentary_section, 
+s2.`id` section, s2.`slug`, cm.`id` commentary, cm.`summary`, 
+cm.`title`, cm.`link`, cm.`linkhash`, cm.`approved`, cm.`added`, cm.`updated` FROM (
   SELECT v.id section_variant FROM
     `constitution_section_model` s1 
     LEFT JOIN `constitution_section_constitution_section_variants_join` sj
@@ -118,6 +120,7 @@ EOS;
           'link'    => $section_record['link'],
           'title'   => $section_record['title'],
           'summary' => $section_record['summary'],
+          'join_id' => $section_record['commentary_section'],
         ];
       }
       $all_section_records['linkset']['links'] = $n;

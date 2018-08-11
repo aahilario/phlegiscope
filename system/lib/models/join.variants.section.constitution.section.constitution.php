@@ -38,7 +38,7 @@ class ConstitutionSectionConstitutionSectionVariantsJoin extends DatabaseUtility
 
     $keys = [];
     foreach ( $collected_sections as $path ) 
-      $keys[] = $path['section']; 
+      $keys[$path['section']] = $path['section']; 
 
     $section_keys = join(',',$keys);
 

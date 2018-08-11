@@ -1237,9 +1237,11 @@ EOH;
   static function handle_stash_post( & $response, $restricted_request_uri, $cache_path ) 
   {/*{{{*/
 
-    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE); 
+    $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
+    $path_hash = hash('sha256', $path_part.NONCE_SALT);
+    $match_hash = substr($_REQUEST['match'],0,80);
 
-    if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$_SERVER['REQUEST_METHOD']} REQUEST_URI: {$restricted_request_uri}");
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE); 
 
     if (!(C('ENABLE_SECTION_STASHING') == TRUE)) 
       return;
@@ -1250,16 +1252,42 @@ EOH;
       return;
 
     // Accept caching request
-    $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
-    $path_hash = hash('sha256', $path_part.NONCE_SALT);
+    $comment   = new ConstitutionCommentaryModel();
+    $section   = new ConstitutionSectionModel();
     $slug      = substr($_REQUEST['slug'],0,255);
     $title     = stripcslashes(htmlspecialchars(substr($_REQUEST['title'],0,255)));
-    $selected  = substr($_REQUEST['selected'],0,255);
+    $selected  = preg_replace('/[^0-9a-z-]/i','',substr($_REQUEST['selected'],0,255));
     $summary   = substr($_REQUEST['summary'],0,4000);
+    $column    = substr($_REQUEST['column'],0,2);
     $link      = array_key_exists('link', $_REQUEST) ? substr($_REQUEST['link'],0.255) : NULL;
+    $links     = filter_request('links',[]);
 
     $linkset   = array();
     // path_hash refers to the Article table ID; unused presently
+
+    if ( $debug_method )
+      $comment
+      ->syslog(__FUNCTION__, __LINE__,  "(marker) -- {$_SERVER['REQUEST_METHOD']} Match '{$match_hash}' Path '{$path_hash}' REQUEST_URI: {$restricted_request_uri}")
+      ->syslog(__FUNCTION__, __LINE__,  "(marker) -- REQUEST['links'] is " . (is_array($_REQUEST['links']) ? 'an array' : 'not an array') )
+      ->recursive_dump($_REQUEST, "(marker) -- ")
+      ->recursive_dump($links, "(marker) L- ")
+      ;
+
+    // Assign first nonempty Section slug from submitted links
+    if ( empty($selected) ) {/*{{{*/
+      if ( is_array($links) ) foreach ( $links as $section_slug ) {
+        $section_slug = preg_replace('/[^0-9a-z-]/i','',substr($section_slug, 0, 255));
+        if ( 0 < strlen( $section_slug ) ) {
+          $selected = $section_slug;
+          break;
+        }
+      } 
+      if ( empty($selected) ) {
+        $no_reply = [];
+        static::$singleton->raw_json_reply($no_reply);
+      }
+    }/*}}}*/
+
     if ( is_array($_REQUEST['sections']) ) foreach ( $_REQUEST['sections'] as $index => $contents ) {/*{{{*/
       if ( is_array($contents['contents']) ) foreach ( $contents['contents'] as $content ) {
         // Skip empty ident
@@ -1288,16 +1316,86 @@ EOH;
         syslog( LOG_INFO, "(marker) -- Target file {$filename}" );
       }
     }/*}}}*/
+
+    if ( $debug_method ) {
+      syslog( LOG_INFO, "(marker) --  Section: {$selected} {$section_file_present}" );
+      syslog( LOG_INFO, "(marker) --     Slug: {$slug}" );
+      syslog( LOG_INFO, "(marker) --    Title: {$title}" );
+      syslog( LOG_INFO, "(marker) --     Link: {$link}" );
+      syslog( LOG_INFO, "(marker) --  Summary: {$summary}" );
+      syslog( LOG_INFO, "(marker) --   Column: {$column}" );
+      syslog( LOG_INFO, "(marker) --     File: {$filepath}" );
+    }
+
     if ( !is_null($link) && !empty($selected) ) {
+
+      $section_record = [];
+      $section
+        ->fetch_by_section_slug( $section_record, $selected )
+        ->recursive_dump( $section_record, "(marker) -- SE --");
+
+      if ( isset($section_record['id']) && 0 < intval($section_record['id']) ) {
+
+        $linkhash = hash('sha256',$link.NONCE_SALT);
+
+        $commentary_record = [];
+
+        if ( !$comment->fetch_by_linkhash($commentary_record, $linkhash) ) {/*{{{*/
+
+          $stow_data =  [ 
+            'section'  => $section_record['id'],
+            'linkhash' => $linkhash,
+            'summary'  => $summary,
+            'title'    => $title,
+            'link'     => $link,
+            'approved' => 0,
+            'added'    => date('Y-m-d H:i:s'),
+            'updated'  => date('Y-m-d H:i:s'),
+          ];
+
+          // This automatically creates the Join record
+          $commentary_id = $comment
+            ->set_id(NULL)
+            ->store_commentary_record( $commentary_record, $stow_data );
+
+          $comment
+            ->syslog(__FUNCTION__, __LINE__,  "(marker) -- New commentary record ID #{$commentary_id}")
+            ->recursive_dump($commentary_record, "(marker) -- CM -- ");
+
+        }/*}}}*/
+        else {/*{{{*/
+          // If a comment is being submitted that contains a preexisting link,
+          // ensure that we don't create a duplicate join.
+          // TODO: Multiple joins to a single commentary URL (e.g. an opinion article
+          //   relevant to multiple sections of the Constitution) should probably
+          //   contain independent summary text.  This is best recorded in the join.
+          $comment
+            ->syslog(__FUNCTION__, __LINE__,  "(marker) -- Existing commentary record ID #{$commentary_record['id']}")
+            ->recursive_dump($commentary_record, "(marker) -- CM -- ");
+
+
+          $comment
+            ->get_join_object('section','join')
+            ->set_id(NULL)
+            ->where([
+              'constitution_commentary' => $commentary_record['id'],
+              'constitution_section' => $section_record['id']
+            ])
+            ->record_fetch_continuation($join_record)
+            ->recursive_dump($join_record, "(marker) -- CMJ -- ");
+
+        }/*}}}*/
+
+      }
 
       // Collect the sections to which the submitted link applies
       $match = NULL;
-      if ( is_array($_REQUEST['links']) ) foreach ( $_REQUEST['links'] as $index => $section ) {
-        $match = ( $section == $selected ) ? " (THIS)" : "";
-        if ( $debug_method ) syslog( LOG_INFO, "(marker) --  RQ: {$index} -> {$section}{$match}" );
+
+      if ( is_array($links) && 0 < count($links) ) {
+        $match = array_key_exists($selected, array_flip($links));
       }
 
-      $section_filename =is_null($match) 
+      $section_filename = is_null($match) 
         ? hash('sha256', $slug.NONCE_SALT)
         : hash('sha256', $selected.NONCE_SALT)
         ;
@@ -1305,15 +1403,6 @@ EOH;
       $filepath = "${cache_path}/{$section_filename}";
       $section_file_present = file_exists($filepath);
       $section_file_mark = $section_file_present ? "Present" : "???";
-
-      if ( $debug_method ) { 
-        syslog( LOG_INFO, "(marker) --     File: {$filepath}" );
-        syslog( LOG_INFO, "(marker) --  Section: {$selected} {$section_file_present}" );
-        syslog( LOG_INFO, "(marker) --     Slug: {$slug}" );
-        syslog( LOG_INFO, "(marker) --    Title: {$title}" );
-        syslog( LOG_INFO, "(marker) --     Link: {$link}" );
-        syslog( LOG_INFO, "(marker) --  Summary: {$summary}" );
-      }
 
       // The link is associated with the selected section, stored in the 
       // same flat file as the section text.
@@ -1343,7 +1432,16 @@ EOH;
         syslog( LOG_INFO, "Corrupt section file " . basename($filepath) );
       }/*}}}*/
       else {/*{{{*/
-        
+        // Parameters:  Constitution section slug
+        //   Comment record parameters
+        // Adding a comment record to an article:
+        // - Retrieve Section S and SectionVariant V record associated with the submission.
+        //   -  
+        // - Test for presence of a comment record C (hashed link matches
+        //   constitution_commentary_model.linkhash)
+        //   - If C does not exist, create it
+        // - Test for presence of join record J associating comment to constitution section
+        //   - If J does not exist, create it
         file_put_contents( "{$filepath}.lock", $current_json );
 
         $current_json = NULL;
@@ -1405,7 +1503,12 @@ EOH;
     $slug               = $response['slug'];
 
     $user = wp_get_current_user();
+
+    $link_attributes = [ 'external-link' ];
+
     if ( $user->exists() ) {
+      $response['editable'] = 1;
+      $link_attributes[] = 'editable';
       $separator = NULL;
       if ( 0 < count($commentary_links) )
         $separator = '<hr/>';
@@ -1417,18 +1520,27 @@ EOH;
 <input id="comment-send" value="Record" type="submit" class="button button-primary button-large" style="display: block; float: right; margin-top: 4px;"/>
 EOH;
     }
+
     if ( 0 < count($commentary_links) ) {
+      $link_attributes = join(' ', $link_attributes);
       foreach( $commentary_links as $linkhash => $components ) {
         $components['title'] = stripcslashes($components['title']);
         $components['summary'] = stripcslashes($components['summary']);
         $summary_comment = NULL;
         if ( 0 < strlen($components['summary']) ) { 
           $summary_comment =<<<EOH
-<div class="constitution-commentary-comment" style="font-family: Arial, Helvetica; display: block; float: right; clear: both; margin-left: 20%; margin-top: 1em; margin-bottom: 1em;">{$components['summary']}</div>
+<div id="comment-{$linkhash}" class="constitution-commentary-comment" style="font-family: Arial, Helvetica; display: block; float: right; clear: both; margin-left: 20%; margin-top: 1em; margin-bottom: 1em;">{$components['summary']}</div>
 EOH;
         }
+        $trash_link = $user->exists()
+          ? <<<EOH
+<span class="trash" title="Delete entry" id="delete-{$linkhash}-{$components['join_id']}">&nbsp;</span>
+EOH
+          : NULL
+          ;
         $commentary_linkset[] =<<<EOH
-<a class="external-link" href="{$components['link']}" target="_commentary" style="text-decoration: none !important;">{$components['title']}</a>
+{$trash_link}
+<a id="link-{$linkhash}" class="{$link_attributes}" href="{$components['link']}" target="_commentary" style="text-decoration: none !important;">{$components['title']}</a>
 {$summary_comment}
 EOH;
       }
@@ -1462,14 +1574,13 @@ EOH;
     $constitution_version    = NULL;
     $constitution_article    = NULL;
     $section_variants        = NULL;
-    $constitution_section    = NULL;
+    $constitution_section    = new ConstitutionSectionModel();
     $constitution_commentary = new ConstitutionCommentaryModel();
 
     if ( $user->exists() ) {/*{{{*/
       $constitution_version    = new ConstitutionVersionModel();
       $constitution_article    = new ConstitutionArticleModel();
       $section_variants        = new ConstitutionSectionVariantsModel();
-      $constitution_section    = new ConstitutionSectionModel();
     }/*}}}*/
 
     $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
@@ -1521,6 +1632,9 @@ EOH;
       // Derive source file/constitution_commentary_model.linkhash
       $filename = hash('sha256', $ident.NONCE_SALT);
       $filepath = "${cache_path}/{$filename}";
+
+      if ( empty($selected) )
+        $selected = $ident;
 
       // Fetch Section record
       if ( $user->exists() ) {/*{{{*/
@@ -1594,12 +1708,13 @@ EOH;
                 ->syslog( __FUNCTION__, __LINE__, "(marker) -->>> {$component['summary']}" )
                 ->store_commentary_record( $commentary_record, $stow_data );
 
-              if ( 0 < $commentary_id ) 
+              if ( 0 < $commentary_id ) { 
                 $collected_sections[] = [
                   'section'    => $section_record['id'],
                   'commentary' => $commentary_id,
                   'variants'   => $section_record['variant']
                 ];
+              }
 
             }/*}}}*/
             else
@@ -1616,9 +1731,29 @@ EOH;
               ->recursive_dump($commentary_record, "(marker) --<<<" );
           }
 
+          $component['join_id'] = isset($commentary_record['section']['join']['id'])
+            ? $commentary_record['section']['join']['id']
+            : 0;
           $commentary_links[$linkhash] = $component;
           if ( $debug_method ) $constitution_commentary->syslog( __FUNCTION__, __LINE__, "(marker) -- Variant #{$variants_record['id']} Stash Got link {$filename} {$component['link']}");
         }
+      }
+
+      // Now add database-stored links
+      $json = [ 'linkset' => ['links' => 0, 'link' => []] ];
+      $constitution_section
+        ->syslog( __FUNCTION__, __LINE__, "(marker) -- Retrieving related slugs {$selected}" )
+        ->fetch_related_sections( $json, $selected )
+        ->recursive_dump( $json, "(marker) -- RR --" );
+
+      foreach ( $json['linkset']['link'] as $linkhash => $component ) {
+        if ( !isset($component['join_id']) || !(0 < intval($component['join_id'])) )
+          continue; 
+        $commentary_links[$linkhash] = $component;
+        $constitution_section
+          ->syslog( __FUNCTION__, __LINE__, "(marker) -- xfer related section" )
+          ->recursive_dump( $component, "(marker) -- RR --" );
+
       }
 
       if ( $debug_method ) syslog( LOG_INFO, "(marker) -- {$filename} ({$ident}) " . strlen($section_json) );
@@ -1632,7 +1767,8 @@ EOH;
       //   - Sections of multiple Constitution versions are joined to this record.
       $constitution_commentary
         ->syslog(  __FUNCTION__, __LINE__, "(marker) -- Final Commentary - Section map")
-        ->recursive_dump($collected_sections, "(marker) --");
+        ->recursive_dump($collected_sections, "(marker) --")
+        ->recursive_dump($commentary_links, "(marker) -- CL -- ");
  
       $variant_join_obj = $constitution_section->get_join_object('variant','join');
 
@@ -1681,6 +1817,186 @@ EOH;
     $response['received'] = $_REQUEST['sections'];
     $response['slug']     = $slug;
 
+    self::generate_commentary_box( $response, $commentary_links );
+
+  }/*}}}*/
+
+  static function handle_stash_delete( & $response, $restricted_request_uri, $cache_path ) 
+  {/*{{{*/
+    // Data received:
+    // - $_REQUEST['fragment']: Link hash and join record ID 
+    // Generate markkup showing comments attached to comparable Sections 
+    //
+    // Relationships:
+    // Commentary -> Section -> SectionVariant -> Article -> Version
+    //
+    $user = wp_get_current_user();
+
+    $debug_method = C('DEBUG_'.__FUNCTION__,FALSE);
+
+    $constitution_commentary = new ConstitutionCommentaryModel();
+
+    $path_part = preg_replace('/^\/stash\//i','', $restricted_request_uri);
+    $components = '@^([a-z0-9-]{1,})\/delete-([a-z0-9]{64})-([0-9]{1,11})@';
+    $matches = [];
+    $result = preg_match_all( $components, $path_part, $matches );
+
+    $removables = [];
+
+    if ( $debug_method && $user->exists() ) {
+      $constitution_commentary->
+        syslog(  __FUNCTION__, __LINE__, "(marker) -- - --- {$path_part}")->
+        recursive_dump($matches, "(marker) -- {$result} --- ");
+    }
+
+    $comment_hash = isset($matches[2][0])
+      ? $matches[2][0]
+      : NULL;
+
+    if ( 1 === $result ) {
+      // Collect comment records
+      $constitution_commentary
+        ->join_all()
+        ->where( [ 'linkhash' => $matches[2][0] ] )
+        ->recordfetch_setup();
+
+      do {
+        $record = NULL;
+        $constitution_commentary
+          ->record_fetch_continuation($record);
+
+        if ( !is_null($record) )
+          $removables[] = $record;
+
+      } while ( !is_null($record) );
+
+      $constitution_commentary
+        ->syslog(  __FUNCTION__, __LINE__, "(marker) -- Removables: " . count($removables));
+
+      foreach ( $removables as $record ) {
+
+        $constitution_commentary
+          ->syslog(  __FUNCTION__, __LINE__, "(marker) --- -- - {$record['id']}")
+          ->recursive_dump($record,"(marker) --- -- -");
+
+        // Get Join object record ID
+        $join_id = isset($record['section']['join']['id']) && 0 < intval($record['section']['join']['id'])
+          ? $record['section']['join']['id']
+          : NULL;
+
+        // Obtain section filename hash
+        $section_slug = isset($record['section']['data']['slug'])
+          ? hash('sha256',$record['section']['data']['slug'].NONCE_SALT)
+          : NULL;
+
+        if ( !is_null($section_slug) ) {
+
+          $filepath = "{$cache_path}/{$section_slug}";
+
+          if ( file_exists("{$filepath}.lock") ) {
+            $constitution_commentary
+              ->syslog(  __FUNCTION__, __LINE__, "(marker) Section record {$record['id']} locked by existing {$filepath}.lock. Skipping.")
+              ;
+            continue;
+          }
+
+          if ( FALSE == file_put_contents( "{$filepath}.lock", file_get_contents($filepath) ) ) {
+            $constitution_commentary
+              ->syslog(  __FUNCTION__, __LINE__, "(marker) Unable to write lock file {$filepath}. Skipping.")
+              ;
+            continue;
+          }
+        }
+
+        // Delete the join record before deleting the comment from the DB
+        if ( is_null($join_id) ) {
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- -- - No join ID.  Skipping.");
+        }
+        else {
+          $join_object = $constitution_commentary
+            ->get_join_object('section','join');
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- -- - " . get_class($join_object))
+            ;
+          if ( C('ENABLE_STASH_DELETE',FALSE) ) {
+            try {
+              $join_object
+                ->set_id($join_id)
+                ->remove();
+            } 
+            catch ( Exception $e ) {
+              $constitution_commentary
+                ->syslog(  __FUNCTION__, __LINE__, "(marker) --- EE -- Exception while removing join #{$join_id}: " . $e->getMessage());
+            }
+
+          }
+        }
+
+        if ( 0 < intval($record['id']) ) {
+          $comment_id = $record['id'];
+          if ( C('ENABLE_STASH_DELETE',FALSE) ) 
+          {/*{{{*/
+            try {
+              $constitution_commentary
+                ->set_id($comment_id)
+                ->remove();
+            } 
+            catch ( Exception $e ) {
+              $constitution_commentary
+                ->syslog(  __FUNCTION__, __LINE__, "(marker) --- EE -- Exception while removing commentary record #{$comment_id}: " . $e->getMessage());
+            }
+          }/*}}}*/
+        }
+
+
+        // Remove the comment from JSON::linkset::link[] 
+        if ( is_null($section_slug) ) {
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- -- - No section ID.  Skipping.");
+        }
+        else if ( FALSE === ($cached_json = file_get_contents($filepath)) ) {
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- EE -- Unable to fetch");
+        }
+        else if ( FALSE === ($json = json_decode($cached_json, TRUE) ) ) {
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- EE -- Unable to decode JSON");
+        }
+        else if ( !isset($json['linkset']['link'][$comment_hash] ) ) {
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- EE -- No match for comment #{$comment_hash}");
+        }
+        else {
+
+          $removed = $json['linkset']['link'][$comment_hash];
+          unset($json['linkset']['link'][$comment_hash]);
+          $constitution_commentary
+            ->syslog(  __FUNCTION__, __LINE__, "(marker) --- -- - Removed '{$comment_hash}'")
+            ->recursive_dump($removed, "(marker) - RR --- ")
+            ->recursive_dump($json, "(marker) - VV --- ")
+            ;
+
+          if ( C('ENABLE_STASH_DELETE',FALSE) ) {/*{{{*/
+            if ( FALSE == file_put_contents($filepath, json_encode($json)) ) {
+              $constitution_commentary
+                ->syslog(  __FUNCTION__, __LINE__, "(marker) Unable to write updated cache file {$filepath}.")
+                ;
+            }
+            else {
+              $constitution_commentary
+                ->syslog(  __FUNCTION__, __LINE__, "(marker) Removing lock file {$filepath}.lock")
+                ;
+            }
+          }/*}}}*/
+        }
+        if ( file_exists("{$filepath}.lock") )
+          unlink("{$filepath}.lock");
+      }
+
+    }
+
+    $commentary_links = [];
     self::generate_commentary_box( $response, $commentary_links );
 
   }/*}}}*/
@@ -1752,9 +2068,8 @@ EOH;
 
       if ( array_key_exists('linkset', $json) ) {
 
-        // $related_records = [];
         $section_model
-          ->syslog( __FUNCTION__, __LINE__, "(marker) -- Retrieving related slugs" )
+          ->syslog( __FUNCTION__, __LINE__, "(marker) -- Retrieving related slugs {$path_part}" )
           ->fetch_related_sections( $json, $path_part )
           ->recursive_dump( $json, "(marker) -- RR --" );
 
@@ -1976,6 +2291,10 @@ EOH;
       else if ($method == 'GET') 
       {
         self::handle_stash_get( $response, $restricted_request_uri, $cache_path );
+      }
+      else if ($method == 'DELETE') 
+      {
+        self::handle_stash_delete( $response, $restricted_request_uri, $cache_path );
       }
 
       $response_json = json_encode( $response );

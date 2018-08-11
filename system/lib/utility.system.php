@@ -13,12 +13,12 @@ function C($constant_name, $if_unset = FALSE ) {
 
 function filter_request($v, $if_unset = NULL, $maxlen = 255, $filter_regex = NULL, $filter_repl = NULL)
 {
-  return isset($_REQUEST[$v]) && (is_array($_REQUEST[$v]) || 0 < strlen(trim($_REQUEST[$v]))) 
+  return isset($_REQUEST[$v])
     ? (is_array($_REQUEST[$v]) 
       ? $_REQUEST[$v] 
-      : is_null($filter_regex) 
+      : (is_null($filter_regex) 
         ? substr(trim($_REQUEST[$v]),0,$maxlen)
-        : preg_replace($regex, $filter_repl, substr($_REQUEST[$v],0,$maxlen)))
+        : preg_replace($regex, $filter_repl, substr($_REQUEST[$v],0,$maxlen))))
     : $if_unset; 
 }
 
@@ -128,8 +128,8 @@ class SystemUtility extends DatabaseUtility {
     return is_array($_SESSION) && array_key_exists($v,$_SESSION) ? $_SESSION[$v] : $if_unset; 
   }/*}}}*/
 
-  final protected function filter_request($v, $if_unset = NULL) { /*{{{*/
-    return isset($_REQUEST[$v]) && 0 < strlen(trim($_REQUEST[$v])) ? trim($_REQUEST[$v]) : $if_unset; 
+  final protected function filter_request($v, $if_unset = NULL, $maxlen = 255, $filter_regex = NULL, $filter_repl = NULL) { /*{{{*/
+    return filter_request($v, $if_unset, $maxlen, $filter_regex, $filter_repl); 
   }  /*}}}*/
 
   final protected function filter_post($v, $if_unset = NULL) {/*{{{*/

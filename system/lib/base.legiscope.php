@@ -1336,7 +1336,7 @@ EOH;
 
       if ( isset($section_record['id']) && 0 < intval($section_record['id']) ) {
 
-        $linkhash = hash('sha256',$link.NONCE_SALT);
+        $linkhash = hash('sha256',$link.NONCE_SALT.AUTH_SALT);
 
         $commentary_record = [];
 
@@ -1372,7 +1372,6 @@ EOH;
           $comment
             ->syslog(__FUNCTION__, __LINE__,  "(marker) -- Existing commentary record ID #{$commentary_record['id']}")
             ->recursive_dump($commentary_record, "(marker) -- CM -- ");
-
 
           $comment
             ->get_join_object('section','join')
@@ -1456,7 +1455,7 @@ EOH;
             'link' => array()
           ); 
 
-        $linkhash = hash('sha256', $link);
+        $linkhash = hash('sha256', $link.NONCE_SALT.AUTH_SALT);
 
         if ( array_key_exists( $linkhash, $json['linkset']['link'] ) ) { 
           $json['linkset']['link'][$linkhash]['updated'] = time();

@@ -1262,8 +1262,8 @@ EOH;
     $link      = array_key_exists('link', $_REQUEST) ? substr($_REQUEST['link'],0.255) : NULL;
     $links     = filter_request('links',[]);
 
-    $linkset   = array();
     // path_hash refers to the Article table ID; unused presently
+    $linkset   = array();
 
     if ( $debug_method )
       $comment
@@ -1372,6 +1372,13 @@ EOH;
           $comment
             ->syslog(__FUNCTION__, __LINE__,  "(marker) -- Existing commentary record ID #{$commentary_record['id']}")
             ->recursive_dump($commentary_record, "(marker) -- CM -- ");
+
+          $commentary_record['summary'] = $summary;
+          $commentary_record['title'] = $title;
+
+          $comment
+            ->set_contents_from_array($commentary_record)
+            ->stow();
 
           $comment
             ->get_join_object('section','join')
@@ -1528,7 +1535,7 @@ EOH;
         $summary_comment = NULL;
         if ( 0 < strlen($components['summary']) ) { 
           $summary_comment =<<<EOH
-<div id="comment-{$linkhash}" class="constitution-commentary-comment" style="font-family: Arial, Helvetica; display: block; float: right; clear: both; margin-left: 20%; margin-top: 1em; margin-bottom: 1em;">{$components['summary']}</div>
+<div id="comment-{$linkhash}" class="constitution-commentary-comment" style="font-family: Arial, Helvetica; display: block; float: right; clear: both; padding-left: 20%; margin-top: 1em; margin-bottom: 1em;">{$components['summary']}</div>
 EOH;
         }
         $trash_link = $user->exists()
@@ -1539,7 +1546,7 @@ EOH
           ;
         $commentary_linkset[] =<<<EOH
 {$trash_link}
-<a id="link-{$linkhash}" class="{$link_attributes}" href="{$components['link']}" target="_commentary" style="text-decoration: none !important;">{$components['title']}</a>
+<a id="link-{$linkhash}" class="{$link_attributes}" href="{$components['link']}" target="_commentary" style="color: #000;">{$components['title']}</a>
 {$summary_comment}
 EOH;
       }
@@ -2086,7 +2093,7 @@ EOH;
             : NULL;
           $microtemplate .= <<<EOH
 <div class="commentary-external-links" id="{$linkhash}">
-<a href="{$url}"><h3 style="font-family: Arial, Helvetica">{$title}</h3></a>
+<a href="{$url}"><h3 style="font-family: Arial, Helvetica;">{$title}</h3></a>
 {$summary}
 </div>
 
@@ -2283,17 +2290,17 @@ EOH;
         "status"    => 0,
       );
 
-      if ($method == 'POST') 
+      switch ( $method ) 
       {
-        self::handle_stash_post( $response, $restricted_request_uri, $cache_path );
-      }
-      else if ($method == 'GET') 
-      {
-        self::handle_stash_get( $response, $restricted_request_uri, $cache_path );
-      }
-      else if ($method == 'DELETE') 
-      {
-        self::handle_stash_delete( $response, $restricted_request_uri, $cache_path );
+        case 'POST':
+          self::handle_stash_post( $response, $restricted_request_uri, $cache_path );
+          break;
+        case 'GET': 
+          self::handle_stash_get( $response, $restricted_request_uri, $cache_path );
+          break;
+        case 'DELETE':
+          self::handle_stash_delete( $response, $restricted_request_uri, $cache_path );
+          break;
       }
 
       $response_json = json_encode( $response );

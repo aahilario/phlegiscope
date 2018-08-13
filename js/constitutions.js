@@ -126,7 +126,11 @@ Lecturer.prototype =
   {//{{{
     if ( undefined === id ) return;
     $('#toc').find('A').css({ 'background-color' : 'transparent' });
-    $('#toc').find('#link-'+id).css({ 'background-color' : '#DDD' });
+    jQuery.each($('#toc').find('#link-'+id),
+        function(dummy,a) {
+          $(a).css({ 'background-color' : '#DDD' });
+          document.title = $(a).text();
+        });
   }//}}}
   ,
 
@@ -139,19 +143,20 @@ Lecturer.prototype =
     var prevdist = maxdist;
     var prevrow;
 
-    jQuery.each($('#wpadminbar'),function(dummy,wpadminbar){
-      $('#toc').data('defer-viewport-scope',1);
-    });
-
-    if ( ( $('#toc').data('defer-viewport-scope') || 0 ) == 1 )
-      return;
-
     $('#toc').data('cell-in-viewport',false);
     $('#toc').data('in-scope-cell','');
 
     this.highlight_toc_entry($('#toc').data('toc-current'));
 
     $('#commentary-sidebar').fadeOut(400);
+
+    // Defer /stash/ GET action when in WP admin mode. 
+    jQuery.each($('#wpadminbar'),function(dummy,wpadminbar){
+      $('#toc').data('defer-viewport-scope',1);
+    });
+
+    if ( ( $('#toc').data('defer-viewport-scope') || 0 ) == 1 )
+      return;
 
     jQuery.each($('#page').find('H1'),function(h_index,h1) {
       if ( $('#toc').data('cell-in-viewport') ) return;
@@ -162,9 +167,10 @@ Lecturer.prototype =
           var bounding = tr.getBoundingClientRect();
           if ( bounding.top >= 0 && 
               bounding.bottom <= innerheight ) {
+            // Sample distance between bisector of the row and bisector of the viewport.
             var distmid = Math.abs((bounding.top + (bounding.height / 2)) - (innerheight / 2)); 
             if ( prevdist < distmid )
-              return;
+              return; // Skip sampling when minima already stored
             if ( distmid < maxdist ) {
               if (!('undefined' === typeof(prevrow)))
                 $(prevrow).removeClass('in-scope'); 
@@ -185,8 +191,9 @@ Lecturer.prototype =
               return;
             if ( 0 < $('#toc').data('in-scope-cell').length )
               return;
-            console.log($(td).attr('id'));
+            // console.log($(td).attr('id'));
             if (undefined === $(td).data('hidden')) {
+              // Store the slug for the first cell containing a link.
               jQuery.each($(td).find('A'),function(dummy,a){
                 $('#toc').data('in-scope-cell',$(a).attr('id').replace(/^a-/,''));
               });
@@ -195,6 +202,8 @@ Lecturer.prototype =
         });
       });
 
+      // Defer activating the /stash/ GET request until after the user
+      // has stopped scrolling for about a second and a half.
       if ( 0 < $('#toc').data('in-scope-cell').length ) {
         $('#toc').data('scroll_w',setTimeout(function(){
           $('#c-'+$('#toc').data('in-scope-cell')).click();
@@ -251,8 +260,6 @@ Lecturer.prototype =
     event.stopPropagation();
 
     anchor_id = $(self).attr('href').replace(/#/,'').replace(/^\/(constitutions\/)?/,prefix);
-
-    document.title = $(self).text();
 
     $('#'+anchor_id).parents('TD').first().each(function(){
       var self = this;

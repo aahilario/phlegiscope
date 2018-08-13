@@ -2253,10 +2253,10 @@ EOH;
 <body>
 <div class="selected_section" id="selected_section">
   <h3><a href="/#{$json['article']}">{$json['title']}</a></h3>
+{$microtemplate}
 {$constitution_version_title}
   <p>{$content} <a id="maindoc-jump-link" href="/#{$slug}">[See in context]</a></p>
 </div>
-{$microtemplate}
 {$timed_reload}
 </body>
 </html>

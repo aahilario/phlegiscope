@@ -139,6 +139,13 @@ Lecturer.prototype =
     var prevdist = maxdist;
     var prevrow;
 
+    jQuery.each($('#wpadminbar'),function(dummy,wpadminbar){
+      $('#toc').data('defer-viewport-scope',1);
+    });
+
+    if ( ( $('#toc').data('defer-viewport-scope') || 0 ) == 1 )
+      return;
+
     $('#toc').data('cell-in-viewport',false);
     $('#toc').data('in-scope-cell','');
 

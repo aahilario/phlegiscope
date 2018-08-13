@@ -115,6 +115,9 @@ Lecturer.prototype =
 
     // Add TOC div to WordPress content DIV
     $(container).append(commentview);
+    $('#commentary-sidebar').click(function(event){
+      $('#commentary-sidebar').fadeOut(400);
+    });
     return commentview;
   }//}}}
   ,
@@ -140,6 +143,8 @@ Lecturer.prototype =
     $('#toc').data('in-scope-cell','');
 
     this.highlight_toc_entry($('#toc').data('toc-current'));
+
+    $('#commentary-sidebar').fadeOut(400);
 
     jQuery.each($('#page').find('H1'),function(h_index,h1) {
       if ( $('#toc').data('cell-in-viewport') ) return;

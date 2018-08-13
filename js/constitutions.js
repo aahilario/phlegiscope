@@ -462,7 +462,8 @@ Lecturer.prototype =
       else
         colspan += +Number.parseInt(t_colspan).toFixed(0);
       jQuery.each($(td).find('A:visible'),function(a_index,anchor){
-        links[links.length] = $(anchor).attr('id').replace(/^a-/i,'');
+        if ( undefined === $(anchor).attr('id') ) return;
+        links[links.length] = ( $(anchor).attr('id') || $(anchor).attr('name') ).replace(/^a-/i,'');
       });
     });
     if ( links.length > 0 )

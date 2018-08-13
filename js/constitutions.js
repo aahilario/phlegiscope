@@ -172,7 +172,7 @@ Lecturer.prototype =
               $(tr).addClass('in-scope');
               prevrow = tr;
             }
-            $(tr).attr('title',"Distance "+distmid);
+            // $(tr).attr('title',"Distance "+distmid);
             prevdist = distmid;
           }
           else

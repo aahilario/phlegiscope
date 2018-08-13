@@ -99,7 +99,7 @@ Lecturer.prototype =
         'width'            : '380px',
         'max-height'       : ($(window).innerHeight()-90)+'px',
         'background-color' : '#F0F0F0',
-        'padding'          : '5px 0 5px 5px',
+        'padding'          : '5px 5px 5px 5px',
         'margin-left'      : '5px',
         'overflow-x'       : 'hidden',
         'display'          : 'block',
@@ -109,7 +109,7 @@ Lecturer.prototype =
         'z-index'          : '5',
         'top'              : '40px',
         'left'             : (+$(window).innerWidth()-420)+'px',
-        'border'           : 'solid 0px #FFF'
+        'border'           : 'solid 1px #DDD'
       })
     .text("");
 

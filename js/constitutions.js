@@ -729,9 +729,11 @@ Lecturer.prototype =
       .css(link_color)
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
       .click(function(event){
-        var self = this;
-        var targete = '#'+$(self).attr('id').replace(/link-/,'a-');
+        var self = event.target;
+        var targete = '#'+$(self).attr('id').replace(/^link-/,'a-');
+        var slug = $(self).attr('id').replace(/^link-/,'');
         Self.scroll_to_anchor(event,$(targete),'a-');
+        $('#toc').data('toc-current',slug);
         Self.highlight_toc_entry(slug);
       })
       ;

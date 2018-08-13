@@ -1766,6 +1766,7 @@ EOH;
         if ( !isset($component['join_id']) || !(0 < intval($component['join_id'])) )
           continue; 
         $commentary_links[$linkhash] = $component;
+        if ( $debug_method && $user->exists() )
         $constitution_section
           ->syslog( __FUNCTION__, __LINE__, "(marker) -- xfer related section" )
           ->recursive_dump( $component, "(marker) -- RR --" );

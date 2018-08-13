@@ -1758,8 +1758,11 @@ EOH;
       // Now add database-stored links
       $json = [ 'linkset' => ['links' => 0, 'link' => []] ];
       $constitution_section
-        ->syslog( __FUNCTION__, __LINE__, "(marker) -- Retrieving related slugs {$selected}" )
         ->fetch_related_sections( $json, $selected )
+        ;
+      if ( $debug_method && $user->exists() )
+      $constitution_section
+        ->syslog( __FUNCTION__, __LINE__, "(marker) -- Retrieving related slugs {$selected}" )
         ->recursive_dump( $json, "(marker) -- RR --" );
 
       foreach ( $json['linkset']['link'] as $linkhash => $component ) {
@@ -2279,10 +2282,13 @@ EOH;
 
     closelog();
     openlog( basename(__FILE__), LOG_PID | LOG_NDELAY, LOG_LOCAL1 );
-    syslog( LOG_INFO, "TICKER TICKER TICKER {$_SERVER['REMOTE_ADDR']}");
+    // syslog( LOG_INFO, "TICKER TICKER TICKER {$_SERVER['REMOTE_ADDR']}");
     
-    if ( function_exists('wp_get_current_user') )
-      syslog( LOG_INFO, "AUTHABLE AUTHABLE AUTHABLE {$_SERVER['REMOTE_ADDR']}");
+    if ( function_exists('wp_get_current_user') ) {
+      $user = wp_get_current_user();
+      if ( $user->exists() )
+        syslog( LOG_INFO, "AUTHABLE AUTHABLE AUTHABLE {$_SERVER['REMOTE_ADDR']}");
+    }
 
     // Only accept up to 255 characters in REQUEST_URI
     $restricted_request_uri = substr($_SERVER['REQUEST_URI'], 0, 255); 

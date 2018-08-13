@@ -491,7 +491,8 @@ Lecturer.prototype =
               });
           }
           Self.construct_commentary_box(data,row,colspan);
-          $(self).effect("highlight", {}, 1500);
+          if ( data && data.content )
+            $(self).effect("highlight", {}, 1500);
           $('#comment-send').click(function(event){
             var title = $('#comment-title').val();
             var link  = $('#comment-url').val();

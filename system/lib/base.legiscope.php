@@ -1167,12 +1167,16 @@ class LegiscopeBase extends SystemUtility {
     $themes_uri    = get_template_directory_uri();
     $spider_js_url = plugins_url('legiscope.js'    , LEGISCOPE_JS_PATH . '/' . 'legiscope.js');
     $fx_js_url     = plugins_url('jquery-ui.min.js', LEGISCOPE_JS_PATH . '/ui/' . 'jquery-ui-min.js');
+    $user_css_url  = plugins_url('legiscope.css',    LEGISCOPE_CSS_PATH. '/' . 'legiscope.css');
 
     wp_register_script('legiscope-spider', $spider_js_url, array('jquery'), NULL);
     wp_enqueue_script('legiscope-spider' , $spider_js_url, array('jquery'), NULL);
 
     wp_register_script('legiscope-fx'    , $fx_js_url    , array('jquery'), NULL);
     wp_enqueue_script('legiscope-fx'     , $fx_js_url    , array('jquery'), NULL);
+
+    wp_register_style('legiscope-css'    , $user_css_url , FALSE, '1.0.0' );
+    wp_enqueue_style('legiscope-css'     , $user_css_url );
 
     static::register_userland_menus();
 
@@ -1510,7 +1514,10 @@ EOH;
 
     $user = wp_get_current_user();
 
-    $link_attributes = [ 'external-link' ];
+    $link_attributes = $user->exists()
+      ? [ 'external-link' ]
+      : [ 'external-link-user' ]
+      ;
 
     if ( $user->exists() ) {
       $response['editable'] = 1;
@@ -1544,9 +1551,12 @@ EOH;
 EOH
           : NULL
           ;
+        $link = <<<EOH
+<a id="link-{$linkhash}" class="{$link_attributes}" href="{$components['link']}" target="_commentary">{$components['title']}</a>
+EOH
+          ;
         $commentary_linkset[] =<<<EOH
-{$trash_link}
-<a id="link-{$linkhash}" class="{$link_attributes}" href="{$components['link']}" target="_commentary" style="color: #000;">{$components['title']}</a>
+{$trash_link}{$link}
 {$summary_comment}
 EOH;
       }
@@ -1822,6 +1832,7 @@ EOH;
 
     $response['received'] = $_REQUEST['sections'];
     $response['slug']     = $slug;
+    $response['mode']     = $user->exists() ? 1 : 0;
 
     self::generate_commentary_box( $response, $commentary_links );
 

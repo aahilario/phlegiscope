@@ -37,9 +37,9 @@ Lecturer.prototype =
         'z-index'          : '10',
         'top'              : '50px',
         'left'             : '10px',
-        'border'           : 'solid 1px #DDD'
+        'border'           : 'solid 0px transparent'
       })
-      .text("");
+    .text("");
 
     // Add TOC div to WordPress content DIV
     $(container).append(tocdiv);
@@ -47,6 +47,7 @@ Lecturer.prototype =
       'prior'       : 0,
       'floatedge'   : 0,
       'timer_fade'  : 0,
+      'scroll_w'    : 0,
       'toc_hltime'  : 0,
       'table_count' : 0
     });
@@ -61,7 +62,6 @@ Lecturer.prototype =
       return null;
 
     var debugdiv = document.createElement('DIV');
-    // Generate empty TOC div
     $(debugdiv)
       .attr('id','debug')
       .css({
@@ -81,19 +81,41 @@ Lecturer.prototype =
         'left'             : (+$(window).innerWidth()-220)+'px',
         'border'           : 'solid 1px #DDD'
       })
-      .text("");
+    .text("");
 
     // Add TOC div to WordPress content DIV
     $(container).append(debugdiv);
-    $('#toc').data({
-      'prior'       : 0,
-      'floatedge'   : 0,
-      'timer_fade'  : 0,
-      'toc_hltime'  : 0,
-      'table_count' : 0
-    });
     return debugdiv;
 
+  }//}}}
+  ,
+
+  generate_user_commentview : function(container)
+  {//{{{
+    var commentview = document.createElement('DIV');
+    $(commentview)
+      .attr('id','commentary-sidebar')
+      .css({
+        'width'            : '380px',
+        'max-height'       : ($(window).innerHeight()-90)+'px',
+        'background-color' : '#FFF',
+        'padding'          : '5px 0 5px 0',
+        'margin-left'      : '5px',
+        'overflow-x'       : 'hidden',
+        'display'          : 'block',
+        'float'            : 'right',
+        'clear'            : 'none',
+        'position'         : 'fixed',
+        'z-index'          : '5',
+        'top'              : '40px',
+        'left'             : (+$(window).innerWidth()-420)+'px',
+        'border'           : 'solid 0px #FFF'
+      })
+    .text("");
+
+    // Add TOC div to WordPress content DIV
+    $(container).append(commentview);
+    return commentview;
   }//}}}
   ,
 
@@ -107,13 +129,69 @@ Lecturer.prototype =
 
   toc_highlight : function(f)
   {//{{{
+    var top_edge = +Number.parseInt($(window).scrollTop().toFixed(0)); 
+    var innerheight = +Number.parseInt($(window).innerHeight().toFixed(0));
+    var bottom_edge = +top_edge+innerheight;
+    var maxdist = innerheight;
+    var prevdist = maxdist;
+    var prevrow;
+
+    $('#toc').data('cell-in-viewport',false);
+    $('#toc').data('in-scope-cell','');
 
     this.highlight_toc_entry($('#toc').data('toc-current'));
 
+    jQuery.each($('#page').find('H1'),function(h_index,h1) {
+      if ( $('#toc').data('cell-in-viewport') ) return;
+      var h1_id = $(h1).attr('id');
+      jQuery.each($('#'+h1_id+' ~ table').first(),function(t_index, table) {
+        if ( $('#toc').data('cell-in-viewport') ) return;
+        jQuery.each($(table).find('TR'),function(tr_index,tr){
+          var bounding = tr.getBoundingClientRect();
+          if ( bounding.top >= 0 && 
+              bounding.bottom <= innerheight ) {
+            var distmid = Math.abs((bounding.top + (bounding.height / 2)) - (innerheight / 2)); 
+            if ( prevdist < distmid )
+              return;
+            if ( distmid < maxdist ) {
+              if (!('undefined' === typeof(prevrow)))
+                $(prevrow).removeClass('in-scope'); 
+              $('#toc').data('cell-in-viewport',true); // Suppresses further iterations
+              $(tr).addClass('in-scope');
+              prevrow = tr;
+            }
+            $(tr).attr('title',"Distance "+distmid);
+            prevdist = distmid;
+          }
+          else
+            $(tr).removeClass('in-scope');
+        });
+        jQuery.each($(table).find('.in-scope'),function(t_index_2,matched) {
+          // In TR scope
+          jQuery.each($(matched).find('TD'),function(td_index_m,td) {
+            if ( undefined === $(td).attr('id') )
+              return;
+            if ( 0 < $('#toc').data('in-scope-cell').length )
+              return;
+            console.log($(td).attr('id'));
+            if (undefined === $(td).data('hidden')) {
+              jQuery.each($(td).find('A'),function(dummy,a){
+                $('#toc').data('in-scope-cell',$(a).attr('id').replace(/^a-/,''));
+              });
+            }
+          });
+        });
+      });
+
+      if ( 0 < $('#toc').data('in-scope-cell').length ) {
+        $('#toc').data('scroll_w',setTimeout(function(){
+          $('#c-'+$('#toc').data('in-scope-cell')).click();
+        },1500));
+      }
+    });
+
     if ( this.enable_debug_indicator > 0 )
     {//{{{/// DEBUG //////////////////////////////////////////////
-      var top_edge = +Number.parseInt($(window).scrollTop().toFixed(0)); 
-      var bottom_edge = +top_edge+Number.parseInt($(window).innerHeight().toFixed(0));
       $('#debug').empty()
         .append(
             $(document.createElement('SPAN'))
@@ -128,11 +206,13 @@ Lecturer.prototype =
         .append(
             $(document.createElement('DIV'))
             .attr('id','current-td')
-            .text($('#toc').data('toc-current'))
+            .text($('#toc').data('in-scope-cell'))
             )
         ;
       /// DEBUG //////////////////////////////////////////////
     }//}}}
+
+
   }//}}}
   ,
 
@@ -166,7 +246,7 @@ Lecturer.prototype =
       var self = this;
       var offset_top = $(self).offset().top.toFixed(0);
       var parent_offset_top = +($(self).parents('TR').offset().top).toFixed(0);
-      
+
       if (parent_offset_top === undefined) {
         $('html, body').animate({
           scrollTop: +($(self).offset().top).toFixed(0)
@@ -199,7 +279,7 @@ Lecturer.prototype =
         })
       });
     }
-    
+
   }//}}}
   ,
 
@@ -241,7 +321,7 @@ Lecturer.prototype =
   }//}}}
   ,
 
-  construct_commentary_box : function(data,row,colspan)
+  construct_commentary_row : function(data,row,colspan)
   {//{{{
     var Self = this;
     var slug = data && data.slug ? '-'+data.slug : '';
@@ -271,6 +351,28 @@ Lecturer.prototype =
       .data('columns', colspan )
       .addClass('comment-target')
       .after(new_row);
+  }//}}}
+  ,
+
+  construct_sidebar : function(data)
+  {//{{{
+    if ( data && data.content ) { 
+      $('#commentary-sidebar').empty().append(data.content);
+      $('#commentary-sidebar').effect("highlight", {}, 700);
+    }
+  }//}}}
+  ,
+
+  construct_commentary_box : function(data,row,colspan)
+  {//{{{
+    try {
+      var sidebar = $('#commentary-sidebar').attr('id');
+    } catch(e) {}
+
+    if ( undefined === sidebar ) 
+      this.construct_commentary_row(data,row,colspan);
+    else
+      this.construct_sidebar(data);
   }//}}}
   ,
 
@@ -326,13 +428,13 @@ Lecturer.prototype =
     var colspan = 0;
     // Remove 'comment-target' class from all rows in this cell's parent table
     jQuery.each($(row)
-      .parentsUntil('table')
-      .first()
-      .parent()
-      .find('TR[class~=comment-target]'),
-      function(dummy,tr){
-        $(tr).removeClass('comment-target');
-      });
+        .parentsUntil('table')
+        .first()
+        .parent()
+        .find('TR[class~=comment-target]'),
+        function(dummy,tr){
+          $(tr).removeClass('comment-target');
+        });
     // Count visible columns in the row containing this cell.
     jQuery.each($(row).find('TD:visible'),function(column_index, td){
       var t_colspan = $(td).attr('colspan');
@@ -363,6 +465,12 @@ Lecturer.prototype =
         }),
         success  : (function(data, httpstatus, jqueryXHR) {
           // We've sent the server a list of links in the *row* containing this TD cell. 
+          if ( data && data.mode ) {
+            if ( data.mode == 1 ) 
+              jQuery.each($('#commentary-sidebar'),function(dummy,div){
+                $(div).remove();
+              });
+          }
           Self.construct_commentary_box(data,row,colspan);
           $(self).effect("highlight", {}, 1500);
           $('#comment-send').click(function(event){
@@ -557,6 +665,7 @@ Lecturer.prototype =
   handle_window_scroll : function(event)
   {//{{{
     clearTimeout($('#toc').data('timer_fade'));
+    clearTimeout($('#toc').data('scroll_w'));
     var offsetedge = Number.parseInt(event.pageX);
     var triggeredge = Number.parseInt($('#toc').data('floatedge'));
     if ( offsetedge + 10 < triggeredge ) {
@@ -588,23 +697,15 @@ Lecturer.prototype =
 
     // Set link color if the article includes "draft" or "new" 
     var link_color = /(draft|new)/i.test(article_text) 
-      ? { 'color' : '#F01', 'font-style' : 'italic' } 
+      ? { 'color' : '#F01' } 
       : /(available formats)/i.test(article_text)
-        ? { 'color' : '#AAA', 'font-style' : 'italic' }
+        ? { 'color' : 'blue', 'font-weight' : 'lighter' }
         : { 'color' : 'blue' };
 
     // Prepare TOC link
     $(link).attr('id','link-'+slug)
       .addClass('toc-link')
       .addClass('toc-real')
-      .css({
-        'white-space'  : 'nowrap',
-        'display'      : 'block',
-        'float'        : 'left',
-        'padding-left' : '5px',
-        'width'        : '100%',
-        'clear'        : 'both'
-      })
       .css(link_color)
       .text(article_text.replace(/Article ([a-z]{1,})/gi,''))
       .click(function(event){
@@ -700,10 +801,12 @@ Lecturer.prototype =
     var cell = event.target;
     var Self = this;
     jQuery.each($(cell).parents('TABLE').first(), function(tindex, table) {
-      var slug = $(table).attr('id');
+      var slug = $(this).attr('id');
       $('#toc').data('toc-current',slug);
-      Self.defer_toc_highlight(100);
     });
+    var slug = $(cell).attr('id');
+    $('#toc').data('current-td',slug);
+
   }//}}}
   ,
 
@@ -787,6 +890,9 @@ Lecturer.prototype =
             .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
             .attr('href',path+'constitutions/'+cell_ident);
 
+          $(this)
+            .parents('TD').first().attr('id','c-'+cell_ident);
+
           if ( this.enable_stash_code > 0 ) {
             tabledef.sections[td_index].current_ident   = cell_ident;
             tabledef.sections[td_index].current_slug    = slug;
@@ -811,13 +917,13 @@ Lecturer.prototype =
           // TODO: Replace with cell labeling
           if ( td_index == 3 ) {
             if ( $(previous_column_cell).text().length == $(td).text().length && $(td).text().length == 0 ) {
-              $(previous_column_cell).hide();
+              $(previous_column_cell).data('hidden',1).hide();
               $(td).attr('colspan','2');
             }
             else if ( $(previous_column_cell).text() == $(td).text() ) {
               // Merge text of identical 9 July and Final Draft cells
               if ( $(previous_column_cell).text().length > 0 ) {
-                $(previous_column_cell).hide();
+                $(previous_column_cell).data('hidden',1).hide();
                 $(td).attr('colspan','2');
               }
             }
@@ -963,14 +1069,10 @@ Lecturer.prototype =
     /// DEBUG //////////////////////////////////////////////
     var parser = document.createElement('A');
 
+    Self.generate_user_commentview($('#page'));
+
     parser.href = document.location;
     
-    // Stylesheet injection
-    // Add external link icon to custom CSS
-    var wp_custom_css = $('head').find('style#wp-custom-css').text() + ".external-link:link, .external-link:active, .external-link:visited { box-shadow: 0 0 0 0 !important; text-decoration: none !important; } .external-link:hover { box-shadow: 0 1px 0 0; } .external-link { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAXklEQVQoka2QwQ3AMAwCs1N28k7eiZ3oI7IcU6efBomXOREyxhUZ2brTdNAcVB2BaJgCVcDAalJLXsB+iLAjm1pAwzHWHD3gWMcMg/ERMjKfFOHVqMEGqEM/gKP/6gE2f+h+Z5P45wAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 17px; } .trash { background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAAH6ji2bAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4ggJDh0UNQiBCQAAAZhJREFUOMvF1D9rVFEQBfDfy0ZRLDYBo4iVjY3CCmLhn05wG2tbUfwENhZ2Cgr6EQJhOwttLEXURgMhlbETttIQYm8K42YtPE+uNzFZUPDA8ObdmXl37jlzHz+xocAUhlN5GZeR+QYDHGrDX5qd8jp5nsBZnMaBNjhbZy9nobUedPEe7zDddgVNjDaCVXxVoZPNVjAXfwmHMVMmXsTzbHwG5+L38AlH2sRujr+SfhbxLG0Myyb3RFP0uIaFKr4/rF2pC+dD0kYOtA0zOeFSEubS72yhi15FeW3LLblr+IyrRV+bSbqHR+XWwxQ9jW5T0XAQ6rbRU2rZ1CM4ESZOnK7e14u5Xd1JmZf4gG9V4U0cw6izi7QP8SISnkcft/AEB/F6t5locBc3CoaOh/f1quYo9uUIrXgLeFBesjsp3sIo/iQ2Ss1mvvEbuhF8kA77uBD/cqzJWj/+IDXdP6lSXt3H+IhruJ/1N7iNk3j1V/Pwzwfsv32w5nAc/ka4VKjYT3wL14ucTv0/rnEq1/n7Hj+NcXLepuYXfgAndG9Ps8hKVAAAAABJRU5ErkJggg=='); background-repeat:no-repeat; background-position:center left; padding-left: 10px; padding-right: 10px; height: 16px;} ";
-
-    $('head').find('style#wp-custom-css').text(wp_custom_css);
-
     // Add anchors to each article header
 
     // BUILD TOC
@@ -984,23 +1086,16 @@ Lecturer.prototype =
 
     // Since the site will only be serving the Constitution for a while,
     // best include the privacy policy link in the link box.
-    var aux_link = {
-      'white-space'  : 'nowrap',
-      'display'      : 'block',
-      'float'        : 'left',
-      'padding-left' : '5px',
-      'width'        : '100%',
-      'clear'        : 'both',
-      'color'        : '#AAA'
-    }
-    var privacy_policy = $(document.createElement('EM')).css({'margin-top': '10px'}).append($(document.createElement('A'))
-      .css(aux_link)
+    var privacy_policy = $(document.createElement('EM'))
+      .css({'margin-top': '10px'}).append($(document.createElement('A'))
+      .addClass('aux-link')
       .attr('href','/privacy-policy/')
       .attr('target','_target')
       .text('Privacy Policy'))
       ;
-    var representative_map = $(document.createElement('EM')).css({'margin-top': '10px'}).append($(document.createElement('A'))
-      .css(aux_link)
+    var representative_map = $(document.createElement('EM'))
+      .css({'margin-top': '10px'}).append($(document.createElement('A'))
+      .addClass('aux-link')
       .attr('href','/representatives-by-map/')
       .attr('target','_target')
       .text('Representatives'))

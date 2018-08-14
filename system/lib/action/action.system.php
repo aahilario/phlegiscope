@@ -40,12 +40,12 @@ class SystemAction extends LegiscopeBase {
   function system()
   {/*{{{*/
 
-    // TODO: Entrypoint is in LegiscopeBase::wordpress_init() -> model_action() 
+    // Entrypoint is in LegiscopeBase::wordpress_init() -> model_action() 
     $method   = $this->filter_server('REQUEST_METHOD');
-    $fragment = $this->filter_request('fragment',NULL,255,'/[^a-z]/i');
+    $fragment = $this->filter_request('fragment',NULL,255,'/[^a-z]/i','');
 
     $this
-      ->syslog( __FUNCTION__,__LINE__,"(marker) Handle Legiscope panel {$method} request for {$fragment} " . get_option('blog_public') ? "Public" : "Private")
+      ->syslog( __FUNCTION__,__LINE__,"(marker) -- Handle Legiscope panel {$method} request for '{$fragment}' " . (get_option('blog_public') ? "Public" : "Private"))
       ->recursive_dump($_REQUEST, "(marker) ---")
       ->empty_unauthed_json_reply( __FUNCTION__, __LINE__ );
 

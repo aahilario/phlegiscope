@@ -55,6 +55,8 @@ class SeekAction extends LegiscopeBase {
       $url->set_url($target_url,FALSE); // fetch() clears the URL string if the UrlModel is not yet in DB.
     }
 
+    $invocation_delta = microtime(TRUE);
+
     $force_custom_parse = method_exists($this, 'must_custom_parse') && $this->must_custom_parse($url); 
 
     $network_fetch  = ($modifier == 'reload' || $modifier == 'true');
@@ -269,9 +271,6 @@ class SeekAction extends LegiscopeBase {
 
           $matched = FALSE;
 
-          //Moved up in the execution foc
-          //$invocation_delta = microtime(TRUE);
-
           foreach ( $handler_list as $handler_type => $method_name ) {/*{{{*/
             // Break on first match
             if ( method_exists($this, $method_name) ) {/*{{{*/
@@ -303,11 +302,10 @@ class SeekAction extends LegiscopeBase {
             }/*}}}*/
           }/*}}}*/
 
-          $invocation_delta = round(microtime(TRUE) - $invocation_delta,3);
-          $json_reply['timedelta'] = $invocation_delta;
 
           if ( $this->debug_memory_usage_delta ) {
-            $this->syslog(__FUNCTION__,__LINE__,"(marker)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) . " delta {$invocation_delta}" );
+            $this->syslog(__FUNCTION__,__LINE__,"(marker)  Invoked {$method_name} - Memory usage " . memory_get_usage(TRUE) . " delta " . (round(microtime(TRUE) - $invocation_delta,3)) );
+          
           }
 
           if ( !$matched ) {
@@ -426,6 +424,9 @@ EOH
       $this->syslog(__FUNCTION__,__LINE__,'(critical)  System-generated warning messages trapped');
       $this->recursive_dump($output_buffer,'(critical)');
     }/*}}}*/
+
+    $invocation_delta = round(microtime(TRUE) - $invocation_delta,3);
+    $json_reply['timedelta'] = $invocation_delta;
 
     $this->exit_cache_json_reply($json_reply,get_class($this));
 

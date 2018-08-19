@@ -7,7 +7,7 @@ function Lecturer()
   this.intradoc_links         = 0;
   this.enable_stash_code      = 1;
   this.enable_html_extractor  = 0;
-  this.enable_debug_indicator = 0;
+  this.enable_debug_indicator = 1;
   this.tocdiv                 = null;
   this.toc                    = new Array();
   this.parser                 = document.createElement('A');
@@ -65,7 +65,7 @@ Lecturer.prototype =
     $(debugdiv)
       .attr('id','debug')
       .css({
-        'width'            : '180px',
+        'width'            : '280px',
         'max-height'       : ($(window).innerHeight()-90)+'px',
         'background-color' : '#FFF',
         'padding'          : '5px 0 5px 0',
@@ -78,7 +78,7 @@ Lecturer.prototype =
         'position'         : 'fixed',
         'z-index'          : '10',
         'top'              : '50px',
-        'left'             : (+$(window).innerWidth()-220)+'px',
+        'left'             : (+$(window).innerWidth()-320)+'px',
         'border'           : 'solid 1px #DDD'
       })
     .text("");
@@ -159,11 +159,17 @@ Lecturer.prototype =
       return;
 
     jQuery.each($('#page').find('H1'),function(h_index,h1) {
+
       if ( $('#toc').data('cell-in-viewport') ) return;
+
       var h1_id = $(h1).attr('id');
+
       jQuery.each($('#'+h1_id+' ~ table').first(),function(t_index, table) {
+
         if ( $('#toc').data('cell-in-viewport') ) return;
+
         jQuery.each($(table).find('TR'),function(tr_index,tr){
+          // Get row bounding rectangle.
           var bounding = tr.getBoundingClientRect();
           if ( bounding.top >= 0 && 
               bounding.bottom <= innerheight ) {
@@ -174,7 +180,9 @@ Lecturer.prototype =
             if ( distmid < maxdist ) {
               if (!('undefined' === typeof(prevrow)))
                 $(prevrow).removeClass('in-scope'); 
+
               $('#toc').data('cell-in-viewport',true); // Suppresses further iterations
+
               $(tr).addClass('in-scope');
               prevrow = tr;
             }
@@ -228,6 +236,11 @@ Lecturer.prototype =
             $(document.createElement('DIV'))
             .attr('id','current-td')
             .text($('#toc').data('in-scope-cell'))
+            )
+        .append(
+            $(document.createElement('DIV'))
+            .attr('id','current-td')
+            .text($('#toc').data('article-scope'))
             )
         ;
       /// DEBUG //////////////////////////////////////////////
@@ -867,6 +880,8 @@ Lecturer.prototype =
       var previous_column_cell = null;
       var row_visible_cells = 0;
 
+      if ( tr_index == 0 ) $(tr).addClass('article-header');
+
       jQuery.each($(tr).children(), function(td_index,td){//{{{
 
         // TD context
@@ -1104,7 +1119,7 @@ Lecturer.prototype =
       Self.build_toc_from_articles(h1_index,h1);
     });
 
-      // The placeholder image serves no function
+    // The placeholder image serves no function
     $('div.post-thumbnail').first().find('img.wp-post-image').remove();
 
     // Since the site will only be serving the Constitution for a while,

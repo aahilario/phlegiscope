@@ -188,7 +188,8 @@ Lecturer.prototype =
         jQuery.each($(table).find('TR'),function(tr_index,tr){
           // Get row bounding rectangle.
           var bounding = tr.getBoundingClientRect();
-          $(tr).attr('title',"("+bounding.top+","+(+bounding.top+bounding.height).toFixed(0)+")");
+          if ( Self.enable_debug_indicator )
+            $(tr).attr('title',"("+bounding.top+","+(+bounding.top+bounding.height).toFixed(0)+")");
           if ( bounding.top >= 0 && 
               bounding.bottom <= innerheight ) {
             // Sample distance between bisector of the row and bisector of the viewport.
@@ -206,7 +207,6 @@ Lecturer.prototype =
               $('#toc').data('matched-table',$('#toc').data('testing-table'));
               prevrow = tr;
             }
-            // $(tr).attr('title',"Distance "+distmid);
             prevdist = distmid;
           }
           else {

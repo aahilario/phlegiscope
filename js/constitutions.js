@@ -7,7 +7,8 @@ function Lecturer()
   this.intradoc_links         = 0;
   this.enable_stash_code      = 1;
   this.enable_html_extractor  = 0;
-  this.enable_debug_indicator = 1;
+  this.enable_debug_indicator = 0;
+  this.table_header_offset    = 0;
   this.tocdiv                 = null;
   this.toc                    = new Array();
   this.parser                 = document.createElement('A');
@@ -136,6 +137,7 @@ Lecturer.prototype =
 
   toc_highlight : function(f)
   {//{{{
+    var Self = this;
     var top_edge = +Number.parseInt($(window).scrollTop().toFixed(0)); 
     var innerheight = +Number.parseInt($(window).innerHeight().toFixed(0));
     var bottom_edge = +top_edge+innerheight;
@@ -148,7 +150,11 @@ Lecturer.prototype =
 
     this.highlight_toc_entry($('#toc').data('toc-current'));
 
+    // Issue #5: The viewport is contained within an Article's scope when 
     $('#commentary-sidebar').fadeOut(400);
+
+    $('#toc').data('occluded',0);
+    $('#toc').data('matched-table','');
 
     // Defer /stash/ GET action when in WP admin mode. 
     jQuery.each($('#wpadminbar'),function(dummy,wpadminbar){
@@ -160,17 +166,29 @@ Lecturer.prototype =
 
     jQuery.each($('#page').find('H1'),function(h_index,h1) {
 
-      if ( $('#toc').data('cell-in-viewport') ) return;
+      if ( $('#toc').data('cell-in-viewport') ) {
+        if ( +$('#toc').data('occluded') > 0 )
+          console.log("Freeze header for "+$('#toc').data('matched-table'));
+        else
+          console.log("No header for "+$('#toc').data('matched-table'));
+
+        return;
+      }
 
       var h1_id = $(h1).attr('id');
 
       jQuery.each($('#'+h1_id+' ~ table').first(),function(t_index, table) {
 
+        $('#toc').data('testing-table', $(table).attr('id'));
+
         if ( $('#toc').data('cell-in-viewport') ) return;
 
+        var occluded = 0;
+        var inscope = 0;
         jQuery.each($(table).find('TR'),function(tr_index,tr){
           // Get row bounding rectangle.
           var bounding = tr.getBoundingClientRect();
+          $(tr).attr('title',"("+bounding.top+","+(+bounding.top+bounding.height).toFixed(0)+")");
           if ( bounding.top >= 0 && 
               bounding.bottom <= innerheight ) {
             // Sample distance between bisector of the row and bisector of the viewport.
@@ -184,14 +202,51 @@ Lecturer.prototype =
               $('#toc').data('cell-in-viewport',true); // Suppresses further iterations
 
               $(tr).addClass('in-scope');
+              inscope++;
+              $('#toc').data('matched-table',$('#toc').data('testing-table'));
               prevrow = tr;
             }
             // $(tr).attr('title',"Distance "+distmid);
             prevdist = distmid;
           }
-          else
+          else {
+            // If at least out-of-scope table row precedes a number of in-scope rows, 
+            // then the table header must be frozen at the top of the viewport, 
+            // since the viewport occludes at least one row.
             $(tr).removeClass('in-scope');
+            if ( inscope == 0 )
+              occluded++;
+          }
         });
+        $('#toc').data('article-scope',"In: "+inscope+", Occ "+occluded+', '+$('#toc').data('matched-table'));
+        $('#toc').data('occluded',occluded);
+
+        if ( occluded > 0 ) {
+          var matched_table = $('#toc').data('matched-table');
+          if ( matched_table ) jQuery.each($('#'+matched_table).find('.article-header').first(),function(dummy,tr_header){
+            var tr_bb = tr_header.getBoundingClientRect();
+            var cloned_th = $(tr_header).clone();
+            Self.table_header_offset = tr_bb.height;
+            $('#floating-header').remove();
+            $('#page').append(
+                $(document.createElement('TABLE'))
+                .append(cloned_th)
+                .attr('id','floating-header')
+                .css({
+                  'background-color' : '#FFF',
+                  'z-index'  : '1001',
+                  'position' : 'fixed',
+                  'top'      : '0px',
+                  'left'     : tr_bb.left,
+                  'width'    : tr_bb.width,
+                  'height'   : tr_bb.height
+                })
+                );
+          });
+        }
+        else
+          setTimeout(function(){ $('#floating-header').fadeOut(300); },100);
+
         jQuery.each($(table).find('.in-scope'),function(t_index_2,matched) {
           // In TR scope
           jQuery.each($(matched).find('TD'),function(td_index_m,td) {
@@ -239,7 +294,7 @@ Lecturer.prototype =
             )
         .append(
             $(document.createElement('DIV'))
-            .attr('id','current-td')
+            .attr('id','scoping')
             .text($('#toc').data('article-scope'))
             )
         ;
@@ -265,6 +320,7 @@ Lecturer.prototype =
   scroll_to_anchor : function(event,context,prefix)
   {//{{{
 
+    var Self = this;
     var self = context;
     var anchor_id;
     var parent_td;
@@ -287,14 +343,13 @@ Lecturer.prototype =
       else {
         $(self).parents('TR').first().each(function(){
           var self = this;
-          // FIXME: Implement YFE 
           $('html, body').animate({
-            scrollTop: +($(self).offset().top).toFixed(0),
+            scrollTop: +($(self).offset().top).toFixed(0)-Self.table_header_offset,
             backgroundColor: '#FFFFFF'
           },{
             complete : (function(){ 
               document.location = '#'+anchor_id.replace(/^a-/i,''); 
-              $('html, body').scrollTop(+($(self).offset().top).toFixed(0));
+              $('html, body').scrollTop(+($(self).offset().top).toFixed(0)-Self.table_header_offset);
             })
           });
         });
@@ -303,11 +358,11 @@ Lecturer.prototype =
     });
     if ($('#'+anchor_id).parents('TR').length === 0) {
       $('html, body').animate({
-        scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)
+        scrollTop: +($('#'+anchor_id).offset().top).toFixed(0)-Self.table_header_offset
       },{
         complete : (function(){ 
           document.location = '#'+anchor_id.replace(/^a-/i,''); 
-          $('html, body').scrollTop(+($(self).offset().top).toFixed(0));
+          $('html, body').scrollTop(+($(self).offset().top).toFixed(0)-Self.table_header_offset);
         })
       });
     }
@@ -641,7 +696,7 @@ Lecturer.prototype =
         .text(subsection_num+' ')
         .click(function(event){
           var self = this;
-          scroll_to_anchor(event,$('#'+$(self).attr('id').replace(/link-/,'a-')),'a-');
+          Self.scroll_to_anchor(event,$('#'+$(self).attr('id').replace(/link-/,'a-')),'a-');
           $(self).parentsUntil('TR').first().parent().effect("highlight", {}, 1500);
         });
       $(context).empty()
@@ -1020,7 +1075,7 @@ Lecturer.prototype =
           else {
             $(anchor).click(function(event){
               try {
-                scroll_to_anchor(event,this,'a-');
+                Self.scroll_to_anchor(event,this,'a-');
               } catch(e) {}
             });
           }

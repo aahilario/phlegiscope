@@ -107,7 +107,7 @@ Lecturer.prototype =
         'float'            : 'right',
         'clear'            : 'none',
         'position'         : 'fixed',
-        'z-index'          : '5',
+        'z-index'          : '1002',
         'top'              : '40px',
         'left'             : (+$(window).innerWidth()-420)+'px',
         'border'           : 'solid 1px #DDD'

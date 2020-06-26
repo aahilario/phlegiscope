@@ -981,7 +981,7 @@ Lecturer.prototype =
           $(this)
             .attr('name',slug+'-'+section_num+'-'+td_index)
             .attr('id','a-'+slug+'-'+section_num+'-'+td_index)
-            .attr('href',path+'constitutions/'+cell_ident);
+            .attr('href',path+'constitutions/#'+cell_ident);
 
           $(this)
             .parents('TD').first().attr('id','c-'+cell_ident);

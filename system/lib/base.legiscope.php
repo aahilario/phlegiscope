@@ -970,7 +970,7 @@ class LegiscopeBase extends SystemUtility {
 
   static function activate() {/*{{{*/
     add_option('phlegiscope_menutitle', self::$plugin_options['phlegiscope_menutitle'], NULL, 'yes');
-    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+    syslog( LOG_INFO, get_class() . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
       'Activated' );
   }/*}}}*/
 
@@ -1107,7 +1107,7 @@ class LegiscopeBase extends SystemUtility {
 
   static function wordpress_admin_initialize() {/*{{{*/
 
-    add_action('admin_xml_ns', array(get_class($this), 'legiscope_admin_xml_ns')); 
+    add_action('admin_xml_ns', array(get_class(), 'legiscope_admin_xml_ns')); 
 
     if ( !current_user_can( 'manage_options' ) ) {
       wp_redirect(site_url());

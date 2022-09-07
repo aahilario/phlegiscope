@@ -48,7 +48,7 @@ class LegiscopeBase extends SystemUtility {
     $initcaps    = create_function('$a', 'return ucfirst($a);');
     $nameparts   = array_map($initcaps, explode('.', $matches[2][0]));
     if (self::$enable_debug)  syslog( LOG_INFO, "----------------- " . print_r($nameparts,TRUE));
-    if ( count($nameparts > 3) ) {
+    if ( is_array($nameparts) && ( count($nameparts) > 3 ) ) {
       krsort($nameparts);
       $nameparts = array_values($nameparts);
       while ( count($nameparts) > 3 ) array_pop($nameparts);
@@ -1092,7 +1092,7 @@ class LegiscopeBase extends SystemUtility {
   static function phlegiscope_main() {/*{{{*/
 
     // ADMIN HOME PAGE
-    syslog( LOG_INFO, get_class($this) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
+    syslog( LOG_INFO, basename(__FILE__) . "::" . __FUNCTION__ . '(' . __LINE__ . '): ' .
       " Loading main template " );
 
     $map_image = static::emit_basemap(1.4,TRUE);

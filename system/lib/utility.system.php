@@ -116,7 +116,7 @@ class SystemUtility extends DatabaseUtility {
   }/*}}}*/
 
   final protected function session_start_wrapper() {/*{{{*/
-    session_name(LEGISCOPE_SESSION_NAME);
+    if ( !session_name() ) session_name(LEGISCOPE_SESSION_NAME);
 		if ( !session_id() ) {
 			if ( !session_start() ) throw new SessionException(__FUNCTION__);
 		}

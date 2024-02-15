@@ -1,0 +1,27 @@
+{
+  "name": "legiscope.nodejs",
+  "version": "1.0.0",
+  "description": "Legislation Scraper congress.gov.ph senate.gov.ph",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://joi.avahilario.jit/legiscope/legiscope-nodejs.git"
+  },
+  "keywords": [
+    "legiscope",
+    "legislation",
+    "scraper"
+  ],
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "collections": "^5.1.13",
+    "mocha": "^10.2.0",
+    "selenium-webdriver": "^4.17.0",
+    "systemjs": "^6.14.3"
+  },
+  "author": "Antonio VA Hilario",
+  "license": "ISC"
+}

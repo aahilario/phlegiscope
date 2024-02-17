@@ -1,4 +1,5 @@
 const { remote } = require("webdriverio");
+const wda = require("wdio-intercept-service");
 
 const fs = require('fs');
 const assert = require("assert");
@@ -6,6 +7,8 @@ const System = require("systemjs");
 const cheerio = require("cheerio");
 const chalk = require("chalk");
 const url = require("node:url");
+const http = require("node:http");
+const https = require("node:https");
 
 //const targetUrl = 'https://congress.gov.ph/legisdocs/?v=bills#HistoryModal';
 //const element_xpath = '/html/body/div[2]/div/div[1]/div[2]';
@@ -20,6 +23,7 @@ const loggedTags = new Map([
   [ "A"   , 0 ]
 ]);
 let targetFile    = ''; // 'congress.gov.ph.html';
+let targetDir     = '';
 
 const pad = " ";
 
@@ -173,15 +177,15 @@ function fetch_and_extract( target )
   if ( 0 == targetFile.length ) {//{{{
     let relativePath = new Array();
     let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
-    let pathNow = '';
+    targetDir = '';
     while ( pathParts.length > 0 ) {
       let part = pathParts.shift();
       relativePath.push(part);
-      pathNow = relativePath.join('/');
-      if ( fs.existsSync( pathNow ) ) continue;
-      fs.mkdirSync( pathNow );
+      targetDir = relativePath.join('/');
+      if ( fs.existsSync( targetDir ) ) continue;
+      fs.mkdirSync( targetDir );
     }
-    targetFile = pathNow.concat('/index.html');
+    targetFile = targetDir.concat('/index.html');
     console.log( 'Target path computed as %s', targetFile );
   }//}}}
 
@@ -206,24 +210,41 @@ function fetch_and_extract( target )
 
       // To obtain HTTP responses
       // See https://stackoverflow.com/questions/73302181/how-to-get-http-responsebody-using-selenium-cdp-javascript
+      const interceptServiceLauncher = new wda.default;
+
+      console.log( wda.default );
+      console.log( interceptServiceLauncher );
 
       const browser = await remote({
         logLevel: 'trace',
         capabilities: {
+          // webSocketUrl: true,
           browserName: 'firefox',
+          'moz:debuggerAddress': true,
           'moz:firefoxOptions': {
             binary: '/opt/firefox/firefox'
           }
         }
       });
 
-      await browser.url(target);
+      interceptServiceLauncher.before( null, null, browser );
+
+      console.log( await browser.status() );
+
+      let nav_p = browser.navigateTo(target);
+
+      let request = await browser.getRequests();
+
+      await nav_p;
+
 
       let title = await browser.getTitle();
       let loadedUrl = await browser.getUrl(); 
+      let cookies = await browser.getCookies();
 
       console.log( "Loaded URL %s", loadedUrl );
       console.log( "Page title %s", title );
+      console.log( "Cookies:", cookies );
 
       assert.equal("House of Representatives", title);
 
@@ -258,20 +279,34 @@ function fetch_and_extract( target )
   });
 }
 
+function sleep( millis )
+{
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(true);
+    },millis);
+  });
+}
 
-async function execute_extraction() {
+async function execute_extraction( target_url ) {
 
   // Invoke fetch_and_extract( targetUrl );
  
   let unique_host_path = new Map;
+  let unique_hosts = new Map;
 
-  const result = await fetch_and_extract( targetUrl );
+  const result = await fetch_and_extract( target_url );
+
+  // Extract reachable hosts and unique paths lists
 
   while ( result.length > 0 ) {
 
-    let u = url.parse( result.shift() );
+    let g = result.shift();
+    let u = url.parse( g );
 
     let unique_entry = u.protocol.concat("//", u.hostname, u.pathname);
+    let unique_host  = u.host;
+    let head_options;
 
     console.log("%d: Host %s pathname '%s' query %s hash %s unique %s", 
       result.length,
@@ -283,20 +318,161 @@ async function execute_extraction() {
       unique_host_path.get( unique_entry )
     );
 
+    // Issue HEAD requests to each URL
+
+    head_options = {
+      method: "HEAD",
+      headers: {
+        "User-Agent"                : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
+        "Accept"                    : "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language"           : "en-US,en;q=0.5",
+        "Accept-Encoding"           : "gzip, deflate, br",
+        "Connection"                : "keep-alive",
+        "Referer"                   : target_url,
+        "Cookie"                    : "cf_clearance=KYKwDYCC_E8cZXP7s4sPmVSIkTRQwAaCjfLZEYVXOgI-1707671379-1-AfKBJswP8/BMz4Hk9k8sD0ock9jhXKPspDwS9pJ79GKHfxVfx7UZSg7QQgUzYog8DOa6XRNQmUGFS2mXnvC+Fhc=; PHPSESSID=tao0ai8l6d4henob4v3sojefec",
+        "Upgrade-Insecure-Requests" : 1,
+        "Sec-Fetch-Dest"            : "document",
+        "Sec-Fetch-Mode"            : "navigate",
+        "Sec-Fetch-Site"            : "same-origin",
+        "Sec-Fetch-User"            : "?1",
+        "Pragma"                    : "no-cache",
+        "Cache-Control"             : "no-cache"
+      }
+    };
+
+    let head_info = null;
+    if ( u.protocol == 'https:' ) {
+      //console.log( "HEAD %s", g );
+      try {
+        https.request( g, head_options, (res) => {
+          //console.log("Intrinsic", g, res.headers);
+          res.on('data', (d) => {
+            console.log('Data from', g, d);
+          });
+        }).on('error', (e) => {
+          console.log("Error", g, e);
+        }).on('response', (m) => {
+          head_info = m.headers;
+          console.log('  Response from', g, head_info['content-type']);
+        }).end();
+        await sleep(1000);
+      } catch (e) {
+        console.log(g, e);
+      }
+    }
+    else if ( u.protocol == 'http:' ) {
+      //console.log( "HEAD %s", g );
+      try {
+        http.request( g, head_options, (res) => {
+          //console.log("Intrinsic", g, res.headers);
+          res.on('data', (d) => {
+            console.log('Data from', g, d);
+          });
+        }).on('error', (e) => {
+          console.log("Error", g, e);
+        }).on('response', (m) => {
+          head_info = m.headers;
+          console.log('  Response from', g, head_info['content-type']);
+        }).end();
+        await sleep(1000);
+      } catch (e) {
+        console.log(g, e);
+      }
+    }
+
+    // Retain unique paths and hosts
     if ( unique_host_path.get( unique_entry ) === undefined ) {
-      unique_host_path.set( unique_entry, 1 );
+      unique_host_path.set( unique_entry, {
+        hits: 1, 
+        headinfo: head_info
+      });
     }
     else {
-      unique_host_path.set( unique_entry, unique_host_path.get( unique_entry ) + 1 );
+      let prior_entry = unique_host_path.get( unique_entry );
+      unique_host_path.set( unique_entry, {
+        hits: prior_entry.hits + 1,
+        headinfo: prior_entry.headinfo
+      });
     }
+
+    if ( unique_hosts.get( unique_host ) === undefined ) {
+      unique_hosts.set( unique_host, 1 );
+    }
+    else {
+      unique_hosts.set( unique_host, unique_hosts.get( unique_host ) + 1 );
+    }
+
   }
 
-  console.log( "Obtained %d unique pathnames (sans URL query part)", unique_host_path.size );
+  console.log( "Obtained %d unique pathnames (sans URL query part)", unique_host_path.size, unique_host_path );
 
-  for ( const url of unique_host_path.keys() ) {
-    console.log( url );
+  console.log( "Obtained %d unique hostnames", unique_hosts.size, unique_hosts );
+
+  console.log( "Target path: %s", targetDir );
+
+  // Write list of permitted hosts 
+
+  let permitted_hosts = targetDir.concat( '/', 'permitted.json' );
+  let current_hosts = targetDir.concat( '/', 'hosts.json' );
+  let linkinfo = targetDir.concat( '/', 'linkinfo.json' );
+  let fileProps;
+  
+  const objson = Object.fromEntries( unique_hosts );
+
+  fileProps = fs.statSync( permitted_hosts, { throwIfNoEntry: false } );
+
+  if ( !fileProps ) {
+    console.log( "Creating permitted hosts list %s", permitted_hosts );
+    await fs.writeFile( permitted_hosts, JSON.stringify( objson, null, 2 ), function(err) {
+      if ( err ) {
+        console.log( "Unable to write '%s' fresh permitted hosts list to %s", target_url, permitted_hosts );
+      }
+      else {
+        console.log( "Wrote permitted hosts list for '%s' to %s", target_url, permitted_hosts );
+      }
+    });
   }
+  else {
+    let ofile = fs.readFileSync(permitted_hosts);
+    let o = JSON.parse( ofile );
+    unique_hosts = new Map(Object.entries(o));
+    console.log( "Located permitted hosts list %s", permitted_hosts, unique_hosts );
+  }
+
+  await fs.writeFile( current_hosts, JSON.stringify( objson, null, 2 ), { flag: 'w' }, function(err) {
+    if ( err ) {
+      console.log( "Unable to write '%s' reachable hosts list to %s", target_url, current_hosts );
+    }
+    else {
+      console.log( "Wrote reachable hosts list for '%s' to %s", target_url, current_hosts );
+    }
+  }); 
+
+  // Write linkinfo.json containing unique_host_path
+
+  const headinfo = Object.fromEntries( unique_host_path );
+  await fs.writeFile( linkinfo, JSON.stringify( headinfo, null, 2 ), { flag: 'w' }, function(err) {
+    if ( err ) {
+      console.log( "Unable to write unique HEAD info from links in '%s' to %s", target_url, linkinfo );
+    }
+    else {
+      console.log( "Wrote HEAD info for unique links in '%s' to %s", target_url, linkinfo );
+    }
+  });
+
+  return new Promise((resolve) => {
+      console.log('Done');
+      resolve({ paths: unique_host_path, hosts: unique_hosts });
+  });
+
 }
 
-execute_extraction();
+let pagelinks = execute_extraction( targetUrl );
+
+(async function(pagelinks) {
+//  const pagelinks = await execute_extraction( targetUrl );
+  await pagelinks;
+  console.log( "Booyah", pagelinks );
+});
+
 

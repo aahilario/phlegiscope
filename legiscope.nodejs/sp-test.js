@@ -1,10 +1,4 @@
-const remote = require('webdriverio');
-const WebDriverAjax = require('wdio-intercept-service');
-//const {By, Builder, WebElement, Browser, Key, until} = require('selenium-webdriver');
-//const firefox = require('selenium-webdriver/firefox');
-//const LogInspector = require('selenium-webdriver/bidi/logInspector');
-//const WebDriver = require('webdriver');
-//const BidiCDPConnection = require('./bidiCDPConnection.ts');
+const { remote } = require("webdriverio");
 
 const fs = require('fs');
 const assert = require("assert");
@@ -206,64 +200,34 @@ function fetch_and_extract( target )
 
   if ( !fileProps ) {
 
-    let browser;
     state_timeout = 20000;
-
-    console.log(WebDriverAjax);
-    //before(async function () {
-    //  driver = await new Builder()
-    //    .setFirefoxOptions(new firefox.Options().enableBidi())
-    //    .forBrowser('firefox')
-    //    .build();
-    //});
-    // after(async () => await driver.quit());
-
-//    const interceptServiceLauncher = WebdriverAjax();
-    
-    beforeAll(async () => {
-      browser = await remote({
-        capabilities: {
-          browserName: 'firefox',
-          'moz:firefoxOptions': {
-            binary: '/opt/firefox/firefox'
-          },
-          'wdio:geckodriverOptions' : {
-            binary: '/usr/local/bin/geckodriver'
-          }
-        }
-      });
-//      interceptServiceLauncher.before(null, null, browser);
-    })
-    
-//    beforeEach(async () => {
-//      interceptServiceLauncher.beforeTest();
-//    })
-//    
-//    afterAll(async () => {
-//      // await client.deleteSession();
-//    });
 
     it('Fetch '.concat(target), async function () {
 
       // To obtain HTTP responses
       // See https://stackoverflow.com/questions/73302181/how-to-get-http-responsebody-using-selenium-cdp-javascript
-      
-      //await driver.get(target);
+
+      const browser = await remote({
+        logLevel: 'trace',
+        capabilities: {
+          browserName: 'firefox',
+          'moz:firefoxOptions': {
+            binary: '/opt/firefox/firefox'
+          }
+        }
+      });
+
       await browser.url(target);
-      // await browser.setupInterceptor();
 
-      //let title = await driver.getTitle();
-      //loadedUrl = await driver.getCurrentUrl();
-      let loadedUrl = await browser.getUrl();
-      let title = browser.$('title').getText();
-
-      assert.equal("House of Representatives", title);
-      //await driver.manage().setTimeouts({implicit: 500});
+      let title = await browser.getTitle();
+      let loadedUrl = await browser.getUrl(); 
 
       console.log( "Loaded URL %s", loadedUrl );
+      console.log( "Page title %s", title );
 
-      //let markup = await driver.getPageSource();
-      let markup = await browser.$('html').getHtml();
+      assert.equal("House of Representatives", title);
+
+      let markup = await browser.$('html').getHTML();
 
       extractedUrls = extract_urls( markup, target );
 
@@ -275,6 +239,8 @@ function fetch_and_extract( target )
           console.log( "Wrote %s to %s", loadedUrl, targetFile );
         }
       });
+
+      await browser.deleteSession();
     });
   }
   else {

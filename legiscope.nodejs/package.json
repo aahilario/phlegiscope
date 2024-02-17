@@ -4,7 +4,8 @@
   "description": "Legislation Scraper congress.gov.ph senate.gov.ph",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "wdio": "wdio run ./wdio.conf.js"
   },
   "repository": {
     "type": "git",
@@ -25,5 +26,8 @@
     "webdriver": "^8.32.0"
   },
   "author": "Antonio VA Hilario",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@wdio/cli": "^8.32.1"
+  }
 }

@@ -1,7 +1,9 @@
-const {By, Builder, WebElement, Browser, Key, until} = require('selenium-webdriver');
-const firefox = require('selenium-webdriver/firefox');
-const LogInspector = require('selenium-webdriver/bidi/logInspector');
-const WebDriver = require('webdriver');
+const remote = require('webdriverio');
+const WebDriverAjax = require('wdio-intercept-service');
+//const {By, Builder, WebElement, Browser, Key, until} = require('selenium-webdriver');
+//const firefox = require('selenium-webdriver/firefox');
+//const LogInspector = require('selenium-webdriver/bidi/logInspector');
+//const WebDriver = require('webdriver');
 //const BidiCDPConnection = require('./bidiCDPConnection.ts');
 
 const fs = require('fs');
@@ -204,37 +206,64 @@ function fetch_and_extract( target )
 
   if ( !fileProps ) {
 
+    let browser;
     state_timeout = 20000;
 
-    before(async function () {
-      driver = await new Builder()
-        .setFirefoxOptions(new firefox.Options().enableBidi())
-        .forBrowser('firefox')
-        .build();
-    });
-
+    console.log(WebDriverAjax);
+    //before(async function () {
+    //  driver = await new Builder()
+    //    .setFirefoxOptions(new firefox.Options().enableBidi())
+    //    .forBrowser('firefox')
+    //    .build();
+    //});
     // after(async () => await driver.quit());
+
+//    const interceptServiceLauncher = WebdriverAjax();
+    
+    beforeAll(async () => {
+      browser = await remote({
+        capabilities: {
+          browserName: 'firefox',
+          'moz:firefoxOptions': {
+            binary: '/opt/firefox/firefox'
+          },
+          'wdio:geckodriverOptions' : {
+            binary: '/usr/local/bin/geckodriver'
+          }
+        }
+      });
+//      interceptServiceLauncher.before(null, null, browser);
+    })
+    
+//    beforeEach(async () => {
+//      interceptServiceLauncher.beforeTest();
+//    })
+//    
+//    afterAll(async () => {
+//      // await client.deleteSession();
+//    });
 
     it('Fetch '.concat(target), async function () {
 
       // To obtain HTTP responses
       // See https://stackoverflow.com/questions/73302181/how-to-get-http-responsebody-using-selenium-cdp-javascript
       
-      await driver.get(target);
+      //await driver.get(target);
+      await browser.url(target);
+      // await browser.setupInterceptor();
 
-      const session = driver.session;
-
-      console.log("Session: ", session);
-
-      let title = await driver.getTitle();
-      loadedUrl = await driver.getCurrentUrl();
+      //let title = await driver.getTitle();
+      //loadedUrl = await driver.getCurrentUrl();
+      let loadedUrl = await browser.getUrl();
+      let title = browser.$('title').getText();
 
       assert.equal("House of Representatives", title);
-      await driver.manage().setTimeouts({implicit: 500});
+      //await driver.manage().setTimeouts({implicit: 500});
 
       console.log( "Loaded URL %s", loadedUrl );
 
-      let markup = await driver.getPageSource();
+      //let markup = await driver.getPageSource();
+      let markup = await browser.$('html').getHtml();
 
       extractedUrls = extract_urls( markup, target );
 

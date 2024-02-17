@@ -297,9 +297,24 @@ async function execute_extraction( target_url ) {
 
   const result = await fetch_and_extract( target_url );
 
+  // For writing lists of permitted hosts, hosts referred on page, and link HEAD info
+  // targetDir is updated in fetch_and_extract()
+  let permitted_hosts = targetDir.concat( '/', 'permitted.json' );
+  let current_hosts = targetDir.concat( '/', 'hosts.json' );
+  let linkinfo = targetDir.concat( '/', 'linkinfo.json' );
+  let fileProps = fs.statSync( permitted_hosts, { throwIfNoEntry: false } );
+
+  // Obtain any preexisting permitted hosts list from file
+  if ( fileProps ) {
+    let ofile = fs.readFileSync(permitted_hosts);
+    let o = JSON.parse( ofile );
+    unique_hosts = new Map(Object.entries(o));
+    console.log( "Located permitted hosts list %s", permitted_hosts, unique_hosts );
+  }
   // Extract reachable hosts and unique paths lists
 
-  while ( result.length > 0 ) {
+  while ( result.length > 0 )
+  {//{{{
 
     let g = result.shift();
     let u = url.parse( g );
@@ -307,16 +322,6 @@ async function execute_extraction( target_url ) {
     let unique_entry = u.protocol.concat("//", u.hostname, u.pathname);
     let unique_host  = u.host;
     let head_options;
-
-    console.log("%d: Host %s pathname '%s' query %s hash %s unique %s", 
-      result.length,
-      u.host, 
-      u.pathname, 
-      u.query ? "'".concat(u.query,"'") : '<null>',
-      u.hash || '<null>',
-      unique_entry, 
-      unique_host_path.get( unique_entry )
-    );
 
     // Issue HEAD requests to each URL
 
@@ -340,86 +345,95 @@ async function execute_extraction( target_url ) {
       }
     };
 
-    let head_info = null;
-    if ( u.protocol == 'https:' ) {
-      //console.log( "HEAD %s", g );
-      try {
-        https.request( g, head_options, (res) => {
-          //console.log("Intrinsic", g, res.headers);
-          res.on('data', (d) => {
-            console.log('Data from', g, d);
-          });
-        }).on('error', (e) => {
-          console.log("Error", g, e);
-        }).on('response', (m) => {
-          head_info = m.headers;
-          console.log('  Response from', g, head_info['content-type']);
-        }).end();
-        await sleep(1000);
-      } catch (e) {
-        console.log(g, e);
+    let content_type = null;
+    if ( !fileProps || unique_hosts.has( u.host ) ) {
+      let head_info = null;
+      if ( u.protocol == 'https:' ) {
+        //console.log( "HEAD %s", g );
+        try {
+          https.request( g, head_options, (res) => {
+            //console.log("Intrinsic", g, res.headers);
+            res.on('data', (d) => {
+              console.log('Data from', g, d);
+            });
+          }).on('error', (e) => {
+            console.log("Error", g, e);
+          }).on('response', (m) => {
+            head_info = m.headers;
+            content_type = head_info['content-type'];
+            // console.log("\t", head_info['content-type'], g);
+          }).end();
+          await sleep(1000);
+        } catch (e) {
+          console.log("CATCH", g, e);
+        }
+      }
+      else if ( u.protocol == 'http:' ) {
+        //console.log( "HEAD %s", g );
+        try {
+          http.request( g, head_options, (res) => {
+            //console.log("Intrinsic", g, res.headers);
+            res.on('data', (d) => {
+              console.log('Data from', g, d);
+            });
+          }).on('error', (e) => {
+            console.log("Error", g, e);
+          }).on('response', (m) => {
+            head_info = m.headers;
+            content_type = head_info['content-type'];
+            // console.log('  Response from', g, head_info['content-type']);
+          }).end();
+          await sleep(1000);
+        } catch (e) {
+          console.log("CATCH", g, e);
+        }
+      }
+
+      // Retain unique paths and hosts
+      if ( unique_host_path.get( unique_entry ) === undefined ) {
+        unique_host_path.set( unique_entry, {
+          hits: 1, 
+          headinfo: head_info
+        });
+      }
+      else {
+        let prior_entry = unique_host_path.get( unique_entry );
+        unique_host_path.set( unique_entry, {
+          hits: prior_entry.hits + 1,
+          headinfo: prior_entry.headinfo
+        });
       }
     }
-    else if ( u.protocol == 'http:' ) {
-      //console.log( "HEAD %s", g );
-      try {
-        http.request( g, head_options, (res) => {
-          //console.log("Intrinsic", g, res.headers);
-          res.on('data', (d) => {
-            console.log('Data from', g, d);
-          });
-        }).on('error', (e) => {
-          console.log("Error", g, e);
-        }).on('response', (m) => {
-          head_info = m.headers;
-          console.log('  Response from', g, head_info['content-type']);
-        }).end();
-        await sleep(1000);
-      } catch (e) {
-        console.log(g, e);
+
+    console.log("%d:\tHost %s type '%s' pathname '%s' query %s hash %s", 
+      result.length,
+      u.host,
+      content_type,
+      u.pathname, 
+      u.query ? "'".concat(u.query,"'") : '<null>',
+      u.hash || '<null>'
+    );
+
+    // Only update the map if not preloaded from cache file
+    if ( !fileProps ) {
+      if ( unique_hosts.get( unique_host ) === undefined ) {
+        unique_hosts.set( unique_host, 1 );
+      }
+      else {
+        unique_hosts.set( unique_host, unique_hosts.get( unique_host ) + 1 );
       }
     }
 
-    // Retain unique paths and hosts
-    if ( unique_host_path.get( unique_entry ) === undefined ) {
-      unique_host_path.set( unique_entry, {
-        hits: 1, 
-        headinfo: head_info
-      });
-    }
-    else {
-      let prior_entry = unique_host_path.get( unique_entry );
-      unique_host_path.set( unique_entry, {
-        hits: prior_entry.hits + 1,
-        headinfo: prior_entry.headinfo
-      });
-    }
-
-    if ( unique_hosts.get( unique_host ) === undefined ) {
-      unique_hosts.set( unique_host, 1 );
-    }
-    else {
-      unique_hosts.set( unique_host, unique_hosts.get( unique_host ) + 1 );
-    }
-
-  }
+  } //}}}
+  // while ( result.length > 0 )
 
   console.log( "Obtained %d unique pathnames (sans URL query part)", unique_host_path.size, unique_host_path );
-
   console.log( "Obtained %d unique hostnames", unique_hosts.size, unique_hosts );
 
   console.log( "Target path: %s", targetDir );
 
   // Write list of permitted hosts 
-
-  let permitted_hosts = targetDir.concat( '/', 'permitted.json' );
-  let current_hosts = targetDir.concat( '/', 'hosts.json' );
-  let linkinfo = targetDir.concat( '/', 'linkinfo.json' );
-  let fileProps;
-  
   const objson = Object.fromEntries( unique_hosts );
-
-  fileProps = fs.statSync( permitted_hosts, { throwIfNoEntry: false } );
 
   if ( !fileProps ) {
     console.log( "Creating permitted hosts list %s", permitted_hosts );
@@ -431,12 +445,6 @@ async function execute_extraction( target_url ) {
         console.log( "Wrote permitted hosts list for '%s' to %s", target_url, permitted_hosts );
       }
     });
-  }
-  else {
-    let ofile = fs.readFileSync(permitted_hosts);
-    let o = JSON.parse( ofile );
-    unique_hosts = new Map(Object.entries(o));
-    console.log( "Located permitted hosts list %s", permitted_hosts, unique_hosts );
   }
 
   await fs.writeFile( current_hosts, JSON.stringify( objson, null, 2 ), { flag: 'w' }, function(err) {
@@ -469,8 +477,7 @@ async function execute_extraction( target_url ) {
 
 let pagelinks = execute_extraction( targetUrl );
 
-(async function(pagelinks) {
-//  const pagelinks = await execute_extraction( targetUrl );
+(async function() {
   await pagelinks;
   console.log( "Booyah", pagelinks );
 });

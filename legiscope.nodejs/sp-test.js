@@ -1,11 +1,9 @@
 const { remote } = require("webdriverio");
-const wda = require("wdio-intercept-service");
 
 const fs = require('fs');
 const assert = require("assert");
 const System = require("systemjs");
 const cheerio = require("cheerio");
-const chalk = require("chalk");
 const url = require("node:url");
 const http = require("node:http");
 const https = require("node:https");
@@ -27,8 +25,7 @@ let targetDir     = '';
 
 const pad = " ";
 
-// Globally-scoped Selenium instance
-let driver;
+//let browser;
 let loadedUrl;
 let parsedUrl;
 let pageUrls = new Map;
@@ -49,18 +46,18 @@ function normalizeUrl( u )
 }//}}}
 
 function stashPageUrl( u )
-{
+{//{{{
   pageUrls.set(urlText, (pageUrls.get(urlText) || 0) + 1);
-}
+}//}}}
 
 function stashUrlDomain( u )
-{
+{//{{{
   let p = url.parse(u);
   let h = p.host;
   if ( h.length ) {
     pageHosts.set( h, (pageHosts.get(h) || 0) + 1 );
   }
-}
+}//}}}
 
 function detag( index, element, depth = 0, elementParent = null, indexlimit = 0  )
 {//{{{
@@ -132,7 +129,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
   return true;
 };//}}}
 
-async function extract_urls( data, target )
+function extract_urls( data, target )
 {//{{{
   const $ = cheerio.load( data );
   console.log("Fetched markup.  Parsing...");
@@ -163,139 +160,11 @@ async function extract_urls( data, target )
   return pageUrlsArray;
 };//}}}
 
-function fetch_and_extract( target )
-{
-  // Walk through all nodes in DOM
-
-  let state_timeout = 100;
-
-  parsedUrl = url.parse(target);
-
-  console.log( "Target: %s", target );
-
-  // Generate targetFile path based on URL path components.
-  if ( 0 == targetFile.length ) {//{{{
-    let relativePath = new Array();
-    let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
-    targetDir = '';
-    while ( pathParts.length > 0 ) {
-      let part = pathParts.shift();
-      relativePath.push(part);
-      targetDir = relativePath.join('/');
-      if ( fs.existsSync( targetDir ) ) continue;
-      fs.mkdirSync( targetDir );
-    }
-    targetFile = targetDir.concat('/index.html');
-    console.log( 'Target path computed as %s', targetFile );
-  }//}}}
-
-  // Record this URL as the first unique entry
-  pageUrls.set( target, 1 ); 
-
-  let fileProps;
-  
-  try {
-    fileProps = fs.statSync( targetFile );
-    console.log( "Target '%s' props:", targetFile, fileProps );
-  } catch(e) {
-    console.log("Funky");
-    fileProps = null;
-  }
-
-  if ( !fileProps ) {
-
-    state_timeout = 20000;
-
-    it('Fetch '.concat(target), async function () {
-
-      // To obtain HTTP responses
-      // See https://stackoverflow.com/questions/73302181/how-to-get-http-responsebody-using-selenium-cdp-javascript
-      const interceptServiceLauncher = new wda.default;
-
-      console.log( wda.default );
-      console.log( interceptServiceLauncher );
-
-      const browser = await remote({
-        logLevel: 'trace',
-        capabilities: {
-          // webSocketUrl: true,
-          browserName: 'firefox',
-          'moz:debuggerAddress': true,
-          'moz:firefoxOptions': {
-            binary: '/opt/firefox/firefox'
-          }
-        }
-      });
-
-      interceptServiceLauncher.before( null, null, browser );
-
-      console.log( await browser.status() );
-
-      let nav_p = browser.navigateTo(target);
-
-      let request = await browser.getRequests();
-
-      await nav_p;
-
-
-      let title = await browser.getTitle();
-      let loadedUrl = await browser.getUrl(); 
-      let cookies = await browser.getCookies();
-
-      console.log( "Loaded URL %s", loadedUrl );
-      console.log( "Page title %s", title );
-      console.log( "Cookies:", cookies );
-
-      assert.equal("House of Representatives", title);
-
-      let markup = await browser.$('html').getHTML();
-
-      extractedUrls = extract_urls( markup, target );
-
-      await fs.writeFile(targetFile, markup, function(err) {
-        if ( err ) {
-          console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
-        }
-        else {
-          console.log( "Wrote %s to %s", loadedUrl, targetFile );
-        }
-      });
-
-      await browser.deleteSession();
-    });
-  }
-  else {
-    state_timeout = 2000;
-    data = fs.readFileSync(targetFile);
-    it("Parse ".concat(target), async function() {
-      extractedUrls = extract_urls( data, target );
-    });
-  }
-  console.log( "Resolution deadline: %dms", state_timeout );
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(extractedUrls);
-    },state_timeout);
-  });
-}
-
-function sleep( millis )
-{
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    },millis);
-  });
-}
-
-async function execute_extraction( target_url ) {
-
-  // Invoke fetch_and_extract( targetUrl );
- 
+async function extract_hosts_from_urlarray( target_url, result )
+{//{{{
+  const head_standoff = 100;
   let unique_host_path = new Map;
   let unique_hosts = new Map;
-
-  const result = await fetch_and_extract( target_url );
 
   // For writing lists of permitted hosts, hosts referred on page, and link HEAD info
   // targetDir is updated in fetch_and_extract()
@@ -363,7 +232,7 @@ async function execute_extraction( target_url ) {
             content_type = head_info['content-type'];
             // console.log("\t", head_info['content-type'], g);
           }).end();
-          await sleep(1000);
+          await sleep(head_standoff);
         } catch (e) {
           console.log("CATCH", g, e);
         }
@@ -383,7 +252,7 @@ async function execute_extraction( target_url ) {
             content_type = head_info['content-type'];
             // console.log('  Response from', g, head_info['content-type']);
           }).end();
-          await sleep(1000);
+          await sleep(head_standoff);
         } catch (e) {
           console.log("CATCH", g, e);
         }
@@ -469,17 +338,134 @@ async function execute_extraction( target_url ) {
   });
 
   return new Promise((resolve) => {
-      console.log('Done');
-      resolve({ paths: unique_host_path, hosts: unique_hosts });
+    console.log('Done');
+    resolve({ paths: unique_host_path, hosts: unique_hosts });
   });
 
+}//}}}
+
+function fetch_and_extract( target )
+{
+  // Walk through all nodes in DOM
+
+  let state_timeout = 100;
+
+  parsedUrl = url.parse(target);
+
+  console.log( "Target: %s", target );
+
+  // Generate targetFile path based on URL path components.
+  if ( 0 == targetFile.length ) {//{{{
+    let relativePath = new Array();
+    let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
+    targetDir = '';
+    while ( pathParts.length > 0 ) {
+      let part = pathParts.shift();
+      relativePath.push(part);
+      targetDir = relativePath.join('/');
+      if ( fs.existsSync( targetDir ) ) continue;
+      fs.mkdirSync( targetDir );
+    }
+    targetFile = targetDir.concat('/index.html');
+    console.log( 'Target path computed as %s', targetFile );
+  }//}}}
+
+  // Record this URL as the first unique entry
+  pageUrls.set( target, 1 ); 
+
+  let fileProps;
+  
+  try {
+    fileProps = fs.statSync( targetFile );
+    console.log( "Target '%s' props:", targetFile, fileProps );
+  } catch(e) {
+    console.log("Funky");
+    fileProps = null;
+  }
+
+  if ( !fileProps ) {
+
+    state_timeout = 20000;
+
+    it('Fetch '.concat(target), async function () {
+
+      await browser.cdp('Network', 'enable');
+      await browser.on('Network.responseReceived', (event) => {
+        console.log(`Response: ${event.response.status} ${event.response.url}`, event.response.headers);
+      });
+
+      console.log( "Browser status", await browser.status() );
+
+      await browser.url(target);
+
+      let title = await browser.getTitle();
+      let loadedUrl = await browser.getUrl(); 
+      let cookies = await browser.getCookies();
+
+      console.log( "Loaded URL %s", loadedUrl );
+      console.log( "Page title %s", title );
+      console.log( "Cookies:", cookies );
+
+      assert.equal("House of Representatives", title);
+     
+      let markup = await browser.$('html').getHTML();
+      let request;
+      
+      extractedUrls = extract_urls( markup, target );
+      await extract_hosts_from_urlarray( target, extractedUrls );
+
+      await fs.writeFile(targetFile, markup, function(err) {
+        if ( err ) {
+          console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
+        }
+        else {
+          console.log( "Wrote %s to %s", loadedUrl, targetFile );
+        }
+      });
+
+    });
+  }
+  else {
+    state_timeout = 20000;
+    data = fs.readFileSync(targetFile);
+    it("Parse ".concat(target), async function() {
+      extractedUrls = extract_urls( data, target );
+      await extract_hosts_from_urlarray( target, extractedUrls );
+    });
+  }
+  console.log( "Resolution deadline: %dms", state_timeout );
+  
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log( "Resolving with object", typeof extractedUrls);
+      resolve(extractedUrls);
+    },state_timeout);
+  });
+}
+
+function sleep( millis )
+{
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(true);
+    },millis);
+  });
+}
+
+async function execute_extraction( target_url ) {
+
+  // Invoke fetch_and_extract( targetUrl );
+  console.log("Setting up");
+  const result = await fetch_and_extract( target_url );
+  console.log("Tearing down");
+  return result;
 }
 
 let pagelinks = execute_extraction( targetUrl );
 
 (async function() {
   await pagelinks;
-  console.log( "Booyah", pagelinks );
 });
 
+  console.log( "Booyah", pagelinks );
 

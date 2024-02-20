@@ -379,7 +379,7 @@ function fetch_and_extract( target )
     fileProps = fs.statSync( targetFile );
     console.log( "Target '%s' props:", targetFile, fileProps );
   } catch(e) {
-    console.log("Funky");
+    console.log("Must fetch '%s' from %s", targetFile, target );
     fileProps = null;
   }
 

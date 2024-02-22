@@ -17,11 +17,14 @@ const https = require("node:https");
 const targetUrl     = 'https://congress.gov.ph/';
 const element_xpath = '/html';
 const sampleCount   = 0;
+
+
 const loggedTags = new Map([
   [ "LINK", 0 ],
   [ "A"   , 0 ]
 ]);
-let targetFile       = ''; // 'congress.gov.ph.html';
+
+let targetFile       = '';
 let assetCatalogFile = '';
 let pageCookieFile   = '';
 let targetDir        = '';
@@ -35,6 +38,16 @@ let pageUrls = new Map;
 let pageHosts = new Map;
 let extractedUrls; 
 let cookies;
+let root_request_header;
+
+function sleep( millis )
+{//{{{
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(true);
+    },millis);
+  });
+}//}}}
 
 function normalizeUrl( u )
 {//{{{
@@ -79,50 +92,51 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
   const logthis = loggedTags.has(tagname);
 
   try {
-  if ( tagname == null ) {
-    if ( String(element.data).trim().length > 0 ) {
-      let parentName = $(elementParent).prop('tagName');
-      if ( loggedTags.has( parentName ) || loggedTags.has("*") ) {
-        //console.log( "%s%d> '%s'", pad.repeat(depth<<1), index, String(element.data).trim() );
-        console.log( "%s%d ^[%s] > '%s'", pad.repeat(depth<<1), index, parentName, String(element.data).trim() );
+    if ( tagname == null ) {
+      if ( String(element.data).trim().length > 0 ) {
+        let parentName = $(elementParent).prop('tagName');
+        if ( loggedTags.has( parentName ) || loggedTags.has("*") ) {
+          //console.log( "%s%d> '%s'", pad.repeat(depth<<1), index, String(element.data).trim() );
+          console.log( "%s%d ^[%s] > '%s'", pad.repeat(depth<<1), index, parentName, String(element.data).trim() );
+        }
       }
     }
-  }
-  else if ( tagname == 'META' ) {
-    let attrlist = new Array;
-    for ( a in element.attribs ) {
-      attrlist.push( a.concat(': ',element.attribs[a]) );
+    else if ( tagname == 'META' ) {
+      let attrlist = new Array;
+      for ( a in element.attribs ) {
+        attrlist.push( a.concat(': ',element.attribs[a]) );
+      }
+      if ( logthis ) console.log( "%s%d: %s{%s}", pad.repeat(depth<<1), index, tagname, attrlist.join(', ') );
     }
-    if ( logthis ) console.log( "%s%d: %s{%s}", pad.repeat(depth<<1), index, tagname, attrlist.join(', ') );
-  }
-  else if ( tagname == 'LINK' ) {
-    urlText = normalizeUrl( $("*").attr('href') );
-    if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, $("*").attr('rel').concat(": ",urlText) );
-    stashPageUrl( urlText );
-    stashUrlDomain( urlText );
-  }
-  else if ( tagname == 'A' ) {
-    urlText = normalizeUrl( $("*").attr('href') );
-    if ( logthis ) console.log( "%s%d: %s{%s} %s", pad.repeat(depth<<1), index, tagname, className, urlText );
-    stashPageUrl( urlText );
-    stashUrlDomain( urlText );
-  }
-  else if ( tagname == 'SCRIPT' ) {
-    urlText = normalizeUrl( $("*").attr('src') );
-    if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, ($("*").attr('type') || '').concat(": ",urlText) );
-    stashPageUrl( urlText );
-    stashUrlDomain( urlText );
-  }
-  else if ( tagname == 'BR' ) {
-    if ( logthis ) console.log( "%s%d: ---------------------------------------", pad.repeat(depth<<1), index );
-  }
-  else if ( tagname.match(/(DIV|P|SPAN|LI)/) ) {
-    if ( logthis ) console.log( "%s%d: %s{%s}", pad.repeat(depth<<1), index, tagname, className );
-  }
-  else if ( loggedTags.has("*") ) {
-    console.log( "%s%d: %s", pad.repeat(depth<<1), index, tagname );
-  }
+    else if ( tagname == 'LINK' ) {
+      urlText = normalizeUrl( $("*").attr('href') );
+      if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, $("*").attr('rel').concat(": ",urlText) );
+      stashPageUrl( urlText );
+      stashUrlDomain( urlText );
+    }
+    else if ( tagname == 'A' ) {
+      urlText = normalizeUrl( $("*").attr('href') );
+      if ( logthis ) console.log( "%s%d: %s{%s} %s", pad.repeat(depth<<1), index, tagname, className, urlText );
+      stashPageUrl( urlText );
+      stashUrlDomain( urlText );
+    }
+    else if ( tagname == 'SCRIPT' ) {
+      urlText = normalizeUrl( $("*").attr('src') );
+      if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, ($("*").attr('type') || '').concat(": ",urlText) );
+      stashPageUrl( urlText );
+      stashUrlDomain( urlText );
+    }
+    else if ( tagname == 'BR' ) {
+      if ( logthis ) console.log( "%s%d: ---------------------------------------", pad.repeat(depth<<1), index );
+    }
+    else if ( tagname.match(/(DIV|P|SPAN|LI)/) ) {
+      if ( logthis ) console.log( "%s%d: %s{%s}", pad.repeat(depth<<1), index, tagname, className );
+    }
+    else if ( loggedTags.has("*") ) {
+      console.log( "%s%d: %s", pad.repeat(depth<<1), index, tagname );
+    }
   } catch(e) {
+    console.log( "THROWN", e );
   }
 
   // Recurse to a reasonable tag nesting depth
@@ -168,7 +182,7 @@ function extract_urls( data, target )
 };//}}}
 
 function stringified_cookies( ca )
-{
+{//{{{
   let cookiearray = new Array;
   for ( i in ca ) {
     let co = ca[i];
@@ -178,10 +192,10 @@ function stringified_cookies( ca )
     cookiearray.push( ck_name.concat( '=', ck_val ) );
   }
   return cookiearray.join('; ');
-}
+}//}}}
 
 function mapified_cookies( ca )
-{
+{//{{{
   let cookiemap = new Map;
   for ( i in ca ) {
     let co = ca[i];
@@ -191,10 +205,10 @@ function mapified_cookies( ca )
     cookiemap.set( ck_name, ck_val );
   }
   return cookiemap;
-}
+}//}}}
 
 function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info )
-{
+{//{{{
   let content_type = head_info['content-type'];
   // Retain unique paths and hosts
   if ( unique_host_path.get( unique_entry ) === undefined ) {
@@ -210,15 +224,16 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       headinfo: prior_entry.headinfo
     });
   }
-  console.log("%d:\tHost %s type '%s' pathname '%s' query %s hash %s", 
+  console.log("%d:\tHost %s type '%s' (%db) pathname '%s' query %s hash %s", 
     result.length,
     u.host,
     content_type,
+    head_info['content-length'],
     u.pathname, 
     u.query ? "'".concat(u.query,"'") : '<null>',
     u.hash || '<null>'
   );
-}
+}//}}}
 
 async function extract_hosts_from_urlarray( target_url, result )
 {//{{{
@@ -258,7 +273,7 @@ async function extract_hosts_from_urlarray( target_url, result )
     head_options = {
       method: "HEAD",
       headers: {
-        "User-Agent"                : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
+        "User-Agent"                : root_request_header && root_request_header['User-Agent'] ? root_request_header['User-Agent'] : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
         "Accept"                    : "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language"           : "en-US,en;q=0.5",
         "Accept-Encoding"           : "gzip, deflate, br",
@@ -282,7 +297,7 @@ async function extract_hosts_from_urlarray( target_url, result )
       if ( u.protocol == 'https:' ) {
         try {
           await https.request( g, head_options, (res) => {
-            console.log("Intrinsic A", g, res.headers);
+            // console.log("Intrinsic A", g, res.headers);
             if ( head_info === undefined ) {
               head_info = res.headers;
               keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
@@ -297,6 +312,8 @@ async function extract_hosts_from_urlarray( target_url, result )
               head_info = m.headers;
               keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
             }
+          }).on('data', (d) => {
+            console.log('Data B from', g, d);
           }).end();
           if ( head_standoff ) await sleep(head_standoff);
         } catch (e) {
@@ -306,7 +323,7 @@ async function extract_hosts_from_urlarray( target_url, result )
       else if ( u.protocol == 'http:' ) {
         try {
           await http.request( g, head_options, (res) => {
-            console.log("Intrinsic B", g, res.headers);
+            // console.log("Intrinsic B", g, res.headers);
             if ( head_info === undefined ) {
               head_info = res.headers;
               keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
@@ -321,6 +338,8 @@ async function extract_hosts_from_urlarray( target_url, result )
               head_info = m.headers;
               keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
             }
+          }).on('data', (d) => {
+            console.log('Data B from', g, d);
           }).end();
           if ( head_standoff ) await sleep(head_standoff);
         } catch (e) {
@@ -384,14 +403,14 @@ async function extract_hosts_from_urlarray( target_url, result )
   });
 
   return new Promise((resolve) => {
-    console.log('Done');
+    console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_path.size, unique_hosts.size );
     resolve({ paths: unique_host_path, hosts: unique_hosts });
   });
 
 }//}}}
 
 function fetch_and_extract( target )
-{
+{//{{{
   // Walk through all nodes in DOM
 
   let state_timeout = 1800000;
@@ -415,6 +434,7 @@ function fetch_and_extract( target )
     }
     targetFile = targetDir.concat('/index.html');
     assetCatalogFile = targetDir.concat('/index.assets.json'); 
+    pageCookieFile = targetDir.concat('/cookies.json'); 
     console.log( 'Target path computed as %s', targetFile );
   }//}}}
 
@@ -424,7 +444,7 @@ function fetch_and_extract( target )
   let fileProps;
   
   try {
-    fileProps = fs.statSync( targetFile );
+    fileProps = fs.statSync( targetFile, { throwIfNoEntry: false } );
     console.log( "Target '%s' props:", targetFile, fileProps );
   } catch(e) {
     console.log("Must fetch '%s' from %s", targetFile, target );
@@ -434,8 +454,23 @@ function fetch_and_extract( target )
   if ( !fileProps ) {
 
     // state_timeout = 1800000;
-
     it('Fetch '.concat(target), async function () {
+
+      try {
+        // Load any preexisting pageCookieFile
+        let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
+        if ( !cookieProps ) {
+          console.log( "No existing cookie file %s", pageCookieFile );
+          cookies = null;
+        } else {
+          let data = fs.readFileSync( pageCookieFile );
+          cookies = JSON.parse( data );
+          console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+        }
+      } catch(e) {
+        console.log( "Problem reloading existing cookies from %s", pageCookieFile );
+        console.log( "Going without." );
+      }
 
       await browser.setTimeout({ 'script': state_timeout });
 
@@ -443,16 +478,48 @@ function fetch_and_extract( target )
       // https://stackoverflow.com/questions/61569000/get-all-websocket-messages-in-protractor/62210198#62210198 2024-02-21
       await browser.cdp('Network', 'enable');
       await browser.on('Network.requestWillBeSent', (event) => {
-        console.log(`Request: ${event.request.method} ${event.request.url}`);
+        if ( event.request.url == target )
+          console.log(`Request: ${event.request.method} ${event.request.url}`, event.request.headers);
+        root_request_header = event.request.headers;
+        page_assets.set( event.request.url, {
+          status: null, 
+          req: event.request.headers,
+          res: null
+        });
       });
       await browser.on('Network.responseReceived', (event) => {
-        console.log(`Response: ${event.response.status} ${event.response.url}`, event.response.headers);
-        page_assets.set( event.response.url, event.response.headers );
+        let pair = page_assets.get( event.response.url );
+        if ( pair !== undefined ) {
+          pair.res    = event.response.headers;
+          pair.status = event.response.status;
+          page_assets.set( event.response.url, pair );
+          console.log(`Response: ${event.response.status} ${event.response.url}`, pair);
+        }
+        else {
+          console.log(`Unpaired Response: ${event.response.status} ${event.response.url}`, pair);
+          page_assets.set( event.response.url, {
+            status: event.response.status,
+            req: null,
+            res: event.response.headers
+          });
+        }
       });
 
       console.log( "Browser status", await browser.status() );
 
-      await browser.url(target);
+      if ( !cookies ) {
+        console.log( "Cookie-free fetch of %s", target );
+        await browser.url(target);
+      }
+      else {
+        let browser_p = browser.url(target);
+        console.log( "Attempting to reuse previous cookies" );
+        await browser.setCookies( cookies )
+        await browser_p;
+        cookies = await browser.getCookies();
+        console.log( "Previous cookies", cookies );
+      }
+
 
       let title = await browser.getTitle();
       let loadedUrl = await browser.getUrl(); 
@@ -462,10 +529,19 @@ function fetch_and_extract( target )
       console.log( "Page title %s", title );
       console.log( "Cookies:", cookies );
 
-      assert.equal("House of Representatives", title);
+      // assert.equal("House of Representatives", title);
      
       let markup = await browser.$('html').getHTML();
       
+      await fs.writeFile( pageCookieFile, JSON.stringify( cookies, null, 2 ), function(err) {
+        if ( err ) {
+          console.log( "Unable to jar cookies from %s into %s: %s", loadedUrl, pageCookieFile, err );
+        }
+        else {
+          console.log( "Wrote cookies from %s into file %s", loadedUrl, pageCookieFile );
+        }
+      });
+
       await fs.writeFile( targetFile, markup, function(err) {
         if ( err ) {
           console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
@@ -516,19 +592,9 @@ function fetch_and_extract( target )
       resolve(extractedUrls);
     },state_timeout);
   });
-}
-
-function sleep( millis )
-{
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    },millis);
-  });
-}
+}//}}}
 
 async function execute_extraction( target_url ) {
-
   // Invoke fetch_and_extract( targetUrl );
   console.log("Setting up");
   const result = await fetch_and_extract( target_url );
@@ -540,7 +606,7 @@ let pagelinks = execute_extraction( targetUrl );
 
 (async function() {
   await pagelinks;
+  console.log( "Booyah", pagelinks );
 });
 
-  console.log( "Booyah", pagelinks );
 

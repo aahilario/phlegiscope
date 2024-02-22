@@ -14,24 +14,26 @@ const https = require("node:https");
 //const sampleCount = 100;
 
 //const targetUrl     = 'https://congress.gov.ph/legisdocs/?v=bills';
-const targetUrl     = 'https://congress.gov.ph/';
+//const targetUrl     = 'https://congress.gov.ph/';
+const targetUrl     = 'https://avahilario.net/';
 const element_xpath = '/html';
 const sampleCount   = 0;
 
 
 const loggedTags = new Map([
+  [ "SCRIPT", 0 ], // This allows inlined scripts to be dumped
   [ "LINK", 0 ],
   [ "A"   , 0 ]
 ]);
 
+const pad = " ";
+
 let targetFile       = '';
+let visitFile        = '';
 let assetCatalogFile = '';
 let pageCookieFile   = '';
 let targetDir        = '';
 
-const pad = " ";
-
-//let browser;
 let loadedUrl;
 let parsedUrl;
 let pageUrls = new Map;
@@ -39,6 +41,26 @@ let pageHosts = new Map;
 let extractedUrls; 
 let cookies;
 let root_request_header;
+
+function reset()
+{
+  // Invoke to reset state before fetching a new URL
+  targetFile          = '';
+  visitFile           = '';
+  assetCatalogFile    = '';
+  pageCookieFile      = '';
+  targetDir           = '';
+
+  loadedUrl           = null;
+  parsedUrl           = null;
+  pageUrls            = null
+  pageUrls            = new Map;
+  pageHosts           = null;
+  pageHosts           = new Map;
+  extractedUrls       = null;
+  cookies             = null;
+  root_request_header = null;
+}
 
 function sleep( millis )
 {//{{{
@@ -121,10 +143,13 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
       stashUrlDomain( urlText );
     }
     else if ( tagname == 'SCRIPT' ) {
-      urlText = normalizeUrl( $("*").attr('src') );
-      if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, ($("*").attr('type') || '').concat(": ",urlText) );
-      stashPageUrl( urlText );
-      stashUrlDomain( urlText );
+      let srcattr = $("*").attr('src');
+      if ( 'string' == typeof srcattr ) {
+        urlText = normalizeUrl( srcattr );
+        if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, ($("*").attr('type') || '').concat(": ",urlText) );
+        stashPageUrl( urlText );
+        stashUrlDomain( urlText );
+      }
     }
     else if ( tagname == 'BR' ) {
       if ( logthis ) console.log( "%s%d: ---------------------------------------", pad.repeat(depth<<1), index );
@@ -136,7 +161,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
       console.log( "%s%d: %s", pad.repeat(depth<<1), index, tagname );
     }
   } catch(e) {
-    console.log( "THROWN", e );
+    console.log( "THROWN processing %s", tagname, urlText, e );
   }
 
   // Recurse to a reasonable tag nesting depth
@@ -233,6 +258,22 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
     u.query ? "'".concat(u.query,"'") : '<null>',
     u.hash || '<null>'
   );
+}//}}}
+
+function write_map_to_file( description, map_file, map_obj, loadedUrl )
+{//{{{
+  const objson = Object.fromEntries( map_obj );
+  fs.writeFile( map_file, JSON.stringify( objson, null, 2 ), {
+    flag  : 'w',
+    flush : true
+  }, function(err) {
+    if ( err ) {
+      console.log( "Unable to write %s '%s' at %s", description, map_file, loadedUrl );
+    }
+    else {
+      console.log( "Wrote %s '%s' at %s", description, map_file, loadedUrl );
+    }
+  }); 
 }//}}}
 
 async function extract_hosts_from_urlarray( target_url, result )
@@ -366,41 +407,14 @@ async function extract_hosts_from_urlarray( target_url, result )
 
   console.log( "Target path: %s", targetDir );
 
-  // Write list of permitted hosts 
-  const objson = Object.fromEntries( unique_hosts );
-
+  // Write permitted and currently reachable URL lists 
   if ( !fileProps ) {
-    console.log( "Creating permitted hosts list %s", permitted_hosts );
-    await fs.writeFile( permitted_hosts, JSON.stringify( objson, null, 2 ), function(err) {
-      if ( err ) {
-        console.log( "Unable to write '%s' fresh permitted hosts list to %s", target_url, permitted_hosts );
-      }
-      else {
-        console.log( "Wrote permitted hosts list for '%s' to %s", target_url, permitted_hosts );
-      }
-    });
+    write_map_to_file( "permitted hosts list", permitted_hosts, unique_hosts, target_url );
   }
-
-  await fs.writeFile( current_hosts, JSON.stringify( objson, null, 2 ), { flag: 'w' }, function(err) {
-    if ( err ) {
-      console.log( "Unable to write '%s' reachable hosts list to %s", target_url, current_hosts );
-    }
-    else {
-      console.log( "Wrote reachable hosts list for '%s' to %s", target_url, current_hosts );
-    }
-  }); 
+  write_map_to_file( "reachable hosts list", current_hosts, unique_hosts, target_url ); 
 
   // Write linkinfo.json containing unique_host_path
-
-  const headinfo = Object.fromEntries( unique_host_path );
-  await fs.writeFile( linkinfo, JSON.stringify( headinfo, null, 2 ), { flag: 'w' }, function(err) {
-    if ( err ) {
-      console.log( "Unable to write unique HEAD info from links in '%s' to %s", target_url, linkinfo );
-    }
-    else {
-      console.log( "Wrote HEAD info for unique links in '%s' to %s", target_url, linkinfo );
-    }
-  });
+  write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_path, target_url );
 
   return new Promise((resolve) => {
     console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_path.size, unique_hosts.size );
@@ -409,12 +423,28 @@ async function extract_hosts_from_urlarray( target_url, result )
 
 }//}}}
 
+function load_visit_map( visitFile )
+{//{{{
+  let visited_pages;
+
+  if ( fs.statSync( visitFile, { throwIfNoEntry: false } ) ) {
+    let ofile = fs.readFileSync( visitFile );
+    let o = JSON.parse( ofile );
+    visited_pages = new Map(Object.entries(o)); 
+  }
+  else {
+    visited_pages = new Map;
+  }
+  return visited_pages;
+}//}}}
+
 function fetch_and_extract( target )
 {//{{{
   // Walk through all nodes in DOM
 
   let state_timeout = 1800000;
   let page_assets = new Map;
+  let visited_pages;
 
   parsedUrl = url.parse(target);
 
@@ -424,11 +454,14 @@ function fetch_and_extract( target )
   if ( 0 == targetFile.length ) {//{{{
     let relativePath = new Array();
     let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
+    let pathComponent = 0; 
     targetDir = '';
     while ( pathParts.length > 0 ) {
       let part = pathParts.shift();
       relativePath.push(part);
       targetDir = relativePath.join('/');
+      if ( pathComponent == 0 ) visitFile = part.concat('/visited.json');
+      pathComponent++;
       if ( fs.existsSync( targetDir ) ) continue;
       fs.mkdirSync( targetDir );
     }
@@ -437,6 +470,9 @@ function fetch_and_extract( target )
     pageCookieFile = targetDir.concat('/cookies.json'); 
     console.log( 'Target path computed as %s', targetFile );
   }//}}}
+
+  // Preload any visited pages catalog
+  visited_pages = load_visit_map( visitFile ); 
 
   // Record this URL as the first unique entry
   pageUrls.set( target, 1 ); 
@@ -451,10 +487,14 @@ function fetch_and_extract( target )
     fileProps = null;
   }
 
-  if ( !fileProps ) {
+  let visited = visited_pages.has( target );
+
+  console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
+
+  if ( !fileProps || !visited ) {
 
     // state_timeout = 1800000;
-    it('Fetch '.concat(target), async function () {
+    it('Fetches from '.concat(target), async function () {
 
       try {
         // Load any preexisting pageCookieFile
@@ -520,6 +560,9 @@ function fetch_and_extract( target )
         console.log( "Previous cookies", cookies );
       }
 
+      // Record the URL as visited
+      // Already-visited URLs will not reach this code at all
+      visited_pages.set( target, { hits: 1 } ); 
 
       let title = await browser.getTitle();
       let loadedUrl = await browser.getUrl(); 
@@ -561,28 +604,39 @@ function fetch_and_extract( target )
 
       await extract_hosts_from_urlarray( target, extractedUrls );
 
-      const objson = Object.fromEntries( page_assets );
+      write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
+      write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
 
-      await fs.writeFile( assetCatalogFile, JSON.stringify( objson, null, 2 ), { flag: 'w' }, function(err) {
-        if ( err ) {
-          console.log( "Unable to write catalog of assets '%s' at %s", assetCatalogFile, loadedUrl );
-        }
-        else {
-          console.log( "Wrote catalog of assets '%s' at %s", assetCatalogFile, loadedUrl );
-        }
-      }); 
       state_timeout = 0;
     });
   }
   else {
-    // state_timeout = 20000;
-    data = fs.readFileSync(targetFile);
-    it("Parse ".concat(target), async function() {
+
+    it("Parses ".concat(target), async function() {
+
+      let data = fs.readFileSync(targetFile);
+
+      try {
+        // Load any preexisting pageCookieFile
+        let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
+        if ( !cookieProps ) {
+          console.log( "No existing cookie file %s", pageCookieFile );
+          cookies = null;
+        } else {
+          let cookieData = fs.readFileSync( pageCookieFile );
+          cookies = JSON.parse( cookieData );
+          console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+        }
+      } catch(e) {
+        console.log( "Problem reloading existing cookies from %s", pageCookieFile );
+        console.log( "Going without." );
+      }
       await browser.setTimeout({ 'script': state_timeout });
       extractedUrls = extract_urls( data, target );
       await extract_hosts_from_urlarray( target, extractedUrls );
       state_timeout = 0;
     });
+
   }
   console.log( "Resolution deadline: %dms", state_timeout );
   
@@ -594,19 +648,5 @@ function fetch_and_extract( target )
   });
 }//}}}
 
-async function execute_extraction( target_url ) {
-  // Invoke fetch_and_extract( targetUrl );
-  console.log("Setting up");
-  const result = await fetch_and_extract( target_url );
-  console.log("Tearing down");
-  return result;
-}
-
-let pagelinks = execute_extraction( targetUrl );
-
-(async function() {
-  await pagelinks;
-  console.log( "Booyah", pagelinks );
-});
-
+let pagelinks = fetch_and_extract( targetUrl );
 

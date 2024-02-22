@@ -13,15 +13,18 @@ const https = require("node:https");
 //const targetFile = 'bills-text.html'; 
 //const sampleCount = 100;
 
-const targetUrl     = 'https://congress.gov.ph';
+//const targetUrl     = 'https://congress.gov.ph/legisdocs/?v=bills';
+const targetUrl     = 'https://congress.gov.ph/';
 const element_xpath = '/html';
 const sampleCount   = 0;
 const loggedTags = new Map([
   [ "LINK", 0 ],
   [ "A"   , 0 ]
 ]);
-let targetFile    = ''; // 'congress.gov.ph.html';
-let targetDir     = '';
+let targetFile       = ''; // 'congress.gov.ph.html';
+let assetCatalogFile = '';
+let pageCookieFile   = '';
+let targetDir        = '';
 
 const pad = " ";
 
@@ -31,6 +34,7 @@ let parsedUrl;
 let pageUrls = new Map;
 let pageHosts = new Map;
 let extractedUrls; 
+let cookies;
 
 function normalizeUrl( u )
 {//{{{
@@ -65,7 +69,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
   const $ = cheerio.load( element );
   const tagname = $("*").prop('tagName');
 
-  if ( depth == 0 ) {
+  if ( depth == -1 ) {
     if ( indexlimit > 0 && index >= indexlimit )
       return false;
   }
@@ -74,6 +78,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
 
   const logthis = loggedTags.has(tagname);
 
+  try {
   if ( tagname == null ) {
     if ( String(element.data).trim().length > 0 ) {
       let parentName = $(elementParent).prop('tagName');
@@ -116,6 +121,8 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
   }
   else if ( loggedTags.has("*") ) {
     console.log( "%s%d: %s", pad.repeat(depth<<1), index, tagname );
+  }
+  } catch(e) {
   }
 
   // Recurse to a reasonable tag nesting depth
@@ -160,6 +167,59 @@ function extract_urls( data, target )
   return pageUrlsArray;
 };//}}}
 
+function stringified_cookies( ca )
+{
+  let cookiearray = new Array;
+  for ( i in ca ) {
+    let co = ca[i];
+    let ck_name = co.name || null;
+    let ck_val  = co.value || null;
+    if ( !ck_name || !ck_val ) continue;
+    cookiearray.push( ck_name.concat( '=', ck_val ) );
+  }
+  return cookiearray.join('; ');
+}
+
+function mapified_cookies( ca )
+{
+  let cookiemap = new Map;
+  for ( i in ca ) {
+    let co = ca[i];
+    let ck_name = co.name || null;
+    let ck_val  = co.value || null;
+    if ( !ck_name || !ck_val ) continue;
+    cookiemap.set( ck_name, ck_val );
+  }
+  return cookiemap;
+}
+
+function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info )
+{
+  let content_type = head_info['content-type'];
+  // Retain unique paths and hosts
+  if ( unique_host_path.get( unique_entry ) === undefined ) {
+    unique_host_path.set( unique_entry, {
+      hits: 1, 
+      headinfo: head_info
+    });
+  }
+  else {
+    let prior_entry = unique_host_path.get( unique_entry );
+    unique_host_path.set( unique_entry, {
+      hits: prior_entry.hits + 1,
+      headinfo: prior_entry.headinfo
+    });
+  }
+  console.log("%d:\tHost %s type '%s' pathname '%s' query %s hash %s", 
+    result.length,
+    u.host,
+    content_type,
+    u.pathname, 
+    u.query ? "'".concat(u.query,"'") : '<null>',
+    u.hash || '<null>'
+  );
+}
+
 async function extract_hosts_from_urlarray( target_url, result )
 {//{{{
   const head_standoff = 100;
@@ -192,7 +252,8 @@ async function extract_hosts_from_urlarray( target_url, result )
     let unique_host  = u.host;
     let head_options;
 
-    // Issue HEAD requests to each URL
+    // Issue HEAD requests to each URL when cookies are available
+    // from a prior run executing fetch_and_extract( target_url ); 
 
     head_options = {
       method: "HEAD",
@@ -203,7 +264,7 @@ async function extract_hosts_from_urlarray( target_url, result )
         "Accept-Encoding"           : "gzip, deflate, br",
         "Connection"                : "keep-alive",
         "Referer"                   : target_url,
-        "Cookie"                    : "cf_clearance=KYKwDYCC_E8cZXP7s4sPmVSIkTRQwAaCjfLZEYVXOgI-1707671379-1-AfKBJswP8/BMz4Hk9k8sD0ock9jhXKPspDwS9pJ79GKHfxVfx7UZSg7QQgUzYog8DOa6XRNQmUGFS2mXnvC+Fhc=; PHPSESSID=tao0ai8l6d4henob4v3sojefec",
+        "Cookie"                    : stringified_cookies( cookies ), 
         "Upgrade-Insecure-Requests" : 1,
         "Sec-Fetch-Dest"            : "document",
         "Sec-Fetch-Mode"            : "navigate",
@@ -212,76 +273,61 @@ async function extract_hosts_from_urlarray( target_url, result )
         "Pragma"                    : "no-cache",
         "Cache-Control"             : "no-cache"
       }
-    };
+    }
 
     let content_type = null;
+
     if ( !fileProps || unique_hosts.has( u.host ) ) {
-      let head_info = null;
+      let head_info;
       if ( u.protocol == 'https:' ) {
-        //console.log( "HEAD %s", g );
         try {
-          https.request( g, head_options, (res) => {
-            //console.log("Intrinsic", g, res.headers);
+          await https.request( g, head_options, (res) => {
+            console.log("Intrinsic A", g, res.headers);
+            if ( head_info === undefined ) {
+              head_info = res.headers;
+              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+            }
             res.on('data', (d) => {
               console.log('Data from', g, d);
             });
           }).on('error', (e) => {
             console.log("Error", g, e);
           }).on('response', (m) => {
-            head_info = m.headers;
-            content_type = head_info['content-type'];
-            // console.log("\t", head_info['content-type'], g);
+            if ( head_info === undefined ) {
+              head_info = m.headers;
+              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+            }
           }).end();
-          await sleep(head_standoff);
+          if ( head_standoff ) await sleep(head_standoff);
         } catch (e) {
           console.log("CATCH", g, e);
         }
       }
       else if ( u.protocol == 'http:' ) {
-        //console.log( "HEAD %s", g );
         try {
-          http.request( g, head_options, (res) => {
-            //console.log("Intrinsic", g, res.headers);
+          await http.request( g, head_options, (res) => {
+            console.log("Intrinsic B", g, res.headers);
+            if ( head_info === undefined ) {
+              head_info = res.headers;
+              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+            }
             res.on('data', (d) => {
               console.log('Data from', g, d);
             });
           }).on('error', (e) => {
             console.log("Error", g, e);
           }).on('response', (m) => {
-            head_info = m.headers;
-            content_type = head_info['content-type'];
-            // console.log('  Response from', g, head_info['content-type']);
+            if ( head_info === undefined ) {
+              head_info = m.headers;
+              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+            }
           }).end();
-          await sleep(head_standoff);
+          if ( head_standoff ) await sleep(head_standoff);
         } catch (e) {
           console.log("CATCH", g, e);
         }
       }
-
-      // Retain unique paths and hosts
-      if ( unique_host_path.get( unique_entry ) === undefined ) {
-        unique_host_path.set( unique_entry, {
-          hits: 1, 
-          headinfo: head_info
-        });
-      }
-      else {
-        let prior_entry = unique_host_path.get( unique_entry );
-        unique_host_path.set( unique_entry, {
-          hits: prior_entry.hits + 1,
-          headinfo: prior_entry.headinfo
-        });
-      }
     }
-
-    console.log("%d:\tHost %s type '%s' pathname '%s' query %s hash %s", 
-      result.length,
-      u.host,
-      content_type,
-      u.pathname, 
-      u.query ? "'".concat(u.query,"'") : '<null>',
-      u.hash || '<null>'
-    );
 
     // Only update the map if not preloaded from cache file
     if ( !fileProps ) {
@@ -348,7 +394,8 @@ function fetch_and_extract( target )
 {
   // Walk through all nodes in DOM
 
-  let state_timeout = 100;
+  let state_timeout = 1800000;
+  let page_assets = new Map;
 
   parsedUrl = url.parse(target);
 
@@ -367,6 +414,7 @@ function fetch_and_extract( target )
       fs.mkdirSync( targetDir );
     }
     targetFile = targetDir.concat('/index.html');
+    assetCatalogFile = targetDir.concat('/index.assets.json'); 
     console.log( 'Target path computed as %s', targetFile );
   }//}}}
 
@@ -385,13 +433,21 @@ function fetch_and_extract( target )
 
   if ( !fileProps ) {
 
-    state_timeout = 20000;
+    // state_timeout = 1800000;
 
     it('Fetch '.concat(target), async function () {
 
+      await browser.setTimeout({ 'script': state_timeout });
+
+      // Enable capture of HTTP requests and responses
+      // https://stackoverflow.com/questions/61569000/get-all-websocket-messages-in-protractor/62210198#62210198 2024-02-21
       await browser.cdp('Network', 'enable');
+      await browser.on('Network.requestWillBeSent', (event) => {
+        console.log(`Request: ${event.request.method} ${event.request.url}`);
+      });
       await browser.on('Network.responseReceived', (event) => {
         console.log(`Response: ${event.response.status} ${event.response.url}`, event.response.headers);
+        page_assets.set( event.response.url, event.response.headers );
       });
 
       console.log( "Browser status", await browser.status() );
@@ -400,7 +456,7 @@ function fetch_and_extract( target )
 
       let title = await browser.getTitle();
       let loadedUrl = await browser.getUrl(); 
-      let cookies = await browser.getCookies();
+      cookies = await browser.getCookies();
 
       console.log( "Loaded URL %s", loadedUrl );
       console.log( "Page title %s", title );
@@ -409,12 +465,8 @@ function fetch_and_extract( target )
       assert.equal("House of Representatives", title);
      
       let markup = await browser.$('html').getHTML();
-      let request;
       
-      extractedUrls = extract_urls( markup, target );
-      await extract_hosts_from_urlarray( target, extractedUrls );
-
-      await fs.writeFile(targetFile, markup, function(err) {
+      await fs.writeFile( targetFile, markup, function(err) {
         if ( err ) {
           console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
         }
@@ -423,14 +475,37 @@ function fetch_and_extract( target )
         }
       });
 
+      extractedUrls = extract_urls( markup, target );
+      
+      // Prepend all page asset URLs to the array of DOM-embedded URLs.
+      page_assets.forEach( (headers, url, map) => {
+        console.log("%d Adding %s", extractedUrls.length, url );
+        extractedUrls.push(url);
+      });
+
+      await extract_hosts_from_urlarray( target, extractedUrls );
+
+      const objson = Object.fromEntries( page_assets );
+
+      await fs.writeFile( assetCatalogFile, JSON.stringify( objson, null, 2 ), { flag: 'w' }, function(err) {
+        if ( err ) {
+          console.log( "Unable to write catalog of assets '%s' at %s", assetCatalogFile, loadedUrl );
+        }
+        else {
+          console.log( "Wrote catalog of assets '%s' at %s", assetCatalogFile, loadedUrl );
+        }
+      }); 
+      state_timeout = 0;
     });
   }
   else {
-    state_timeout = 20000;
+    // state_timeout = 20000;
     data = fs.readFileSync(targetFile);
     it("Parse ".concat(target), async function() {
+      await browser.setTimeout({ 'script': state_timeout });
       extractedUrls = extract_urls( data, target );
       await extract_hosts_from_urlarray( target, extractedUrls );
+      state_timeout = 0;
     });
   }
   console.log( "Resolution deadline: %dms", state_timeout );

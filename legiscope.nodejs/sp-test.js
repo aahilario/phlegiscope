@@ -309,7 +309,7 @@ async function extract_hosts_from_urlarray( target_url, result )
   while ( result.length > 0 )
   {//{{{
 
-    let g = result.shift();
+    let g = result.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'');
     let u = url.parse( g );
 
     let unique_entry = u.protocol.concat("//", u.hostname, u.pathname);
@@ -327,7 +327,7 @@ async function extract_hosts_from_urlarray( target_url, result )
         "Accept-Language"           : "en-US,en;q=0.5",
         "Accept-Encoding"           : "gzip, deflate, br",
         "Connection"                : "keep-alive",
-        "Referer"                   : target_url,
+        "Referer"                   : target_url.replace(/\/\.\.\//,'/').replace(/\/$/,''),
         "Cookie"                    : stringified_cookies( cookies ), 
         "Upgrade-Insecure-Requests" : 1,
         "Sec-Fetch-Dest"            : "document",
@@ -436,13 +436,13 @@ async function extract_hosts_from_urlarray( target_url, result )
 
 }//}}}
 
-function load_visit_map( visitFile )
+function load_visit_map( visit_file )
 {//{{{
   let visited_pages;
 
   try {
-    if ( fs.statSync( visitFile, { throwIfNoEntry: false } ) ) {
-      let ofile = fs.readFileSync( visitFile );
+    if ( fs.statSync( visit_file, { throwIfNoEntry: false } ) ) {
+      let ofile = fs.readFileSync( visit_file );
       let o = JSON.parse( ofile );
       visited_pages = new Map(Object.entries(o)); 
     }
@@ -530,6 +530,7 @@ async function fetch_and_extract( initial_target, depth )
       console.log( "Process:", argv );
       console.log( "Target: %s", target );
       console.log( "Browser: ", browser, browser.addCommand ? browser.addCommand.name : {} );
+      console.log( "Visit: ", visitFile );
 
       // Preload any visited pages catalog
       visited_pages = load_visit_map( visitFile ); 
@@ -550,7 +551,8 @@ async function fetch_and_extract( initial_target, depth )
 
       console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
 
-      if ( !fileProps || !visited ) {//{{{
+      if ( !fileProps || !visited ) 
+      {//{{{
 
         console.log( "Fetching from %s", target );
 
@@ -679,11 +681,12 @@ async function fetch_and_extract( initial_target, depth )
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
       // Insert entries into targets array
-      iteration_subjects.paths.forEach((value, key, map) => {
+      iteration_subjects.paths.forEach((value, urlhere, map) => {
+        let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'');
         let content_type = value['headinfo']['content-type'];
         if ( !visited_pages.has( key ) && /^text\/html.*/.test( content_type ) ) {
           console.log( "Extending page scan to %s", key );
-          targets.push( key );
+          //targets.push( key );
         }
       });
     }

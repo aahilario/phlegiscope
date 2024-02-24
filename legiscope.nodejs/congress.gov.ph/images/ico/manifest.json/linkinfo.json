@@ -2,17 +2,20 @@
   "https://congress.gov.ph/images/ico/manifest.json": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 11:47:46 GMT",
+      "date": "Sat, 24 Feb 2024 15:08:56 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 11:48:01 GMT",
+      "expires": "Sat, 24 Feb 2024 15:09:11 GMT",
+      "set-cookie": [
+        "__cf_bm=k8_6qFbpuxcYm1LgLqczuoAgcGTYhVfMoI0m79cli8A-1708787336-1.0-AUrBd674cbzECzS9cX6pJ1w3Rb96947JZCh7LQkeTlagK5eZl96GuZJictZ2jFFyyJKXFx4iIKr7X/2luoPCfHE=; path=/; expires=Sat, 24-Feb-24 15:38:56 GMT; domain=.congress.gov.ph; HttpOnly; Secure; SameSite=None"
+      ],
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a779c60fcc4039-MNL"
+      "cf-ray": "85a8a073abb14046-MNL"
     }
   }
 }

@@ -259,8 +259,9 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
     });
   }
   console.log("%d:\t%s %s %s",
+    result.length,
     content_type,
-    content_length,
+    head_info['content-length'],
     u.href
   );
   //console.log("%d:\tHost %s type '%s' (%db) pathname '%s' %s %s", 

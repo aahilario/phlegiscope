@@ -1,387 +1,459 @@
 {
-  "https://congress.gov.ph/legis": {
-    "hits": 3,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:57 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a671ffca484034-MNL"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "image/png",
-      "content-length": "31995",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672019b55404c-MNL"
-    }
-  },
   "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
       "content-type": "image/png",
       "content-length": "9575",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672020e4350a0-HKG"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "image/png",
-      "content-length": "60355",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a6720299a04039-MNL"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "image/png",
-      "content-length": "15192",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672031d395167-HKG"
-    }
-  },
-  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "image/png",
-      "content-length": "22229",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672037b8f402d-MNL"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-72x72.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "image/png",
-      "content-length": "13949",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67202ace2853b-HKG"
-    }
-  },
-  "https://congress.gov.ph/images/ico/favicon-16x16.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "image/png",
-      "content-length": "2189",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67203cab8403a-MNL"
-    }
-  },
-  "https://congress.gov.ph/css/bootstrap.min.css": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "text/css",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672041b5d403a-MNL",
-      "content-encoding": "gzip"
+      "cf-ray": "85a65b47fba3404c-MNL"
     }
   },
   "https://congress.gov.ph/images/ico/apple-icon-60x60.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
       "content-type": "image/png",
       "content-length": "10322",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672025c7a10c9-HKG"
+      "cf-ray": "85a65b4838d94034-MNL"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-72x72.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
+      "content-type": "image/png",
+      "content-length": "13949",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4898764039-MNL"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
+      "content-type": "image/png",
+      "content-length": "15192",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b48e9134039-MNL"
     }
   },
   "https://congress.gov.ph/images/ico/apple-icon-114x114.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
       "content-type": "image/png",
       "content-length": "29490",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a67203581e10a7-HKG"
-    }
-  },
-  "https://congress.gov.ph/members": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:57 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672050f2c4039-MNL"
+      "cf-ray": "85a65b492ab84034-MNL"
     }
   },
   "https://congress.gov.ph/images/ico/apple-icon-152x152.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:42 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
       "content-type": "image/png",
       "content-length": "46397",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:42 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672043a0b097c-HKG"
+      "cf-ray": "85a65b4a2cc6402e-MNL"
     }
   },
-  "https://congress.gov.ph/members/": {
-    "hits": 3,
+  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
+    "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "image/png",
+      "content-length": "60355",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:11 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a67205cd004045-MNL"
+      "cf-ray": "85a65b4a7ca7402d-MNL"
     }
   },
-  "https://congress.gov.ph/leaders": {
+  "https://congress.gov.ph/js/menu.js": {
     "hits": 2,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:11 GMT",
       "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
+      "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+      "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
+      "pragma": "no-cache",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "MISS",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a6720659b34039-MNL"
+      "cf-ray": "85a65b49bacf851d-HKG",
+      "content-encoding": "gzip"
     }
   },
   "https://congress.gov.ph/images/ico/android-icon-192x192.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
       "content-type": "image/png",
       "content-length": "64562",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:43 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a67204ff141092-HKG"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "image/png",
-      "content-length": "42519",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:43 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "accept-ranges": "bytes",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67203f9a320f6-HKG"
-    }
-  },
-  "https://congress.gov.ph/profile": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67206acfa404c-MNL"
+      "cf-ray": "85a65b4acb0a403a-MNL"
     }
   },
   "https://congress.gov.ph/images/ico/favicon-32x32.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
       "content-type": "image/png",
       "content-length": "4104",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:43 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672052f76097b-HKG"
+      "cf-ray": "85a65b4b2c724045-MNL"
     }
   },
-  "https://congress.gov.ph/committees/": {
-    "hits": 4,
+  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
+    "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "image/png",
+      "content-length": "22229",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672075ba94039-MNL"
+      "cf-ray": "85a65b4b9f3c402d-MNL"
+    }
+  },
+  "https://congress.gov.ph/css/bootstrap.min.css": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/css",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4c7ffc4039-MNL",
+      "content-encoding": "gzip"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "image/png",
+      "content-length": "31995",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4bae0285f9-HKG"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "image/png",
+      "content-length": "42519",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4bfea184cd-HKG"
+    }
+  },
+  "https://congress.gov.ph/css/font-awesome/css/font-awesome.min.css": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/css",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Thu, 22 Aug 2019 17:35:31 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4cdf874045-MNL",
+      "content-encoding": "gzip"
     }
   },
   "https://congress.gov.ph/": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a67206c86a85a0-HKG"
+      "cf-ray": "85a65b4dbb19402e-MNL"
+    }
+  },
+  "https://congress.gov.ph/css/custom.css": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/css",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4d29744039-MNL",
+      "content-encoding": "gzip"
+    }
+  },
+  "https://congress.gov.ph/css/custom-carousel.css": {
+    "hits": 2,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/css",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sun, 18 Oct 2020 10:23:52 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4d69ed4039-MNL",
+      "content-encoding": "gzip"
+    }
+  },
+  "https://congress.gov.ph/members/": {
+    "hits": 3,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4e5be34039-MNL"
+    }
+  },
+  "https://congress.gov.ph/images/ico/manifest.json": {
+    "hits": 2,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4e294407b1-HKG"
+    }
+  },
+  "https://congress.gov.ph/images/ico/favicon-16x16.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "image/png",
+      "content-length": "2189",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:12 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4dfb661089-HKG"
+    }
+  },
+  "https://congress.gov.ph/leaders": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4f5e5f4034-MNL"
+    }
+  },
+  "https://congress.gov.ph/profile": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b4fac8d4045-MNL"
+    }
+  },
+  "https://congress.gov.ph/committees/": {
+    "hits": 3,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b50a8fd402d-MNL"
+    }
+  },
+  "https://congress.gov.ph/commsched": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b50fee14045-MNL"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/docs/roster-legislators.pdf": {
     "hits": 1,
     "headinfo": {
-      "x-amz-id-2": "yb0QZnTfaCnvu4Jl6qGfPCPY1wMaCizXTotjlqC4XDS+YizXQQfH/ggOe6cwH6xtqeMagzV1E1wqkAsHsws1yw==",
-      "x-amz-request-id": "RT46VM1FE21P94MF",
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
+      "x-amz-id-2": "pH7jggDCvuYh1936Z1UG7S9W1eU+TN3o5AIygJy23Kj6ceknt+TaV1CvhqNRuPSLfwtdQlD+PZ5dToiluvzJYg==",
+      "x-amz-request-id": "B1ZFYCV5QAJ74RVR",
+      "date": "Sat, 24 Feb 2024 08:32:13 GMT",
       "last-modified": "Mon, 13 Feb 2023 01:44:09 GMT",
       "etag": "\"0441a6d86dfcfe4fd6ec3c02ec80e318\"",
       "x-amz-server-side-encryption": "AES256",
@@ -391,110 +463,108 @@
       "content-length": "3890394"
     }
   },
-  "https://congress.gov.ph/legisdocs/": {
-    "hits": 16,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67208be964046-MNL"
-    }
-  },
-  "https://congress.gov.ph/css/custom.css": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "text/css",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:43 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672067f505dd2-HKG",
-      "content-encoding": "gzip"
-    }
-  },
-  "https://congress.gov.ph/commsched": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a6720a0c8784d0-HKG"
-    }
-  },
-  "https://congress.gov.ph/search": {
+  "https://congress.gov.ph/members": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:43 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:12 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:58 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:27 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a6720b4cf9404c-MNL"
+      "cf-ray": "85a65b50285e84ae-HKG"
+    }
+  },
+  "https://congress.gov.ph/legisdocs/": {
+    "hits": 8,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:13 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:28 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b51a85a4045-MNL"
+    }
+  },
+  "https://congress.gov.ph/legis": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:13 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:28 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5439d0404c-MNL"
     }
   },
   "https://congress.gov.ph/about/": {
     "hits": 8,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:13 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:59 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:28 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a6720be8a0402e-MNL"
+      "cf-ray": "85a65b553942402e-MNL"
     }
   },
-  "https://congress.gov.ph/legisinfo/": {
-    "hits": 3,
+  "https://congress.gov.ph/search": {
+    "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:13 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:59 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:28 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a6720eca6d4046-MNL"
+      "cf-ray": "85a65b569b1184b5-HKG"
+    }
+  },
+  "https://congress.gov.ph/.": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:13 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:28 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b56fc3e10a0-HKG"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/docs/hrep.house.rules.adopted.ebook.pdf": {
     "hits": 1,
     "headinfo": {
-      "x-amz-id-2": "FLcmxoAFE+g320XvcBv/MAnLNsLojb11jXapmIiAwXLPTyO4f1CbTuoezyCexfuzevXpVtg4KRyDsXQZqKjgyA==",
-      "x-amz-request-id": "B7M1DKY5C6SZ38T1",
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
+      "x-amz-id-2": "DC+4wvtzFjZfR+Ip8FpSW+tzjRHCXSQrLI3kRDO21Ff+48vxceGffmuS6/mHGfknuPUnsuVRP+Q=",
+      "x-amz-request-id": "1TMKRW34PY5ZFSR5",
+      "date": "Sat, 24 Feb 2024 08:32:15 GMT",
       "last-modified": "Wed, 09 Aug 2023 12:37:00 GMT",
       "etag": "\"0363036e4d98b57325afa38d4cdf10f6-6\"",
       "x-amz-server-side-encryption": "AES256",
@@ -504,201 +574,257 @@
       "content-length": "28190776"
     }
   },
-  "https://congress.gov.ph/photojournal": {
-    "hits": 2,
+  "https://congress.gov.ph/legisinfo/": {
+    "hits": 3,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:59 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a6720f78114034-MNL"
+      "cf-ray": "85a65b58cf18403a-MNL"
+    }
+  },
+  "https://congress.gov.ph/photojournal": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b59193c4034-MNL"
     }
   },
   "https://congress.gov.ph/streaming": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:59 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672102e0c4045-MNL"
-    }
-  },
-  "https://congress.gov.ph/committees": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:59 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a67212093f404c-MNL"
-    }
-  },
-  "https://congress.gov.ph/press": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:44 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:47:59 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67211e8261069-HKG"
+      "cf-ray": "85a65b59ba6c402e-MNL"
     }
   },
   "https://congress.gov.ph/download": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
       "content-type": "text/html; charset=UTF-8",
       "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "referrer-policy": "same-origin",
       "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:48:00 GMT",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672128b3e20db-HKG"
+      "cf-ray": "85a65b5a0b14402e-MNL"
+    }
+  },
+  "https://congress.gov.ph/bids": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5aad29402d-MNL"
+    }
+  },
+  "https://congress.gov.ph/sitemap": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5afcef402e-MNL"
+    }
+  },
+  "https://congress.gov.ph/..": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5b4b714039-MNL"
+    }
+  },
+  "https://congress.gov.ph/js/jquery.min.js": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "application/javascript",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Mon, 27 Jun 2016 09:05:23 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:14 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5b9e1b402e-MNL",
+      "content-encoding": "gzip"
+    }
+  },
+  "https://congress.gov.ph/js/bootstrap.min.js": {
+    "hits": 2,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "application/javascript",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:14 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5bffb4404c-MNL",
+      "content-encoding": "gzip"
+    }
+  },
+  "https://congress.gov.ph/press": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
+      "content-type": "text/html; charset=UTF-8",
+      "content-length": "4518",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "referrer-policy": "same-origin",
+      "cache-control": "max-age=15",
+      "expires": "Sat, 24 Feb 2024 08:32:29 GMT",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5b8ca28524-HKG"
     }
   },
   "http://senate.gov.ph/": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:14 GMT",
       "content-type": "text/html; charset=UTF-8",
       "connection": "keep-alive",
       "location": "http://legacy.senate.gov.ph/",
-      "cf-ray": "85a67211ba4d1099-HKG",
+      "cf-ray": "85a65b5b6b938b69-HKG",
       "cf-cache-status": "DYNAMIC",
       "x-powered-by": "ASP.NET",
       "vary": "Accept-Encoding",
       "server": "cloudflare"
     }
   },
-  "https://congress.gov.ph/bids": {
+  "https://congress.gov.ph/js/css/font-awesome/css/font-awesome.min.css": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:15 GMT",
       "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:48:00 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a672132b888497-HKG"
-    }
-  },
-  "https://congress.gov.ph/sitemap": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:48:00 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67213adc70966-HKG"
-    }
-  },
-  "https://congress.gov.ph/js/bootstrap.min.js": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
-      "content-type": "application/javascript",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:45 GMT",
+      "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+      "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
+      "pragma": "no-cache",
       "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
+      "cf-cache-status": "MISS",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672173ee44045-MNL",
+      "cf-ray": "85a65b5cfcc64045-MNL",
       "content-encoding": "gzip"
-    }
-  },
-  "https://congress.gov.ph/js/jquery.js": {
-    "hits": 2,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
-      "content-type": "application/javascript",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "last-modified": "Wed, 09 Dec 2020 10:29:58 GMT",
-      "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:45 GMT",
-      "x-xss-protection": "1; mode=block",
-      "cf-cache-status": "REVALIDATED",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67216ec904039-MNL",
-      "content-encoding": "gzip"
-    }
-  },
-  "http://congress.gov.ph/legis": {
-    "hits": 1,
-    "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:45 GMT",
-      "content-type": "text/html; charset=UTF-8",
-      "content-length": "4518",
-      "connection": "keep-alive",
-      "x-frame-options": "SAMEORIGIN",
-      "referrer-policy": "same-origin",
-      "cache-control": "max-age=15",
-      "expires": "Sat, 24 Feb 2024 08:48:00 GMT",
-      "vary": "Accept-Encoding",
-      "server": "cloudflare",
-      "cf-ray": "85a67217cbc8404c-MNL"
     }
   },
   "https://congress.gov.ph/css/images/congress.png": {
     "hits": 1,
     "headinfo": {
-      "date": "Sat, 24 Feb 2024 08:47:46 GMT",
+      "date": "Sat, 24 Feb 2024 08:32:15 GMT",
       "content-type": "image/png",
       "content-length": "94462",
       "connection": "keep-alive",
       "x-frame-options": "SAMEORIGIN",
       "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT",
       "cache-control": "public, max-age=14400",
-      "expires": "Sat, 24 Feb 2024 12:47:46 GMT",
+      "expires": "Sat, 24 Feb 2024 12:32:15 GMT",
       "x-xss-protection": "1; mode=block",
       "cf-cache-status": "REVALIDATED",
       "accept-ranges": "bytes",
       "vary": "Accept-Encoding",
       "server": "cloudflare",
-      "cf-ray": "85a672192a95402d-MNL"
+      "cf-ray": "85a65b5dea944034-MNL"
+    }
+  },
+  "https://congress.gov.ph/images/calendar-sign-19th-1rs.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:15 GMT",
+      "content-type": "image/png",
+      "content-length": "45413",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Wed, 03 Aug 2022 01:12:19 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:15 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5e3bfd4046-MNL"
+    }
+  },
+  "https://congress.gov.ph/css/images/bg04.png": {
+    "hits": 1,
+    "headinfo": {
+      "date": "Sat, 24 Feb 2024 08:32:15 GMT",
+      "content-type": "image/png",
+      "content-length": "153",
+      "connection": "keep-alive",
+      "x-frame-options": "SAMEORIGIN",
+      "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT",
+      "cache-control": "public, max-age=14400",
+      "expires": "Sat, 24 Feb 2024 12:32:15 GMT",
+      "x-xss-protection": "1; mode=block",
+      "cf-cache-status": "REVALIDATED",
+      "accept-ranges": "bytes",
+      "vary": "Accept-Encoding",
+      "server": "cloudflare",
+      "cf-ray": "85a65b5f3b74403a-MNL"
     }
   }
 }

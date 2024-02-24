@@ -79,7 +79,8 @@ function sleep( millis )
 
 function normalizeUrl( u )
 {//{{{
-  let fromPage = url.parse(u.replace(/\/\.\.\//,'/').replace(/\/$/,''));
+  // URLFIX
+  let fromPage = url.parse(u.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''));
   // Only fill in missing URL components from corresponding targetUrl parts
   for ( e in parsedUrl ) {
     let val = parsedUrl[e] || '';
@@ -438,22 +439,23 @@ async function extract_hosts_from_urlarray( target_url, result )
 
 function load_visit_map( visit_file )
 {//{{{
-  let visited_pages;
+  let visited_map;
 
   try {
     if ( fs.statSync( visit_file, { throwIfNoEntry: false } ) ) {
       let ofile = fs.readFileSync( visit_file );
       let o = JSON.parse( ofile );
-      visited_pages = new Map(Object.entries(o)); 
+      visited_map = new Map(Object.entries(o)); 
     }
     else {
-      visited_pages = new Map;
+      visited_map = new Map;
     }
   }
   catch (e) {
-    visited_pages = new Map;
+    console.log( "THROWN", e, visited_map );
+    visited_map = new Map;
   }
-  return visited_pages;
+  return visited_map;
 }//}}}
 
 describe("Recursively descend ".concat(targetUrl), async () => {
@@ -479,20 +481,22 @@ function loadCookies()
 
 function recompute_filepaths_from_url(target)
 {//{{{
+  assert(target.length > 0);
   parsedUrl = url.parse(target);
   // Generate targetFile path based on URL path components.
   let relativePath = new Array();
   let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/\/$/,'').split('/');
   let pathComponent = 0; 
   targetDir = '';
+
+  // Unique visited URL and permitted hosts files
+  visitFile = parsedUrl.host.concat('/visited.json');
+  permittedHosts = parsedUrl.host.concat('/permitted.json');
+
   while ( pathParts.length > 0 ) {
     let part = pathParts.shift();
     relativePath.push(part);
     targetDir = relativePath.join('/');
-    if ( pathComponent == 0 ) { 
-      visitFile = part.concat('/visited.json');
-      permittedHosts = part.concat('/permitted.json');
-    }
     pathComponent++;
     if ( fs.existsSync( targetDir ) ) continue;
     fs.mkdirSync( targetDir );
@@ -501,9 +505,9 @@ function recompute_filepaths_from_url(target)
   assetCatalogFile = targetDir.concat('/index.assets.json'); 
   pageCookieFile = targetDir.concat('/cookies.json'); 
   console.log( 'Target path computed as %s', targetFile );
+  console.log( ' Asset catalog %s', assetCatalogFile );
+  console.log( ' Page cookies %s', pageCookieFile );
 }//}}}
-
-let visited_pages;
 
 async function fetch_and_extract( initial_target, depth )
 {//{{{
@@ -521,6 +525,7 @@ async function fetch_and_extract( initial_target, depth )
       let target = targets.shift();
       let page_assets = new Map;
       let iteration_subjects;
+      let visited_pages;
 
       fetch_reset();
 
@@ -658,35 +663,37 @@ async function fetch_and_extract( initial_target, depth )
         // -------
       };//}}}
 
-      let data = fs.readFileSync(targetFile);
 
       if ( iteration_subjects === undefined ) {
-        try {
-          // Load any preexisting pageCookieFile
-          let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
-          if ( !cookieProps ) {
-            console.log( "No existing cookie file %s", pageCookieFile );
-            cookies = null;
-          } else {
-            let cookieData = fs.readFileSync( pageCookieFile );
-            cookies = JSON.parse( cookieData );
-            console.log( "Loaded cookies from %s", pageCookieFile, cookies );
-          }
-        } catch(e) {
-          console.log( "Problem reloading existing cookies from %s", pageCookieFile );
-          console.log( "Going without." );
-        }
-        await browser.setTimeout({ 'script': state_timeout });
+        let data = fs.readFileSync(targetFile);
+        //try {
+        //  // Load any preexisting pageCookieFile
+        //  let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
+        //  if ( !cookieProps ) {
+        //    console.log( "No existing cookie file %s", pageCookieFile );
+        //    cookies = null;
+        //  } else {
+        //    let cookieData = fs.readFileSync( pageCookieFile );
+        //    cookies = JSON.parse( cookieData );
+        //    console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+        //  }
+        //} catch(e) {
+        //  console.log( "Problem reloading existing cookies from %s", pageCookieFile );
+        //  console.log( "Going without." );
+        //}
+        //await browser.setTimeout({ 'script': state_timeout });
         extractedUrls = extract_urls( data, target );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
+
       // Insert entries into targets array
       iteration_subjects.paths.forEach((value, urlhere, map) => {
-        let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'');
+        // URLFIX
+        let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
         let content_type = value['headinfo']['content-type'];
         if ( !visited_pages.has( key ) && /^text\/html.*/.test( content_type ) ) {
           console.log( "Extending page scan to %s", key );
-          //targets.push( key );
+          targets.push( key );
         }
       });
     }

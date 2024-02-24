@@ -1,0 +1,50 @@
+{
+  "https://congress.gov.ph/legisinfo/js/legisinfo.js": {
+    "status": 200,
+    "req": {
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "cache-control": "public, max-age=14400",
+      "cf-cache-status": "REVALIDATED",
+      "cf-ray": "85a77024befa4039-MNL",
+      "content-encoding": "gzip",
+      "content-type": "application/javascript",
+      "date": "Sat, 24 Feb 2024 11:41:11 GMT",
+      "expires": "Sat, 24 Feb 2024 15:41:11 GMT",
+      "last-modified": "Tue, 17 Oct 2023 02:54:52 GMT",
+      "server": "cloudflare",
+      "vary": "Accept-Encoding",
+      "x-frame-options": "SAMEORIGIN",
+      "x-xss-protection": "1; mode=block"
+    }
+  },
+  "https://congress.gov.ph/favicon.ico": {
+    "status": 404,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://congress.gov.ph/legisinfo/js/legisinfo.js",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "pragma": "no-cache",
+      "date": "Sat, 24 Feb 2024 11:42:09 GMT",
+      "content-encoding": "gzip",
+      "cf-cache-status": "MISS",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "vary": "Accept-Encoding",
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
+      "cf-ray": "85a7718d98e14039-MNL",
+      "x-xss-protection": "1; mode=block",
+      "expires": "Thu, 19 Nov 1981 08:52:00 GMT"
+    }
+  }
+}

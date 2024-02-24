@@ -1,0 +1,36 @@
+{
+  "https://congress.gov.ph/images/ico/manifest.json": {
+    "status": 200,
+    "req": {
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "cache-control": "max-age=1, must-revalidate",
+      "cf-cache-status": "DYNAMIC",
+      "cf-ray": "85a779c4ed984039-MNL",
+      "content-encoding": "gzip",
+      "content-type": "application/json",
+      "date": "Sat, 24 Feb 2024 11:47:46 GMT",
+      "expires": "Sat, 24 Feb 2024 11:47:47 GMT",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "x-xss-protection": "1; mode=block"
+    }
+  },
+  "https://www.google-analytics.com/g/collect?v=2&tid=G-390BDM1BFW&gtm=45je42l0v881251738za220&_p=1708775261907&gcd=13l3l3l3l1&npa=0&dma=0&cid=478273083.1708774868&ul=en-us&sr=1920x1080&uaa=x86&uab=64&uafvl=Chromium%3B121.0.6167.139%7CNot%2520A(Brand%3B99.0.0.0&uamb=0&uam=&uap=Linux&uapv=4.18.0&uaw=0&pscdl=noapi&_eu=AEA&_s=2&sid=1708774867&sct=1&seg=1&dl=https%3A%2F%2Fcongress.gov.ph%2Fsearch.php%3Fid%3Dyu-j&dt=House%20of%20Representatives&en=scroll&epn.percent_scrolled=90&tfd=4306": {
+    "status": null,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://congress.gov.ph/",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": null
+  }
+}

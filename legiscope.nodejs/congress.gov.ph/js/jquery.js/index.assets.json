@@ -1,0 +1,26 @@
+{
+  "https://congress.gov.ph/js/jquery.js": {
+    "status": 200,
+    "req": {
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "cache-control": "public, max-age=14400",
+      "cf-cache-status": "REVALIDATED",
+      "cf-ray": "85a77024bef64039-MNL",
+      "content-encoding": "gzip",
+      "content-type": "application/javascript",
+      "date": "Sat, 24 Feb 2024 11:41:12 GMT",
+      "expires": "Sat, 24 Feb 2024 15:41:12 GMT",
+      "last-modified": "Wed, 09 Dec 2020 10:29:58 GMT",
+      "server": "cloudflare",
+      "vary": "Accept-Encoding",
+      "x-frame-options": "SAMEORIGIN",
+      "x-xss-protection": "1; mode=block"
+    }
+  }
+}

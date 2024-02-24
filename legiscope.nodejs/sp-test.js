@@ -35,6 +35,7 @@ const pad = " ";
 
 let targetFile       = '';
 let visitFile        = '';
+let permittedHosts  = '';
 let assetCatalogFile = '';
 let pageCookieFile   = '';
 let targetDir        = '';
@@ -142,10 +143,12 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
       stashUrlDomain( urlText );
     }
     else if ( tagname == 'A' ) {
-      urlText = normalizeUrl( $("*").attr('href') );
-      if ( logthis ) console.log( "%s%d: %s{%s} %s", pad.repeat(depth<<1), index, tagname, className, urlText );
-      stashPageUrl( urlText );
-      stashUrlDomain( urlText );
+      if ( undefined !== $("*").attr('href') ) {
+        urlText = normalizeUrl( $("*").attr('href') );
+        if ( logthis ) console.log( "%s%d: %s{%s} %s", pad.repeat(depth<<1), index, tagname, className, urlText );
+        stashPageUrl( urlText );
+        stashUrlDomain( urlText );
+      }
     }
     else if ( tagname == 'SCRIPT' ) {
       let srcattr = $("*").attr('src');
@@ -283,23 +286,23 @@ function write_map_to_file( description, map_file, map_obj, loadedUrl )
 
 async function extract_hosts_from_urlarray( target_url, result )
 {//{{{
-  const head_standoff = 100;
+  const head_standoff = 50;
   let unique_host_path = new Map;
   let unique_hosts = new Map;
 
   // For writing lists of permitted hosts, hosts referred on page, and link HEAD info
   // targetDir is updated in fetch_and_extract()
-  let permitted_hosts = targetDir.concat( '/', 'permitted.json' );
+  // let permittedHosts = targetDir.concat( '/', 'permitted.json' );
   let current_hosts = targetDir.concat( '/', 'hosts.json' );
   let linkinfo = targetDir.concat( '/', 'linkinfo.json' );
-  let fileProps = fs.statSync( permitted_hosts, { throwIfNoEntry: false } );
+  let fileProps = fs.statSync( permittedHosts, { throwIfNoEntry: false } );
 
   // Obtain any preexisting permitted hosts list from file
   if ( fileProps ) {
-    let ofile = fs.readFileSync(permitted_hosts);
+    let ofile = fs.readFileSync(permittedHosts);
     let o = JSON.parse( ofile );
     unique_hosts = new Map(Object.entries(o));
-    console.log( "Located permitted hosts list %s", permitted_hosts, unique_hosts );
+    console.log( "Located permitted hosts list %s", permittedHosts, unique_hosts );
   }
   // Extract reachable hosts and unique paths lists
 
@@ -341,6 +344,10 @@ async function extract_hosts_from_urlarray( target_url, result )
     // Determine asset mimetype
     if ( !fileProps || unique_hosts.has( u.host ) ) {
       let head_info;
+      //if ( process.env.SKIPHEADINFO !== undefined ) {
+      //  keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+      //}
+      //else
       if ( u.protocol == 'https:' ) {
         try {
           await https.request( g, head_options, (res) => {
@@ -415,7 +422,7 @@ async function extract_hosts_from_urlarray( target_url, result )
 
   // Write permitted and currently reachable URL lists 
   if ( !fileProps ) {
-    write_map_to_file( "permitted hosts list", permitted_hosts, unique_hosts, target_url );
+    write_map_to_file( "permitted hosts list", permittedHosts, unique_hosts, target_url );
   }
   write_map_to_file( "reachable hosts list", current_hosts, unique_hosts, target_url ); 
 
@@ -470,8 +477,6 @@ function loadCookies()
   }
 }//}}}
 
-
-
 function recompute_filepaths_from_url(target)
 {//{{{
   parsedUrl = url.parse(target);
@@ -484,7 +489,10 @@ function recompute_filepaths_from_url(target)
     let part = pathParts.shift();
     relativePath.push(part);
     targetDir = relativePath.join('/');
-    if ( pathComponent == 0 ) visitFile = part.concat('/visited.json');
+    if ( pathComponent == 0 ) { 
+      visitFile = part.concat('/visited.json');
+      permittedHosts = part.concat('/permitted.json');
+    }
     pathComponent++;
     if ( fs.existsSync( targetDir ) ) continue;
     fs.mkdirSync( targetDir );

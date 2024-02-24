@@ -1,0 +1,20 @@
+[
+  {
+    "domain": ".congress.gov.ph",
+    "httpOnly": false,
+    "name": "PHPSESSID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "iplhnka1iqjlu8g918cletl2g7"
+  },
+  {
+    "domain": "congress.gov.ph",
+    "httpOnly": false,
+    "name": "PHPSESSID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "lbgck6nein27v9vr4frnlgk07q"
+  }
+]

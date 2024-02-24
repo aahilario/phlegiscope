@@ -1,0 +1,30 @@
+[
+  {
+    "domain": ".congress.gov.ph",
+    "httpOnly": false,
+    "name": "PHPSESSID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "iplhnka1iqjlu8g918cletl2g7"
+  },
+  {
+    "domain": ".congress.gov.ph",
+    "expiry": 1708747882,
+    "httpOnly": true,
+    "name": "__cf_bm",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "uy3DhP0GKt.Ek.rAZMcu0zB7O_toXimVzz7HIf0l3Yo-1708746082-1.0-ARLMcNX0F71x0oWABXfk8s2MUKZGXJM/5LDMNR3tq1Jkckz/IctkNBoGxcLSANtdC4sX9S32kHWdclwdHJUmB3E="
+  },
+  {
+    "domain": "congress.gov.ph",
+    "httpOnly": false,
+    "name": "PHPSESSID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "lbgck6nein27v9vr4frnlgk07q"
+  }
+]

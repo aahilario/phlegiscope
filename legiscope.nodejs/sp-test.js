@@ -1,5 +1,14 @@
-const { remote } = require("webdriverio");
-
+//if ( process.env.CHILD !== undefined ) {
+//  process.on('message', function(o) {
+//    console.log('Parent sent', o);
+//    o.child = process.pid;
+//    o.TARGETURL = process.env.TARGETURL;
+//    process.send(o);
+//  });
+//  console.log("Fooie");
+//}
+//
+const { browser, $, $$, expect } = require("@wdio/globals");
 const fs = require('fs');
 const assert = require("assert");
 const System = require("systemjs");
@@ -7,18 +16,14 @@ const cheerio = require("cheerio");
 const url = require("node:url");
 const http = require("node:http");
 const https = require("node:https");
+const { argv, pid } = require("node:process");
+const { spawnSync } = require("child_process");
+const controller = new AbortController();
+const { signal } = controller;
 
-//const targetUrl = 'https://congress.gov.ph/legisdocs/?v=bills#HistoryModal';
-//const element_xpath = '/html/body/div[2]/div/div[1]/div[2]';
-//const targetFile = 'bills-text.html'; 
-//const sampleCount = 100;
-
-//const targetUrl     = 'https://congress.gov.ph/legisdocs/?v=bills';
-//const targetUrl     = 'https://congress.gov.ph/';
-const targetUrl     = 'https://avahilario.net/';
+const targetUrl     = process.env.TARGETURL || 'https://congress.gov.ph/';
 const element_xpath = '/html';
 const sampleCount   = 0;
-
 
 const loggedTags = new Map([
   [ "SCRIPT", 0 ], // This allows inlined scripts to be dumped
@@ -42,7 +47,7 @@ let extractedUrls;
 let cookies;
 let root_request_header;
 
-function reset()
+function fetch_reset()
 {
   // Invoke to reset state before fetching a new URL
   targetFile          = '';
@@ -249,14 +254,14 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       headinfo: prior_entry.headinfo
     });
   }
-  console.log("%d:\tHost %s type '%s' (%db) pathname '%s' query %s hash %s", 
+  console.log("%d:\tHost %s type '%s' (%db) pathname '%s' %s %s", 
     result.length,
     u.host,
     content_type,
     head_info['content-length'],
     u.pathname, 
-    u.query ? "'".concat(u.query,"'") : '<null>',
-    u.hash || '<null>'
+    u.query ? "query '".concat(u.query,"' ") : '',
+    u.hash ? "hash '".concat(u.hash,"'") : '' 
   );
 }//}}}
 
@@ -333,6 +338,7 @@ async function extract_hosts_from_urlarray( target_url, result )
 
     let content_type = null;
 
+    // Determine asset mimetype
     if ( !fileProps || unique_hosts.has( u.host ) ) {
       let head_info;
       if ( u.protocol == 'https:' ) {
@@ -427,226 +433,265 @@ function load_visit_map( visitFile )
 {//{{{
   let visited_pages;
 
-  if ( fs.statSync( visitFile, { throwIfNoEntry: false } ) ) {
-    let ofile = fs.readFileSync( visitFile );
-    let o = JSON.parse( ofile );
-    visited_pages = new Map(Object.entries(o)); 
+  try {
+    if ( fs.statSync( visitFile, { throwIfNoEntry: false } ) ) {
+      let ofile = fs.readFileSync( visitFile );
+      let o = JSON.parse( ofile );
+      visited_pages = new Map(Object.entries(o)); 
+    }
+    else {
+      visited_pages = new Map;
+    }
   }
-  else {
+  catch (e) {
     visited_pages = new Map;
   }
   return visited_pages;
 }//}}}
 
-function fetch_and_extract( target )
+describe("Recursively descend ".concat(targetUrl), async () => {
+
+function loadCookies()
+{//{{{
+  try {
+    // Load any preexisting pageCookieFile
+    let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
+    if ( !cookieProps ) {
+      console.log( "No existing cookie file %s", pageCookieFile );
+      cookies = null;
+    } else {
+      let data = fs.readFileSync( pageCookieFile );
+      cookies = JSON.parse( data );
+      console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+    }
+  } catch(e) {
+    console.log( "Problem reloading existing cookies from %s", pageCookieFile );
+    console.log( "Going without." );
+  }
+}//}}}
+
+
+
+function recompute_filepaths_from_url(target)
+{//{{{
+  parsedUrl = url.parse(target);
+  // Generate targetFile path based on URL path components.
+  let relativePath = new Array();
+  let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
+  let pathComponent = 0; 
+  targetDir = '';
+  while ( pathParts.length > 0 ) {
+    let part = pathParts.shift();
+    relativePath.push(part);
+    targetDir = relativePath.join('/');
+    if ( pathComponent == 0 ) visitFile = part.concat('/visited.json');
+    pathComponent++;
+    if ( fs.existsSync( targetDir ) ) continue;
+    fs.mkdirSync( targetDir );
+  }
+  targetFile = targetDir.concat('/index.html');
+  assetCatalogFile = targetDir.concat('/index.assets.json'); 
+  pageCookieFile = targetDir.concat('/cookies.json'); 
+  console.log( 'Target path computed as %s', targetFile );
+}//}}}
+
+let visited_pages;
+
+async function fetch_and_extract( initial_target, depth )
 {//{{{
   // Walk through all nodes in DOM
 
-  let state_timeout = 1800000;
-  let page_assets = new Map;
-  let visited_pages;
+  let state_timeout = 3600000;
+  let targets = new Array;
 
-  parsedUrl = url.parse(target);
+  it('Scrape starting at '.concat(initial_target), async function () {
 
-  console.log( "Target: %s", target );
+    targets.push( initial_target );
 
-  // Generate targetFile path based on URL path components.
-  if ( 0 == targetFile.length ) {//{{{
-    let relativePath = new Array();
-    let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
-    let pathComponent = 0; 
-    targetDir = '';
-    while ( pathParts.length > 0 ) {
-      let part = pathParts.shift();
-      relativePath.push(part);
-      targetDir = relativePath.join('/');
-      if ( pathComponent == 0 ) visitFile = part.concat('/visited.json');
-      pathComponent++;
-      if ( fs.existsSync( targetDir ) ) continue;
-      fs.mkdirSync( targetDir );
-    }
-    targetFile = targetDir.concat('/index.html');
-    assetCatalogFile = targetDir.concat('/index.assets.json'); 
-    pageCookieFile = targetDir.concat('/cookies.json'); 
-    console.log( 'Target path computed as %s', targetFile );
-  }//}}}
+    while ( targets.length > 0 ) {
 
-  // Preload any visited pages catalog
-  visited_pages = load_visit_map( visitFile ); 
+      let target = targets.shift();
+      let page_assets = new Map;
+      let iteration_subjects;
 
-  // Record this URL as the first unique entry
-  pageUrls.set( target, 1 ); 
+      fetch_reset();
 
-  let fileProps;
-  
-  try {
-    fileProps = fs.statSync( targetFile, { throwIfNoEntry: false } );
-    console.log( "Target '%s' props:", targetFile, fileProps );
-  } catch(e) {
-    console.log("Must fetch '%s' from %s", targetFile, target );
-    fileProps = null;
-  }
+      recompute_filepaths_from_url(target);
 
-  let visited = visited_pages.has( target );
+      console.log( "========================================" );
+      console.log( "Process:", argv );
+      console.log( "Target: %s", target );
+      console.log( "Browser: ", browser, browser.addCommand ? browser.addCommand.name : {} );
 
-  console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
+      // Preload any visited pages catalog
+      visited_pages = load_visit_map( visitFile ); 
 
-  if ( !fileProps || !visited ) {
+      // Record this URL as the first unique entry
+      pageUrls.set( target, 1 ); 
 
-    // state_timeout = 1800000;
-    it('Fetches from '.concat(target), async function () {
+      let visited = visited_pages.has( target );
+      let fileProps = null;
 
       try {
-        // Load any preexisting pageCookieFile
-        let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
-        if ( !cookieProps ) {
-          console.log( "No existing cookie file %s", pageCookieFile );
-          cookies = null;
-        } else {
-          let data = fs.readFileSync( pageCookieFile );
-          cookies = JSON.parse( data );
-          console.log( "Loaded cookies from %s", pageCookieFile, cookies );
-        }
+        fileProps = fs.statSync( targetFile, { throwIfNoEntry: true } );
+        console.log( "Target '%s' props:", targetFile, fileProps );
       } catch(e) {
-        console.log( "Problem reloading existing cookies from %s", pageCookieFile );
-        console.log( "Going without." );
+        console.log("Must fetch '%s' from %s", targetFile, target );
+        fileProps = null;
       }
 
-      await browser.setTimeout({ 'script': state_timeout });
+      console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
 
-      // Enable capture of HTTP requests and responses
-      // https://stackoverflow.com/questions/61569000/get-all-websocket-messages-in-protractor/62210198#62210198 2024-02-21
-      await browser.cdp('Network', 'enable');
-      await browser.on('Network.requestWillBeSent', (event) => {
-        if ( event.request.url == target )
-          console.log(`Request: ${event.request.method} ${event.request.url}`, event.request.headers);
-        root_request_header = event.request.headers;
-        page_assets.set( event.request.url, {
-          status: null, 
-          req: event.request.headers,
-          res: null
-        });
-      });
-      await browser.on('Network.responseReceived', (event) => {
-        let pair = page_assets.get( event.response.url );
-        if ( pair !== undefined ) {
-          pair.res    = event.response.headers;
-          pair.status = event.response.status;
-          page_assets.set( event.response.url, pair );
-          console.log(`Response: ${event.response.status} ${event.response.url}`, pair);
-        }
-        else {
-          console.log(`Unpaired Response: ${event.response.status} ${event.response.url}`, pair);
-          page_assets.set( event.response.url, {
-            status: event.response.status,
-            req: null,
-            res: event.response.headers
+      if ( !fileProps || !visited ) {//{{{
+
+        console.log( "Fetching from %s", target );
+
+        ////////////////////////////////
+        loadCookies();
+
+        await browser.setTimeout({ 'script': state_timeout });
+
+        // Enable capture of HTTP requests and responses
+        // https://stackoverflow.com/questions/61569000/get-all-websocket-messages-in-protractor/62210198#62210198 2024-02-21
+        await browser.cdp('Network', 'enable');
+        await browser.on('Network.requestWillBeSent', (event) => {
+          if ( event.request.url == target )
+            console.log(`Request: ${event.request.method} ${event.request.url}`, event.request.headers);
+          root_request_header = event.request.headers;
+          page_assets.set( event.request.url, {
+            status: null, 
+            req: event.request.headers,
+            res: null
           });
+        });
+        await browser.on('Network.responseReceived', (event) => {
+          let pair = page_assets.get( event.response.url );
+          if ( pair !== undefined ) {
+            pair.res    = event.response.headers;
+            pair.status = event.response.status;
+            page_assets.set( event.response.url, pair );
+            console.log(`Response: ${event.response.status} ${event.response.url}`, pair);
+          }
+          else {
+            console.log(`Unpaired Response: ${event.response.status} ${event.response.url}`, pair);
+            page_assets.set( event.response.url, {
+              status: event.response.status,
+              req: null,
+              res: event.response.headers
+            });
+          }
+        });
+
+        console.log( "Browser status", await browser.status() );
+
+        if ( !cookies ) {
+          console.log( "Cookie-free fetch of %s", target );
+          await browser.url(target);
         }
-      });
+        else {
+          let browser_p = browser.url(target);
+          console.log( "Attempting to reuse previous cookies" );
+          await browser.setCookies( cookies )
+          await browser_p;
+          cookies = await browser.getCookies();
+          console.log( "Previous cookies", cookies );
+        }
 
-      console.log( "Browser status", await browser.status() );
+        // Record the URL as visited
+        // Already-visited URLs will not reach this code at all
+        visited_pages.set( target, { hits: 1 } ); 
 
-      if ( !cookies ) {
-        console.log( "Cookie-free fetch of %s", target );
-        await browser.url(target);
-      }
-      else {
-        let browser_p = browser.url(target);
-        console.log( "Attempting to reuse previous cookies" );
-        await browser.setCookies( cookies )
-        await browser_p;
+        let title = await browser.getTitle();
+        let loadedUrl = await browser.getUrl(); 
         cookies = await browser.getCookies();
-        console.log( "Previous cookies", cookies );
-      }
 
-      // Record the URL as visited
-      // Already-visited URLs will not reach this code at all
-      visited_pages.set( target, { hits: 1 } ); 
+        console.log( "Loaded URL %s", loadedUrl );
+        console.log( "Page title %s", title );
+        console.log( "Cookies:", cookies );
 
-      let title = await browser.getTitle();
-      let loadedUrl = await browser.getUrl(); 
-      cookies = await browser.getCookies();
+        // assert.equal("House of Representatives", title);
 
-      console.log( "Loaded URL %s", loadedUrl );
-      console.log( "Page title %s", title );
-      console.log( "Cookies:", cookies );
+        let markup = await browser.$('html').getHTML();
 
-      // assert.equal("House of Representatives", title);
-     
-      let markup = await browser.$('html').getHTML();
-      
-      await fs.writeFile( pageCookieFile, JSON.stringify( cookies, null, 2 ), function(err) {
-        if ( err ) {
-          console.log( "Unable to jar cookies from %s into %s: %s", loadedUrl, pageCookieFile, err );
-        }
-        else {
-          console.log( "Wrote cookies from %s into file %s", loadedUrl, pageCookieFile );
-        }
-      });
+        await fs.writeFile( pageCookieFile, JSON.stringify( cookies, null, 2 ), function(err) {
+          if ( err ) {
+            console.log( "Unable to jar cookies from %s into %s: %s", loadedUrl, pageCookieFile, err );
+          }
+          else {
+            console.log( "Wrote cookies from %s into file %s", loadedUrl, pageCookieFile );
+          }
+        });
 
-      await fs.writeFile( targetFile, markup, function(err) {
-        if ( err ) {
-          console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
-        }
-        else {
-          console.log( "Wrote %s to %s", loadedUrl, targetFile );
-        }
-      });
+        await fs.writeFile( targetFile, markup, function(err) {
+          if ( err ) {
+            console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
+          }
+          else {
+            console.log( "Wrote %s to %s", loadedUrl, targetFile );
+          }
+        });
 
-      extractedUrls = extract_urls( markup, target );
-      
-      // Prepend all page asset URLs to the array of DOM-embedded URLs.
-      page_assets.forEach( (headers, url, map) => {
-        console.log("%d Adding %s", extractedUrls.length, url );
-        extractedUrls.push(url);
-      });
+        extractedUrls = extract_urls( markup, target );
 
-      await extract_hosts_from_urlarray( target, extractedUrls );
+        // Prepend all page asset URLs to the array of DOM-embedded URLs.
+        page_assets.forEach( (headers, url, map) => {
+          console.log("%d Adding %s", extractedUrls.length, url );
+          extractedUrls.push(url);
+        });
 
-      write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
-      write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
+        iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
 
-      state_timeout = 0;
-    });
-  }
-  else {
-
-    it("Parses ".concat(target), async function() {
+        write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
+        write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
+        // -------
+        // await descend_iteration_targets( visited_pages, iteration_subjects, depth, fetch_and_extract );
+        // -------
+      };//}}}
 
       let data = fs.readFileSync(targetFile);
 
-      try {
-        // Load any preexisting pageCookieFile
-        let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
-        if ( !cookieProps ) {
-          console.log( "No existing cookie file %s", pageCookieFile );
-          cookies = null;
-        } else {
-          let cookieData = fs.readFileSync( pageCookieFile );
-          cookies = JSON.parse( cookieData );
-          console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+      if ( iteration_subjects === undefined ) {
+        try {
+          // Load any preexisting pageCookieFile
+          let cookieProps = fs.statSync( pageCookieFile, { throwIfNoEntry: false } );
+          if ( !cookieProps ) {
+            console.log( "No existing cookie file %s", pageCookieFile );
+            cookies = null;
+          } else {
+            let cookieData = fs.readFileSync( pageCookieFile );
+            cookies = JSON.parse( cookieData );
+            console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+          }
+        } catch(e) {
+          console.log( "Problem reloading existing cookies from %s", pageCookieFile );
+          console.log( "Going without." );
         }
-      } catch(e) {
-        console.log( "Problem reloading existing cookies from %s", pageCookieFile );
-        console.log( "Going without." );
+        await browser.setTimeout({ 'script': state_timeout });
+        extractedUrls = extract_urls( data, target );
+        iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
-      await browser.setTimeout({ 'script': state_timeout });
-      extractedUrls = extract_urls( data, target );
-      await extract_hosts_from_urlarray( target, extractedUrls );
-      state_timeout = 0;
-    });
+      // Insert entries into targets array
+      iteration_subjects.paths.forEach((value, key, map) => {
+        let content_type = value['headinfo']['content-type'];
+        if ( !visited_pages.has( key ) && /^text\/html.*/.test( content_type ) ) {
+          console.log( "Extending page scan to %s", key );
+          targets.push( key );
+        }
+      });
+    }
+  });
 
-  }
   console.log( "Resolution deadline: %dms", state_timeout );
-  
+
   return new Promise((resolve) => {
     setTimeout(() => {
       console.log( "Resolving with object", typeof extractedUrls);
-      resolve(extractedUrls);
+      resolve(targets);
     },state_timeout);
   });
 }//}}}
 
-let pagelinks = fetch_and_extract( targetUrl );
+let pagelinks = await fetch_and_extract( targetUrl, 1 );
+
+});
 

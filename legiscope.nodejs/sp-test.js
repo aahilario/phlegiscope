@@ -52,7 +52,7 @@ function fetch_reset()
 {
   // Invoke to reset state before fetching a new URL
   targetFile          = '';
-  visitFile           = '';
+  // visitFile           = '';
   assetCatalogFile    = '';
   pageCookieFile      = '';
   targetDir           = '';
@@ -79,7 +79,7 @@ function sleep( millis )
 
 function normalizeUrl( u )
 {//{{{
-  let fromPage = url.parse(u);
+  let fromPage = url.parse(u.replace(/\/\.\.\//,'/').replace(/\/$/,''));
   // Only fill in missing URL components from corresponding targetUrl parts
   for ( e in parsedUrl ) {
     let val = parsedUrl[e] || '';
@@ -482,7 +482,7 @@ function recompute_filepaths_from_url(target)
   parsedUrl = url.parse(target);
   // Generate targetFile path based on URL path components.
   let relativePath = new Array();
-  let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').split('/');
+  let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/\/$/,'').split('/');
   let pathComponent = 0; 
   targetDir = '';
   while ( pathParts.length > 0 ) {
@@ -509,7 +509,7 @@ async function fetch_and_extract( initial_target, depth )
 {//{{{
   // Walk through all nodes in DOM
 
-  let state_timeout = 3600000;
+  let state_timeout = 7200000;
   let targets = new Array;
 
   it('Scrape starting at '.concat(initial_target), async function () {

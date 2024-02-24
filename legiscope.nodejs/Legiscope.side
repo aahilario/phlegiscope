@@ -1,0 +1,21 @@
+{
+  "id": "22ad13cd-fe16-4432-8b79-f8a5bc26d8cd",
+  "version": "2.0",
+  "name": "Legiscope",
+  "url": "",
+  "tests": [{
+    "id": "fbb46ca7-dc22-400e-9120-039c7c269039",
+    "name": "FetchHouseBills",
+    "commands": []
+  }],
+  "suites": [{
+    "id": "0ff39c7b-cdda-4c85-b1a5-bf5cd65c93d1",
+    "name": "Default Suite",
+    "persistSession": false,
+    "parallel": false,
+    "timeout": 300,
+    "tests": ["fbb46ca7-dc22-400e-9120-039c7c269039"]
+  }],
+  "urls": [],
+  "plugins": []
+}

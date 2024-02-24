@@ -422,8 +422,8 @@ async function extract_hosts_from_urlarray( target_url, result )
   } //}}}
   // while ( result.length > 0 )
 
-  console.log( "Obtained %d unique pathnames (sans URL query part)", unique_host_path.size, unique_host_path );
-  console.log( "Obtained %d unique hostnames", unique_hosts.size, unique_hosts );
+  console.log( "Obtained %d unique pathnames (sans URL query part)", unique_host_path.size, (process.env['SILENT_PARSE'] === undefined) ? unique_host_path : '' );
+  console.log( "Obtained %d unique hostnames", unique_hosts.size, (process.env['SILENT_PARSE'] === undefined) ? unique_hosts : '' );
 
   console.log( "Target path: %s", targetDir );
 

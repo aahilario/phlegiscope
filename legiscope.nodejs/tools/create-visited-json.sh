@@ -5,9 +5,9 @@ for U in $(cat q.json | jq -r .[] | sed -r -e 's@/../@/@g' | sort -u); do
 "$U",
 EOF
   cat <<EOF
-  $U: {
+  "$U": {
     "hits": 1
-  }
+  },
 EOF
 done
 

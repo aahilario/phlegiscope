@@ -144,7 +144,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
     }
     else if ( tagname == 'LINK' ) {
       urlText = normalizeUrl( $("*").attr('href') );
-      if ( !(process.env['SILENT_PARSE'] === undefined) ) if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, $("*").attr('rel').concat(": ",urlText) );
+      if ( (process.env['SILENT_PARSE'] === undefined) ) if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, $("*").attr('rel').concat(": ",urlText) );
       stashPageUrl( urlText );
       stashUrlDomain( urlText );
     }
@@ -269,7 +269,7 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       headinfo: prior_entry.headinfo
     });
   }
-  console.log("%d:\t%s %s %s",
+  if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d:\t%s %s %s",
     result.length,
     content_type,
     head_info['content-length'],
@@ -481,7 +481,7 @@ function loadCookies()
     } else {
       let data = readFileSync( pageCookieFile );
       cookies = JSON.parse( data );
-      console.log( "Loaded cookies from %s", pageCookieFile, cookies );
+      console.log( "Loaded cookies from %s", pageCookieFile );
     }
   } catch(e) {
     console.log( "Problem reloading existing cookies from %s", pageCookieFile );
@@ -672,8 +672,8 @@ async function fetch_and_extract( initial_target, depth )
         page_assets.forEach( (headers, urlraw, map) => {
           // URLFIX
           let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
-          console.log("%d Adding %s", extractedUrls.length, urlraw );
-          console.log("%d     as %s", extractedUrls.length, url );
+          if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d Adding %s", extractedUrls.length, urlraw );
+          if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d     as %s", extractedUrls.length, url );
           extractedUrls.push(url);
         });
 

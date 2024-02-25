@@ -1,13 +1,22 @@
 [
   {
     "domain": ".congress.gov.ph",
-    "expiry": 1708767928,
+    "httpOnly": false,
+    "name": "PHPSESSID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "68nm7md43e7lcev6vvt91gbnl1"
+  },
+  {
+    "domain": ".congress.gov.ph",
+    "expiry": 1708885061,
     "httpOnly": true,
     "name": "__cf_bm",
     "path": "/",
     "sameSite": "None",
     "secure": true,
-    "value": "cmQsiu.ssJCD1ckvZgrAyMceXzbcIozRxq1FcH6jTGU-1708766128-1.0-AWo/8oEd7hYWvMThbeNH8bLOfUPymETfzzZ2nVOWd5AR5gxJ2KNWfVsw6hi2J68I6nb5lWj1mW4uD0RmQrSytts="
+    "value": "oRwmkCoB.zfKQVjEKV0YP1safTNKvV4Cf566zeAHHuI-1708883261-1.0-ASt/sJwyfsJ9UQGlxIXPgfi8tohGckDZvk+F3dwrTNSKPYcwRRdcDjtAHNC82Dzc685LxOrNVBCVHHcNSiG5ifc="
   },
   {
     "domain": ".congress.gov.ph",
@@ -18,15 +27,6 @@
     "sameSite": "Lax",
     "secure": true,
     "value": "GA1.1.1898296510.1708763531"
-  },
-  {
-    "domain": ".congress.gov.ph",
-    "httpOnly": false,
-    "name": "PHPSESSID",
-    "path": "/",
-    "sameSite": "Lax",
-    "secure": true,
-    "value": "ettbi1dfu54s8813mcjm1ebge5"
   },
   {
     "domain": ".congress.gov.ph",
@@ -45,6 +45,6 @@
     "path": "/",
     "sameSite": "Lax",
     "secure": false,
-    "value": "d7fdicqugi7lj39g4dp7uqbjhe"
+    "value": "bg8n5utk266shuadgmlosigrvt"
   }
 ]

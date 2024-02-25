@@ -80,15 +80,20 @@ function sleep( millis )
 function normalizeUrl( u )
 {//{{{
   // URLFIX
-  let fromPage = url.parse(u.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''));
   // Only fill in missing URL components from corresponding targetUrl parts
-  for ( e in parsedUrl ) {
-    let val = parsedUrl[e] || '';
-    if ( val.length > 0 && (fromPage[e] || '').length == 0 ) {
-      fromPage[e] = parsedUrl[e];
-    }
+  let fromPage = url.parse(u);
+  //console.log( "A> %s", parsedUrl.href || '' );
+  //console.log( "B> %s", u || '' );
+  if ( (fromPage.protocol || '').length == 0 && (fromPage.hostname || '').length == 0 ) {
+    fromPage.path = [parsedUrl.path, fromPage.path].join('/');
+    //console.log( "K> %s", fromPage.path );
   }
-  return ''.concat(fromPage.protocol,'//',fromPage.hostname.concat('/',fromPage.path).replace(/[\/]{1,}/gi,'/').replace(/\/[.]{1,}\//,'/').replace(/\/$/,''));
+  if ( (fromPage.protocol || '').length == 0 ) fromPage.protocol = parsedUrl.protocol;
+  if ( (fromPage.host     || '').length == 0 ) fromPage.host     = parsedUrl.host;
+  if ( (fromPage.hostname || '').length == 0 ) fromPage.hostname = parsedUrl.hostname;
+  fromPage.href = ''.concat(fromPage.protocol,'//',fromPage.hostname.concat('/',fromPage.path).replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''));
+  //console.log( "C> %s", fromPage.href );
+  return fromPage.href;
 }//}}}
 
 function stashPageUrl( u )
@@ -248,7 +253,13 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
   if ( unique_host_path.get( unique_entry ) === undefined ) {
     unique_host_path.set( unique_entry, {
       hits: 1, 
-      headinfo: head_info
+      headinfo: {
+        'content-length'   : head_info['content-length'] || null,
+        'content-type'     : head_info['content-type'] || null,
+        'content-encoding' : head_info['content-encoding'] || null,
+        'last-modified'    : head_info['last-modified'] || null
+      }
+      //,headinfo_raw: head_info
     });
   }
   else {
@@ -520,6 +531,7 @@ async function fetch_and_extract( initial_target, depth )
   // Breadth-first link traversal state flags
   let iteration_depth = 0;
   let step_targets = 0;
+  let resweep = (process.env.REFRESH !== undefined);
 
   it('Scrape starting at '.concat(initial_target), async function () {
 
@@ -564,7 +576,7 @@ async function fetch_and_extract( initial_target, depth )
 
       console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
 
-      if ( !fileProps || !visited ) 
+      if ( !fileProps || !visited || resweep ) 
       {//{{{
 
         console.log( "Fetching from %s", target );
@@ -660,7 +672,8 @@ async function fetch_and_extract( initial_target, depth )
         page_assets.forEach( (headers, urlraw, map) => {
           // URLFIX
           let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
-          console.log("%d Adding %s", extractedUrls.length, url );
+          console.log("%d Adding %s", extractedUrls.length, urlraw );
+          console.log("%d     as %s", extractedUrls.length, url );
           extractedUrls.push(url);
         });
 
@@ -669,7 +682,6 @@ async function fetch_and_extract( initial_target, depth )
         write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
         write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
       };//}}}
-
 
       if ( iteration_subjects === undefined ) {
         let data = readFileSync(targetFile);
@@ -681,12 +693,13 @@ async function fetch_and_extract( initial_target, depth )
       let recursive = ( process.env["RECURSIVE"] !== undefined );
 
       if ( step_targets == 0 ) {
+        console.log("Breadth-first sweep of %d URLs", iteration_subjects.paths.size );
         step_targets = iteration_subjects.paths.size;
         iteration_subjects.paths.forEach((value, urlhere, map) => {
           // URLFIX
           let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
           let content_type = value['headinfo']['content-type'];
-          if ( !visited_pages.has( key ) && /^text\/html.*/.test( content_type ) ) {
+          if ( (!visited_pages.has( key ) || resweep) && /^text\/html.*/.test( content_type ) ) {
             console.log( "%s page scan to %s", recursive ? "Extending" : "Deferring", key );
             if ( recursive ) {
               targets.unshift( key );

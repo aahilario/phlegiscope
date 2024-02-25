@@ -642,7 +642,7 @@ async function fetch_and_extract( initial_target, depth )
 
         console.log( "Loaded URL %s", loadedUrl );
         console.log( "Page title %s", title );
-       (process.env['SILENT_PARSE'] === undefined) console.log( "Cookies:", cookies );
+        if (process.env['SILENT_PARSE'] === undefined) console.log( "Cookies:", cookies );
 
         // assert.equal("House of Representatives", title);
 

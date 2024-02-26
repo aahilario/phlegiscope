@@ -101,7 +101,6 @@ function normalizeUrl( u )
     fromPage.protocol,
     '//',
     fromPage.hostname,
-    '/',
     fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
     (q && q.length && q.length > 0 ? '?'.concat(q) : ''),
     (h && h.length && h.length > 0 ? h : '')

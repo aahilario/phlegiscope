@@ -33,10 +33,10 @@
     "res": {
       "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
       "cf-cache-status": "DYNAMIC",
-      "cf-ray": "85b52f52982484d9-HKG",
+      "cf-ray": "85b5e0d8e868107d-HKG",
       "content-encoding": "gzip",
       "content-type": "text/html; charset=UTF-8",
-      "date": "Mon, 26 Feb 2024 03:43:37 GMT",
+      "date": "Mon, 26 Feb 2024 05:44:48 GMT",
       "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
       "pragma": "no-cache",
       "server": "cloudflare",
@@ -54,7 +54,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:50 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT",
@@ -63,9 +63,9 @@
       "vary": "Accept-Encoding",
       "content-type": "text/css",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f7275f73402e-MNL",
+      "cf-ray": "85b542afae0f8485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:50 GMT"
     }
   },
   "https://congress.gov.ph/css/custom.css": {
@@ -78,7 +78,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:50 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT",
@@ -87,9 +87,9 @@
       "vary": "Accept-Encoding",
       "content-type": "text/css",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f7275f77402e-MNL",
+      "cf-ray": "85b542afae108485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:50 GMT"
     }
   },
   "https://congress.gov.ph/css/images/congress.png": {
@@ -102,7 +102,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:16 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:50 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT",
       "server": "cloudflare",
@@ -111,10 +111,10 @@
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f7275f7a402e-MNL",
+      "cf-ray": "85b542afae118485-HKG",
       "content-length": "94462",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:50 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5645-20240226-102532.jpg": {
@@ -127,16 +127,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:38 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Mon, 26 Feb 2024 02:25:33 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "1JDT5Y4B21AP156N",
+      "x-amz-request-id": "00PN0TFA9K34FZSA",
       "ETag": "\"a2ca02fe3fe51fd2308f80a2996269b4\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "456176",
-      "x-amz-id-2": "gS5u+WQH/M3nE7qXnC7BF2RjCbM7XwKery+gJ8AvJ8Zcq7a/zH3hFn8IuCGjDIklt7aHK5I5peg="
+      "x-amz-id-2": "S25rzY3kaCm9fTt4kMYYOFNjiP4Un5JxzyktSPklFNnAKV2OhP38WGi692dJSw++jVfsO6EmkVse3UWQWLDI6A=="
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5644-20240225-173027.jpg": {
@@ -149,16 +149,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:38 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Sun, 25 Feb 2024 09:30:28 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "1JDZR6ZJH669KJVD",
+      "x-amz-request-id": "00PW4RDCHQGZM6JJ",
       "ETag": "\"e3276f1a38e81f85014f52ac01e9c67a\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "446260",
-      "x-amz-id-2": "MAxM5Ahc0CdXdFQyIY2Jf/rPMOHmJfZzx5GkX5xMmV91M6p9DO23ndmZwvCARl1PyvHuZn4gBX4="
+      "x-amz-id-2": "ITDj/3XGvMN64O7mPUOzx4OAiHt/8PGq4xqRDVyYRJ7rHeq1+fMbVjP5V2FqsFx0j+b364JaELLEruAmtb3a0w=="
     }
   },
   "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
@@ -167,7 +167,7 @@
       "Referer": ""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:51 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT",
       "server": "cloudflare",
@@ -175,10 +175,10 @@
       "vary": "Accept-Encoding",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f729ec67402e-MNL",
+      "cf-ray": "85b542b47c078485-HKG",
       "content-length": "18028",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:51 GMT"
     }
   },
   "https://congress.gov.ph/css/images/bg04.png": {
@@ -187,7 +187,7 @@
       "Referer": ""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:51 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT",
       "server": "cloudflare",
@@ -196,10 +196,10 @@
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f7298b7a402e-MNL",
+      "cf-ray": "85b542b299d28485-HKG",
       "content-length": "153",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:51 GMT"
     }
   },
   "https://congress.gov.ph/images/calendar-sign-19th-1rs.png": {
@@ -212,7 +212,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:16 GMT",
+      "date": "Mon, 26 Feb 2024 03:57:05 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Wed, 03 Aug 2022 01:12:19 GMT",
       "server": "cloudflare",
@@ -221,10 +221,10 @@
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f727a801402e-MNL",
+      "cf-ray": "85b5430f1db58485-HKG",
       "content-length": "45413",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:57:05 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5643-20240225-172807.jpg": {
@@ -237,16 +237,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:38 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Sun, 25 Feb 2024 09:28:08 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "1JDKYV88SB1ZRTBJ",
+      "x-amz-request-id": "00PXRMKPQDDYPQR9",
       "ETag": "\"ee9d173b225419d44fe15a917a82791e\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "451900",
-      "x-amz-id-2": "NqID07L1Iw25RsU7eWNflL7gUaQbw49XL4Dch71qRQmQPcVhNkMASqAAiIVMA7CONge5X/83xy8="
+      "x-amz-id-2": "lhzYk7lM813l1dtkOYH4cawqNk1No4SZcXAmBagkf+aHT4//UNArKX6QMexsLEC6kZnwXbzRahnY8gNSydceLQ=="
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5642-20240225-152551.jpg": {
@@ -259,16 +259,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:38 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Sun, 25 Feb 2024 07:25:53 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "1JDTD99N6R38NZH4",
+      "x-amz-request-id": "00PJS163SF9N6J41",
       "ETag": "\"0a7a977e4ec335a310eddbc300bd54fc\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "603660",
-      "x-amz-id-2": "3/7wMdRkc1qjTYkZ/PFc5NIoYL8QxMJIB+SkVx+toA89yM08ePjbUS+7dD7PE8/7EMAcg23Ly/E="
+      "x-amz-id-2": "m7RZIPrD/wm/qIk9+1vY4K1ChVNZNltyloPWAgvIfRJZQwTJXK/Imr6E85pCdZf6fvwaqA8Wvp3eaJolor6IQw=="
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5641-20240223-224959.jpg": {
@@ -281,16 +281,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:38 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Fri, 23 Feb 2024 14:50:00 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "1JDJDQEAX53VXDP9",
+      "x-amz-request-id": "00PYRRVQYEJ23TY1",
       "ETag": "\"4bfee25ee358d02a80ce455bb422c332\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "608288",
-      "x-amz-id-2": "/SYWJkNYqi07Lvq1yJW6SHMtdpcBISFTbERDxH1tLRoWGh0s+OKrlBp7qS6pICNGqE4faw2SK2U="
+      "x-amz-id-2": "xcfnzW874SJJcNwUmUDkd+g2c+zg0Y01B9Z5soZ/6gFGZmOqZmSib2Stp+Ib0aQEs9JVf+FqPrY3tubVvY8BlA=="
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5640-20240223-224814.jpg": {
@@ -303,16 +303,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:38 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Fri, 23 Feb 2024 14:48:15 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "1JDN08BF57TJPJWR",
+      "x-amz-request-id": "00PH64S5002TBV1Q",
       "ETag": "\"d9508d2607c34372de3c67356a217942\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "476021",
-      "x-amz-id-2": "8bZjxkuN4pI/XLFLynuZbLwcc+kvKvstY+M6NwiXbfy2K/g1fnDVv6pwdNUapoxXiPtt0XlkOJA="
+      "x-amz-id-2": "z0gYoLk8pEtVFXRbboQQjhrCpu4SjSDG7p1UOhMtVHCzm/VYO/LJxj0mseZKC75SQk5pIe470lZGtXn1gy6TDA=="
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5639-20240223-091806.jpg": {
@@ -325,16 +325,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:39 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Fri, 23 Feb 2024 01:18:07 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "RN319GY5GY0F23PA",
+      "x-amz-request-id": "00PWXFXFC6ZEA1KK",
       "ETag": "\"48fa8276f443bc6b7acb43933e4fa85e\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "251870",
-      "x-amz-id-2": "dotTF+RTB0bzCoSDzVzP742jknyDD6ZYMdz49uGmlzbIJSq+pCBJCY9LnddMHY3vk7Qt4aCccT0="
+      "x-amz-id-2": "BfM17pDlpPJhYezYE6LDX/ON2AFF/F2kvAXm65RO+04A8b7hFkTsUyTupNOwIq+YNuMTmhylTp96sS23uhcFtQ=="
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/photojournal/images/hrep5637-20240222-220022.jpg": {
@@ -347,16 +347,16 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "Date": "Mon, 26 Feb 2024 03:43:39 GMT",
+      "Date": "Mon, 26 Feb 2024 05:44:50 GMT",
       "Last-Modified": "Thu, 22 Feb 2024 14:00:23 GMT",
       "Server": "AmazonS3",
-      "x-amz-request-id": "RN31690ZMPN80BY2",
+      "x-amz-request-id": "00PG7FTD4X29BDBH",
       "ETag": "\"666c2d411b2108d48ec1a75b3818feb9\"",
       "x-amz-server-side-encryption": "AES256",
       "Content-Type": "image/jpeg",
       "Accept-Ranges": "bytes",
       "Content-Length": "185506",
-      "x-amz-id-2": "mHZC2Xz2xET4k4HDQnSkS6cD6aJLxvvXO647Y8E0STYy4ZWqhRtGq7r6MAx+tYDjf2LR9eZVxig="
+      "x-amz-id-2": "TUC0zx8qPtOKauOwoZJo0jCMKT9yEbBvBzGU54Nhjk5VqZSNo/J+c0+/MtMxwLSNzZIXcRfqf7mS+uMPk2/4Bg=="
     }
   },
   "https://congress.gov.ph/js/jquery.js": {
@@ -369,7 +369,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:16 GMT",
+      "date": "Mon, 26 Feb 2024 03:57:06 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Wed, 09 Dec 2020 10:29:58 GMT",
@@ -378,9 +378,9 @@
       "vary": "Accept-Encoding",
       "content-type": "application/javascript",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f727affd402e-MNL",
+      "cf-ray": "85b5430f1db28485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:57:06 GMT"
     }
   },
   "https://congress.gov.ph/js/bootstrap.min.js": {
@@ -393,7 +393,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:57:06 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT",
@@ -402,9 +402,9 @@
       "vary": "Accept-Encoding",
       "content-type": "application/javascript",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f727a804402e-MNL",
+      "cf-ray": "85b5430ffeb08485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:57:06 GMT"
     }
   },
   "https://congress.gov.ph/photojournal/js/photojournal.js": {
@@ -417,7 +417,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:43:37 GMT",
+      "date": "Mon, 26 Feb 2024 05:44:49 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Tue, 17 Oct 2023 03:22:19 GMT",
@@ -426,9 +426,9 @@
       "vary": "Accept-Encoding",
       "content-type": "application/javascript",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b52f545a3184d9-HKG",
+      "cf-ray": "85b5e0dadb0b107d-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:43:37 GMT"
+      "expires": "Mon, 26 Feb 2024 09:44:49 GMT"
     }
   }
 }

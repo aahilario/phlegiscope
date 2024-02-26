@@ -2,7 +2,7 @@
   "https://congress.gov.ph/about?about=secgen": {
     "hits": 2,
     "headinfo": {
-      "content-length": "19610",
+      "content-length": "19717",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -44,60 +44,6 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "42519",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "60355",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "9575",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/android-icon-192x192.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "64562",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "22229",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/about#": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19598",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/images/ico/apple-icon-114x114.png": {
     "hits": 1,
     "headinfo": {
@@ -116,46 +62,82 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/members?v=district": {
+  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19673",
-      "content-type": "text/html; charset=UTF-8",
+      "content-length": "60355",
+      "content-type": "image/png",
       "content-encoding": null,
-      "last-modified": null
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/members?v=region": {
+  "https://congress.gov.ph/images/ico/android-icon-192x192.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19711",
-      "content-type": "text/html; charset=UTF-8",
+      "content-length": "64562",
+      "content-type": "image/png",
       "content-encoding": null,
-      "last-modified": null
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/members?v=pl": {
+  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19541",
-      "content-type": "text/html; charset=UTF-8",
+      "content-length": "9575",
+      "content-type": "image/png",
       "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/profile": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19629",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
   "https://congress.gov.ph/images/ico/favicon-16x16.png": {
     "hits": 1,
     "headinfo": {
       "content-length": "2189",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/css/custom.css": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/css",
+      "content-encoding": "gzip",
+      "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT"
+    }
+  },
+  "https://congress.gov.ph": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19447",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "42519",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/members?v=pl": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19733",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "22229",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -170,8 +152,17 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
+  "https://congress.gov.ph/profile": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19543",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/css/bootstrap.min.css": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/css",
@@ -179,31 +170,31 @@
       "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT"
     }
   },
+  "https://congress.gov.ph/committees?v=standing": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19772",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about#": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19532",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/committees?v=special": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19769",
+      "content-length": "19705",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
-    }
-  },
-  "https://congress.gov.ph": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19489",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/css/custom.css": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/css",
-      "content-encoding": "gzip",
-      "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/docs/roster-legislators.pdf": {
@@ -215,6 +206,87 @@
       "last-modified": "Mon, 13 Feb 2023 01:44:09 GMT"
     }
   },
+  "https://congress.gov.ph/members": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19629",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=bills": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19628",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members?v=district": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19567",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19679",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members?v=region": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19539",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/leaders": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19543",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=cdb": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19725",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=sb": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19722",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ob": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19636",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/commsched": {
     "hits": 1,
     "headinfo": {
@@ -224,73 +296,19 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members": {
+  "https://congress.gov.ph/legis": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19543",
+      "content-length": "19619",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs?v=ra": {
+  "https://congress.gov.ph/about?about=mandate": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19722",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=journals": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19620",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/leaders": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19501",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=sb": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19594",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/committees?v=standing": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19686",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=ob": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19594",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=bills": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19607",
+      "content-length": "19702",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -299,7 +317,16 @@
   "https://congress.gov.ph/legisdocs?v=adopted": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19596",
+      "content-length": "19617",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=journals": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19641",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -308,16 +335,34 @@
   "https://congress.gov.ph/legisdocs?v=cr": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19593",
+      "content-length": "19594",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs?v=cdb": {
+  "https://congress.gov.ph/about?about=symbols": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19639",
+      "content-length": "19745",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=mission": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19765",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=officials": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19772",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -326,7 +371,7 @@
   "https://congress.gov.ph/about?about=offices": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19659",
+      "content-length": "19724",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -341,10 +386,10 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legis": {
+  "https://congress.gov.ph/search": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19576",
+      "content-length": "19494",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -353,16 +398,25 @@
   "https://congress.gov.ph/legisinfo?v=process": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19659",
+      "content-length": "19787",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/search": {
+  "https://congress.gov.ph/legisinfo?v=students": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19536",
+      "content-length": "19748",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisinfo?v=researchers": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19654",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -377,52 +431,7 @@
       "last-modified": "Wed, 09 Aug 2023 12:37:00 GMT"
     }
   },
-  "https://congress.gov.ph/about?about=mandate": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19617",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisinfo?v=researchers": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19675",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/about?about=history": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19617",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/photojournal": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19584",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=symbols": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19552",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=mission": {
     "hits": 1,
     "headinfo": {
       "content-length": "19638",
@@ -431,37 +440,10 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about?about=officials": {
+  "https://congress.gov.ph/photojournal": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19665",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=saa": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19554",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19576",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisinfo?v=students": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19641",
+      "content-length": "19712",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -470,16 +452,7 @@
   "https://congress.gov.ph/press": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19491",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about/?about=secgen": {
-    "hits": 2,
-    "headinfo": {
-      "content-length": "19748",
+      "content-length": "19598",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -494,10 +467,10 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/download": {
+  "https://congress.gov.ph/about?about=saa": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19589",
+      "content-length": "19596",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -506,32 +479,23 @@
   "https://congress.gov.ph/bids": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19530",
+      "content-length": "19595",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/sitemap": {
+  "https://congress.gov.ph/about": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19543",
+      "content-length": "19661",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/css/images/congress.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "94462",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT"
     }
   },
   "https://congress.gov.ph/js/jquery.js": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "application/javascript",
@@ -540,21 +504,12 @@
     }
   },
   "https://congress.gov.ph/js/bootstrap.min.js": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "application/javascript",
       "content-encoding": "gzip",
       "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
-    }
-  },
-  "https://congress.gov.ph/about/images/secgen.velasco.jpg": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "278654",
-      "content-type": "image/jpeg",
-      "content-encoding": null,
-      "last-modified": "Wed, 08 Feb 2023 02:05:11 GMT"
     }
   },
   "https://congress.gov.ph/about/js/about.js": {
@@ -566,13 +521,40 @@
       "last-modified": "Tue, 17 Oct 2023 02:50:05 GMT"
     }
   },
-  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
+  "https://congress.gov.ph/download": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18028",
-      "content-type": null,
+      "content-length": "19546",
+      "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
-      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/sitemap": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "19565",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about/images/secgen.velasco.jpg": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "278654",
+      "content-type": "image/jpeg",
+      "content-encoding": null,
+      "last-modified": "Wed, 08 Feb 2023 02:05:11 GMT"
+    }
+  },
+  "https://congress.gov.ph/about/?about=secgen": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": "19620",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
     }
   }
 }

@@ -33,10 +33,10 @@
     "res": {
       "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
       "cf-cache-status": "DYNAMIC",
-      "cf-ray": "85b531bdb96484d9-HKG",
+      "cf-ray": "85b5e1227d7f107d-HKG",
       "content-encoding": "gzip",
       "content-type": "text/html; charset=UTF-8",
-      "date": "Mon, 26 Feb 2024 03:45:16 GMT",
+      "date": "Mon, 26 Feb 2024 05:45:00 GMT",
       "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
       "pragma": "no-cache",
       "server": "cloudflare",
@@ -54,7 +54,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:50 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT",
@@ -63,9 +63,9 @@
       "vary": "Accept-Encoding",
       "content-type": "text/css",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f7275f73402e-MNL",
+      "cf-ray": "85b542afae0f8485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:50 GMT"
     }
   },
   "https://congress.gov.ph/css/custom.css": {
@@ -78,7 +78,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:50 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT",
@@ -87,9 +87,9 @@
       "vary": "Accept-Encoding",
       "content-type": "text/css",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f7275f77402e-MNL",
+      "cf-ray": "85b542afae108485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:50 GMT"
     }
   },
   "https://congress.gov.ph/css/images/congress.png": {
@@ -102,7 +102,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:16 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:50 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT",
       "server": "cloudflare",
@@ -111,10 +111,10 @@
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f7275f7a402e-MNL",
+      "cf-ray": "85b542afae118485-HKG",
       "content-length": "94462",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:50 GMT"
     }
   },
   "https://congress.gov.ph/about/images/malolos.jpg": {
@@ -127,7 +127,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:45:16 GMT",
+      "date": "Mon, 26 Feb 2024 05:45:01 GMT",
       "cf-cache-status": "REVALIDATED",
       "cf-bgj": "h2pri",
       "last-modified": "Sat, 20 Jul 2013 06:21:17 GMT",
@@ -137,10 +137,10 @@
       "content-type": "image/jpeg",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b531bf1aff84d9-HKG",
+      "cf-ray": "85b5e123efd7107d-HKG",
       "content-length": "21220",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:45:16 GMT"
+      "expires": "Mon, 26 Feb 2024 09:45:01 GMT"
     }
   },
   "https://congress.gov.ph/about/images/bp.jpg": {
@@ -153,8 +153,9 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:45:16 GMT",
-      "cf-cache-status": "MISS",
+      "date": "Mon, 26 Feb 2024 05:45:01 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "cf-bgj": "h2pri",
       "last-modified": "Sat, 20 Jul 2013 06:21:17 GMT",
       "server": "cloudflare",
       "x-frame-options": "SAMEORIGIN",
@@ -162,10 +163,10 @@
       "content-type": "image/jpeg",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b531bf1b0084d9-HKG",
+      "cf-ray": "85b5e123efda107d-HKG",
       "content-length": "10990",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:45:16 GMT"
+      "expires": "Mon, 26 Feb 2024 09:45:01 GMT"
     }
   },
   "https://congress.gov.ph/about/images/edsa.jpg": {
@@ -178,8 +179,9 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:45:17 GMT",
-      "cf-cache-status": "MISS",
+      "date": "Mon, 26 Feb 2024 05:45:01 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "cf-bgj": "h2pri",
       "last-modified": "Sat, 20 Jul 2013 06:21:17 GMT",
       "server": "cloudflare",
       "x-frame-options": "SAMEORIGIN",
@@ -187,10 +189,10 @@
       "content-type": "image/jpeg",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b531bf2b1384d9-HKG",
+      "cf-ray": "85b5e123ffe3107d-HKG",
       "content-length": "21269",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:45:17 GMT"
+      "expires": "Mon, 26 Feb 2024 09:45:01 GMT"
     }
   },
   "https://congress.gov.ph/about/images/jointsession.jpg": {
@@ -203,8 +205,9 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:45:16 GMT",
-      "cf-cache-status": "MISS",
+      "date": "Mon, 26 Feb 2024 05:45:00 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "cf-bgj": "h2pri",
       "last-modified": "Sat, 20 Jul 2013 06:21:17 GMT",
       "server": "cloudflare",
       "x-frame-options": "SAMEORIGIN",
@@ -212,10 +215,10 @@
       "content-type": "image/jpeg",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b531bf2b1684d9-HKG",
+      "cf-ray": "85b5e123ffe5107d-HKG",
       "content-length": "20383",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:45:16 GMT"
+      "expires": "Mon, 26 Feb 2024 09:45:00 GMT"
     }
   },
   "https://congress.gov.ph/images/calendar-sign-19th-1rs.png": {
@@ -228,7 +231,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:16 GMT",
+      "date": "Mon, 26 Feb 2024 03:57:05 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Wed, 03 Aug 2022 01:12:19 GMT",
       "server": "cloudflare",
@@ -237,10 +240,10 @@
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f727a801402e-MNL",
+      "cf-ray": "85b5430f1db58485-HKG",
       "content-length": "45413",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:57:05 GMT"
     }
   },
   "https://congress.gov.ph/js/jquery.js": {
@@ -253,7 +256,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:16 GMT",
+      "date": "Mon, 26 Feb 2024 03:57:06 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Wed, 09 Dec 2020 10:29:58 GMT",
@@ -262,9 +265,9 @@
       "vary": "Accept-Encoding",
       "content-type": "application/javascript",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f727affd402e-MNL",
+      "cf-ray": "85b5430f1db28485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:16 GMT"
+      "expires": "Mon, 26 Feb 2024 07:57:06 GMT"
     }
   },
   "https://congress.gov.ph/js/bootstrap.min.js": {
@@ -277,7 +280,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:57:06 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT",
@@ -286,9 +289,9 @@
       "vary": "Accept-Encoding",
       "content-type": "application/javascript",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b4f727a804402e-MNL",
+      "cf-ray": "85b5430ffeb08485-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:57:06 GMT"
     }
   },
   "https://congress.gov.ph/about/js/about.js": {
@@ -301,7 +304,7 @@
       "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:43:55 GMT",
+      "date": "Mon, 26 Feb 2024 05:43:46 GMT",
       "content-encoding": "gzip",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Tue, 17 Oct 2023 02:50:05 GMT",
@@ -310,9 +313,9 @@
       "vary": "Accept-Encoding",
       "content-type": "application/javascript",
       "cache-control": "public, max-age=14400",
-      "cf-ray": "85b52fc568a784d9-HKG",
+      "cf-ray": "85b5df509a00107d-HKG",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:43:55 GMT"
+      "expires": "Mon, 26 Feb 2024 09:43:46 GMT"
     }
   },
   "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
@@ -321,7 +324,7 @@
       "Referer": ""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:51 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT",
       "server": "cloudflare",
@@ -329,10 +332,10 @@
       "vary": "Accept-Encoding",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f729ec67402e-MNL",
+      "cf-ray": "85b542b47c078485-HKG",
       "content-length": "18028",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:51 GMT"
     }
   },
   "https://congress.gov.ph/css/images/bg04.png": {
@@ -341,7 +344,7 @@
       "Referer": ""
     },
     "res": {
-      "date": "Mon, 26 Feb 2024 03:05:17 GMT",
+      "date": "Mon, 26 Feb 2024 03:56:51 GMT",
       "cf-cache-status": "REVALIDATED",
       "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT",
       "server": "cloudflare",
@@ -350,10 +353,10 @@
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85b4f7298b7a402e-MNL",
+      "cf-ray": "85b542b299d28485-HKG",
       "content-length": "153",
       "x-xss-protection": "1; mode=block",
-      "expires": "Mon, 26 Feb 2024 07:05:17 GMT"
+      "expires": "Mon, 26 Feb 2024 07:56:51 GMT"
     }
   }
 }

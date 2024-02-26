@@ -8,19 +8,10 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
+  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "15192",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-114x114.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "29490",
+      "content-length": "9575",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -35,6 +26,24 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
+  "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "15192",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "42519",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
   "https://congress.gov.ph/legisdocs": {
     "hits": 4,
     "headinfo": {
@@ -44,19 +53,28 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
+  "https://congress.gov.ph/images/ico/apple-icon-114x114.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "31995",
+      "content-length": "29490",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/android-icon-192x192.png": {
+  "https://congress.gov.ph/images/ico/favicon-32x32.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "64562",
+      "content-length": "4104",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-152x152.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "46397",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -71,69 +89,6 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "9575",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/members": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-152x152.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "46397",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/members?v=region": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/css/custom.css": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/css",
-      "content-encoding": "gzip",
-      "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "42519",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/profile": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
     "hits": 1,
     "headinfo": {
@@ -141,6 +96,60 @@
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/android-icon-192x192.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "64562",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/legisdocs#": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/css/bootstrap.min.css": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/css",
+      "content-encoding": "gzip",
+      "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "31995",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/css/custom.css": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/css",
+      "content-encoding": "gzip",
+      "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT"
+    }
+  },
+  "https://congress.gov.ph/leaders": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
     }
   },
   "https://congress.gov.ph/images/ico/favicon-16x16.png": {
@@ -161,33 +170,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs#": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/css/bootstrap.min.css": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/css",
-      "content-encoding": "gzip",
-      "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/favicon-32x32.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4104",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
   "https://congress.gov.ph/committees?v=special": {
     "hits": 1,
     "headinfo": {
@@ -206,16 +188,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members?v=district": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=bills": {
+  "https://congress.gov.ph/members": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -233,70 +206,7 @@
       "last-modified": "Mon, 13 Feb 2023 01:44:09 GMT"
     }
   },
-  "https://congress.gov.ph/members?v=pl": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/leaders": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=cr": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=cdb": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=sb": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/commsched": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legis": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/search": {
+  "https://congress.gov.ph/members?v=district": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -314,7 +224,61 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about?about=mandate": {
+  "https://congress.gov.ph/members?v=region": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members?v=pl": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/profile": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ob": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/committees?v=reports": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/commsched": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=bills": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -324,6 +288,15 @@
     }
   },
   "https://congress.gov.ph/legisdocs?v=adopted": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=history": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -350,7 +323,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs?v=ob": {
+  "https://congress.gov.ph/legisdocs?v=cr": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -359,61 +332,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about?about=saa": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/committees?v=reports": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=offices": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/docs/hrep.house.rules.adopted.ebook.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "28190776",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 09 Aug 2023 12:37:00 GMT"
-    }
-  },
-  "https://congress.gov.ph/about?about=history": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=mission": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/press": {
+  "https://congress.gov.ph/legisdocs?v=cdb": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -431,7 +350,106 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/legisdocs?v=sb": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/about?about=secgen": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=offices": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legis": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/search": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=mandate": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/docs/hrep.house.rules.adopted.ebook.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "28190776",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 09 Aug 2023 12:37:00 GMT"
+    }
+  },
+  "https://congress.gov.ph/legisinfo?v=researchers": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/photojournal": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=mission": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=saa": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -450,6 +468,15 @@
     }
   },
   "https://congress.gov.ph/bids": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/sitemap": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -485,15 +512,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisinfo?v=researchers": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00001.pdf": {
     "hits": 1,
     "headinfo": {
@@ -501,15 +519,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:14:28 GMT"
-    }
-  },
-  "https://congress.gov.ph/photojournal": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00211.pdf": {
@@ -521,7 +530,7 @@
       "last-modified": "Wed, 07 Dec 2022 07:00:45 GMT"
     }
   },
-  "https://congress.gov.ph/streaming": {
+  "https://congress.gov.ph/press": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -564,15 +573,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:14:32 GMT"
-    }
-  },
-  "https://congress.gov.ph/sitemap": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00187.pdf": {
@@ -818,6 +818,15 @@
       "last-modified": "Wed, 27 Jul 2022 08:14:55 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00024.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "733550",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 27 Jul 2022 08:14:56 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00194.pdf": {
     "hits": 1,
     "headinfo": {
@@ -899,6 +908,15 @@
       "last-modified": "Wed, 27 Jul 2022 08:15:04 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00032.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "298850",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 27 Jul 2022 08:15:05 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00033.pdf": {
     "hits": 1,
     "headinfo": {
@@ -935,15 +953,6 @@
       "last-modified": "Wed, 27 Jul 2022 08:15:10 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00024.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "733550",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 27 Jul 2022 08:14:56 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00037.pdf": {
     "hits": 1,
     "headinfo": {
@@ -951,15 +960,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:15:11 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00032.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "298850",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 27 Jul 2022 08:15:05 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00038.pdf": {
@@ -2861,15 +2861,6 @@
       "last-modified": "Wed, 27 Jul 2022 08:19:52 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00243.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "2036514",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 27 Jul 2022 08:19:53 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00244.pdf": {
     "hits": 1,
     "headinfo": {
@@ -2877,6 +2868,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:19:54 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00243.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2036514",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 27 Jul 2022 08:19:53 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00245.pdf": {
@@ -3221,15 +3221,6 @@
       "last-modified": "Wed, 27 Jul 2022 08:20:45 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00284.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4315400",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 27 Jul 2022 08:20:50 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00283.pdf": {
     "hits": 1,
     "headinfo": {
@@ -3237,6 +3228,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:20:46 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00284.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4315400",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 27 Jul 2022 08:20:50 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00285.pdf": {
@@ -3761,15 +3761,6 @@
       "last-modified": "Wed, 27 Jul 2022 08:22:06 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00342.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4745351",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:51:58 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00341.pdf": {
     "hits": 1,
     "headinfo": {
@@ -3777,6 +3768,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:22:07 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00342.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4745351",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:51:58 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00343.pdf": {
@@ -5399,6 +5399,15 @@
       "last-modified": "Wed, 27 Jul 2022 08:25:59 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00515.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1085259",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 27 Jul 2022 08:26:00 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00516.pdf": {
     "hits": 1,
     "headinfo": {
@@ -5514,15 +5523,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 27 Jul 2022 08:26:22 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00515.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1085259",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 27 Jul 2022 08:26:00 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00529.pdf": {
@@ -5669,15 +5669,6 @@
       "last-modified": "Thu, 28 Jul 2022 00:52:29 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00546.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "5988006",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:52:32 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00545.pdf": {
     "hits": 1,
     "headinfo": {
@@ -5685,6 +5676,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:52:30 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00546.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "5988006",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:52:32 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00547.pdf": {
@@ -6020,6 +6020,15 @@
       "last-modified": "Thu, 28 Jul 2022 00:53:18 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00584.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1025014",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:53:20 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00585.pdf": {
     "hits": 1,
     "headinfo": {
@@ -6189,15 +6198,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:53:43 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00584.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1025014",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:53:20 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00604.pdf": {
@@ -6830,15 +6830,6 @@
       "last-modified": "Thu, 28 Jul 2022 00:54:44 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00672.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "416042",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:54:45 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00673.pdf": {
     "hits": 1,
     "headinfo": {
@@ -6846,6 +6837,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:54:46 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00672.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "416042",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:54:45 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00674.pdf": {
@@ -7028,15 +7028,6 @@
       "last-modified": "Thu, 28 Jul 2022 00:55:04 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00010.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "617631",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:15:49 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00694.pdf": {
     "hits": 1,
     "headinfo": {
@@ -7044,6 +7035,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:55:05 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00010.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "617631",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 30 Aug 2022 07:15:49 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT0694.pdf": {
@@ -7127,15 +7127,6 @@
       "last-modified": "Thu, 28 Jul 2022 00:55:12 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00703.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "491088",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:55:13 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00704.pdf": {
     "hits": 1,
     "headinfo": {
@@ -7152,6 +7143,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:55:15 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00703.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "491088",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:55:13 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00706.pdf": {
@@ -7802,15 +7802,6 @@
       "last-modified": "Thu, 28 Jul 2022 00:56:21 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00776.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "426550",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:56:22 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00777.pdf": {
     "hits": 1,
     "headinfo": {
@@ -7917,6 +7908,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:56:33 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00776.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "426550",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:56:22 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00789.pdf": {
@@ -8270,15 +8270,6 @@
       "last-modified": "Thu, 28 Jul 2022 00:57:08 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00830.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "450997",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:57:11 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00828.pdf": {
     "hits": 1,
     "headinfo": {
@@ -8295,6 +8286,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:57:10 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00830.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "450997",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:57:11 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00831.pdf": {
@@ -8549,6 +8549,15 @@
       "last-modified": "Thu, 28 Jul 2022 00:57:36 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00859.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "446557",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:57:37 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00860.pdf": {
     "hits": 1,
     "headinfo": {
@@ -8585,6 +8594,15 @@
       "last-modified": "Thu, 28 Jul 2022 00:57:41 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00864.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "440243",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 00:57:42 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00865.pdf": {
     "hits": 1,
     "headinfo": {
@@ -8610,24 +8628,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 00:57:44 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00864.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "440243",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:57:42 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00859.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "446557",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 00:57:37 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB00868.pdf": {
@@ -10394,15 +10394,6 @@
       "last-modified": "Mon, 15 Aug 2022 02:34:10 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01045.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "739321",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 01:00:41 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01046.pdf": {
     "hits": 1,
     "headinfo": {
@@ -10410,6 +10401,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Jul 2022 01:00:42 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01045.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "739321",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 01:00:41 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01047.pdf": {
@@ -12887,15 +12887,6 @@
       "last-modified": "Tue, 07 Mar 2023 10:51:05 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT1308.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "356060",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 16 May 2023 01:10:48 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01309.pdf": {
     "hits": 1,
     "headinfo": {
@@ -12903,6 +12894,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 02 Aug 2022 00:28:05 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT1308.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "356060",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 16 May 2023 01:10:48 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00523.pdf": {
@@ -15407,15 +15407,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:12:16 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01576.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "277917",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:12:22 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01574.pdf": {
     "hits": 1,
     "headinfo": {
@@ -15432,6 +15423,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:12:20 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01576.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "277917",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:12:22 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01577.pdf": {
@@ -16109,15 +16109,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:15:09 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01652.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "3047806",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:15:11 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01653.pdf": {
     "hits": 1,
     "headinfo": {
@@ -16296,6 +16287,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:15:57 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01652.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "3047806",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:15:11 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01673.pdf": {
@@ -17153,15 +17153,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:19:16 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01769.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "486729",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:19:20 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01768.pdf": {
     "hits": 1,
     "headinfo": {
@@ -17169,6 +17160,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:19:18 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01769.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "486729",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:19:20 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01770.pdf": {
@@ -18341,15 +18341,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:23:49 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01899.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "296738",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:23:52 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01898.pdf": {
     "hits": 1,
     "headinfo": {
@@ -18357,6 +18348,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:23:51 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01899.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "296738",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:23:52 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01900.pdf": {
@@ -18656,15 +18656,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:24:56 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01933.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "313571",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:24:58 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01934.pdf": {
     "hits": 1,
     "headinfo": {
@@ -18672,6 +18663,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:25:00 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01933.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "313571",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:24:58 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01935.pdf": {
@@ -19070,15 +19070,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:26:31 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01980.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "360654",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:26:35 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01979.pdf": {
     "hits": 1,
     "headinfo": {
@@ -19086,6 +19077,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:26:33 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01980.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "360654",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:26:35 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB01981.pdf": {
@@ -19385,6 +19385,15 @@
       "last-modified": "Wed, 03 Aug 2022 11:27:44 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02014.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "461672",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:27:46 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02015.pdf": {
     "hits": 1,
     "headinfo": {
@@ -19491,15 +19500,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:28:11 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02014.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "461672",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:27:46 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02027.pdf": {
@@ -21896,15 +21896,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:37:14 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02294.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "446697",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:37:18 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02293.pdf": {
     "hits": 1,
     "headinfo": {
@@ -21912,6 +21903,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:37:16 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02294.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "446697",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:37:18 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02295.pdf": {
@@ -22085,15 +22085,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:37:55 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02314.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "139703",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:37:57 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02315.pdf": {
     "hits": 1,
     "headinfo": {
@@ -22101,6 +22092,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:37:59 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02314.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "139703",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:37:57 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02316.pdf": {
@@ -22733,15 +22733,6 @@
       "last-modified": "Wed, 03 Aug 2022 11:40:13 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02387.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "936079",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:40:17 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02386.pdf": {
     "hits": 1,
     "headinfo": {
@@ -22749,6 +22740,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 03 Aug 2022 11:40:15 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02387.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "936079",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:40:17 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02388.pdf": {
@@ -23363,15 +23363,6 @@
       "last-modified": "Mon, 08 Aug 2022 09:23:36 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02456.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "594393",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:37 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02457.pdf": {
     "hits": 1,
     "headinfo": {
@@ -23379,24 +23370,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 08 Aug 2022 09:23:39 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02458.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "107176",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:40 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02459.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "111130",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:41 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02460.pdf": {
@@ -23408,40 +23381,13 @@
       "last-modified": "Mon, 08 Aug 2022 09:23:43 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02461.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02459.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "94589",
+      "content-length": "111130",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:44 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02462.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "159340",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:45 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02463.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1148412",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:47 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02464.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "192113",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:23:48 GMT"
+      "last-modified": "Mon, 08 Aug 2022 09:23:41 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02465.pdf": {
@@ -23453,6 +23399,51 @@
       "last-modified": "Mon, 08 Aug 2022 09:23:50 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02464.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "192113",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:23:48 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02458.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "107176",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:23:40 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02456.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "594393",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:23:37 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02462.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "159340",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:23:45 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02461.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "94589",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:23:44 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02466.pdf": {
     "hits": 1,
     "headinfo": {
@@ -23460,6 +23451,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 08 Aug 2022 09:23:51 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02463.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1148412",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:23:47 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02467.pdf": {
@@ -24182,15 +24182,6 @@
       "last-modified": "Mon, 08 Aug 2022 09:25:05 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02547.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "360698",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 08 Aug 2022 09:25:06 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02548.pdf": {
     "hits": 1,
     "headinfo": {
@@ -24207,6 +24198,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 08 Aug 2022 09:25:07 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02547.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "360698",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 08 Aug 2022 09:25:06 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02550.pdf": {
@@ -26072,19 +26072,19 @@
       "last-modified": "Tue, 09 Aug 2022 00:08:10 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02756.PDF": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02755.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "393990",
+      "content-length": "362010",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 Aug 2022 00:08:11 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02755.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02756.PDF": {
     "hits": 1,
     "headinfo": {
-      "content-length": "362010",
+      "content-length": "393990",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 Aug 2022 00:08:11 GMT"
@@ -26117,15 +26117,6 @@
       "last-modified": "Tue, 09 Aug 2022 00:08:14 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02761.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "365968",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 09 Aug 2022 00:08:16 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02760.pdf": {
     "hits": 1,
     "headinfo": {
@@ -26135,13 +26126,13 @@
       "last-modified": "Tue, 09 Aug 2022 00:08:15 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02763.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02761.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "1175861",
+      "content-length": "365968",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 09 Aug 2022 00:08:18 GMT"
+      "last-modified": "Tue, 09 Aug 2022 00:08:16 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02762.pdf": {
@@ -26151,6 +26142,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 Aug 2022 00:08:17 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02763.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1175861",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 09 Aug 2022 00:08:18 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB02764.pdf": {
@@ -29816,15 +29816,6 @@
       "last-modified": "Mon, 15 Aug 2022 23:28:55 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03165.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "2420557",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 15 Aug 2022 23:28:56 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03166.pdf": {
     "hits": 1,
     "headinfo": {
@@ -29832,6 +29823,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 15 Aug 2022 23:28:57 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03165.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2420557",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 15 Aug 2022 23:28:56 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03167.pdf": {
@@ -30320,15 +30320,6 @@
       "last-modified": "Wed, 10 Aug 2022 07:39:54 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03221.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "307994",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 10 Aug 2022 07:39:57 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03222.pdf": {
     "hits": 1,
     "headinfo": {
@@ -30336,6 +30327,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 10 Aug 2022 07:39:59 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03221.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "307994",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 10 Aug 2022 07:39:57 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03223.pdf": {
@@ -32804,15 +32804,6 @@
       "last-modified": "Mon, 15 Aug 2022 23:31:36 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03496.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "360868",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 15 Aug 2022 23:31:37 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03495.pdf": {
     "hits": 1,
     "headinfo": {
@@ -32822,13 +32813,13 @@
       "last-modified": "Mon, 15 Aug 2022 23:31:36 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03498.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03496.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "366744",
+      "content-length": "360868",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Mon, 15 Aug 2022 23:31:38 GMT"
+      "last-modified": "Mon, 15 Aug 2022 23:31:37 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03497.pdf": {
@@ -32840,13 +32831,13 @@
       "last-modified": "Mon, 15 Aug 2022 23:31:38 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03500.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03498.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "351511",
+      "content-length": "366744",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Mon, 15 Aug 2022 23:31:40 GMT"
+      "last-modified": "Mon, 15 Aug 2022 23:31:38 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03499.pdf": {
@@ -32856,6 +32847,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 15 Aug 2022 23:31:39 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03500.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "351511",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 15 Aug 2022 23:31:40 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03501.pdf": {
@@ -33713,15 +33713,6 @@
       "last-modified": "Thu, 18 Aug 2022 05:39:49 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03597.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "2716113",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 18 Aug 2022 05:39:51 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03596.pdf": {
     "hits": 1,
     "headinfo": {
@@ -33729,6 +33720,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 18 Aug 2022 05:39:50 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03597.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2716113",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 18 Aug 2022 05:39:51 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03598.pdf": {
@@ -34757,6 +34757,15 @@
       "last-modified": "Tue, 23 Aug 2022 04:10:03 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03708.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1346609",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 23 Aug 2022 04:10:05 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03709.pdf": {
     "hits": 1,
     "headinfo": {
@@ -34773,15 +34782,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 23 Aug 2022 04:10:10 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03708.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1346609",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 23 Aug 2022 04:10:05 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03711.pdf": {
@@ -35756,15 +35756,6 @@
       "last-modified": "Tue, 30 Aug 2022 07:13:38 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03819.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "705653",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:39 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03820.pdf": {
     "hits": 1,
     "headinfo": {
@@ -35772,24 +35763,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 30 Aug 2022 07:13:40 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03821.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "706795",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:41 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03822.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "706921",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:42 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03823.pdf": {
@@ -35801,22 +35774,13 @@
       "last-modified": "Tue, 30 Aug 2022 07:13:43 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03824.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03819.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "704922",
+      "content-length": "705653",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:44 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03825.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "733040",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:45 GMT"
+      "last-modified": "Tue, 30 Aug 2022 07:13:39 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03826.pdf": {
@@ -35828,22 +35792,22 @@
       "last-modified": "Tue, 30 Aug 2022 07:13:46 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03827.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03824.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "774983",
+      "content-length": "704922",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:47 GMT"
+      "last-modified": "Tue, 30 Aug 2022 07:13:44 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03828.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03822.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "722714",
+      "content-length": "706921",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:48 GMT"
+      "last-modified": "Tue, 30 Aug 2022 07:13:42 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03829.pdf": {
@@ -35855,6 +35819,24 @@
       "last-modified": "Tue, 30 Aug 2022 07:13:49 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03825.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "733040",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 30 Aug 2022 07:13:45 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03828.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "722714",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 30 Aug 2022 07:13:48 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03830.pdf": {
     "hits": 1,
     "headinfo": {
@@ -35864,22 +35846,13 @@
       "last-modified": "Tue, 30 Aug 2022 07:13:50 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03831.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03821.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "6538336",
+      "content-length": "706795",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:51 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03832.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "5866638",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 Aug 2022 07:13:53 GMT"
+      "last-modified": "Tue, 30 Aug 2022 07:13:41 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03833.pdf": {
@@ -35891,6 +35864,24 @@
       "last-modified": "Tue, 30 Aug 2022 07:13:56 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03832.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "5866638",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 30 Aug 2022 07:13:53 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03827.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "774983",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 30 Aug 2022 07:13:47 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03834.pdf": {
     "hits": 1,
     "headinfo": {
@@ -35898,6 +35889,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 30 Aug 2022 07:13:57 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03831.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "6538336",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 30 Aug 2022 07:13:51 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03835.pdf": {
@@ -36386,15 +36386,6 @@
       "last-modified": "Wed, 31 Aug 2022 07:08:00 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03889.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "122674",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 31 Aug 2022 07:08:01 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03890.pdf": {
     "hits": 1,
     "headinfo": {
@@ -36645,6 +36636,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 24 Jan 2024 01:43:21 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB03889.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "122674",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 31 Aug 2022 07:08:01 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00189.pdf": {
@@ -38249,15 +38249,6 @@
       "last-modified": "Wed, 31 Aug 2022 07:10:44 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04075.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "366372",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 31 Aug 2022 07:10:46 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04074.pdf": {
     "hits": 1,
     "headinfo": {
@@ -38265,6 +38256,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 31 Aug 2022 07:10:45 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04075.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "366372",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 31 Aug 2022 07:10:46 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04076.pdf": {
@@ -38303,15 +38303,6 @@
       "last-modified": "Wed, 31 Aug 2022 07:10:50 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04081.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "502698",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 31 Aug 2022 07:10:55 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04080.pdf": {
     "hits": 1,
     "headinfo": {
@@ -38319,6 +38310,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 31 Aug 2022 07:10:51 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04081.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "502698",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 31 Aug 2022 07:10:55 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04082.pdf": {
@@ -39644,15 +39644,6 @@
       "last-modified": "Tue, 06 Sep 2022 06:34:54 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04227.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "379520",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 06 Sep 2022 06:34:56 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04226.pdf": {
     "hits": 1,
     "headinfo": {
@@ -39660,6 +39651,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 06 Sep 2022 06:34:55 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04227.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "379520",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 06 Sep 2022 06:34:56 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04228.pdf": {
@@ -39779,15 +39779,6 @@
       "last-modified": "Tue, 06 Sep 2022 06:35:09 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04241.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "546816",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 06 Sep 2022 06:35:10 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04242.pdf": {
     "hits": 1,
     "headinfo": {
@@ -39795,6 +39786,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 06 Sep 2022 06:35:11 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04241.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "546816",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 06 Sep 2022 06:35:10 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04243.pdf": {
@@ -41732,15 +41732,6 @@
       "last-modified": "Tue, 13 Sep 2022 07:43:42 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04454.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "287958",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 13 Sep 2022 07:43:44 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04453.pdf": {
     "hits": 1,
     "headinfo": {
@@ -41748,6 +41739,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 13 Sep 2022 07:43:43 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04454.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "287958",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 13 Sep 2022 07:43:44 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04455.pdf": {
@@ -42560,6 +42560,15 @@
       "last-modified": "Tue, 13 Sep 2022 07:45:44 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04538.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2141853",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 13 Sep 2022 07:45:45 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04539.pdf": {
     "hits": 1,
     "headinfo": {
@@ -42596,15 +42605,6 @@
       "last-modified": "Tue, 13 Sep 2022 07:45:54 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04545.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "389007",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 13 Sep 2022 07:45:57 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04543.pdf": {
     "hits": 1,
     "headinfo": {
@@ -42621,6 +42621,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 13 Sep 2022 07:45:56 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04545.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "389007",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 13 Sep 2022 07:45:57 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04546.pdf": {
@@ -42693,15 +42702,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 13 Sep 2022 07:46:07 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04538.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "2141853",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 13 Sep 2022 07:45:45 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04554.pdf": {
@@ -44351,15 +44351,6 @@
       "last-modified": "Tue, 20 Sep 2022 07:27:58 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04729.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "425028",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 20 Sep 2022 07:28:01 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04727.pdf": {
     "hits": 1,
     "headinfo": {
@@ -44376,6 +44367,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 20 Sep 2022 07:28:00 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04729.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "425028",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 20 Sep 2022 07:28:01 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04730.pdf": {
@@ -44891,6 +44891,15 @@
       "last-modified": "Tue, 20 Sep 2022 07:29:03 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04785.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "275868",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 20 Sep 2022 07:29:01 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04788.pdf": {
     "hits": 1,
     "headinfo": {
@@ -44952,15 +44961,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 20 Sep 2022 07:29:11 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04785.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "275868",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 20 Sep 2022 07:29:01 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04795.pdf": {
@@ -45224,15 +45224,6 @@
       "last-modified": "Tue, 20 Sep 2022 07:29:49 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04825.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "100630",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 20 Sep 2022 07:29:50 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04824.pdf": {
     "hits": 1,
     "headinfo": {
@@ -45240,6 +45231,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 20 Sep 2022 07:29:49 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04825.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "100630",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 20 Sep 2022 07:29:50 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04826.pdf": {
@@ -45575,6 +45575,15 @@
       "last-modified": "Tue, 20 Sep 2022 07:30:10 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04855.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "263751",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 20 Sep 2022 07:30:11 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04856.pdf": {
     "hits": 1,
     "headinfo": {
@@ -45582,15 +45591,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 20 Sep 2022 07:30:12 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04858.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "277215",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 20 Sep 2022 07:30:14 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04857.pdf": {
@@ -45602,13 +45602,13 @@
       "last-modified": "Tue, 20 Sep 2022 07:30:13 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04855.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04858.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "263751",
+      "content-length": "277215",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 20 Sep 2022 07:30:11 GMT"
+      "last-modified": "Tue, 20 Sep 2022 07:30:14 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB04859.pdf": {
@@ -47429,6 +47429,15 @@
       "last-modified": "Mon, 26 Sep 2022 02:21:02 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05059.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "272897",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 26 Sep 2022 02:21:03 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05060.pdf": {
     "hits": 1,
     "headinfo": {
@@ -47571,15 +47580,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 26 Sep 2022 02:21:18 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05059.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "272897",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 26 Sep 2022 02:21:03 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05076.pdf": {
@@ -48014,15 +48014,6 @@
       "last-modified": "Tue, 27 Sep 2022 14:29:22 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05123.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1809739",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 27 Sep 2022 14:29:24 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05122.pdf": {
     "hits": 1,
     "headinfo": {
@@ -48030,6 +48021,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 27 Sep 2022 14:29:23 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05123.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1809739",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 27 Sep 2022 14:29:24 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05124.pdf": {
@@ -49139,15 +49139,6 @@
       "last-modified": "Tue, 08 Nov 2022 00:53:08 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05240.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "203469",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 08 Nov 2022 00:53:15 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05239.pdf": {
     "hits": 1,
     "headinfo": {
@@ -49155,6 +49146,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 08 Nov 2022 00:53:10 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05240.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "203469",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 08 Nov 2022 00:53:15 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05241.pdf": {
@@ -49166,15 +49166,6 @@
       "last-modified": "Tue, 08 Nov 2022 00:53:17 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05243.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "115425",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 08 Nov 2022 00:53:20 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05242.pdf": {
     "hits": 1,
     "headinfo": {
@@ -49182,6 +49173,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 08 Nov 2022 00:53:19 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05243.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "115425",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 08 Nov 2022 00:53:20 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05244.pdf": {
@@ -49706,15 +49706,6 @@
       "last-modified": "Tue, 08 Nov 2022 00:56:00 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05299.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "285455",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 08 Nov 2022 00:56:08 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05298.pdf": {
     "hits": 1,
     "headinfo": {
@@ -49722,6 +49713,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 08 Nov 2022 00:56:04 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05299.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "285455",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 08 Nov 2022 00:56:08 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05300.pdf": {
@@ -50075,15 +50075,6 @@
       "last-modified": "Tue, 08 Nov 2022 01:02:05 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05339.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1952071",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 08 Nov 2022 01:02:07 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05340.pdf": {
     "hits": 1,
     "headinfo": {
@@ -50091,6 +50082,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 08 Nov 2022 01:02:10 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05339.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1952071",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 08 Nov 2022 01:02:07 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05341.pdf": {
@@ -50975,6 +50975,15 @@
       "last-modified": "Tue, 08 Nov 2022 01:12:00 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05439.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "436665",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 08 Nov 2022 01:12:04 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05440.pdf": {
     "hits": 1,
     "headinfo": {
@@ -50991,15 +51000,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 08 Nov 2022 01:12:08 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05439.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "436665",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 08 Nov 2022 01:12:04 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05442.pdf": {
@@ -52370,15 +52370,6 @@
       "last-modified": "Wed, 09 Nov 2022 08:00:54 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05591.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "324758",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 09 Nov 2022 08:00:58 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05590.pdf": {
     "hits": 1,
     "headinfo": {
@@ -52386,6 +52377,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 09 Nov 2022 08:00:56 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05591.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "324758",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 09 Nov 2022 08:00:58 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05592.pdf": {
@@ -52874,15 +52874,6 @@
       "last-modified": "Wed, 09 Nov 2022 08:02:09 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05637.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "398786",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 09 Nov 2022 08:02:10 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05638.pdf": {
     "hits": 1,
     "headinfo": {
@@ -52890,6 +52881,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 09 Nov 2022 08:02:12 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05637.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "398786",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 09 Nov 2022 08:02:10 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05639.pdf": {
@@ -53747,13 +53747,13 @@
       "last-modified": "Wed, 09 Nov 2022 08:04:56 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05728.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05730.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "808200",
+      "content-length": "953551",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Wed, 09 Nov 2022 08:04:58 GMT"
+      "last-modified": "Wed, 09 Nov 2022 08:05:02 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05729.pdf": {
@@ -53765,13 +53765,13 @@
       "last-modified": "Wed, 09 Nov 2022 08:05:01 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05730.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05728.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "953551",
+      "content-length": "808200",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Wed, 09 Nov 2022 08:05:02 GMT"
+      "last-modified": "Wed, 09 Nov 2022 08:04:58 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05731.pdf": {
@@ -54602,15 +54602,6 @@
       "last-modified": "Tue, 22 Nov 2022 02:12:26 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT05820.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "256436",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 22 Nov 2022 02:12:27 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00102.pdf": {
     "hits": 1,
     "headinfo": {
@@ -54618,6 +54609,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 14 Nov 2022 09:42:25 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT05820.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "256436",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 22 Nov 2022 02:12:27 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00103.pdf": {
@@ -54638,15 +54638,6 @@
       "last-modified": "Tue, 22 Nov 2022 02:12:29 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT05822.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "247949",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 22 Nov 2022 02:12:31 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00104.pdf": {
     "hits": 1,
     "headinfo": {
@@ -54654,6 +54645,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 14 Nov 2022 09:42:29 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT05822.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "247949",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 22 Nov 2022 02:12:31 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00105.pdf": {
@@ -55322,15 +55322,6 @@
       "last-modified": "Mon, 14 Nov 2022 09:47:49 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05870.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1451702",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 14 Nov 2022 09:47:53 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05869.pdf": {
     "hits": 1,
     "headinfo": {
@@ -55338,6 +55329,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 14 Nov 2022 09:47:51 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05870.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1451702",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 14 Nov 2022 09:47:53 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB05871.pdf": {
@@ -58004,15 +58004,6 @@
       "last-modified": "Tue, 22 Nov 2022 02:14:48 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06133.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1672350",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 22 Nov 2022 02:15:00 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06132.pdf": {
     "hits": 1,
     "headinfo": {
@@ -58020,6 +58011,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 22 Nov 2022 02:14:58 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06133.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1672350",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 22 Nov 2022 02:15:00 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06134.pdf": {
@@ -62945,6 +62945,15 @@
       "last-modified": "Thu, 15 Dec 2022 07:26:50 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06612.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "186385",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 15 Dec 2022 07:26:52 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06613.pdf": {
     "hits": 1,
     "headinfo": {
@@ -63314,15 +63323,6 @@
       "last-modified": "Wed, 18 Jan 2023 03:41:03 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06612.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "186385",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 15 Dec 2022 07:26:52 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06653.pdf": {
     "hits": 1,
     "headinfo": {
@@ -63350,15 +63350,6 @@
       "last-modified": "Wed, 18 Jan 2023 03:41:09 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06657.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "505774",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 18 Jan 2023 03:41:12 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06656.pdf": {
     "hits": 1,
     "headinfo": {
@@ -63366,6 +63357,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 18 Jan 2023 03:41:10 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06657.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "505774",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 18 Jan 2023 03:41:12 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06658.pdf": {
@@ -63377,15 +63377,6 @@
       "last-modified": "Wed, 18 Jan 2023 03:41:15 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00239.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1259940",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 14 Dec 2022 22:23:23 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06659.pdf": {
     "hits": 1,
     "headinfo": {
@@ -63393,6 +63384,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 18 Jan 2023 03:41:18 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00239.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1259940",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 14 Dec 2022 22:23:23 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT6660.pdf": {
@@ -63438,6 +63438,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 14 Dec 2022 22:23:27 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT6663.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "123587",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 24 Jan 2023 01:02:18 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00242.pdf": {
@@ -63512,15 +63521,6 @@
       "last-modified": "Tue, 24 Jan 2023 01:02:23 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00245.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1075128",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 14 Dec 2022 22:23:35 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT6669.pdf": {
     "hits": 1,
     "headinfo": {
@@ -63530,13 +63530,13 @@
       "last-modified": "Tue, 24 Jan 2023 01:02:24 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT6663.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00245.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "123587",
+      "content-length": "1075128",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 24 Jan 2023 01:02:18 GMT"
+      "last-modified": "Wed, 14 Dec 2022 22:23:35 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00246.pdf": {
@@ -65267,6 +65267,15 @@
       "last-modified": "Mon, 30 Jan 2023 09:30:56 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06845.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "341588",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 30 Jan 2023 09:31:01 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06843.pdf": {
     "hits": 1,
     "headinfo": {
@@ -65283,15 +65292,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 30 Jan 2023 09:30:59 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06845.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "341588",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 30 Jan 2023 09:31:01 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06846.pdf": {
@@ -65456,15 +65456,6 @@
       "last-modified": null
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06865.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "131675",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 31 Jan 2023 10:59:26 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06864.pdf": {
     "hits": 1,
     "headinfo": {
@@ -65472,6 +65463,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 31 Jan 2023 10:59:24 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06865.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "131675",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 31 Jan 2023 10:59:26 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06866.pdf": {
@@ -66761,15 +66761,6 @@
       "last-modified": "Tue, 07 Feb 2023 05:15:14 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06996.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "2831500",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 07 Feb 2023 05:15:15 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06997.pdf": {
     "hits": 1,
     "headinfo": {
@@ -66804,6 +66795,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 07 Feb 2023 05:15:19 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB06996.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2831500",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 07 Feb 2023 05:15:15 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07001.pdf": {
@@ -67292,15 +67292,6 @@
       "last-modified": "Tue, 07 Feb 2023 05:15:46 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07044.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "124381",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 07 Feb 2023 05:15:48 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07043.pdf": {
     "hits": 1,
     "headinfo": {
@@ -67308,6 +67299,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 07 Feb 2023 05:15:47 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07044.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "124381",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 07 Feb 2023 05:15:48 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07045.pdf": {
@@ -68408,15 +68408,6 @@
       "last-modified": "Tue, 14 Mar 2023 09:21:41 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07157.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "418047",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 22 Feb 2023 12:15:07 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07158.pdf": {
     "hits": 1,
     "headinfo": {
@@ -68424,6 +68415,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 22 Feb 2023 12:15:08 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07157.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "418047",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 22 Feb 2023 12:15:07 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07159.pdf": {
@@ -69821,15 +69821,6 @@
       "last-modified": "Mon, 27 Feb 2023 03:05:20 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00337.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "674923",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 27 Feb 2023 03:05:21 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7299.pdf": {
     "hits": 1,
     "headinfo": {
@@ -69837,6 +69828,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 14 Mar 2023 09:21:54 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00337.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "674923",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 27 Feb 2023 03:05:21 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7300.pdf": {
@@ -70613,15 +70613,6 @@
       "last-modified": "Tue, 07 Mar 2023 10:49:35 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07368.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "639488",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 07 Mar 2023 10:49:37 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07367.pdf": {
     "hits": 1,
     "headinfo": {
@@ -70629,6 +70620,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 07 Mar 2023 10:49:36 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07368.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "639488",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 07 Mar 2023 10:49:37 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07369.pdf": {
@@ -70694,15 +70694,6 @@
       "last-modified": "Tue, 16 May 2023 01:10:53 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07375.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1427932",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 07 Mar 2023 10:49:40 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00364.pdf": {
     "hits": 1,
     "headinfo": {
@@ -70710,6 +70701,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 07 Mar 2023 10:50:40 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07375.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1427932",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 07 Mar 2023 10:49:40 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07376.pdf": {
@@ -71450,6 +71450,15 @@
       "last-modified": "Mon, 13 Mar 2023 09:33:50 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07436.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "354091",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 13 Mar 2023 09:33:51 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07437.pdf": {
     "hits": 1,
     "headinfo": {
@@ -71558,15 +71567,6 @@
       "last-modified": "Wed, 08 Mar 2023 10:31:12 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07448.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "6460396",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 13 Mar 2023 09:34:00 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7447.pdf": {
     "hits": 1,
     "headinfo": {
@@ -71574,6 +71574,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 05 Sep 2023 10:53:47 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07448.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "6460396",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 13 Mar 2023 09:34:00 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07449.pdf": {
@@ -71637,15 +71646,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 13 Mar 2023 09:34:07 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07436.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "354091",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 13 Mar 2023 09:33:51 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07456.pdf": {
@@ -72080,15 +72080,6 @@
       "last-modified": "Mon, 13 Mar 2023 09:31:41 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7500.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "102188",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 22 Mar 2023 10:40:38 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00402.pdf": {
     "hits": 1,
     "headinfo": {
@@ -72096,6 +72087,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 13 Mar 2023 09:31:43 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7500.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "102188",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 22 Mar 2023 10:40:38 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7501.pdf": {
@@ -72431,15 +72431,6 @@
       "last-modified": "Wed, 22 Mar 2023 10:40:44 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7529.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "246528",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 16 May 2023 01:10:57 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00416.pdf": {
     "hits": 1,
     "headinfo": {
@@ -72447,6 +72438,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 13 Mar 2023 09:31:57 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7529.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "246528",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 16 May 2023 01:10:57 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07530.pdf": {
@@ -73304,13 +73304,13 @@
       "last-modified": "Mon, 20 Mar 2023 10:37:43 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00914.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT07600.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "667038",
+      "content-length": "237800",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Wed, 24 Jan 2024 01:44:29 GMT"
+      "last-modified": "Tue, 23 May 2023 00:27:32 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07601.pdf": {
@@ -73322,13 +73322,13 @@
       "last-modified": "Wed, 24 Jan 2024 01:43:22 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT07600.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00914.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "237800",
+      "content-length": "667038",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 23 May 2023 00:27:32 GMT"
+      "last-modified": "Wed, 24 Jan 2024 01:44:29 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT7601.pdf": {
@@ -73592,15 +73592,6 @@
       "last-modified": "Tue, 16 May 2023 01:11:10 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07628.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "374941",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 21 Mar 2023 10:58:29 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07627.pdf": {
     "hits": 1,
     "headinfo": {
@@ -73608,6 +73599,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 21 Mar 2023 10:58:28 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07628.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "374941",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 21 Mar 2023 10:58:29 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07629.pdf": {
@@ -75320,19 +75320,19 @@
       "last-modified": "Tue, 09 May 2023 09:58:29 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07797.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07796.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "345817",
+      "content-length": "334998",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 May 2023 09:58:30 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07796.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07797.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "334998",
+      "content-length": "345817",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 May 2023 09:58:30 GMT"
@@ -75356,15 +75356,6 @@
       "last-modified": "Mon, 29 May 2023 10:30:21 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07800.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "406269",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 09 May 2023 09:58:32 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07799.pdf": {
     "hits": 1,
     "headinfo": {
@@ -75372,6 +75363,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 May 2023 09:58:31 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07800.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "406269",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 09 May 2023 09:58:32 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07801.pdf": {
@@ -76004,15 +76004,6 @@
       "last-modified": "Tue, 09 May 2023 09:59:32 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07870.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "378248",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 09 May 2023 09:59:34 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07869.pdf": {
     "hits": 1,
     "headinfo": {
@@ -76020,6 +76011,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 May 2023 09:59:33 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07870.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "378248",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 09 May 2023 09:59:34 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB07871.pdf": {
@@ -77669,15 +77669,6 @@
       "last-modified": "Wed, 02 Aug 2023 10:58:53 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8034.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "176457",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 02 Aug 2023 10:58:53 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00514.pdf": {
     "hits": 1,
     "headinfo": {
@@ -77685,6 +77676,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 16 May 2023 01:11:45 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8034.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "176457",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 02 Aug 2023 10:58:53 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00515.pdf": {
@@ -78704,15 +78704,6 @@
       "last-modified": "Wed, 17 May 2023 13:20:15 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8129.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "152862",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 02 Aug 2023 10:59:11 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00536.pdf": {
     "hits": 1,
     "headinfo": {
@@ -78720,6 +78711,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 17 May 2023 13:20:17 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8129.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "152862",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 02 Aug 2023 10:59:11 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8130.pdf": {
@@ -79577,15 +79577,6 @@
       "last-modified": "Tue, 23 May 2023 13:56:17 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8211.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "190601",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 16 Aug 2023 10:39:46 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00556.pdf": {
     "hits": 1,
     "headinfo": {
@@ -79593,6 +79584,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 23 May 2023 13:56:17 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8211.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "190601",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 16 Aug 2023 10:39:46 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8212.pdf": {
@@ -80396,15 +80396,6 @@
       "last-modified": "Wed, 24 May 2023 10:53:22 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00585.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "549942",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 24 May 2023 10:53:23 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8275.pdf": {
     "hits": 1,
     "headinfo": {
@@ -80412,6 +80403,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 16 Aug 2023 10:40:08 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00585.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "549942",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 24 May 2023 10:53:23 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8276.pdf": {
@@ -80423,15 +80423,6 @@
       "last-modified": "Wed, 16 Aug 2023 10:40:09 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8277.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "218230",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 16 Aug 2023 10:40:10 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00586.pdf": {
     "hits": 1,
     "headinfo": {
@@ -80439,6 +80430,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 24 May 2023 10:53:24 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8277.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "218230",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 16 Aug 2023 10:40:10 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00587.pdf": {
@@ -84698,6 +84698,15 @@
       "last-modified": "Tue, 08 Aug 2023 10:35:45 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08674.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "359371",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 08 Aug 2023 10:35:46 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08675.pdf": {
     "hits": 1,
     "headinfo": {
@@ -84714,15 +84723,6 @@
       "content-type": "application/xml",
       "content-encoding": null,
       "last-modified": null
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08674.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "359371",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 08 Aug 2023 10:35:46 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08677.pdf": {
@@ -86570,15 +86570,6 @@
       "last-modified": "Tue, 22 Aug 2023 09:49:45 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08872.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "494649",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 22 Aug 2023 09:49:46 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08873.pdf": {
     "hits": 1,
     "headinfo": {
@@ -86586,6 +86577,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 22 Aug 2023 09:49:47 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08872.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "494649",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 22 Aug 2023 09:49:46 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08874.pdf": {
@@ -87119,15 +87119,6 @@
       "last-modified": "Tue, 29 Aug 2023 10:33:09 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08931.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "305922",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 29 Aug 2023 10:33:10 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08932.pdf": {
     "hits": 1,
     "headinfo": {
@@ -87225,6 +87216,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 29 Aug 2023 10:31:43 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB08931.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "305922",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 29 Aug 2023 10:33:10 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT8940.pdf": {
@@ -87992,15 +87992,6 @@
       "last-modified": "Tue, 05 Sep 2023 10:54:16 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT9017.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "216786",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 27 Sep 2023 15:17:06 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00734.pdf": {
     "hits": 1,
     "headinfo": {
@@ -88073,6 +88064,15 @@
       "last-modified": "Mon, 11 Sep 2023 14:36:47 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT9017.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "216786",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 27 Sep 2023 15:17:06 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09023.pdf": {
     "hits": 1,
     "headinfo": {
@@ -88080,6 +88080,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 11 Sep 2023 14:36:48 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09024.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "348421",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 11 Sep 2023 14:36:49 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09025.pdf": {
@@ -88098,15 +88107,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 11 Sep 2023 14:36:51 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09024.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "348421",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 11 Sep 2023 14:36:49 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09027.pdf": {
@@ -88856,15 +88856,6 @@
       "last-modified": "Mon, 18 Sep 2023 08:06:31 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09101.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "314501",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 18 Sep 2023 08:06:32 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09102.pdf": {
     "hits": 1,
     "headinfo": {
@@ -88872,6 +88863,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 18 Sep 2023 08:06:33 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09101.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "314501",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 18 Sep 2023 08:06:32 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09103.pdf": {
@@ -89540,15 +89540,6 @@
       "last-modified": "Thu, 21 Sep 2023 01:41:01 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09172.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "969287",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 21 Sep 2023 01:41:02 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09173.pdf": {
     "hits": 1,
     "headinfo": {
@@ -89556,6 +89547,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 21 Sep 2023 01:41:03 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09172.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "969287",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 21 Sep 2023 01:41:02 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09174.pdf": {
@@ -91979,19 +91979,19 @@
       "last-modified": "Mon, 20 Nov 2023 10:07:49 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09414.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09415.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "382329",
+      "content-length": "446404",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 20 Nov 2023 10:09:20 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09415.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09414.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "446404",
+      "content-length": "382329",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 20 Nov 2023 10:09:20 GMT"
@@ -94409,15 +94409,6 @@
       "last-modified": "Wed, 29 Nov 2023 10:55:43 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00877.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "455627",
-      "content-type": "application/octet-stream",
-      "content-encoding": null,
-      "last-modified": "Wed, 29 Nov 2023 10:58:49 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT9625.pdf": {
     "hits": 1,
     "headinfo": {
@@ -94425,6 +94416,15 @@
       "content-type": "application/octet-stream",
       "content-encoding": null,
       "last-modified": "Tue, 12 Dec 2023 16:48:22 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00877.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "455627",
+      "content-type": "application/octet-stream",
+      "content-encoding": null,
+      "last-modified": "Wed, 29 Nov 2023 10:58:49 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT9626.pdf": {
@@ -95138,15 +95138,6 @@
       "last-modified": "Wed, 06 Dec 2023 13:14:39 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09683.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "435140",
-      "content-type": "application/octet-stream",
-      "content-encoding": null,
-      "last-modified": "Tue, 12 Dec 2023 16:59:53 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HBT9682.pdf": {
     "hits": 1,
     "headinfo": {
@@ -95156,13 +95147,13 @@
       "last-modified": "Tue, 12 Dec 2023 17:00:15 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09685.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09683.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "114732",
+      "content-length": "435140",
       "content-type": "application/octet-stream",
       "content-encoding": null,
-      "last-modified": "Tue, 12 Dec 2023 17:01:00 GMT"
+      "last-modified": "Tue, 12 Dec 2023 16:59:53 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09684.pdf": {
@@ -95172,6 +95163,15 @@
       "content-type": "application/octet-stream",
       "content-encoding": null,
       "last-modified": "Tue, 12 Dec 2023 17:00:39 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09685.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "114732",
+      "content-type": "application/octet-stream",
+      "content-encoding": null,
+      "last-modified": "Tue, 12 Dec 2023 17:01:00 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09686.pdf": {
@@ -95192,15 +95192,6 @@
       "last-modified": "Tue, 12 Dec 2023 17:01:43 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09689.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "125479",
-      "content-type": "application/octet-stream",
-      "content-encoding": null,
-      "last-modified": "Tue, 12 Dec 2023 17:02:26 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09688.pdf": {
     "hits": 1,
     "headinfo": {
@@ -95208,6 +95199,15 @@
       "content-type": "application/octet-stream",
       "content-encoding": null,
       "last-modified": "Tue, 12 Dec 2023 17:02:05 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09689.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "125479",
+      "content-type": "application/octet-stream",
+      "content-encoding": null,
+      "last-modified": "Tue, 12 Dec 2023 17:02:26 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09690.pdf": {
@@ -97748,19 +97748,19 @@
       "last-modified": "Wed, 21 Feb 2024 11:06:57 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09958.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09959.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "432719",
+      "content-length": "388360",
       "content-type": "application/octet-stream",
       "content-encoding": null,
       "last-modified": "Wed, 21 Feb 2024 11:06:59 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09959.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HB09958.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "388360",
+      "content-length": "432719",
       "content-type": "application/octet-stream",
       "content-encoding": null,
       "last-modified": "Wed, 21 Feb 2024 11:06:59 GMT"
@@ -98441,6 +98441,15 @@
       "last-modified": "Thu, 28 Jul 2022 01:02:40 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00015.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "846953",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Jul 2022 01:02:41 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00016.pdf": {
     "hits": 1,
     "headinfo": {
@@ -98574,15 +98583,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 15 Aug 2022 23:31:45 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00015.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "846953",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Jul 2022 01:02:41 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00031.pdf": {
@@ -98765,6 +98765,15 @@
       "last-modified": "Wed, 03 Aug 2022 11:50:33 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00051.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4262523",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 11:50:35 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00052.pdf": {
     "hits": 1,
     "headinfo": {
@@ -98774,22 +98783,13 @@
       "last-modified": "Wed, 03 Aug 2022 11:50:37 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00055.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00053.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "416683",
+      "content-length": "420222",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:50:43 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00051.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4262523",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:50:35 GMT"
+      "last-modified": "Wed, 03 Aug 2022 11:50:39 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00054.pdf": {
@@ -98801,13 +98801,13 @@
       "last-modified": "Wed, 03 Aug 2022 11:50:41 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00053.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00055.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "420222",
+      "content-length": "416683",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Wed, 03 Aug 2022 11:50:39 GMT"
+      "last-modified": "Wed, 03 Aug 2022 11:50:43 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00056.pdf": {
@@ -99638,13 +99638,13 @@
       "last-modified": "Tue, 09 Aug 2022 00:12:52 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00142.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00140.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "1302927",
+      "content-length": "740426",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 09 Aug 2022 00:12:55 GMT"
+      "last-modified": "Tue, 09 Aug 2022 00:12:53 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00141.pdf": {
@@ -99656,13 +99656,13 @@
       "last-modified": "Tue, 09 Aug 2022 00:12:54 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00140.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00142.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "740426",
+      "content-length": "1302927",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 09 Aug 2022 00:12:53 GMT"
+      "last-modified": "Tue, 09 Aug 2022 00:12:55 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00143.pdf": {
@@ -100367,19 +100367,19 @@
       "last-modified": "Mon, 15 Aug 2022 23:32:03 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00216.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00215.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "62146",
+      "content-length": "759893",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 15 Aug 2022 23:32:04 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00215.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00216.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "759893",
+      "content-length": "62146",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 15 Aug 2022 23:32:04 GMT"
@@ -100511,22 +100511,13 @@
       "last-modified": "Mon, 15 Aug 2022 23:32:14 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00233.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00231.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "296872",
+      "content-length": "1336139",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Thu, 18 Aug 2022 05:40:31 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00232.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "643210",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 18 Aug 2022 05:40:30 GMT"
+      "last-modified": "Mon, 15 Aug 2022 23:32:15 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR00231.pdf": {
@@ -100538,13 +100529,22 @@
       "last-modified": "Thu, 22 Sep 2022 09:51:45 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00231.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00232.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "1336139",
+      "content-length": "643210",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Mon, 15 Aug 2022 23:32:15 GMT"
+      "last-modified": "Thu, 18 Aug 2022 05:40:30 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00233.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "296872",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 18 Aug 2022 05:40:31 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00234.pdf": {
@@ -101375,15 +101375,6 @@
       "last-modified": "Tue, 06 Sep 2022 06:37:13 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00463.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "884186",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 22 Mar 2023 03:16:50 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00326.pdf": {
     "hits": 1,
     "headinfo": {
@@ -101391,6 +101382,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 06 Sep 2022 06:37:14 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00463.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "884186",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 22 Mar 2023 03:16:50 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00327.pdf": {
@@ -104705,15 +104705,6 @@
       "last-modified": "Tue, 07 Feb 2023 05:16:07 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR00648.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "590755",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 13 Feb 2023 09:15:23 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00649.pdf": {
     "hits": 1,
     "headinfo": {
@@ -104721,6 +104712,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 18 Jan 2023 03:42:06 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR00648.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "590755",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 13 Feb 2023 09:15:23 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR00650.pdf": {
@@ -106298,15 +106298,6 @@
       "last-modified": "Tue, 07 Mar 2023 10:50:11 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00812.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "2007172",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 08 Mar 2023 10:33:38 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00813.pdf": {
     "hits": 1,
     "headinfo": {
@@ -106314,6 +106305,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 08 Mar 2023 10:33:39 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00812.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2007172",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 08 Mar 2023 10:33:38 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00814.pdf": {
@@ -106487,15 +106487,6 @@
       "last-modified": "Mon, 13 Mar 2023 09:35:15 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00832.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "611339",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Mon, 13 Mar 2023 09:35:16 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00680.pdf": {
     "hits": 1,
     "headinfo": {
@@ -106611,6 +106602,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 14 Mar 2023 09:23:45 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00832.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "611339",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Mon, 13 Mar 2023 09:35:16 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00843.pdf": {
@@ -107171,15 +107171,6 @@
       "last-modified": "Tue, 09 May 2023 10:00:38 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00896.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "243504",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 09 May 2023 10:00:39 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00897.pdf": {
     "hits": 1,
     "headinfo": {
@@ -107187,6 +107178,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 09 May 2023 10:00:40 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00896.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "243504",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 09 May 2023 10:00:39 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00898.pdf": {
@@ -108044,15 +108044,6 @@
       "last-modified": "Tue, 23 May 2023 13:59:14 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR00987.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "154137",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 06 Sep 2023 10:41:27 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00544.pdf": {
     "hits": 1,
     "headinfo": {
@@ -108060,6 +108051,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 22 May 2023 09:55:41 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR00987.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "154137",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 06 Sep 2023 10:41:27 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR00988.pdf": {
@@ -108359,15 +108359,6 @@
       "last-modified": "Tue, 30 May 2023 09:11:29 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01020.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "298387",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 30 May 2023 09:11:31 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01019.pdf": {
     "hits": 1,
     "headinfo": {
@@ -108377,13 +108368,13 @@
       "last-modified": "Tue, 30 May 2023 09:11:30 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR01022.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01020.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "126864",
+      "content-length": "298387",
       "content-type": "application/pdf",
       "content-encoding": null,
-      "last-modified": "Tue, 03 Oct 2023 00:02:24 GMT"
+      "last-modified": "Tue, 30 May 2023 09:11:31 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00609.pdf": {
@@ -108393,6 +108384,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 29 May 2023 10:32:09 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR01022.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "126864",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 03 Oct 2023 00:02:24 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00610.pdf": {
@@ -108863,15 +108863,6 @@
       "last-modified": "Tue, 25 Jul 2023 10:33:55 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01071.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "85054",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 26 Jul 2023 10:15:00 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01070.pdf": {
     "hits": 1,
     "headinfo": {
@@ -108879,6 +108870,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 25 Jul 2023 10:33:56 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01071.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "85054",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 26 Jul 2023 10:15:00 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01072.pdf": {
@@ -109268,24 +109268,6 @@
       "last-modified": "Wed, 26 Jul 2023 10:15:32 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01114.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "300114",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 26 Jul 2023 10:15:33 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01115.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "451557",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 26 Jul 2023 10:15:34 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01116.pdf": {
     "hits": 1,
     "headinfo": {
@@ -109295,6 +109277,15 @@
       "last-modified": "Wed, 26 Jul 2023 10:15:35 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01114.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "300114",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 26 Jul 2023 10:15:33 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01117.pdf": {
     "hits": 1,
     "headinfo": {
@@ -109302,6 +109293,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 26 Jul 2023 10:15:36 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01115.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "451557",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 26 Jul 2023 10:15:34 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01118.pdf": {
@@ -109403,15 +109403,6 @@
       "last-modified": "Fri, 22 Sep 2023 09:07:05 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01127.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "273526",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 01 Aug 2023 00:59:46 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR01126.pdf": {
     "hits": 1,
     "headinfo": {
@@ -109419,6 +109410,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 03 Oct 2023 00:02:26 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01127.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "273526",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 01 Aug 2023 00:59:46 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01128.pdf": {
@@ -109574,15 +109574,6 @@
       "last-modified": "Tue, 01 Aug 2023 01:00:05 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01146.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "203453",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Tue, 22 Aug 2023 18:45:42 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01145.pdf": {
     "hits": 1,
     "headinfo": {
@@ -109590,6 +109581,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 02 Aug 2023 14:40:44 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01146.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "203453",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 22 Aug 2023 18:45:42 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/second_19/HR01146.pdf": {
@@ -110312,6 +110312,15 @@
       "last-modified": "Wed, 30 Aug 2023 10:49:51 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01228.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "100777",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 21 Sep 2023 01:41:29 GMT"
+    }
+  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01226.pdf": {
     "hits": 1,
     "headinfo": {
@@ -110328,15 +110337,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 21 Sep 2023 01:41:28 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01228.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "100777",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 21 Sep 2023 01:41:29 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01229.pdf": {
@@ -111320,15 +111320,6 @@
       "last-modified": "Thu, 28 Sep 2023 10:17:27 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01339.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "275049",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Thu, 28 Sep 2023 10:17:29 GMT"
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01338.pdf": {
     "hits": 1,
     "headinfo": {
@@ -111336,6 +111327,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 28 Sep 2023 10:17:28 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01339.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "275049",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 28 Sep 2023 10:17:29 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01340.pdf": {
@@ -112373,19 +112373,19 @@
       "last-modified": "Mon, 20 Nov 2023 10:07:54 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01458.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01457.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "102246",
+      "content-length": "64972",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 20 Nov 2023 10:07:55 GMT"
     }
   },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01457.pdf": {
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/basic_19/HR01458.pdf": {
     "hits": 1,
     "headinfo": {
-      "content-length": "64972",
+      "content-length": "102246",
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Mon, 20 Nov 2023 10:07:55 GMT"
@@ -113696,15 +113696,6 @@
       "last-modified": "Mon, 19 Feb 2024 07:37:43 GMT"
     }
   },
-  "https://congress.gov.ph/committees": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/first_19/CR00924.pdf": {
     "hits": 1,
     "headinfo": {
@@ -113712,15 +113703,6 @@
       "content-type": "application/octet-stream",
       "content-encoding": null,
       "last-modified": "Mon, 12 Feb 2024 23:52:15 GMT"
-    }
-  },
-  "https://congress.gov.ph/js/bootstrap.min.js": {
-    "hits": 2,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/javascript",
-      "content-encoding": "gzip",
-      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
     }
   },
   "https://congress.gov.ph/js/jquery.js": {
@@ -113732,6 +113714,33 @@
       "last-modified": "Wed, 09 Dec 2020 10:29:58 GMT"
     }
   },
+  "https://congress.gov.ph/legisdocs/js/legisdocs.js": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Tue, 17 Oct 2023 01:40:44 GMT"
+    }
+  },
+  "https://congress.gov.ph/legisdocs/ajs/legis.js": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Thu, 02 Dec 2021 10:53:23 GMT"
+    }
+  },
+  "https://congress.gov.ph/committees": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/css/images/congress.png": {
     "hits": 1,
     "headinfo": {
@@ -113741,22 +113750,13 @@
       "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT"
     }
   },
-  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18028",
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
-    }
-  },
-  "https://congress.gov.ph/legisdocs/js/legisdocs.js": {
+  "https://congress.gov.ph/js/bootstrap.min.js": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "application/javascript",
       "content-encoding": "gzip",
-      "last-modified": "Tue, 17 Oct 2023 01:40:44 GMT"
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
     }
   },
   "https://congress.gov.ph/css/images/bg04.png": {
@@ -113768,15 +113768,6 @@
       "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT"
     }
   },
-  "https://congress.gov.ph/legisdocs/ajs/legis.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/javascript",
-      "content-encoding": "gzip",
-      "last-modified": "Thu, 02 Dec 2021 10:53:23 GMT"
-    }
-  },
   "https://congress.gov.ph/legisdocs/ajs/jquery-validation/dist/jquery.validate.js": {
     "hits": 1,
     "headinfo": {
@@ -113784,6 +113775,15 @@
       "content-type": "application/javascript",
       "content-encoding": "gzip",
       "last-modified": "Wed, 11 Mar 2020 08:25:52 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/calendar-sign-19th-1rs.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "45413",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 01:12:19 GMT"
     }
   }
 }

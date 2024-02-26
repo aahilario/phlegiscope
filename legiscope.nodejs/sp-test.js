@@ -82,17 +82,32 @@ function normalizeUrl( u )
   // URLFIX
   // Only fill in missing URL components from corresponding targetUrl parts
   let fromPage = url.parse(u);
+  let q = '';
+  let h = '';
   //console.log( "A> %s", parsedUrl.href || '' );
   //console.log( "B> %s", u || '' );
+  try { q = fromPage.query; } catch (e) { q = fromPage.query = ''; }
+  try { h = fromPage.hash; } catch (e) { h = fromPage.hash = ''; }
   if ( (fromPage.protocol || '').length == 0 && (fromPage.hostname || '').length == 0 ) {
-    fromPage.path = [parsedUrl.path, fromPage.path].join('/');
+    //FIXME
+    //The {path} component already embeds query parts
+    fromPage.pathname = [parsedUrl.pathname, fromPage.pathname].join('/');
     //console.log( "K> %s", fromPage.path );
   }
   if ( (fromPage.protocol || '').length == 0 ) fromPage.protocol = parsedUrl.protocol;
   if ( (fromPage.host     || '').length == 0 ) fromPage.host     = parsedUrl.host;
   if ( (fromPage.hostname || '').length == 0 ) fromPage.hostname = parsedUrl.hostname;
-  fromPage.href = ''.concat(fromPage.protocol,'//',fromPage.hostname.concat('/',fromPage.path).replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''));
+  u = ''.concat(
+    fromPage.protocol,
+    '//',
+    fromPage.hostname,
+    '/',
+    fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
+    (q && q.length && q.length > 0 ? '?'.concat(q) : ''),
+    (h && h.length && h.length > 0 ? h : '')
+  );
   //console.log( "C> %s", fromPage.href );
+  fromPage.href = u;
   return fromPage.href;
 }//}}}
 
@@ -175,7 +190,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
       if ( (process.env['SILENT_PARSE'] === undefined) ) console.log( "%s%d: %s", pad.repeat(depth<<1), index, tagname );
     }
   } catch(e) {
-    console.log( "THROWN processing %s", tagname, urlText, e );
+    console.log( "THROWN processing %s", tagname, e );
   }
 
   // Recurse to a reasonable tag nesting depth

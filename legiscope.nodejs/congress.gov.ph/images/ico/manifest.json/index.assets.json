@@ -11,11 +11,11 @@
     "res": {
       "cache-control": "max-age=1, must-revalidate",
       "cf-cache-status": "DYNAMIC",
-      "cf-ray": "85a8a070fdd78493-HKG",
+      "cf-ray": "85b1eaf11b0c404c-MNL",
       "content-encoding": "gzip",
       "content-type": "application/json",
-      "date": "Sat, 24 Feb 2024 15:08:55 GMT",
-      "expires": "Sat, 24 Feb 2024 15:08:56 GMT",
+      "date": "Sun, 25 Feb 2024 18:12:39 GMT",
+      "expires": "Sun, 25 Feb 2024 18:12:40 GMT",
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "server": "cloudflare",
       "x-frame-options": "SAMEORIGIN",
@@ -23,7 +23,7 @@
     }
   },
   "https://congress.gov.ph/favicon.ico": {
-    "status": null,
+    "status": 404,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
       "Referer": "https://congress.gov.ph/images/ico/manifest.json",
@@ -31,6 +31,19 @@
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
     },
-    "res": null
+    "res": {
+      "pragma": "no-cache",
+      "date": "Sun, 25 Feb 2024 18:12:39 GMT",
+      "content-encoding": "gzip",
+      "cf-cache-status": "MISS",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "vary": "Accept-Encoding",
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
+      "cf-ray": "85b1eaf1ac00404c-MNL",
+      "x-xss-protection": "1; mode=block",
+      "expires": "Thu, 19 Nov 1981 08:52:00 GMT"
+    }
   }
 }

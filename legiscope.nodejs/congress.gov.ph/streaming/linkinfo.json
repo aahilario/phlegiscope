@@ -1,22 +1,4 @@
 {
-  "https://congress.gov.ph/images/ico/apple-icon-60x60.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "10322",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-72x72.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "13949",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
   "https://congress.gov.ph/streaming": {
     "hits": 4,
     "headinfo": {
@@ -26,19 +8,10 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
+  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "60355",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "9575",
+      "content-length": "31995",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -53,10 +26,55 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
+  "https://congress.gov.ph/images/ico/apple-icon-60x60.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "10322",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "9575",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "22229",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/favicon-32x32.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4104",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
   "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
     "hits": 1,
     "headinfo": {
       "content-length": "15192",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/favicon-16x16.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "2189",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -71,17 +89,8 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/streaming#": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/css/bootstrap.min.css": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/css",
@@ -89,13 +98,13 @@
       "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
+  "https://congress.gov.ph": {
     "hits": 1,
     "headinfo": {
-      "content-length": "31995",
-      "content-type": "image/png",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+      "last-modified": null
     }
   },
   "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
@@ -107,37 +116,10 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/members?v=region": {
+  "https://congress.gov.ph/images/ico/apple-icon-72x72.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/images/ico/favicon-32x32.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4104",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/members?v=pl": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "22229",
+      "content-length": "13949",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -152,7 +134,16 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/profile": {
+  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "60355",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/members?v=district": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -161,16 +152,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/images/ico/favicon-16x16.png": {
+  "https://congress.gov.ph/members?v=region": {
     "hits": 1,
     "headinfo": {
-      "content-length": "2189",
-      "content-type": "image/png",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+      "last-modified": null
     }
   },
-  "https://congress.gov.ph/committees?v=standing": {
+  "https://congress.gov.ph/streaming#": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -180,7 +171,7 @@
     }
   },
   "https://congress.gov.ph/css/custom.css": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/css",
@@ -188,25 +179,7 @@
       "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT"
     }
   },
-  "https://congress.gov.ph": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members?v=district": {
+  "https://congress.gov.ph/commsched": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -224,6 +197,24 @@
       "last-modified": "Mon, 13 Feb 2023 01:44:09 GMT"
     }
   },
+  "https://congress.gov.ph/members": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=bills": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/legisdocs?v=ra": {
     "hits": 1,
     "headinfo": {
@@ -233,7 +224,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs?v=adopted": {
+  "https://congress.gov.ph/members?v=pl": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -260,7 +251,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs?v=sb": {
+  "https://congress.gov.ph/legisdocs?v=cr": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -269,61 +260,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/committees?v=special": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/committees?v=reports": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/commsched": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legis": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisdocs?v=bills": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=mandate": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about?about=history": {
+  "https://congress.gov.ph/profile": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -341,7 +278,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about?about=mission": {
+  "https://congress.gov.ph/legisdocs?v=sb": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -350,7 +287,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs?v=cr": {
+  "https://congress.gov.ph/committees?v=standing": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -368,7 +305,43 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about?about=saa": {
+  "https://congress.gov.ph/committees?v=special": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legis": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=adopted": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=mission": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/committees?v=reports": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -387,6 +360,15 @@
     }
   },
   "https://congress.gov.ph/search": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=mandate": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -422,7 +404,34 @@
       "last-modified": "Wed, 09 Aug 2023 12:37:00 GMT"
     }
   },
+  "https://congress.gov.ph/about?about=history": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisinfo?v=researchers": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/about?about=symbols": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/press": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -440,6 +449,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/download": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/about?about=secgen": {
     "hits": 1,
     "headinfo": {
@@ -449,7 +467,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?v=plenary": {
+  "https://congress.gov.ph/about?about=saa": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?v=committee": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1404": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -459,24 +495,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=1402": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1401": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisinfo?v=researchers": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -512,97 +530,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/press": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/download": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1386": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/bids": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/sitemap": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1380": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1371": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?v=committee": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1372": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1362": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1400": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -620,7 +548,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1366": {
+  "https://congress.gov.ph/sitemap": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -629,7 +557,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1365": {
+  "https://congress.gov.ph/streaming?id=1386": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -638,7 +566,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1364": {
+  "https://congress.gov.ph/streaming?v=plenary": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -647,7 +575,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1358": {
+  "https://congress.gov.ph/streaming?id=1372": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -657,6 +585,24 @@
     }
   },
   "https://congress.gov.ph/streaming?id=1369": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1401": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1400": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -692,7 +638,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1350": {
+  "https://congress.gov.ph/streaming?id=1380": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -701,7 +647,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1359": {
+  "https://congress.gov.ph/streaming?id=1371": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -710,7 +656,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1348": {
+  "https://congress.gov.ph/streaming?id=1358": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -719,16 +665,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1346": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1357": {
+  "https://congress.gov.ph/streaming?id=1362": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -755,25 +692,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1344": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1354": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1342": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -791,6 +710,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1366": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1353": {
     "hits": 1,
     "headinfo": {
@@ -800,7 +728,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1343": {
+  "https://congress.gov.ph/streaming?id=1365": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1350": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1364": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -818,7 +764,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1339": {
+  "https://congress.gov.ph/streaming?id=1359": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -836,7 +782,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1336": {
+  "https://congress.gov.ph/streaming?id=1357": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1344": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -863,7 +818,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1333": {
+  "https://congress.gov.ph/streaming?id=1343": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -881,7 +836,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1329": {
+  "https://congress.gov.ph/streaming?id=1339": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1348": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -899,15 +863,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1325": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1337": {
     "hits": 1,
     "headinfo": {
@@ -917,7 +872,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1324": {
+  "https://congress.gov.ph/streaming?id=1346": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1336": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -935,15 +899,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1326": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1331": {
     "hits": 1,
     "headinfo": {
@@ -953,7 +908,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1318": {
+  "https://congress.gov.ph/streaming?id=1342": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1333": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -971,61 +935,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1312": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1330": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1309": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1303": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1304": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1300": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1323": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1043,7 +953,97 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1291": {
+  "https://congress.gov.ph/streaming?id=1318": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1312": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1309": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1329": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1325": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1304": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1324": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1323": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1297": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1296": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1326": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1070,6 +1070,33 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1286": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1303": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1285": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1280": {
     "hits": 1,
     "headinfo": {
@@ -1079,34 +1106,16 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1300": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1279": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1297": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1278": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1296": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1133,97 +1142,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1276": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1290": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1272": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1286": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1271": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1285": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1270": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1267": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1266": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1265": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1264": {
+  "https://congress.gov.ph/streaming?id=1291": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1241,6 +1160,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1290": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1274": {
     "hits": 1,
     "headinfo": {
@@ -1250,7 +1178,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1259": {
+  "https://congress.gov.ph/streaming?id=1271": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1268,6 +1196,87 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1267": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1278": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1265": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1276": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1264": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1272": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1261": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1260": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1270": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1258": {
     "hits": 1,
     "headinfo": {
@@ -1277,16 +1286,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1257": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1256": {
+  "https://congress.gov.ph/streaming?id=1266": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1331,7 +1331,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1261": {
+  "https://congress.gov.ph/streaming?id=1252": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1340,7 +1340,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1260": {
+  "https://congress.gov.ph/streaming?id=1259": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1358,7 +1358,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1247": {
+  "https://congress.gov.ph/streaming?id=1248": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1367,7 +1367,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1246": {
+  "https://congress.gov.ph/streaming?id=1257": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1256": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1377,42 +1386,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=1255": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1245": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1243": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1252": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1242": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1439,61 +1412,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1248": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1244": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1231": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1230": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1241": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1229": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1240": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1520,7 +1439,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1225": {
+  "https://congress.gov.ph/streaming?id=1247": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1538,7 +1457,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1236": {
+  "https://congress.gov.ph/streaming?id=1246": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1547,7 +1466,61 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1232": {
+  "https://congress.gov.ph/streaming?id=1245": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1244": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1231": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1243": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1230": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1242": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1240": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1565,43 +1538,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1227": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1218": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1226": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1217": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1216": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1619,7 +1556,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1214": {
+  "https://congress.gov.ph/streaming?id=1236": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1637,16 +1574,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1222": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1213": {
+  "https://congress.gov.ph/streaming?id=1232": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1673,7 +1601,97 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1210": {
+  "https://congress.gov.ph/streaming?id=1229": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1218": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1227": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1216": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1225": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1215": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1214": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1213": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1222": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1212": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1211": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1700,7 +1718,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1206": {
+  "https://congress.gov.ph/streaming?id=1208": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1709,7 +1727,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1215": {
+  "https://congress.gov.ph/streaming?id=1217": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1207": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1206": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1745,7 +1781,34 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1212": {
+  "https://congress.gov.ph/streaming?id=1210": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1196": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1190": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1185": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1763,7 +1826,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1211": {
+  "https://congress.gov.ph/streaming?id=1182": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1773,51 +1836,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=1197": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1208": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1207": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1186": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1184": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1196": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1844,70 +1862,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1190": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1189": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1185": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1183": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1182": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1180": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1179": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1168": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1925,7 +1880,25 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1189": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1177": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1186": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1943,15 +1916,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1163": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1175": {
     "hits": 1,
     "headinfo": {
@@ -1961,7 +1925,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1165": {
+  "https://congress.gov.ph/streaming?id=1184": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -1979,16 +1943,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1164": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1173": {
+  "https://congress.gov.ph/streaming?id=1183": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2006,16 +1961,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1161": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1170": {
+  "https://congress.gov.ph/streaming?id=1180": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2033,7 +1979,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1167": {
+  "https://congress.gov.ph/streaming?id=1168": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2051,7 +1997,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1154": {
+  "https://congress.gov.ph/streaming?id=1165": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1173": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2069,7 +2024,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1159": {
+  "https://congress.gov.ph/streaming?id=1170": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2078,7 +2033,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1149": {
+  "https://congress.gov.ph/streaming?id=1159": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2096,7 +2051,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1147": {
+  "https://congress.gov.ph/streaming?id=1157": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2105,7 +2060,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1157": {
+  "https://congress.gov.ph/streaming?id=1167": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2123,16 +2078,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1155": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1141": {
+  "https://congress.gov.ph/streaming?id=1163": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2142,6 +2088,15 @@
     }
   },
   "https://congress.gov.ph/streaming?id=1153": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1164": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2168,7 +2123,61 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1127": {
+  "https://congress.gov.ph/streaming?id=1161": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1149": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1147": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1155": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1154": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1140": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1132": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2186,7 +2195,25 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=1122": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=1119": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1118": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2222,7 +2249,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1114": {
+  "https://congress.gov.ph/streaming?id=1141": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2249,25 +2276,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1140": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1132": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1111": {
+  "https://congress.gov.ph/streaming?id=1127": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2294,79 +2303,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1122": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=1106": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1118": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1105": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1117": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1095": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1085": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1068": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1034": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2384,7 +2321,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1101": {
+  "https://congress.gov.ph/streaming?id=1117": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2393,7 +2330,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1030": {
+  "https://congress.gov.ph/streaming?id=1114": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1101": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2411,7 +2357,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1029": {
+  "https://congress.gov.ph/streaming?id=1095": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2429,7 +2375,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1023": {
+  "https://congress.gov.ph/streaming?id=1111": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2438,16 +2384,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1064": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1014": {
+  "https://congress.gov.ph/streaming?id=1085": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2457,6 +2394,69 @@
     }
   },
   "https://congress.gov.ph/streaming?id=1045": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1105": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1034": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1030": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1023": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1068": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1064": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2483,25 +2483,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1012": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=691": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=690": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1029": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2519,7 +2510,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1024": {
+  "https://congress.gov.ph/streaming?id=688": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=687": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2555,7 +2555,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=683": {
+  "https://congress.gov.ph/streaming?id=1014": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=682": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1012": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2573,7 +2591,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=680": {
+  "https://congress.gov.ph/streaming?id=691": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2591,34 +2609,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=688": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=677": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=687": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=676": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2645,6 +2636,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=683": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=672": {
     "hits": 1,
     "headinfo": {
@@ -2654,7 +2654,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=682": {
+  "https://congress.gov.ph/streaming?id=671": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=680": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=669": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2681,16 +2699,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=667": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=666": {
+  "https://congress.gov.ph/streaming?id=676": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2700,78 +2709,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=675": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=671": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=661": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=660": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=670": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=669": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=658": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=657": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=655": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2798,7 +2735,79 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=653": {
+  "https://congress.gov.ph/streaming?id=662": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=661": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=670": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=660": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=658": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=657": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=667": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=666": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=654": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2816,16 +2825,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=662": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=651": {
+  "https://congress.gov.ph/streaming?id=652": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2852,6 +2852,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=646": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=656": {
     "hits": 1,
     "headinfo": {
@@ -2861,7 +2870,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=654": {
+  "https://congress.gov.ph/streaming?id=645": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2870,7 +2879,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=652": {
+  "https://congress.gov.ph/streaming?id=655": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=644": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=653": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2888,7 +2915,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=640": {
+  "https://congress.gov.ph/streaming?id=651": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2924,7 +2951,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=646": {
+  "https://congress.gov.ph/streaming?id=637": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2933,7 +2960,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=645": {
+  "https://congress.gov.ph/streaming?id=635": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2942,7 +2969,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=644": {
+  "https://congress.gov.ph/streaming?id=634": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2961,6 +2988,87 @@
     }
   },
   "https://congress.gov.ph/streaming?id=642": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=640": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=630": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=627": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=626": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=636": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=625": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=624": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=623": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=633": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -2996,106 +3104,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=626": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=637": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=636": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=635": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=624": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=633": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=634": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=623": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=622": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=621": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=630": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=627": {
+  "https://congress.gov.ph/streaming?id=618": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3122,7 +3131,61 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=625": {
+  "https://congress.gov.ph/streaming?id=622": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=604": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=621": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=620": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=600": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=619": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=597": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3149,78 +3212,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=604": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=620": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=619": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=618": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=597": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=593": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=590": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=584": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=606": {
     "hits": 1,
     "headinfo": {
@@ -3239,15 +3230,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=578": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=602": {
     "hits": 1,
     "headinfo": {
@@ -3258,15 +3240,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=579": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=600": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3302,6 +3275,24 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=593": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=590": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=521": {
     "hits": 1,
     "headinfo": {
@@ -3311,7 +3302,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=517": {
+  "https://congress.gov.ph/streaming?id=584": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3329,7 +3320,34 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=514": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=510": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=509": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=578": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3356,6 +3374,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=498": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=492": {
     "hits": 1,
     "headinfo": {
@@ -3374,7 +3401,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=487": {
+  "https://congress.gov.ph/streaming?id=517": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3383,7 +3410,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=486": {
+  "https://congress.gov.ph/streaming?id=480": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3393,24 +3420,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=479": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=510": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=514": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3446,7 +3455,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=476": {
+  "https://congress.gov.ph/streaming?id=487": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3455,7 +3464,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=498": {
+  "https://congress.gov.ph/streaming?id=486": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3464,16 +3473,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=473": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=480": {
+  "https://congress.gov.ph/streaming?id=470": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3500,7 +3500,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=464": {
+  "https://congress.gov.ph/streaming?id=476": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3509,7 +3509,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=475": {
+  "https://congress.gov.ph/streaming?id=464": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3536,7 +3536,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=472": {
+  "https://congress.gov.ph/streaming?id=475": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3545,61 +3545,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=460": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=470": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=458": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=466": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=465": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=453": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=451": {
+  "https://congress.gov.ph/streaming?id=473": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3626,7 +3572,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=449": {
+  "https://congress.gov.ph/streaming?id=472": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3635,7 +3581,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=448": {
+  "https://congress.gov.ph/streaming?id=460": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3644,16 +3590,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=459": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=447": {
+  "https://congress.gov.ph/streaming?id=466": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3680,6 +3617,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=465": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=452": {
     "hits": 1,
     "headinfo": {
@@ -3689,7 +3635,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=450": {
+  "https://congress.gov.ph/streaming?id=459": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3698,7 +3644,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=439": {
+  "https://congress.gov.ph/streaming?id=447": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3707,16 +3653,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=437": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=436": {
+  "https://congress.gov.ph/streaming?id=458": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3743,7 +3680,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=432": {
+  "https://congress.gov.ph/streaming?id=444": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3752,7 +3689,97 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=444": {
+  "https://congress.gov.ph/streaming?id=453": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=443": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=451": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=440": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=450": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=439": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=449": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=438": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=448": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=436": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=432": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3770,7 +3797,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=443": {
+  "https://congress.gov.ph/streaming?id=434": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3797,7 +3824,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=440": {
+  "https://congress.gov.ph/streaming?id=430": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3806,7 +3833,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=429": {
+  "https://congress.gov.ph/streaming?id=428": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3815,7 +3842,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=438": {
+  "https://congress.gov.ph/streaming?id=437": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=427": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3860,7 +3896,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=434": {
+  "https://congress.gov.ph/streaming?id=419": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3869,7 +3905,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=430": {
+  "https://congress.gov.ph/streaming?id=429": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3896,24 +3932,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=428": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=427": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=426": {
     "hits": 1,
     "headinfo": {
@@ -3923,25 +3941,16 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=413": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=411": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=410": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=408": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -3968,15 +3977,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=419": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=417": {
     "hits": 1,
     "headinfo": {
@@ -3995,16 +3995,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=403": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=396": {
+  "https://congress.gov.ph/streaming?id=404": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4022,7 +4013,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=413": {
+  "https://congress.gov.ph/streaming?id=396": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4031,7 +4022,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=393": {
+  "https://congress.gov.ph/streaming?id=395": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4040,7 +4031,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=386": {
+  "https://congress.gov.ph/streaming?id=410": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=408": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4067,79 +4067,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=404": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=395": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=373": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=389": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=371": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=370": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=369": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=379": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=378": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=403": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4157,15 +4094,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=363": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=375": {
     "hits": 1,
     "headinfo": {
@@ -4175,34 +4103,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=374": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=364": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=362": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=359": {
+  "https://congress.gov.ph/streaming?id=393": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4220,7 +4121,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=358": {
+  "https://congress.gov.ph/streaming?id=389": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4229,7 +4130,106 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=355": {
+  "https://congress.gov.ph/streaming?id=386": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=379": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=369": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=363": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=364": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=374": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=362": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=373": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=359": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=371": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=357": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=370": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4292,7 +4292,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=357": {
+  "https://congress.gov.ph/streaming?id=358": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4302,6 +4302,15 @@
     }
   },
   "https://congress.gov.ph/streaming?id=336": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=355": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4328,6 +4337,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=331": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=330": {
     "hits": 1,
     "headinfo": {
@@ -4346,15 +4364,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=326": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=337": {
     "hits": 1,
     "headinfo": {
@@ -4364,7 +4373,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=323": {
+  "https://congress.gov.ph/streaming?id=326": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4400,7 +4409,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=331": {
+  "https://congress.gov.ph/streaming?id=320": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4418,25 +4427,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=318": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=328": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=317": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4454,7 +4445,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=316": {
+  "https://congress.gov.ph/streaming?id=315": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4464,6 +4455,15 @@
     }
   },
   "https://congress.gov.ph/streaming?id=324": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=323": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4499,15 +4499,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=320": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=319": {
     "hits": 1,
     "headinfo": {
@@ -4517,7 +4508,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=308": {
+  "https://congress.gov.ph/streaming?id=318": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4526,7 +4517,34 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=315": {
+  "https://congress.gov.ph/streaming?id=317": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=305": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=316": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=304": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4536,6 +4554,15 @@
     }
   },
   "https://congress.gov.ph/streaming?id=314": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=313": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4562,7 +4589,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=313": {
+  "https://congress.gov.ph/streaming?id=300": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=299": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4580,7 +4616,34 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=298": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=308": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=307": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=297": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4598,25 +4661,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=305": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=304": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=303": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=292": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4643,15 +4697,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=300": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=289": {
     "hits": 1,
     "headinfo": {
@@ -4661,16 +4706,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=299": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=298": {
+  "https://congress.gov.ph/streaming?id=288": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4680,15 +4716,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=287": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=297": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4724,25 +4751,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=283": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=293": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=292": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4760,61 +4769,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=271": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=288": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=252": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=239": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=234": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=278": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=216": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4832,16 +4787,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=215": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=253": {
+  "https://congress.gov.ph/streaming?id=252": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4868,7 +4814,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=210": {
+  "https://congress.gov.ph/streaming?id=239": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=283": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=234": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4886,15 +4850,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=207": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=219": {
     "hits": 1,
     "headinfo": {
@@ -4904,7 +4859,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=205": {
+  "https://congress.gov.ph/streaming?id=271": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4913,7 +4868,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=214": {
+  "https://congress.gov.ph/streaming?id=215": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=253": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4940,7 +4904,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=201": {
+  "https://congress.gov.ph/streaming?id=211": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4949,7 +4913,52 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=211": {
+  "https://congress.gov.ph/streaming?id=210": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=206": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=216": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=205": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=204": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=214": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -4976,15 +4985,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=199": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=198": {
     "hits": 1,
     "headinfo": {
@@ -4994,7 +4994,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=206": {
+  "https://congress.gov.ph/streaming?id=207": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=197": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=195": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5004,15 +5022,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=194": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=204": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5039,6 +5048,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=192": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=191": {
     "hits": 1,
     "headinfo": {
@@ -5048,7 +5066,34 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=197": {
+  "https://congress.gov.ph/streaming?id=201": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=190": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=189": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=199": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5066,7 +5111,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=195": {
+  "https://congress.gov.ph/streaming?id=185": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5102,16 +5147,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=192": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=190": {
+  "https://congress.gov.ph/streaming?id=181": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5129,16 +5165,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=189": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=178": {
+  "https://congress.gov.ph/streaming?id=177": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5156,34 +5183,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=176": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=185": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=175": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=182": {
+  "https://congress.gov.ph/streaming?id=174": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5201,25 +5201,16 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=182": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=172": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=181": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=171": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5264,7 +5255,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=168": {
+  "https://congress.gov.ph/streaming?id=178": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5273,52 +5264,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=177": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=174": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=164": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=162": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=161": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=160": {
+  "https://congress.gov.ph/streaming?id=176": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5337,6 +5283,96 @@
     }
   },
   "https://congress.gov.ph/streaming?id=166": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=175": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=164": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=163": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=162": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=171": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=160": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=159": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=168": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=158": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=157": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5372,15 +5408,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=163": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=152": {
     "hits": 1,
     "headinfo": {
@@ -5390,7 +5417,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=151": {
+  "https://congress.gov.ph/streaming?id=161": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5408,34 +5435,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=159": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=158": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=157": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=145": {
+  "https://congress.gov.ph/streaming?id=146": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5453,16 +5453,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=143": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=142": {
+  "https://congress.gov.ph/streaming?id=144": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5480,7 +5471,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=140": {
+  "https://congress.gov.ph/streaming?id=141": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=151": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=139": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5507,15 +5516,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=146": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=135": {
     "hits": 1,
     "headinfo": {
@@ -5525,97 +5525,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=144": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=132": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=141": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=129": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=139": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=128": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=137": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=126": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=125": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=134": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=123": {
+  "https://congress.gov.ph/streaming?id=145": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5633,7 +5543,70 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=122": {
+  "https://congress.gov.ph/streaming?id=143": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=132": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=142": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=140": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=127": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=137": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=134": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=124": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5669,7 +5642,34 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=120": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=129": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=119": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=128": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5687,7 +5687,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=127": {
+  "https://congress.gov.ph/streaming?id=126": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5705,6 +5705,33 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=125": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=123": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=114": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=113": {
     "hits": 1,
     "headinfo": {
@@ -5714,7 +5741,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=124": {
+  "https://congress.gov.ph/streaming?id=122": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5723,25 +5750,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=112": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=120": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=107": {
+  "https://congress.gov.ph/streaming?id=110": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5768,69 +5777,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=114": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=102": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=111": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=110": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=109": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=97": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=108": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=105": {
     "hits": 1,
     "headinfo": {
@@ -5849,6 +5795,24 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=112": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=102": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=101": {
     "hits": 1,
     "headinfo": {
@@ -5858,7 +5822,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=90": {
+  "https://congress.gov.ph/streaming?id=111": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5867,7 +5831,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=100": {
+  "https://congress.gov.ph/streaming?id=109": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5876,43 +5840,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=89": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=99": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=88": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=87": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=96": {
+  "https://congress.gov.ph/streaming?id=108": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5930,16 +5858,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=94": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=83": {
+  "https://congress.gov.ph/streaming?id=107": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5975,7 +5894,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=79": {
+  "https://congress.gov.ph/streaming?id=90": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5984,7 +5903,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=78": {
+  "https://congress.gov.ph/streaming?id=100": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -5993,7 +5912,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=76": {
+  "https://congress.gov.ph/streaming?id=99": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=97": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=87": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6011,7 +5948,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=75": {
+  "https://congress.gov.ph/streaming?id=96": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6029,7 +5966,16 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=73": {
+  "https://congress.gov.ph/streaming?id=94": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=83": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6047,7 +5993,52 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=72": {
+  "https://congress.gov.ph/streaming?id=79": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=89": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=78": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=88": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=75": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=73": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6057,15 +6048,6 @@
     }
   },
   "https://congress.gov.ph/streaming?id=81": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=71": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6101,15 +6083,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=77": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=68": {
     "hits": 1,
     "headinfo": {
@@ -6119,7 +6092,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=67": {
+  "https://congress.gov.ph/streaming?id=77": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6128,7 +6101,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=66": {
+  "https://congress.gov.ph/streaming?id=76": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6164,7 +6137,34 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=57": {
+  "https://congress.gov.ph/streaming?id=72": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=71": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=67": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=66": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6191,7 +6191,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=53": {
+  "https://congress.gov.ph/streaming?id=63": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6200,7 +6200,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=63": {
+  "https://congress.gov.ph/streaming?id=53": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6236,7 +6236,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=50": {
+  "https://congress.gov.ph/streaming?id=59": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6245,7 +6245,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=59": {
+  "https://congress.gov.ph/streaming?id=50": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6272,6 +6272,24 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=46": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=57": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=56": {
     "hits": 1,
     "headinfo": {
@@ -6281,7 +6299,43 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=42": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=52": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=36": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=45": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=33": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6308,15 +6362,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=52": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=41": {
     "hits": 1,
     "headinfo": {
@@ -6326,43 +6371,25 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=46": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=29": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=42": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=25": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=40": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=24": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=23": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6389,24 +6416,6 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=36": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=21": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=34": {
     "hits": 1,
     "headinfo": {
@@ -6416,16 +6425,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=33": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=18": {
+  "https://congress.gov.ph/streaming?id=29": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6452,7 +6452,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=24": {
+  "https://congress.gov.ph/streaming?id=14": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6461,16 +6461,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=10": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=23": {
+  "https://congress.gov.ph/streaming?id=25": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6480,6 +6471,24 @@
     }
   },
   "https://congress.gov.ph/streaming?id=22": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=7": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=21": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6515,6 +6524,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/streaming?id=18": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/streaming?id=4": {
     "hits": 1,
     "headinfo": {
@@ -6533,25 +6551,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=2": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=14": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1": {
+  "https://congress.gov.ph/streaming?id=3": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6569,7 +6569,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=1351": {
+  "https://congress.gov.ph/streaming?id=10": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6587,70 +6587,7 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming?id=7": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
   "https://congress.gov.ph/streaming?id=659": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1194": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=3": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/js/bootstrap.min.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/javascript",
-      "content-encoding": "gzip",
-      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
-    }
-  },
-  "https://congress.gov.ph/js/jquery.min.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/javascript",
-      "content-encoding": "gzip",
-      "last-modified": "Mon, 27 Jun 2016 09:05:23 GMT"
-    }
-  },
-  "https://congress.gov.ph/streaming?id=649": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/streaming?id=1195": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",
@@ -6668,31 +6605,103 @@
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
+  "https://congress.gov.ph/streaming?id=2": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18028",
-      "content-type": null,
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
-      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+      "last-modified": null
     }
   },
-  "https://congress.gov.ph/css/images/bg04.png": {
+  "https://congress.gov.ph/streaming?id=1": {
     "hits": 1,
     "headinfo": {
-      "content-length": "153",
-      "content-type": "image/png",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
-      "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT"
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1351": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
     }
   },
   "https://congress.gov.ph/streaming/js/streaming.js": {
-    "hits": 1,
+    "hits": 2,
     "headinfo": {
       "content-length": null,
       "content-type": "application/javascript",
       "content-encoding": "gzip",
       "last-modified": "Tue, 17 Oct 2023 02:57:41 GMT"
+    }
+  },
+  "https://congress.gov.ph/streaming?id=649": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/js/jquery.min.js": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Mon, 27 Jun 2016 09:05:23 GMT"
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1194": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming?id=1195": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/css/images/congress.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "94462",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT"
+    }
+  },
+  "https://congress.gov.ph/js/bootstrap.min.js": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/calendar-sign-19th-1rs.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "45413",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Wed, 03 Aug 2022 01:12:19 GMT"
     }
   }
 }

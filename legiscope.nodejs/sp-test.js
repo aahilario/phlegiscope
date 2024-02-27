@@ -172,7 +172,11 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
     }
     else if ( tagname == 'SCRIPT' ) {
       let srcattr = $("*").attr('src');
-      if ( undefined !== typeof srcattr ) {
+      if ( undefined === srcattr ) {
+        // Inline script
+        console.log("Inline\r\n%s\r\n", $("*").text());
+      }
+      else {
         urlText = normalizeUrl( srcattr );
         if ( (process.env['SILENT_PARSE'] === undefined) ) if ( logthis ) console.log( "%s%d: %s %s", pad.repeat(depth<<1), index, tagname, ($("*").attr('type') || '').concat(": ",urlText) );
         stashPageUrl( urlText );

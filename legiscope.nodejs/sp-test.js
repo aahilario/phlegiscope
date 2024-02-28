@@ -33,18 +33,20 @@ const loggedTags = new Map([
 
 const pad = " ";
 
-let targetFile       = '';
-let visitFile        = '';
-let permittedHosts  = '';
-let assetCatalogFile = '';
-let pageCookieFile   = '';
-let targetDir        = '';
+let targetFile        = '';
+let visitFile         = '';
+let permittedHosts    = '';
+let assetCatalogFile  = '';
+let inlineScriptsFile = '';
+let pageCookieFile    = '';
+let targetDir         = '';
 
 let loadedUrl;
 let parsedUrl;
-let pageUrls = new Map;
-let pageHosts = new Map;
-let extractedUrls; 
+let inlineScripts     = new Array;
+let pageUrls          = new Map;
+let pageHosts         = new Map;
+let extractedUrls;
 let cookies;
 let root_request_header;
 
@@ -54,11 +56,14 @@ function fetch_reset()
   targetFile          = '';
   // visitFile           = '';
   assetCatalogFile    = '';
+  inlineScriptsFile   = '';
   pageCookieFile      = '';
   targetDir           = '';
 
   loadedUrl           = null;
   parsedUrl           = null;
+  inlineScripts       = null;
+  inlineScripts       = new Array;
   pageUrls            = null
   pageUrls            = new Map;
   pageHosts           = null;
@@ -109,6 +114,12 @@ function normalizeUrl( u )
   fromPage.href = u;
   return fromPage.href;
 }//}}}
+
+function stashInlineScript( s )
+{
+  console.log("Inline\r\n%s\r\n", s );
+  inlineScripts.push(s);
+}
 
 function stashPageUrl( u )
 {//{{{
@@ -174,7 +185,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
       let srcattr = $("*").attr('src');
       if ( undefined === srcattr ) {
         // Inline script
-        console.log("Inline\r\n%s\r\n", $("*").text());
+        stashInlineScript( $("*").text() );
       }
       else {
         urlText = normalizeUrl( srcattr );
@@ -234,6 +245,13 @@ function extract_urls( data, target )
         console.log( "Wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
       }
     });
+
+    // FIXME: Use fsPromises.writeFile to serialize writes.
+    if ( inlineScripts.length > 0 )
+    writeFileSync( inlineScriptsFile, JSON.stringify( inlineScripts, null, 2 ), {
+      flag  : 'w',
+      flush : true
+    }); 
   }
   return pageUrlsArray;
 };//}}}
@@ -475,7 +493,16 @@ async function extract_hosts_from_urlarray( target_url, result )
 function load_visit_map( visit_file )
 {//{{{
   let visited_map;
-  let ofile = readFileSync( visit_file, { flag: 'r' } );
+  let ofile;
+  let present = statSync( visit_file, { throwIfNoEntry : false } );
+
+  if ( !present ) {
+    blank_visit_map = new Map;
+    blank_visit_map.set( "https://congress.gov.ph", { hits: 1 } ); 
+    write_map_to_file( "new map of visited URLs", visitFile, blank_visit_map, loadedUrl );
+  }
+
+  ofile = readFileSync( visit_file, { flag: 'r' } );
   if ( ofile.length > 0 ) {
     let o = JSON.parse( ofile );
     visited_map = new Map(Object.entries(o)); 
@@ -518,7 +545,7 @@ function recompute_filepaths_from_url(target)
   targetDir = '';
 
   // Unique visited URL and permitted hosts files
-  visitFile = parsedUrl.host.concat('/visited.json');
+  visitFile      = parsedUrl.host.concat('/visited.json');
   permittedHosts = parsedUrl.host.concat('/permitted.json');
 
   while ( pathParts.length > 0 ) {
@@ -529,11 +556,13 @@ function recompute_filepaths_from_url(target)
     if ( existsSync( targetDir ) ) continue;
     mkdirSync( targetDir );
   }
-  targetFile = targetDir.concat('/index.html');
-  assetCatalogFile = targetDir.concat('/index.assets.json'); 
-  pageCookieFile = targetDir.concat('/cookies.json'); 
+  targetFile        = targetDir.concat('/index.html');
+  assetCatalogFile  = targetDir.concat('/index.assets.json');
+  inlineScriptsFile = targetDir.concat('/index.inlinescripts.json');
+  pageCookieFile    = targetDir.concat('/cookies.json');
   console.log( 'Target path computed as %s', targetFile );
   console.log( ' Asset catalog %s', assetCatalogFile );
+  console.log( ' Inline scripts %s', inlineScriptsFile );
   console.log( ' Page cookies %s', pageCookieFile );
   console.log( ' Visited URLs %s', visitFile  );
   console.log( ' Permitted hosts %s', permittedHosts  );

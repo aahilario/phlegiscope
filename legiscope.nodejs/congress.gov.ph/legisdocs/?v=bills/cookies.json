@@ -1,12 +1,13 @@
 [
   {
     "domain": ".congress.gov.ph",
-    "httpOnly": false,
-    "name": "PHPSESSID",
+    "expiry": 1709061566,
+    "httpOnly": true,
+    "name": "__cf_bm",
     "path": "/",
-    "sameSite": "Lax",
+    "sameSite": "None",
     "secure": true,
-    "value": "bokcunke3gnclgn1uegimnlb9i"
+    "value": "43FuZ5X4u6_0d.dKKkdB33Hne8jdJQG79uAkktfrehE-1709059766-1.0-AW+ZCQDjXHvxLBfeZELrdpPNeu1CxCJV7rM/9MyRPo7aUkfI06XJpPZKIMmUTKQGjlg6k5cfiVZ4EiypNzwI7LE="
   },
   {
     "domain": "congress.gov.ph",
@@ -15,6 +16,6 @@
     "path": "/",
     "sameSite": "Lax",
     "secure": false,
-    "value": "h7iehm4nhu1gqicnef7uheku9h"
+    "value": "ee4ql8nnump3fs4fqh8bt42l1c"
   }
 ]

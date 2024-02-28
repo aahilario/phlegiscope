@@ -1,29 +1,11 @@
 {
   "https://congress.gov.ph/members": {
-    "hits": 1,
+    "hits": 4,
     "headinfo": {
-      "content-length": "18178",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "9575",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-60x60.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "10322",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
   "https://congress.gov.ph/images/ico/apple-icon-72x72.png": {
@@ -35,55 +17,10 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
+  "https://congress.gov.ph/images/ico/apple-icon-57x57.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "15192",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-114x114.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "29490",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "31995",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "42519",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-152x152.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "46397",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
-    }
-  },
-  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "60355",
+      "content-length": "9575",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
@@ -98,6 +35,105 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
+  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "22229",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-60x60.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "10322",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-76x76.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "15192",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/css/bootstrap.min.css": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/css",
+      "content-encoding": "gzip",
+      "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-114x114.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "29490",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-152x152.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "46397",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/members?v=region": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-180x180.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "60355",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/members?v=pl": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/images/ico/apple-icon-120x120.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "31995",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/leaders": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
   "https://congress.gov.ph/images/ico/favicon-32x32.png": {
     "hits": 1,
     "headinfo": {
@@ -107,13 +143,22 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/images/ico/favicon-96x96.png": {
+  "https://congress.gov.ph/images/ico/apple-icon-144x144.png": {
     "hits": 1,
     "headinfo": {
-      "content-length": "22229",
+      "content-length": "42519",
       "content-type": "image/png",
       "content-encoding": null,
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
+    }
+  },
+  "https://congress.gov.ph/profile": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
     }
   },
   "https://congress.gov.ph/images/ico/favicon-16x16.png": {
@@ -125,26 +170,26 @@
       "last-modified": "Sun, 03 May 2020 23:03:26 GMT"
     }
   },
-  "https://congress.gov.ph/css/bootstrap.min.css": {
+  "https://congress.gov.ph/members#": {
     "hits": 1,
     "headinfo": {
-      "content-length": null,
-      "content-type": "text/css",
-      "content-encoding": "gzip",
-      "last-modified": "Wed, 09 Dec 2020 09:51:04 GMT"
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
     }
   },
   "https://congress.gov.ph": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18935",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
   "https://congress.gov.ph/css/custom.css": {
-    "hits": 1,
+    "hits": 2,
     "headinfo": {
       "content-length": null,
       "content-type": "text/css",
@@ -152,73 +197,10 @@
       "last-modified": "Mon, 18 Jan 2021 07:11:49 GMT"
     }
   },
-  "https://congress.gov.ph/members/?v=district": {
+  "https://congress.gov.ph/members?v=district": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18959",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/?v=region": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18884",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/?v=pl": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19018",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/leaders": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18818",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/profile": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18818",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/committees/?v=standing": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18972",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/committees/?v=special": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19047",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/commsched": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18845",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -233,82 +215,82 @@
       "last-modified": "Mon, 13 Feb 2023 01:44:09 GMT"
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=bills": {
+  "https://congress.gov.ph/legisdocs?v=bills": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18929",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=ra": {
+  "https://congress.gov.ph/legisdocs?v=journals": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18917",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=adopted": {
+  "https://congress.gov.ph/legisdocs?v=cr": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19004",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=journals": {
+  "https://congress.gov.ph/legisdocs?v=sb": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18963",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=cr": {
+  "https://congress.gov.ph/committees?v=standing": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18939",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=cdb": {
+  "https://congress.gov.ph/legisdocs?v=ob": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18946",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=sb": {
+  "https://congress.gov.ph/committees?v=special": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19002",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/legisdocs/?v=ob": {
+  "https://congress.gov.ph/committees?v=reports": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18917",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/committees/?v=reports": {
+  "https://congress.gov.ph/commsched": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19049",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -317,7 +299,7 @@
   "https://congress.gov.ph/legis": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18979",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -326,97 +308,61 @@
   "https://congress.gov.ph/search": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18811",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about/?about=mandate": {
+  "https://congress.gov.ph/legisdocs?v=ra": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18918",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about/?about=history": {
+  "https://congress.gov.ph/legisdocs?v=adopted": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19090",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about/?about=symbols": {
+  "https://congress.gov.ph/legisdocs?v=cdb": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18940",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about/?about=mission": {
+  "https://congress.gov.ph/about?about=mission": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18962",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about/?about=officials": {
+  "https://congress.gov.ph/legisinfo?v=process": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18972",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/about/?about=secgen": {
+  "https://congress.gov.ph/about?about=mandate": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19065",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about/?about=saa": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19052",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/about/?about=offices": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19046",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisinfo/?v=process": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19046",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/legisinfo/?v=students": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18965",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -431,19 +377,19 @@
       "last-modified": "Wed, 09 Aug 2023 12:37:00 GMT"
     }
   },
-  "https://congress.gov.ph/legisinfo/?v=researchers": {
+  "https://congress.gov.ph/about?about=history": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18978",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/photojournal": {
+  "https://congress.gov.ph/about?about=symbols": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18986",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -452,16 +398,25 @@
   "https://congress.gov.ph/press": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18830",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/streaming": {
+  "https://congress.gov.ph/about?about=officials": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18973",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/about?about=secgen": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -470,52 +425,52 @@
   "https://congress.gov.ph/download": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18864",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/bids": {
+  "https://congress.gov.ph/about?about=saa": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18911",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/sitemap": {
+  "https://congress.gov.ph/about?about=offices": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18903",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=abalos": {
+  "https://congress.gov.ph/legisinfo?v=students": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19126",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=abante": {
+  "https://congress.gov.ph/legisinfo?v=researchers": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19017",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=abunda-m": {
+  "https://congress.gov.ph/photojournal": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -524,16 +479,7 @@
   "https://congress.gov.ph/members/search.php?id=acharon-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18989",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=acidre": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19019",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -542,7 +488,16 @@
   "https://congress.gov.ph/members/search.php?id=acop": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18944",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/streaming": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -551,70 +506,61 @@
   "https://congress.gov.ph/members/search.php?id=adiong": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19104",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=advincula": {
+  "https://congress.gov.ph/bids": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19031",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=agarao": {
+  "https://congress.gov.ph/sitemap": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19126",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=alba": {
+  "https://congress.gov.ph/members/search.php?id=abalos": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19094",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=albano-a": {
+  "https://congress.gov.ph/members/search.php?id=abante": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=almario": {
+  "https://congress.gov.ph/members/search.php?id=abunda-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19021",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=almonte": {
+  "https://congress.gov.ph/members/search.php?id=acidre": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19064",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=alonte": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19061",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -623,7 +569,7 @@
   "https://congress.gov.ph/members/search.php?id=alvarez-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -632,7 +578,7 @@
   "https://congress.gov.ph/members/search.php?id=alvarez-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -641,34 +587,52 @@
   "https://congress.gov.ph/members/search.php?id=alvarez-p": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=amante": {
+  "https://congress.gov.ph/members/search.php?id=advincula": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18998",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=amatong": {
+  "https://congress.gov.ph/members/search.php?id=agarao": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19150",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=ang-j": {
+  "https://congress.gov.ph/members/search.php?id=alba": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18991",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=albano-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=almario": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -677,7 +641,7 @@
   "https://congress.gov.ph/members/search.php?id=angara": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19104",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -686,16 +650,25 @@
   "https://congress.gov.ph/members/search.php?id=aquino": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18998",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=aquino-magsaysay": {
+  "https://congress.gov.ph/members/search.php?id=almonte": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19039",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=alonte": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -704,25 +677,7 @@
   "https://congress.gov.ph/members/search.php?id=arbison": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19001",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=arenas": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18954",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=arrogancia": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19013",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -731,7 +686,16 @@
   "https://congress.gov.ph/members/search.php?id=asistio": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19129",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=amante": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -740,7 +704,16 @@
   "https://congress.gov.ph/members/search.php?id=atayde": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18976",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=amatong": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -749,7 +722,16 @@
   "https://congress.gov.ph/members/search.php?id=aumentado": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=ang-j": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -758,16 +740,7 @@
   "https://congress.gov.ph/members/search.php?id=balindong": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18968",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=barba": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19119",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -776,7 +749,16 @@
   "https://congress.gov.ph/members/search.php?id=barbers": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=aquino-magsaysay": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -785,43 +767,25 @@
   "https://congress.gov.ph/members/search.php?id=baronda": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=barzaga": {
+  "https://congress.gov.ph/members/search.php?id=arenas": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19150",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=bascug": {
+  "https://congress.gov.ph/members/search.php?id=arrogancia": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19019",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=bautista-c": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19140",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=bautista-lim": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19109",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -830,52 +794,25 @@
   "https://congress.gov.ph/members/search.php?id=bernos": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19147",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=benitez": {
+  "https://congress.gov.ph/members/search.php?id=barba": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19085",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=billones": {
+  "https://congress.gov.ph/members/search.php?id=barzaga": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=biron": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18991",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=bolilia": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18979",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=bondoc": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19019",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -884,7 +821,16 @@
   "https://congress.gov.ph/members/search.php?id=bongalon-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19120",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=bascug": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -893,25 +839,34 @@
   "https://congress.gov.ph/members/search.php?id=bordado": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19001",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=bosita-b": {
+  "https://congress.gov.ph/members/search.php?id=bautista-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19152",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=briones-n": {
+  "https://congress.gov.ph/members/search.php?id=bautista-lim": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19053",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=benitez": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -920,34 +875,34 @@
   "https://congress.gov.ph/members/search.php?id=brosas-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=buhain": {
+  "https://congress.gov.ph/members/search.php?id=billones": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19126",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=bulut-begtang": {
+  "https://congress.gov.ph/members/search.php?id=biron": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19069",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=bustos-j": {
+  "https://congress.gov.ph/members/search.php?id=bolilia": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -956,34 +911,25 @@
   "https://congress.gov.ph/members/search.php?id=cabredo": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cagas": {
+  "https://congress.gov.ph/members/search.php?id=bondoc": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18991",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cajayon-uy": {
+  "https://congress.gov.ph/members/search.php?id=bosita-b": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19120",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=calderon": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -992,43 +938,43 @@
   "https://congress.gov.ph/members/search.php?id=calixto": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19106",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=campos": {
+  "https://congress.gov.ph/members/search.php?id=briones-n": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19104",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=caoagdan": {
+  "https://congress.gov.ph/members/search.php?id=buhain": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cardema-d": {
+  "https://congress.gov.ph/members/search.php?id=bulut-begtang": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cari": {
+  "https://congress.gov.ph/members/search.php?id=bustos-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18944",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1037,7 +983,7 @@
   "https://congress.gov.ph/members/search.php?id=castro-f": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19153",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1046,16 +992,25 @@
   "https://congress.gov.ph/members/search.php?id=castro-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19067",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=celeste": {
+  "https://congress.gov.ph/members/search.php?id=cagas": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=cajayon-uy": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1064,34 +1019,34 @@
   "https://congress.gov.ph/members/search.php?id=chan": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19072",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=chatto": {
+  "https://congress.gov.ph/members/search.php?id=calderon": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18954",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=chua": {
+  "https://congress.gov.ph/members/search.php?id=caoagdan": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19009",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=chungalao": {
+  "https://congress.gov.ph/members/search.php?id=cardema-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1100,34 +1055,25 @@
   "https://congress.gov.ph/members/search.php?id=co-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19094",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=co-e": {
+  "https://congress.gov.ph/members/search.php?id=cari": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19009",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=co-pilar": {
+  "https://congress.gov.ph/members/search.php?id=campos": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=cojuangco-jaime": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19079",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1136,16 +1082,16 @@
   "https://congress.gov.ph/members/search.php?id=cojuangco-mark": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19072",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=colada-l": {
+  "https://congress.gov.ph/members/search.php?id=celeste": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19024",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1154,7 +1100,16 @@
   "https://congress.gov.ph/members/search.php?id=collantes": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=chatto": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1163,25 +1118,25 @@
   "https://congress.gov.ph/members/search.php?id=corvera": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cruz-ambrosio": {
+  "https://congress.gov.ph/members/search.php?id=chua": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19069",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cruz-ading": {
+  "https://congress.gov.ph/members/search.php?id=chungalao": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19120",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1190,25 +1145,34 @@
   "https://congress.gov.ph/members/search.php?id=cua": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19048",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=cuaresma": {
+  "https://congress.gov.ph/members/search.php?id=co-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18960",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=dagooc": {
+  "https://congress.gov.ph/members/search.php?id=co-pilar": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19019",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=cojuangco-jaime": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1217,16 +1181,16 @@
   "https://congress.gov.ph/members/search.php?id=dalipe": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18976",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=dalog": {
+  "https://congress.gov.ph/members/search.php?id=colada-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18991",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1235,16 +1199,7 @@
   "https://congress.gov.ph/members/search.php?id=dayanghirang": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19173",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=daza": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19116",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1253,16 +1208,25 @@
   "https://congress.gov.ph/members/search.php?id=dejesus-p": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=devenecia": {
+  "https://congress.gov.ph/members/search.php?id=cruz-ambrosio": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18989",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=cruz-ading": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1271,25 +1235,25 @@
   "https://congress.gov.ph/members/search.php?id=defensor": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=delmar": {
+  "https://congress.gov.ph/members/search.php?id=cuaresma": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19126",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=delos-santos": {
+  "https://congress.gov.ph/members/search.php?id=dagooc": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19065",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1298,16 +1262,16 @@
   "https://congress.gov.ph/members/search.php?id=dimaporo-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19013",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=dimaporo-s": {
+  "https://congress.gov.ph/members/search.php?id=dalog": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18992",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1316,16 +1280,16 @@
   "https://congress.gov.ph/members/search.php?id=dionisio": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=domingo": {
+  "https://congress.gov.ph/members/search.php?id=daza": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1334,25 +1298,16 @@
   "https://congress.gov.ph/members/search.php?id=duavit": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19019",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=dujali": {
+  "https://congress.gov.ph/members/search.php?id=devenecia": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19104",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=duterte": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1361,16 +1316,25 @@
   "https://congress.gov.ph/members/search.php?id=dy-inno": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19000",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=dy-fmc": {
+  "https://congress.gov.ph/members/search.php?id=delmar": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18976",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=delos-santos": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1379,7 +1343,7 @@
   "https://congress.gov.ph/members/search.php?id=dy-ian": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19019",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1388,16 +1352,16 @@
   "https://congress.gov.ph/members/search.php?id=ecleo": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19097",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=emano": {
+  "https://congress.gov.ph/members/search.php?id=dimaporo-s": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19012",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1406,25 +1370,25 @@
   "https://congress.gov.ph/members/search.php?id=enciso-n": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=enverga": {
+  "https://congress.gov.ph/members/search.php?id=domingo": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19129",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=escudero": {
+  "https://congress.gov.ph/members/search.php?id=dujali": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1433,61 +1397,34 @@
   "https://congress.gov.ph/members/search.php?id=espares-f": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=espina-g": {
+  "https://congress.gov.ph/members/search.php?id=duterte": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=estrella-r": {
+  "https://congress.gov.ph/members/search.php?id=dy-fmc": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19077",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=eudela-a": {
+  "https://congress.gov.ph/members/search.php?id=emano": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19109",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=farinas-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19116",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=fernandez-d": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19080",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=ferrer-a": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1496,52 +1433,43 @@
   "https://congress.gov.ph/members/search.php?id=ferrer-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19064",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=flores-j": {
+  "https://congress.gov.ph/members/search.php?id=escudero": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=fortes-m": {
+  "https://congress.gov.ph/members/search.php?id=espina-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=frasco-v": {
+  "https://congress.gov.ph/members/search.php?id=estrella-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=fresnedi-j": {
+  "https://congress.gov.ph/members/search.php?id=eudela-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19120",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=fuentebella-a": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19048",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1550,25 +1478,43 @@
   "https://congress.gov.ph/members/search.php?id=galeos-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=garcia-a": {
+  "https://congress.gov.ph/members/search.php?id=farinas-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=garcia-d": {
+  "https://congress.gov.ph/members/search.php?id=enverga": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19153",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=fernandez-d": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=ferrer-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1577,43 +1523,43 @@
   "https://congress.gov.ph/members/search.php?id=garcia-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=garcia-ma": {
+  "https://congress.gov.ph/members/search.php?id=flores-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=garcia-p": {
+  "https://congress.gov.ph/members/search.php?id=fortes-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=garcia-v": {
+  "https://congress.gov.ph/members/search.php?id=frasco-v": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19024",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=gardiola-t": {
+  "https://congress.gov.ph/members/search.php?id=fresnedi-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19056",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1622,34 +1568,34 @@
   "https://congress.gov.ph/members/search.php?id=garin-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=gasataya-g": {
+  "https://congress.gov.ph/members/search.php?id=fuentebella-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19163",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=gatchalian-r": {
+  "https://congress.gov.ph/members/search.php?id=garcia-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19172",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=gato-c": {
+  "https://congress.gov.ph/members/search.php?id=garcia-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19104",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1658,25 +1604,25 @@
   "https://congress.gov.ph/members/search.php?id=go-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19094",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=go-m": {
+  "https://congress.gov.ph/members/search.php?id=garcia-ma": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19009",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=golez-a": {
+  "https://congress.gov.ph/members/search.php?id=garcia-p": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1685,7 +1631,16 @@
   "https://congress.gov.ph/members/search.php?id=gomez-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18979",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=garcia-v": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1694,7 +1649,16 @@
   "https://congress.gov.ph/members/search.php?id=gonzaga-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19010",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=gardiola-t": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1703,7 +1667,7 @@
   "https://congress.gov.ph/members/search.php?id=gonzales-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18992",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1712,34 +1676,34 @@
   "https://congress.gov.ph/members/search.php?id=gonzales-n": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19141",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=gonzalez-c": {
+  "https://congress.gov.ph/members/search.php?id=gasataya-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19056",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=gorriceta-m": {
+  "https://congress.gov.ph/members/search.php?id=gatchalian-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19166",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=guico-r": {
+  "https://congress.gov.ph/members/search.php?id=gato-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1748,7 +1712,16 @@
   "https://congress.gov.ph/members/search.php?id=guintu-i": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19004",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=go-m": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1757,7 +1730,16 @@
   "https://congress.gov.ph/members/search.php?id=gullas-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19132",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=golez-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1766,7 +1748,7 @@
   "https://congress.gov.ph/members/search.php?id=gutierrez-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19143",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1775,16 +1757,7 @@
   "https://congress.gov.ph/members/search.php?id=hagedorn-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18992",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=haresco-t": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1793,43 +1766,34 @@
   "https://congress.gov.ph/members/search.php?id=hataman-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=hernandez-c": {
+  "https://congress.gov.ph/members/search.php?id=gonzalez-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18995",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=herrera-b": {
+  "https://congress.gov.ph/members/search.php?id=gorriceta-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=horibata-t": {
+  "https://congress.gov.ph/members/search.php?id=guico-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19163",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=javier-l": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1838,16 +1802,7 @@
   "https://congress.gov.ph/members/search.php?id=kho-o": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18947",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=kho-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18991",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1856,25 +1811,16 @@
   "https://congress.gov.ph/members/search.php?id=kho-w": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19012",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=khonghun-j": {
+  "https://congress.gov.ph/members/search.php?id=haresco-t": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19120",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=labadlabad-g": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19044",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1883,61 +1829,52 @@
   "https://congress.gov.ph/members/search.php?id=lacson-v": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=lacson-noel": {
+  "https://congress.gov.ph/members/search.php?id=hernandez-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19059",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=lagman-e": {
+  "https://congress.gov.ph/members/search.php?id=herrera-b": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=lagon-d": {
+  "https://congress.gov.ph/members/search.php?id=horibata-t": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19001",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=lagon-s": {
+  "https://congress.gov.ph/members/search.php?id=javier-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19001",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=lara-j": {
+  "https://congress.gov.ph/members/search.php?id=kho-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19104",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=lazatin-c": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1946,16 +1883,25 @@
   "https://congress.gov.ph/members/search.php?id=lee-w": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19012",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=legarda-a": {
+  "https://congress.gov.ph/members/search.php?id=khonghun-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19074",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=labadlabad-g": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1964,25 +1910,25 @@
   "https://congress.gov.ph/members/search.php?id=libanan-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=limkaichong-j": {
+  "https://congress.gov.ph/members/search.php?id=lacson-noel": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19090",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=loyola-r": {
+  "https://congress.gov.ph/members/search.php?id=lagman-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19153",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -1991,16 +1937,25 @@
   "https://congress.gov.ph/members/search.php?id=luistro-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=lumayag-e": {
+  "https://congress.gov.ph/members/search.php?id=lagon-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19074",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=lagon-s": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2009,25 +1964,25 @@
   "https://congress.gov.ph/members/search.php?id=macapagal-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19166",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=maceda-e": {
+  "https://congress.gov.ph/members/search.php?id=lara-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=madrona-e": {
+  "https://congress.gov.ph/members/search.php?id=lazatin-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2036,7 +1991,52 @@
   "https://congress.gov.ph/members/search.php?id=magsino-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=legarda-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=limkaichong-j": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=loyola-r": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=lumayag-e": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=madrona-e": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2045,88 +2045,7 @@
   "https://congress.gov.ph/members/search.php?id=malapitan-o": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19038",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=mangaoang-a": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19016",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=maniquiz-d": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19056",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=manuel-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19110",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=maranon-a": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18988",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=marcoleta-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19166",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=marcos-s": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18982",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=mariano-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19032",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=marino-m": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19025",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=marquez-c": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19009",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2135,61 +2054,79 @@
   "https://congress.gov.ph/members/search.php?id=martinez-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19163",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=mastura-s": {
+  "https://congress.gov.ph/members/search.php?id=mangaoang-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19031",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=matibag-r": {
+  "https://congress.gov.ph/members/search.php?id=maniquiz-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=matugas-f": {
+  "https://congress.gov.ph/members/search.php?id=maceda-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19031",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=mendoza-r": {
+  "https://congress.gov.ph/members/search.php?id=manuel-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=mercado-l": {
+  "https://congress.gov.ph/members/search.php?id=maranon-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=mercado-revilla": {
+  "https://congress.gov.ph/members/search.php?id=marcoleta-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19036",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=marcos-s": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=mariano-r": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2198,43 +2135,43 @@
   "https://congress.gov.ph/members/search.php?id=miguel-p": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=momo-r": {
+  "https://congress.gov.ph/members/search.php?id=marino-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18954",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=morden-m": {
+  "https://congress.gov.ph/members/search.php?id=marquez-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19153",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=nava-l": {
+  "https://congress.gov.ph/members/search.php?id=mastura-s": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18998",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=nisay-j": {
+  "https://congress.gov.ph/members/search.php?id=matibag-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19150",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2243,7 +2180,16 @@
   "https://congress.gov.ph/members/search.php?id=noel-f": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19019",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=matugas-f": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2252,34 +2198,34 @@
   "https://congress.gov.ph/members/search.php?id=nograles-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19013",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=nograles-m": {
+  "https://congress.gov.ph/members/search.php?id=mendoza-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18992",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=nolasco-r": {
+  "https://congress.gov.ph/members/search.php?id=mercado-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18989",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=oaminal-a": {
+  "https://congress.gov.ph/members/search.php?id=mercado-revilla": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19117",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2288,7 +2234,16 @@
   "https://congress.gov.ph/members/search.php?id=olaso-k": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19085",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=momo-r": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2297,7 +2252,16 @@
   "https://congress.gov.ph/members/search.php?id=olivarez-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19034",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=morden-m": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2306,70 +2270,52 @@
   "https://congress.gov.ph/members/search.php?id=ongchuan-h": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19141",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=ordanes-r": {
+  "https://congress.gov.ph/members/search.php?id=nava-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19010",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=ortega-f": {
+  "https://congress.gov.ph/members/search.php?id=nisay-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=ouano-d": {
+  "https://congress.gov.ph/members/search.php?id=nograles-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=padiernos-j": {
+  "https://congress.gov.ph/members/search.php?id=nolasco-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19038",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=paduano-j": {
+  "https://congress.gov.ph/members/search.php?id=oaminal-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19074",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=paglas-t": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19025",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=palma-w": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2378,16 +2324,7 @@
   "https://congress.gov.ph/members/search.php?id=panaligan-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19166",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=pancho-d": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2396,16 +2333,25 @@
   "https://congress.gov.ph/members/search.php?id=panotes-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19010",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=pascual-e": {
+  "https://congress.gov.ph/members/search.php?id=ordanes-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19053",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=ortega-f": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2414,16 +2360,25 @@
   "https://congress.gov.ph/members/search.php?id=pena-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19147",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=pimentel-j": {
+  "https://congress.gov.ph/members/search.php?id=ouano-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19163",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=padiernos-j": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2432,43 +2387,43 @@
   "https://congress.gov.ph/members/search.php?id=plaza-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=pleyto-s": {
+  "https://congress.gov.ph/members/search.php?id=paduano-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=primicias-m": {
+  "https://congress.gov.ph/members/search.php?id=paglas-t": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19016",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=pumaren-f": {
+  "https://congress.gov.ph/members/search.php?id=palma-w": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19053",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=puno-r": {
+  "https://congress.gov.ph/members/search.php?id=pancho-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19147",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2477,16 +2432,16 @@
   "https://congress.gov.ph/members/search.php?id=quimbo-s": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19153",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=rama-e": {
+  "https://congress.gov.ph/members/search.php?id=pascual-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19147",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2495,34 +2450,25 @@
   "https://congress.gov.ph/members/search.php?id=recto-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=regencia-c": {
+  "https://congress.gov.ph/members/search.php?id=pimentel-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19035",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=remulla-c": {
+  "https://congress.gov.ph/members/search.php?id=pleyto-s": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=revilla-b": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19052",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2531,34 +2477,34 @@
   "https://congress.gov.ph/members/search.php?id=revilla-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=reyes-r": {
+  "https://congress.gov.ph/members/search.php?id=primicias-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=rillo-m": {
+  "https://congress.gov.ph/members/search.php?id=pumaren-f": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19128",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=rivera-n": {
+  "https://congress.gov.ph/members/search.php?id=puno-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19153",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2567,34 +2513,25 @@
   "https://congress.gov.ph/members/search.php?id=robes-f": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18979",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=rodriguez-e": {
+  "https://congress.gov.ph/members/search.php?id=regencia-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19080",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=rodriguez-r": {
+  "https://congress.gov.ph/members/search.php?id=remulla-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19059",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=roman-g": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19150",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2603,7 +2540,16 @@
   "https://congress.gov.ph/members/search.php?id=romero-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=revilla-b": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2612,16 +2558,25 @@
   "https://congress.gov.ph/members/search.php?id=romualdez-f": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19144",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=romualdez-y": {
+  "https://congress.gov.ph/members/search.php?id=rama-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19038",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=reyes-r": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2630,7 +2585,16 @@
   "https://congress.gov.ph/members/search.php?id=romualdo-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19035",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=rillo-m": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2639,7 +2603,16 @@
   "https://congress.gov.ph/members/search.php?id=romulo-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=rivera-n": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2648,7 +2621,7 @@
   "https://congress.gov.ph/members/search.php?id=roque-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19064",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2657,7 +2630,16 @@
   "https://congress.gov.ph/members/search.php?id=sacdalan-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19163",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=rodriguez-e": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2666,25 +2648,25 @@
   "https://congress.gov.ph/members/search.php?id=sagarbarria-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19048",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=sakaluran-p": {
+  "https://congress.gov.ph/members/search.php?id=rodriguez-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19016",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=salceda-j": {
+  "https://congress.gov.ph/members/search.php?id=roman-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2693,43 +2675,16 @@
   "https://congress.gov.ph/members/search.php?id=sali-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18954",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=salimbangon-j": {
+  "https://congress.gov.ph/members/search.php?id=romualdez-y": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19068",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=salo-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19147",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=salvame-e": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19138",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=santos-a": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2738,16 +2693,7 @@
   "https://congress.gov.ph/members/search.php?id=saulog-i": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=silverio-l": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19035",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2756,25 +2702,25 @@
   "https://congress.gov.ph/members/search.php?id=singson-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=singson-ronald": {
+  "https://congress.gov.ph/members/search.php?id=sakaluran-p": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19199",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=singson-k": {
+  "https://congress.gov.ph/members/search.php?id=salceda-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2783,7 +2729,16 @@
   "https://congress.gov.ph/members/search.php?id=solon-s": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=salimbangon-j": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2792,7 +2747,16 @@
   "https://congress.gov.ph/members/search.php?id=soriano-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19160",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=salo-r": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2801,7 +2765,16 @@
   "https://congress.gov.ph/members/search.php?id=suan-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19061",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=salvame-e": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2810,16 +2783,16 @@
   "https://congress.gov.ph/members/search.php?id=suansing-h": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19035",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=suansing-m": {
+  "https://congress.gov.ph/members/search.php?id=santos-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18992",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2828,16 +2801,16 @@
   "https://congress.gov.ph/members/search.php?id=suarez-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19067",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tallado-j": {
+  "https://congress.gov.ph/members/search.php?id=silverio-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2846,7 +2819,16 @@
   "https://congress.gov.ph/members/search.php?id=tamayo-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=singson-ronald": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2855,52 +2837,25 @@
   "https://congress.gov.ph/members/search.php?id=tambunting-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19151",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tan-j": {
+  "https://congress.gov.ph/members/search.php?id=singson-k": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19140",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tan-k": {
+  "https://congress.gov.ph/members/search.php?id=suansing-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19097",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=tan-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19054",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=tan-samier": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19035",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=tan-stephen": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19016",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2909,16 +2864,16 @@
   "https://congress.gov.ph/members/search.php?id=tan-tambut": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18991",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tanchay-c": {
+  "https://congress.gov.ph/members/search.php?id=tallado-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19010",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2927,52 +2882,52 @@
   "https://congress.gov.ph/members/search.php?id=tanjuatco-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19080",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tarriela-l": {
+  "https://congress.gov.ph/members/search.php?id=tan-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19099",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=teodoro-m": {
+  "https://congress.gov.ph/members/search.php?id=tan-k": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19030",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=teves-a": {
+  "https://congress.gov.ph/members/search.php?id=tan-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19021",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=teves-j": {
+  "https://congress.gov.ph/members/search.php?id=tan-stephen": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tiangco-t": {
+  "https://congress.gov.ph/members/search.php?id=tan-samier": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19010",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2981,7 +2936,7 @@
   "https://congress.gov.ph/members/search.php?id=tieng-i": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19150",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -2990,34 +2945,25 @@
   "https://congress.gov.ph/members/search.php?id=tolentino-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19144",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tulfo-e": {
+  "https://congress.gov.ph/members/search.php?id=tanchay-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19043",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=tulfo-j": {
+  "https://congress.gov.ph/members/search.php?id=tarriela-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18978",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=tulfo-r": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3026,7 +2972,25 @@
   "https://congress.gov.ph/members/search.php?id=tupas-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19107",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=teodoro-m": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=teves-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3035,25 +2999,25 @@
   "https://congress.gov.ph/members/search.php?id=tutor-k": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=ty-a": {
+  "https://congress.gov.ph/members/search.php?id=teves-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18965",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=umali-a": {
+  "https://congress.gov.ph/members/search.php?id=tiangco-t": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3062,25 +3026,16 @@
   "https://congress.gov.ph/members/search.php?id=unabia-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=ungab-i": {
+  "https://congress.gov.ph/members/search.php?id=tulfo-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18971",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3089,7 +3044,16 @@
   "https://congress.gov.ph/members/search.php?id=valeriano-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18995",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=tulfo-j": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3098,7 +3062,16 @@
   "https://congress.gov.ph/members/search.php?id=valmayor-g": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18971",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=tulfo-r": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3107,7 +3080,7 @@
   "https://congress.gov.ph/members/search.php?id=vargas-p": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3116,16 +3089,16 @@
   "https://congress.gov.ph/members/search.php?id=vargas-b": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=velasco-l": {
+  "https://congress.gov.ph/members/search.php?id=ty-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18989",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3134,7 +3107,16 @@
   "https://congress.gov.ph/members/search.php?id=veloso-a": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18981",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=umali-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3143,25 +3125,25 @@
   "https://congress.gov.ph/members/search.php?id=vergara-r": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18989",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=verzosa-s": {
+  "https://congress.gov.ph/members/search.php?id=ungab-i": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18989",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=villa-j": {
+  "https://congress.gov.ph/members/search.php?id=": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19022",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3170,7 +3152,7 @@
   "https://congress.gov.ph/members/search.php?id=villafuerte-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19069",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3179,7 +3161,7 @@
   "https://congress.gov.ph/members/search.php?id=villafuerte-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19026",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3188,34 +3170,16 @@
   "https://congress.gov.ph/members/search.php?id=villanueva": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19163",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=villar-c": {
+  "https://congress.gov.ph/members/search.php?id=velasco-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=villaraza-suarez": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19082",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members/search.php?id=villarica-l": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19059",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3224,16 +3188,16 @@
   "https://congress.gov.ph/members/search.php?id=violago-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19032",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=yamsuan": {
+  "https://congress.gov.ph/members/search.php?id=verzosa-s": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19001",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3242,16 +3206,16 @@
   "https://congress.gov.ph/members/search.php?id=yap-ct": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18976",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=yap-c": {
+  "https://congress.gov.ph/members/search.php?id=villa-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19119",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3260,7 +3224,7 @@
   "https://congress.gov.ph/members/search.php?id=yap-e": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19119",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3269,7 +3233,7 @@
   "https://congress.gov.ph/members/search.php?id=yap-eg": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19061",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3278,34 +3242,34 @@
   "https://congress.gov.ph/members/search.php?id=yu-d": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19009",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=yu-j": {
+  "https://congress.gov.ph/members/search.php?id=villar-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19009",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=yulo-e": {
+  "https://congress.gov.ph/members/search.php?id=villaraza-suarez": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18954",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members/search.php?id=zamora-a": {
+  "https://congress.gov.ph/members/search.php?id=villarica-l": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18982",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3314,7 +3278,16 @@
   "https://congress.gov.ph/members/search.php?id=zamora-m": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19110",
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=yamsuan": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3323,7 +3296,7 @@
   "https://congress.gov.ph/members/search.php?id=zamora-y": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -3332,64 +3305,100 @@
   "https://congress.gov.ph/members/search.php?id=zubiri-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "19025",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members?v=district": {
+  "https://congress.gov.ph/members/search.php?id=yap-c": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18905",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
-  "https://congress.gov.ph/members?v=pl": {
+  "https://congress.gov.ph/members/search.php?id=yu-j": {
     "hits": 1,
     "headinfo": {
-      "content-length": "18858",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/members?v=region": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "19006",
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/js/menu.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=UTF-8",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://congress.gov.ph/committees": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "18852",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
   "https://congress.gov.ph/js/jquery.min.js": {
-    "hits": 1,
+    "hits": 2,
     "headinfo": {
       "content-length": null,
       "content-type": "application/javascript",
       "content-encoding": "gzip",
       "last-modified": "Mon, 27 Jun 2016 09:05:23 GMT"
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=yulo-e": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/js/bootstrap.min.js": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+    }
+  },
+  "https://congress.gov.ph/members/search.php?id=zamora-a": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/committees": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/css/images/congress.png": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "94462",
+      "content-type": "image/png",
+      "content-encoding": null,
+      "last-modified": "Mon, 24 Jul 2023 01:58:23 GMT"
+    }
+  },
+  "https://congress.gov.ph/members/js/menu.js": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Tue, 17 Oct 2023 06:34:15 GMT"
+    }
+  },
+  "https://congress.gov.ph/js/home.js": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/javascript",
+      "content-encoding": "gzip",
+      "last-modified": "Tue, 17 Oct 2023 00:19:56 GMT"
     }
   }
 }

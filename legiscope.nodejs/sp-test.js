@@ -217,7 +217,8 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0,
   if ( depth < 20 ) {
     $(tagname).contents().each(function (i, e) {
       try {
-        detag( i, e, depth + 1, $(tagname), indexlimit );
+        tagstack.push(tagname);
+        detag( i, e, depth + 1, $, indexlimit, tagstack );
       }
       catch(err)
       {

@@ -1,5 +1,5 @@
 {
-  "https://congress.gov.ph/leaders": {
+  "https://congress.gov.ph/leaders?l=speaker": {
     "status": null,
     "req": {
       "Upgrade-Insecure-Requests": "1",
@@ -10,7 +10,7 @@
     },
     "res": null
   },
-  "http://congress.gov.ph/leaders/": {
+  "http://congress.gov.ph/leaders/?l=speaker": {
     "status": null,
     "req": {
       "Upgrade-Insecure-Requests": "1",
@@ -21,7 +21,7 @@
     },
     "res": null
   },
-  "https://congress.gov.ph/leaders/": {
+  "https://congress.gov.ph/leaders/?l=speaker": {
     "status": 200,
     "req": {
       "Upgrade-Insecure-Requests": "1",
@@ -33,10 +33,10 @@
     "res": {
       "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
       "cf-cache-status": "DYNAMIC",
-      "cf-ray": "85cd6f75f9c64039-MNL",
+      "cf-ray": "85cd6f56e8584039-MNL",
       "content-encoding": "gzip",
       "content-type": "text/html; charset=UTF-8",
-      "date": "Thu, 29 Feb 2024 02:21:42 GMT",
+      "date": "Thu, 29 Feb 2024 02:21:37 GMT",
       "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
       "pragma": "no-cache",
       "server": "cloudflare",
@@ -48,7 +48,7 @@
     "status": 200,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
-      "Referer": "https://congress.gov.ph/leaders/",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
       "sec-ch-ua-mobile": "?0",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
@@ -72,7 +72,7 @@
     "status": 200,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
-      "Referer": "https://congress.gov.ph/leaders/",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
       "sec-ch-ua-mobile": "?0",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
@@ -96,7 +96,7 @@
     "status": 200,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
-      "Referer": "https://congress.gov.ph/leaders/",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
       "sec-ch-ua-mobile": "?0",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
@@ -117,11 +117,33 @@
       "expires": "Thu, 29 Feb 2024 06:21:37 GMT"
     }
   },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/members/19th/romualdez-f.jpg": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://congress.gov.ph/",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "Date": "Thu, 29 Feb 2024 02:21:38 GMT",
+      "Last-Modified": "Wed, 22 Feb 2023 10:53:16 GMT",
+      "Server": "AmazonS3",
+      "x-amz-request-id": "EWEPSCPZCP7TR0JH",
+      "ETag": "\"42f1b74c5360bab1d3e4e4e23a491b67\"",
+      "x-amz-server-side-encryption": "AES256",
+      "Content-Type": "image/jpeg",
+      "Accept-Ranges": "bytes",
+      "Content-Length": "18366",
+      "x-amz-id-2": "uima8JeTSWZoJiORaGfc/t7L/33d0ZL0WMkZAWlmHNPd2gJ4vMuUQY/88R2BCTVxHyWbl7DBH4o="
+    }
+  },
   "https://congress.gov.ph/images/calendar-sign-19th-1rs.png": {
     "status": 200,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
-      "Referer": "https://congress.gov.ph/leaders/",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
       "sec-ch-ua-mobile": "?0",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
@@ -146,7 +168,7 @@
     "status": 200,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
-      "Referer": "https://congress.gov.ph/leaders/",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
       "sec-ch-ua-mobile": "?0",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
@@ -170,7 +192,7 @@
     "status": 200,
     "req": {
       "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
-      "Referer": "https://congress.gov.ph/leaders/",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
       "sec-ch-ua-mobile": "?0",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       "sec-ch-ua-platform": "\"Linux\""
@@ -190,10 +212,40 @@
       "expires": "Thu, 29 Feb 2024 06:21:37 GMT"
     }
   },
+  "https://congress.gov.ph/css/images/bg04.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://congress.gov.ph/css/custom.css",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:21:38 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "vary": "Accept-Encoding",
+      "content-type": "image/png",
+      "cache-control": "public, max-age=14400",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd6f588b3d4039-MNL",
+      "content-length": "153",
+      "x-xss-protection": "1; mode=block",
+      "expires": "Thu, 29 Feb 2024 06:21:38 GMT"
+    }
+  },
   "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
     "status": 200,
     "req": {
-      "Referer": ""
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://congress.gov.ph/css/bootstrap.min.css",
+      "Origin": "https://congress.gov.ph",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
       "date": "Thu, 29 Feb 2024 02:21:38 GMT",
@@ -210,23 +262,27 @@
       "expires": "Thu, 29 Feb 2024 06:21:38 GMT"
     }
   },
-  "https://congress.gov.ph/css/images/bg04.png": {
+  "https://congress.gov.ph/images/ico/favicon-32x32.png": {
     "status": 200,
     "req": {
-      "Referer": ""
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://congress.gov.ph/leaders/?l=speaker",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
     },
     "res": {
       "date": "Thu, 29 Feb 2024 02:21:38 GMT",
       "cf-cache-status": "REVALIDATED",
-      "last-modified": "Thu, 11 Jun 2015 07:55:38 GMT",
+      "last-modified": "Sun, 03 May 2020 23:03:26 GMT",
       "server": "cloudflare",
       "x-frame-options": "SAMEORIGIN",
       "vary": "Accept-Encoding",
       "content-type": "image/png",
       "cache-control": "public, max-age=14400",
       "accept-ranges": "bytes",
-      "cf-ray": "85cd6f588b3d4039-MNL",
-      "content-length": "153",
+      "cf-ray": "85cd6f5adfb64039-MNL",
+      "content-length": "4104",
       "x-xss-protection": "1; mode=block",
       "expires": "Thu, 29 Feb 2024 06:21:38 GMT"
     }

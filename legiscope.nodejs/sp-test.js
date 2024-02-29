@@ -135,10 +135,16 @@ function stashUrlDomain( u )
   }
 }//}}}
 
-function detag( index, element, depth = 0, elementParent = null, indexlimit = 0  )
+function parse_err_handler( e )
+{
+  console.log(e);
+  return true;
+}
+
+function detag( index, element, depth = 0, elementParent = null, indexlimit = 0, tagstack )
 {//{{{
 
-  const $ = cheerio.load( element );
+  const $ = cheerio.load( element, {}, false );
   const tagname = $("*").prop('tagName');
 
   if ( depth == -1 ) {
@@ -210,7 +216,13 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
   // Recurse to a reasonable tag nesting depth
   if ( depth < 20 ) {
     $(tagname).contents().each(function (i, e) {
-      detag( i, e, depth + 1, $(tagname), indexlimit );
+      try {
+        detag( i, e, depth + 1, $(tagname), indexlimit );
+      }
+      catch(err)
+      {
+        console.log( "Error parsing element %s", e );
+      }
     });
     // Newline between containing chunks
     if ( (process.env['SILENT_PARSE'] === undefined) ) if ( 0 == depth ) console.log( "" );
@@ -220,11 +232,19 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0 
 
 function extract_urls( data, target )
 {//{{{
-  const $ = cheerio.load( data );
+  let tagstack = new Array;
+  const $ = cheerio.load( data, { onParseError: parse_err_handler } );
   console.log("Fetched markup.  Parsing...");
   $('html')
     .children()
-    .each( function(i,e) { detag(i,e,0,null,sampleCount); });
+    .each( function(i,e) { 
+      try {
+        detag(i,e,0,null,sampleCount,tagstack); 
+      }
+      catch(err) {
+        console.log( "Error parsing element %s", e );
+      }
+    });
 
   let pageUrlsArray = new Array;
 

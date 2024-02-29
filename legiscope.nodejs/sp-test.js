@@ -22,7 +22,6 @@ const controller = new AbortController();
 const { signal } = controller;
 
 const targetUrl     = process.env.TARGETURL || 'https://congress.gov.ph/';
-const element_xpath = '/html';
 const sampleCount   = 0;
 
 const loggedTags = new Map([
@@ -35,14 +34,19 @@ const pad = " ";
 
 let targetFile        = '';
 let visitFile         = '';
+let depthPlusOneFile  = ''; 
 let permittedHosts    = '';
 let assetCatalogFile  = '';
+let siteConfigFile    = '';
+let pageConfigFile    = '';
 let inlineScriptsFile = '';
 let pageCookieFile    = '';
 let targetDir         = '';
 
 let loadedUrl;
 let parsedUrl;
+let siteParseSettings;
+let pageParseSettings;
 let inlineScripts     = new Array;
 let pageUrls          = new Map;
 let pageHosts         = new Map;
@@ -54,8 +58,10 @@ function fetch_reset()
 {
   // Invoke to reset state before fetching a new URL
   targetFile          = '';
-  // visitFile           = '';
+  visitFile           = ''; // The site-global visited URLs file is set once per domain host
+  depthPlusOneFile    = '';  
   assetCatalogFile    = '';
+  pageConfigFile      = ''; // Unique page parser configuration is maintained per URL 
   inlineScriptsFile   = '';
   pageCookieFile      = '';
   targetDir           = '';
@@ -64,8 +70,10 @@ function fetch_reset()
   parsedUrl           = null;
   inlineScripts       = null;
   inlineScripts       = new Array;
+  pageUrls.clear();
   pageUrls            = null
   pageUrls            = new Map;
+  pageHosts.clear();
   pageHosts           = null;
   pageHosts           = new Map;
   extractedUrls       = null;
@@ -89,15 +97,33 @@ function normalizeUrl( u )
   let fromPage = url.parse(u);
   let q = '';
   let h = '';
-  //console.log( "A> %s", parsedUrl.href || '' );
-  //console.log( "B> %s", u || '' );
+  if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log( "A> %s", parsedUrl.href || '' );
+  if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log( "B> %s", u || '' );
   try { q = fromPage.query; } catch (e) { q = fromPage.query = ''; }
   try { h = fromPage.hash; } catch (e) { h = fromPage.hash = ''; }
   if ( (fromPage.protocol || '').length == 0 && (fromPage.hostname || '').length == 0 ) {
-    //FIXME
-    //The {path} component already embeds query parts
-    fromPage.pathname = [parsedUrl.pathname, fromPage.pathname].join('/');
-    //console.log( "K> %s", fromPage.path );
+    if ( !(process.env['NOISY_PARSE'] === undefined) ) { 
+      console.log( "J> %s", parsedUrl.pathname );
+      console.log( "K> %s", fromPage.pathname || '' );
+    }
+    // The URL is relative, containing no protocol or hostname part
+    // The path may be a fragment of targetUrl.pathname
+
+    if ( (fromPage.pathname || '').length == 0 && (parsedUrl.pathname || '').length > 0 ) {
+      fromPage.pathname = parsedUrl.pathname;
+    }
+    else if ( !/^[\/].*/.test( fromPage.pathname ) ) {
+      // fromPage.pathname has no leading slash (possibly an index page script name)
+      // If fromPage.pathname (A) is the trailing part of the non-zero-length targetUrl.pathname (B), then
+      //   we simply copy (B) over (A)
+      if ( (parsedUrl.pathname || '').length > 0 ) {
+        let tailchecker = new RegExp('.*'.concat(fromPage.pathname,'$')); // Match against tail 
+        if ( tailchecker.test( parsedUrl.pathname ) ) {
+          fromPage.pathname = parsedUrl.pathname;
+        }
+      }
+    }
+    if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log( "L> %s", fromPage.pathname );
   }
   if ( (fromPage.protocol || '').length == 0 ) fromPage.protocol = parsedUrl.protocol;
   if ( (fromPage.host     || '').length == 0 ) fromPage.host     = parsedUrl.host;
@@ -109,9 +135,12 @@ function normalizeUrl( u )
     fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
     (q && q.length && q.length > 0 ? '?'.concat(q) : ''),
     (h && h.length && h.length > 0 ? h : '')
-  );
-  //console.log( "C> %s", fromPage.href );
+  ).replace(/#$/,''); // Scrub empty hash part
   fromPage.href = u;
+  if ( !(process.env['NOISY_PARSE'] === undefined) ) {
+    console.log( "C> %s", fromPage.href );
+    console.log( " " );
+  }
   return fromPage.href;
 }//}}}
 
@@ -231,21 +260,25 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0,
   return true;
 };//}}}
 
-function extract_urls( data, target )
+function extract_urls( data, target, parse_roots )
 {//{{{
+  assert( parse_roots !== undefined );
   let tagstack = new Array;
   const $ = cheerio.load( data, { onParseError: parse_err_handler } );
   console.log("Fetched markup.  Parsing...");
-  $('html')
-    .children()
-    .each( function(i,e) { 
-      try {
-        detag(i,e,0,null,sampleCount,tagstack); 
-      }
-      catch(err) {
-        console.log( "Error parsing element %s", e );
-      }
-    });
+
+  parse_roots.forEach((parse_root) => { 
+    $(parse_root)
+      .children()
+      .each( function(i,e) { 
+        try {
+          detag(i,e,0,null,sampleCount,tagstack); 
+        }
+        catch(err) {
+          console.log( "Error parsing element %s", e );
+        }
+      });
+  });
 
   let pageUrlsArray = new Array;
 
@@ -258,7 +291,7 @@ function extract_urls( data, target )
       pageUrlsArray.push( url );
     }
 
-    writeFile( urlListFile, JSON.stringify( pageUrlsArray ), function(err) {
+    writeFile( urlListFile, JSON.stringify( pageUrlsArray.sort() ), function(err) {
       if ( err ) {
         console.log( "Failed to write URLs from page at '%s'", target );
       }
@@ -318,6 +351,7 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       }
       //,headinfo_raw: head_info
     });
+      console.log( "  %s", unique_entry );
   }
   else {
     let prior_entry = unique_host_path.get( unique_entry );
@@ -378,6 +412,7 @@ async function extract_hosts_from_urlarray( target_url, result )
   while ( result.length > 0 )
   {//{{{
     // URLFIX
+    // let g = normalizeUrl(result.shift()); // result.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
     let g = result.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
 
     if ( process.env.PERMIT_HTTP === undefined ) {
@@ -398,7 +433,7 @@ async function extract_hosts_from_urlarray( target_url, result )
       method: "HEAD",
       headers: {
         "User-Agent"                : root_request_header && root_request_header['User-Agent'] ? root_request_header['User-Agent'] : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
-        "Accept"                    : "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept"                    : "text/html,application/xhtml+xml,application/pdf,application/javascript,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language"           : "en-US,en;q=0.5",
         "Accept-Encoding"           : "gzip, deflate, br",
         "Connection"                : "keep-alive",
@@ -415,14 +450,24 @@ async function extract_hosts_from_urlarray( target_url, result )
     }
 
     let content_type = null;
+    let excluded = false;
 
-    // Determine asset mimetype
-    if ( !fileProps || unique_hosts.has( u.host ) ) {
+    // Test for exclusions:
+    // - URL protocol neither http: nor https:
+    // - Pathname potentially a PDF, shell script or some other application
+    // - Page assets that appear irrelevant to content analysis (images)
+    if ( /^javascript:.*/.test(g) )
+      excluded = true;
+
+    if ( /.*\.(pdf|sh|css|java|jpeg|jpg|png|tiff|tif|js)$/gi.test(u.pathname) )
+      excluded = true;
+
+    if ( excluded ) {
+      console.log( "- %s", g );
+    }
+    else if ( !fileProps || unique_hosts.has( u.host ) ) {
+      // Determine asset mimetype configured on server
       let head_info;
-      //if ( process.env.SKIPHEADINFO !== undefined ) {
-      //  keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
-      //}
-      //else
       if ( u.protocol == 'https:' ) {
         try {
           await https.request( g, head_options, (res) => {
@@ -476,6 +521,9 @@ async function extract_hosts_from_urlarray( target_url, result )
         }
       }
     }
+    else {
+      console.log( "* %s", g );
+    }
 
     // Only update the map if not preloaded from cache file
     if ( !fileProps ) {
@@ -511,6 +559,30 @@ async function extract_hosts_from_urlarray( target_url, result )
 
 }//}}}
 
+function load_config_settings( config_file )
+{//{{{
+  // Read site- and per-page parse settings file
+  let config_map;
+  let ofile;
+  let present = statSync( config_file, { throwIfNoEntry : false } );
+
+  if ( !present ) {
+    blank_config_settings = new Map;
+    blank_config_settings.set( "parse_roots", [ "body" ] ); 
+    write_map_to_file( "default parse config file", config_file, blank_config_settings, loadedUrl );
+  }
+
+  ofile = readFileSync( config_file, { flag: 'r' } );
+  if ( ofile.length > 0 ) {
+    let o = JSON.parse( ofile );
+    config_map = new Map(Object.entries(o)); 
+  }
+  else {
+    config_map = new Map;
+  }
+  return config_map;
+}//}}}
+
 function load_visit_map( visit_file )
 {//{{{
   let visited_map;
@@ -520,7 +592,7 @@ function load_visit_map( visit_file )
   if ( !present ) {
     blank_visit_map = new Map;
     blank_visit_map.set( "https://congress.gov.ph", { hits: 1 } ); 
-    write_map_to_file( "new map of visited URLs", visitFile, blank_visit_map, loadedUrl );
+    write_map_to_file( "new map of visited URLs", visit_file, blank_visit_map, loadedUrl );
   }
 
   ofile = readFileSync( visit_file, { flag: 'r' } );
@@ -568,6 +640,7 @@ function recompute_filepaths_from_url(target)
   // Unique visited URL and permitted hosts files
   visitFile      = parsedUrl.host.concat('/visited.json');
   permittedHosts = parsedUrl.host.concat('/permitted.json');
+  siteConfigFile = parsedUrl.host.concat('/config.json');
 
   while ( pathParts.length > 0 ) {
     let part = pathParts.shift();
@@ -578,15 +651,19 @@ function recompute_filepaths_from_url(target)
     mkdirSync( targetDir );
   }
   targetFile        = targetDir.concat('/index.html');
+  pageConfigFile    = targetDir.concat('/config.json');
   assetCatalogFile  = targetDir.concat('/index.assets.json');
+  depthPlusOneFile  = targetDir.concat('/depth.json');
   inlineScriptsFile = targetDir.concat('/index.inlinescripts.json');
   pageCookieFile    = targetDir.concat('/cookies.json');
   console.log( 'Target path computed as %s', targetFile );
-  console.log( ' Asset catalog %s', assetCatalogFile );
-  console.log( ' Inline scripts %s', inlineScriptsFile );
-  console.log( ' Page cookies %s', pageCookieFile );
-  console.log( ' Visited URLs %s', visitFile  );
-  console.log( ' Permitted hosts %s', permittedHosts  );
+  console.log( '  Site config %s'          , siteConfigFile );
+  console.log( '  Page config %s'          , pageConfigFile );
+  console.log( '  Asset catalog %s'        , assetCatalogFile );
+  console.log( '  Inline scripts %s'       , inlineScriptsFile );
+  console.log( '  Page cookies %s'         , pageCookieFile );
+  console.log( '  Visited URLs %s'         , visitFile  );
+  console.log( '  Permitted hosts %s'      , permittedHosts  );
 }//}}}
 
 async function fetch_and_extract( initial_target, depth )
@@ -594,7 +671,9 @@ async function fetch_and_extract( initial_target, depth )
   // Walk through all nodes in DOM
 
   let state_timeout = 7200000;
+  let recursion_depth = 0;
   let targets = new Array;
+  let depth_plus_one = new Map;
 
   // Breadth-first link traversal state flags
   let iteration_depth = 0;
@@ -608,6 +687,7 @@ async function fetch_and_extract( initial_target, depth )
     while ( targets.length > 0 ) {
 
       // URLFIX
+      // let target = normalizeUrl(targets.shift()); // .replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let target = targets.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let page_assets = new Map;
       let iteration_subjects;
@@ -616,6 +696,15 @@ async function fetch_and_extract( initial_target, depth )
       fetch_reset();
 
       recompute_filepaths_from_url(target);
+
+      // Load this just once
+      if ( siteParseSettings == undefined )
+        siteParseSettings = load_config_settings( siteConfigFile ); 
+
+      // FIXME: This, and other globals, need to be factored out, and encapsulated in modules.
+      // FIXME: Alter the main loop to use this and related globals 
+      // FIXME: out of their own namespace (again, possibly using a class that encapsulates the page iteration state) 
+      pageParseSettings = load_config_settings( pageConfigFile );
 
       console.log( "========================================" );
       console.log( "Process:", argv );
@@ -636,7 +725,7 @@ async function fetch_and_extract( initial_target, depth )
 
       try {
         fileProps = statSync( targetFile, { throwIfNoEntry: true } );
-        console.log( "Target '%s' props:", targetFile, fileProps );
+        console.log( "Target '%s' props:", targetFile, (process.env['SILENT_PARSE'] === undefined) ? fileProps : '' );
       } catch(e) {
         console.log("Must fetch '%s' from %s", targetFile, target );
         fileProps = null;
@@ -685,7 +774,7 @@ async function fetch_and_extract( initial_target, depth )
           }
         });
 
-        console.log( "Browser status", await browser.status() );
+        if (process.env['SILENT_PARSE'] === undefined) console.log( "Browser status", await browser.status() );
 
         if ( !cookies ) {
           console.log( "Cookie-free fetch of %s", target );
@@ -734,7 +823,7 @@ async function fetch_and_extract( initial_target, depth )
           }
         });
 
-        extractedUrls = extract_urls( markup, target );
+        extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots') );
 
         // Prepend all page asset URLs to the array of DOM-embedded URLs.
         page_assets.forEach( (headers, urlraw, map) => {
@@ -749,11 +838,14 @@ async function fetch_and_extract( initial_target, depth )
 
         write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
         write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
+      }
+      else {
+        console.log( "! Skipping %s", target ); 
       };//}}}
 
       if ( iteration_subjects === undefined ) {
         let data = readFileSync(targetFile);
-        extractedUrls = extract_urls( data, target );
+        extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots') );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
 
@@ -773,14 +865,43 @@ async function fetch_and_extract( initial_target, depth )
               targets.unshift( key );
             }
           }
+          // Sort the URLs
+          targets.sort();
         });
       }
       else {
-        step_targets--;
-        console.log(">>>>>>>>>>>>>>>>>>>>>>> %d", targets.length);
-      }
 
+        let childcount = 0;
+        console.log(">>>>>>>>>>>>> Remaining %d", targets.length);
+        console.log("+ %d children, %d probables", iteration_subjects.paths.size, depth_plus_one.size );
+        iteration_subjects.paths.forEach((value, urlhere, map) => {
+          if ( !depth_plus_one.has( urlhere ) ) {
+            depth_plus_one.set( urlhere, value );
+            childcount++;
+          }
+        });
+        console.log("+ Added %d uniques %d total", childcount, depth_plus_one.size );
+        step_targets--;
+
+        if ( targets.length == 0 ) {
+          recursion_depth++;
+          write_map_to_file( "next-level recursion file", depthPlusOneFile, depth_plus_one, loadedUrl ); 
+          if ( recursive ) { 
+            depth_plus_one.forEach((value, urlhere, map) => {
+              targets.push(urlhere);
+            });
+            depth_plus_one.clear();
+            targets.sort();
+          }
+        }
+      }
+      console.log(">>>>>>>>>>>>>>>>>>>>>>> %d", targets.length);
+
+      visited_pages.clear();
       visited_pages = null;
+
+      page_assets.clear();
+      page_assets = null;
     }
   });
 

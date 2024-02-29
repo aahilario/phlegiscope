@@ -1,0 +1,165 @@
+<html><head>
+<meta http-equiv="X-UA-Compatible" content="IE=7">
+<title>Secure Remote Access</title>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="cache-control" content="must-revalidate">
+<meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+<!-- Windows 8.1 custom tile settings in 'Immersive' mode -->
+
+<meta name="application-name" content="VirtualOffice">
+
+<meta name="msapplication-TileColor" content="#0085C3">
+<meta name="msapplication-square70x70logo" content="/images/logo/VirtualOffice.gif">
+<meta name="msapplication-square150x150logo" content="/images/logo/VirtualOffice.gif">
+<meta name="msapplication-wide310x150logo" content="/images/logo/VirtualOffice.gif">
+<meta name="msapplication-square310x310logo" content="/images/logo/VirtualOffice.gif">
+<!-- End Windows 8.1 custom tile settings in 'Immersive' mode -->
+
+	<meta name="apple-itunes-app" content="app-id=466931806, app-argument=sonicwallmobileconnect://">
+
+<link type="text/css" href="/swl_styles.7.5.1.5-45sv.css" rel="stylesheet">
+<link href="/swl_login.7.5.1.5-45sv.css" type="text/css" rel="stylesheet">
+<link href="/dell_header.7.5.1.5-45sv.css" type="text/css" rel="stylesheet">
+<script src="/js/jquery.7.5.1.5-45sv.js" type="text/javascript" charset="utf-8"></script>
+<script src="/js/jquery.cookie.7.5.1.5-45sv.js" type="text/javascript" charset="utf-8"></script>
+<script src="/js/jquery.form.7.5.1.5-45sv.js" type="text/javascript" charset="utf-8"></script>
+<script src="/js/jquery.validate.7.5.1.5-45sv.js" type="text/javascript" charset="utf-8"></script>
+<script src="/js/mainframe.7.5.1.5-45sv.js"></script>
+<script src="/js/login.7.5.1.5-45sv.js" type="text/javascript" charset="utf-8"></script>
+<script src="/js/epcValidate.7.5.1.5-45sv.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+try {
+	if (window.opener && window != window.opener && window.opener.location.host == window.location.host) {
+		window.opener.top.location.href = location.href;
+		window.close();
+	}
+} catch (err) {
+	// This happens if the opener was not the SSL-VPN; nothing to worry about
+}
+if(window!=top) {
+	top.location.href=location.href;
+}
+</script>
+<script type="text/javascript">
+
+	window.status = window.defaultStatus = "Secure Remote Access";
+
+
+	$(document).ready(function () {
+
+
+
+
+
+
+
+	});
+</script>
+
+	<style type="text/css">
+		#banner_logo { background: url(/images/logo/VirtualOffice.gif) no-repeat left center; }
+	</style>
+
+
+<style>
+#custom-logo {
+	background: url('/images/logo/VirtualOffice.gif') no-repeat left center;
+	width: 146px;
+	height: 67px;
+}
+</style>
+
+</head>
+
+<body>
+
+
+
+	<div id="login_box_top" class="light_login_box_top"> <!-- Provides banner background/border/shadows -->
+
+<div class="header-container">
+  <div class="row-1">
+    <div id="custom-logo" class="logo"></div>
+    <div class="product-logo-txt">Secure Remote Access</div>
+    <div class="sub-nav"></div>
+  </div>
+  <div class="row-2">
+    <div class="sys-left">
+    </div>
+    <div class="sys-right">
+    </div>
+  </div>
+</div>
+
+
+	</div>
+	<div id="login_box_middle_container"> <!-- Provides left/right edges with shadows -->
+		<div id="login_box_middle"> <!-- Provides wavy lines background -->
+			<div id="login_box_custom_content">
+				<h1>Welcome to the Senate SSL VPN Portal</h1>
+<p> This portal provides easy and secure remote access
+to the local area network from anywhere on the Internet.</p>
+<p>This is a restricted system. Do not attempt to login unless you are an authorized user.<br> Any unauthorized access and use will be monitored and can result in criminal prosecution under applicable law.</p>
+			</div>
+
+			<div id="login_box_fields">
+				<noscript><font color=red>Please enable JavaScript on your browser before proceeding.</font></noscript>
+				<div id="invalid">
+					<div id="invalid_text"></div>
+				</div>
+				<div id="login_table">
+					<div id="userPassFormContainer">
+						<form name="Login" action="/cgi-bin/userLogin" method="post">
+							<label for="username">Username:</label>
+							<input type="text" name="username" id="username" class="required" autocomplete="off"><br>
+							
+							<label for="password">Password:</label>
+							<input type="password" name="password" id="password" class="required" autocomplete="off"><br>
+							
+							<label for="domain">Domain:</label>
+							<select name="domain" id="domain">
+								<option value="LocalDomain">LocalDomain</option>
+							</select><br>
+							
+							<div class="buttons">
+								<input type="submit" value="Login" class="button" autocomplete="off">
+							</div>
+
+
+							<div class="processing">
+								<img src="/images/loading_spinner.gif" alt="Processing..."> Processing...
+							</div>
+							<br>
+							<input type="hidden" name="state" value="login" autocomplete="off">
+							<input type="hidden" name="login" value="true" autocomplete="off">
+							
+							<input type="hidden" name="verifyCert" value="0" autocomplete="off">
+							<input type="hidden" name="portalname" value="VirtualOffice" autocomplete="off">
+						<input type="hidden" name="ajax" value="true"></form>
+					</div>
+					<div id="otpContainer">
+					</div>
+					<div id="rsaContainer">
+					</div>
+					<div id="changePwContainer">
+					</div>
+					<div id="radiusChallengeContainer">
+					</div>
+					<div id="epcValidateContainer">
+
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+	<div id="login_box_bottom"></div>
+
+
+
+
+
+
+</body></html>

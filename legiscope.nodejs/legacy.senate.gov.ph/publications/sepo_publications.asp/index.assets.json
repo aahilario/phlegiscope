@@ -1,0 +1,1767 @@
+{
+  "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
+    "status": 200,
+    "req": {
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "cache-control": "private",
+      "cf-cache-status": "DYNAMIC",
+      "cf-ray": "85cd9a7c4f0610a8-HKG",
+      "content-encoding": "gzip",
+      "content-type": "text/html",
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "microsoftofficewebserver": "5.0_Pub",
+      "server": "cloudflare",
+      "vary": "Accept-Encoding",
+      "x-powered-by": "ASP.NET"
+    }
+  },
+  "https://legacy.senate.gov.ph/cdn-cgi/apps/head/0Rm8od53jTImAgr2lmH9Zowxsn0.js": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:46:05 GMT",
+      "content-encoding": "gzip",
+      "x-amz-version-id": "OfYDahjSndLspEDhSKR9LbhSsAKPnTO9",
+      "cf-cache-status": "HIT",
+      "x-amz-request-id": "8M2CCKZKR1ATBJC4",
+      "age": "2481150",
+      "content-length": "1342",
+      "x-amz-id-2": "LTNusqv7Jg4xLsKXZm3puv/ZJA7KWCcf3NJtrwdtZnYIvCeJX0XGWLXT1WK8uKbQxOQ6kRWBRP0=",
+      "last-modified": "Sat, 16 Jul 2022 10:09:20 GMT",
+      "server": "cloudflare",
+      "etag": "\"7bd1d8ef35c1b133c1438f573a809cf4\"",
+      "vary": "Accept-Encoding",
+      "content-type": "application/javascript; charset=utf-8",
+      "cache-control": "public, max-age=31536000",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd932bee9510a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/scripts_web/div.js": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "W/\"cbba613465d71:2a1\"",
+      "If-Modified-Since": "Sat, 19 Jun 2021 12:10:21 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Sat, 19 Jun 2021 12:10:21 GMT",
+      "cf-bgj": "minify",
+      "server": "cloudflare",
+      "age": "5741",
+      "etag": "\"cbba613465d71:2a1\"",
+      "cf-polished": "origSize=2172",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "x-powered-by": "ASP.NET",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a7eb97a10a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/scripts_web/xhtml.css": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "W/\"ef2fe13465d71:2a1\"",
+      "If-Modified-Since": "Sat, 19 Jun 2021 12:10:22 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Sat, 19 Jun 2021 12:10:22 GMT",
+      "server": "cloudflare",
+      "age": "2379",
+      "etag": "\"ef2fe13465d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a7ec98310a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/scripts_web/xhtml_body.css": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "W/\"6854114465d71:2a1\"",
+      "If-Modified-Since": "Sat, 19 Jun 2021 12:10:22 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Sat, 19 Jun 2021 12:10:22 GMT",
+      "server": "cloudflare",
+      "age": "5195",
+      "etag": "\"6854114465d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a7ec98810a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/scripts_web/expcollapse.js": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "W/\"c07fab13465d71:2a1\"",
+      "If-Modified-Since": "Sat, 19 Jun 2021 12:10:21 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Sat, 19 Jun 2021 12:10:21 GMT",
+      "cf-bgj": "minify",
+      "server": "cloudflare",
+      "age": "2605",
+      "etag": "\"c07fab13465d71:2a1\"",
+      "cf-polished": "origSize=1117",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "x-powered-by": "ASP.NET",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a7ec98a10a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/website_banner19th.jpg": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "\"88c9f031b79fd81:2a1\"",
+      "If-Modified-Since": "Sun, 24 Jul 2022 23:43:37 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Sun, 24 Jul 2022 23:43:37 GMT",
+      "cf-bgj": "h2pri",
+      "server": "cloudflare",
+      "age": "6331",
+      "etag": "\"88c9f031b79fd81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a7ec98d10a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/pdf1.gif": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "\"5acfe3e54b2c71:2a1\"",
+      "If-Modified-Since": "Tue, 19 Jun 2007 09:27:30 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:30 GMT",
+      "server": "cloudflare",
+      "age": "6620",
+      "etag": "\"5acfe3e54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a7f3a0810a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/BN23_02_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Thu, 09 Nov 2023 06:48:34 GMT",
+      "server": "cloudflare",
+      "age": "4941",
+      "etag": "\"189aafc2d812da1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9710a8-HKG",
+      "content-length": "10839"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/BN23_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 14 Sep 2023 00:25:12 GMT",
+      "server": "cloudflare",
+      "etag": "\"16baf2eca1e6d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a80cb9e10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/BN22_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 12 Sep 2022 10:15:01 GMT",
+      "server": "cloudflare",
+      "etag": "\"5093b18490c6d81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a817c6e10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/bn21-01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 04 Oct 2021 01:49:33 GMT",
+      "server": "cloudflare",
+      "etag": "\"c0ff5414c2b8d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9810a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/bn1901_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 21 Jan 2020 02:37:30 GMT",
+      "server": "cloudflare",
+      "etag": "\"5c2a46ba3d0d51:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9910a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/BN_1017_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 10 Oct 2017 12:04:17 GMT",
+      "server": "cloudflare",
+      "etag": "\"72269ce5bf41d31:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9a10a8-HKG",
+      "content-length": "12359"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/BN_2017_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 21 Sep 2016 00:17:03 GMT",
+      "server": "cloudflare",
+      "etag": "\"5218a07a9d13d21:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9b10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/bn2012-01.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Thu, 16 Aug 2012 03:00:29 GMT",
+      "server": "cloudflare",
+      "age": "1181",
+      "etag": "\"7d7cdf4a5b7bcd1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9c10a8-HKG",
+      "content-length": "14497"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/PM_1015_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 22 Dec 2015 10:28:15 GMT",
+      "server": "cloudflare",
+      "etag": "\"bc76b677a33cd11:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9d10a8-HKG",
+      "content-length": "9148"
+    }
+  },
+  "https://legacy.senate.gov.ph/scripts_web/print.css": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "W/\"146ad613465d71:2a1\"",
+      "If-Modified-Since": "Sat, 19 Jun 2021 12:10:21 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Sat, 19 Jun 2021 12:10:21 GMT",
+      "server": "cloudflare",
+      "age": "4748",
+      "etag": "\"146ad613465d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a827dd610a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2023_09_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:05 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 26 Sep 2023 06:22:08 GMT",
+      "server": "cloudflare",
+      "etag": "\"ec88c0c641f0d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bc9f10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2023_05_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 30 May 2023 11:16:30 GMT",
+      "server": "cloudflare",
+      "etag": "\"1ec03c2fe892d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bca010a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2023_05a_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 15 Jun 2023 01:27:49 GMT",
+      "server": "cloudflare",
+      "etag": "\"6cb99e98289fd91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bca510a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2022_12_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:07 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 13 Mar 2023 08:41:54 GMT",
+      "server": "cloudflare",
+      "etag": "\"94aa27aa8755d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a81bca710a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2022_11_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 07 Dec 2022 01:29:23 GMT",
+      "server": "cloudflare",
+      "etag": "\"ce8d5b56db9d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0010a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2021_06_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 13 Jul 2021 05:41:36 GMT",
+      "server": "cloudflare",
+      "etag": "\"b6a3ddbea977d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0210a8-HKG",
+      "content-length": "8343"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2021_12_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 17 Jan 2022 03:03:25 GMT",
+      "server": "cloudflare",
+      "etag": "\"8e231dcb4ebd81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0310a8-HKG",
+      "content-length": "10251"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2021_05_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 28 Jun 2021 04:14:20 GMT",
+      "server": "cloudflare",
+      "etag": "\"a05b8e11d46bd71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0510a8-HKG",
+      "content-length": "7577"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/PB2018-02_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:09 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 30 Aug 2018 08:17:11 GMT",
+      "server": "cloudflare",
+      "etag": "\"e2aee0d93940d41:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0710a8-HKG",
+      "content-length": "10177"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/PB_18-06_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:09 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 24 Jul 2018 08:57:23 GMT",
+      "server": "cloudflare",
+      "etag": "\"4a764b562c23d41:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0810a8-HKG",
+      "content-length": "20301"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb_1702_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 20 Dec 2017 03:01:59 GMT",
+      "server": "cloudflare",
+      "etag": "\"7e4752e73e79d31:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0910a8-HKG",
+      "content-length": "11940"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/pb2017-06_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "MISS",
+      "last-modified": "Mon, 05 Jun 2017 02:50:41 GMT",
+      "server": "cloudflare",
+      "etag": "\"24f8e284a6ddd21:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0a10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/PB_1501_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 19 Jan 2016 03:07:56 GMT",
+      "server": "cloudflare",
+      "etag": "\"6a9540986652d11:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0b10a8-HKG",
+      "content-length": "12048"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/PB_1401_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 05 Jan 2015 02:48:58 GMT",
+      "server": "cloudflare",
+      "etag": "\"128695279228d01:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0c10a8-HKG",
+      "content-length": "13018"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/pb2013-12.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Sun, 05 Jan 2014 23:39:21 GMT",
+      "server": "cloudflare",
+      "etag": "\"9078e25b6facf1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d0d10a8-HKG",
+      "content-length": "12080"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/pb2013-01.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 21 Jan 2013 00:36:48 GMT",
+      "server": "cloudflare",
+      "etag": "\"1e95e7656ff7cd1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1010a8-HKG",
+      "content-length": "12261"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/ER_2022_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 05 Apr 2022 05:05:43 GMT",
+      "server": "cloudflare",
+      "etag": "\"67c88cdaa48d81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1110a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/er2021_02_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Fri, 17 Sep 2021 02:17:46 GMT",
+      "server": "cloudflare",
+      "etag": "\"1c8f2c346aabd71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1210a8-HKG",
+      "content-length": "7560"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/er2021_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 03 Mar 2021 09:41:19 GMT",
+      "server": "cloudflare",
+      "etag": "\"2e96165d1110d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1310a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/ER_2020_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 14 Sep 2020 01:20:30 GMT",
+      "server": "cloudflare",
+      "etag": "\"72b2a73c358ad61:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1410a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/ER_0118_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 20 Feb 2018 03:26:55 GMT",
+      "server": "cloudflare",
+      "etag": "\"c0f455a8faa9d31:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1510a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/ER_1509_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 26 Jan 2016 06:42:47 GMT",
+      "server": "cloudflare",
+      "etag": "\"609282c4458d11:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1610a8-HKG",
+      "content-length": "12576"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/ER_1503_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 26 Jan 2016 06:02:11 GMT",
+      "server": "cloudflare",
+      "etag": "\"4e10419ff57d11:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1710a8-HKG",
+      "content-length": "11018"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/ER_1402_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 04 Mar 2015 06:20:24 GMT",
+      "server": "cloudflare",
+      "etag": "\"92a8ad4c4356d01:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1810a8-HKG",
+      "content-length": "11409"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/er2014-03_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 25 Mar 2014 01:53:02 GMT",
+      "server": "cloudflare",
+      "etag": "\"aa6f1f5cc47cf1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1910a8-HKG",
+      "content-length": "11069"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/er2013-12.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 17 Dec 2013 23:22:08 GMT",
+      "server": "cloudflare",
+      "etag": "\"c8207ece7efbce1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1b10a8-HKG",
+      "content-length": "12376"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/er2013-01.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 12 Feb 2013 23:13:09 GMT",
+      "server": "cloudflare",
+      "etag": "\"ee1e185769ce1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d1d10a8-HKG",
+      "content-length": "12997"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/feature012.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 29 Jan 2008 09:53:40 GMT",
+      "server": "cloudflare",
+      "etag": "\"d84035d35c62c81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2010a8-HKG",
+      "content-length": "11758"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/pi2006-02.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:07 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 14 Aug 2007 10:19:41 GMT",
+      "server": "cloudflare",
+      "etag": "\"7e3354a05cdec71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2110a8-HKG",
+      "content-length": "10627"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag2023_09_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 14 Sep 2023 00:34:14 GMT",
+      "server": "cloudflare",
+      "etag": "\"087ca2fa3e6d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2310a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag2023_08_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 30 Aug 2023 01:26:51 GMT",
+      "server": "cloudflare",
+      "etag": "\"744fa1de1dad91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2510a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag2023-02_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 13 Mar 2023 08:59:35 GMT",
+      "server": "cloudflare",
+      "etag": "\"64488228a55d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2610a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag23_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 26 Jan 2023 02:30:31 GMT",
+      "server": "cloudflare",
+      "etag": "\"8e243292e31d91:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2910a8-HKG",
+      "content-length": "9559"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag22_03_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 27 Jun 2022 07:41:05 GMT",
+      "server": "cloudflare",
+      "etag": "\"606f2c42f989d81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2a10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag22_02_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Mon, 21 Mar 2022 06:01:43 GMT",
+      "server": "cloudflare",
+      "etag": "\"3012324e93cd81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2d10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag2022_01_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 22 Feb 2022 09:00:23 GMT",
+      "server": "cloudflare",
+      "etag": "\"c86790a0ca27d81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2e10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag2021_09_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:07 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 20 Oct 2021 01:05:24 GMT",
+      "server": "cloudflare",
+      "etag": "\"7612c88f4ec5d71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a821d2f10a8-HKG",
+      "content-length": "14996"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/aag2021_04_s.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Wed, 19 May 2021 02:59:25 GMT",
+      "server": "cloudflare",
+      "etag": "\"fe3e8f95a4cd71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a827dc910a8-HKG",
+      "content-length": "12938"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/SEPO/images/leg_agenda19th.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 20 Sep 2022 01:03:55 GMT",
+      "server": "cloudflare",
+      "etag": "\"feae4ddb8cccd81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a827dca10a8-HKG",
+      "content-length": "26109"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/paving.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 08 Mar 2011 00:45:35 GMT",
+      "server": "cloudflare",
+      "etag": "\"4eacae222addcb1:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a827dcb10a8-HKG",
+      "content-length": "4887"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/sustaining.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Thu, 21 Feb 2008 00:02:16 GMT",
+      "server": "cloudflare",
+      "etag": "\"7e7fa741d74c81:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a827dcd10a8-HKG",
+      "content-length": "6175"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/ag2007-02.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 14 Aug 2007 10:19:41 GMT",
+      "server": "cloudflare",
+      "etag": "\"24d151a05cdec71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a827dce10a8-HKG",
+      "content-length": "11008"
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/images/fivepillars.png": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "REVALIDATED",
+      "last-modified": "Tue, 14 Aug 2007 10:19:41 GMT",
+      "server": "cloudflare",
+      "etag": "\"70c4da05cdec71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9a827dd110a8-HKG",
+      "content-length": "8796"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/get_adobe_reader3.gif": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "\"e2ba49d54b2c71:2a1\"",
+      "If-Modified-Since": "Tue, 19 Jun 2007 09:27:27 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:27 GMT",
+      "server": "cloudflare",
+      "age": "6222",
+      "etag": "\"e2ba49d54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a827dd210a8-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/feed10.png": {
+    "status": 304,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "If-None-Match": "\"2233c7e54b2c71:2a1\"",
+      "If-Modified-Since": "Tue, 19 Jun 2007 09:27:29 GMT",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:06 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT",
+      "server": "cloudflare",
+      "age": "4748",
+      "etag": "\"2233c7e54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "cache-control": "max-age=1800",
+      "cf-ray": "85cd9a827dd410a8-HKG"
+    }
+  },
+  "https://static.cloudflareinsights.com/beacon.min.js/v84a3a4012de94ce1a686ba8c167c359c1696973893317": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/",
+      "Origin": "https://legacy.senate.gov.ph",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:46:06 GMT",
+      "content-encoding": "gzip",
+      "last-modified": "Tue, 10 Oct 2023 21:38:13 GMT",
+      "server": "cloudflare",
+      "etag": "W/\"2023.10.0\"",
+      "vary": "Accept-Encoding",
+      "content-type": "text/javascript;charset=UTF-8",
+      "access-control-allow-origin": "*",
+      "cache-control": "public, max-age=86400",
+      "cross-origin-resource-policy": "cross-origin",
+      "cf-ray": "85cd93314f550976-HKG"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/nav_bg.png": {
+    "status": 200,
+    "req": {
+      "Referer": ""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:46:06 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT",
+      "server": "cloudflare",
+      "age": "1298",
+      "etag": "\"96ac7fe54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd932ffab310a8-HKG",
+      "content-length": "2884"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/nav_fade.gif": {
+    "status": 200,
+    "req": {
+      "Referer": ""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:48:33 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:26 GMT",
+      "server": "cloudflare",
+      "age": "4855",
+      "etag": "\"c435e3c54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/gif",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd96ca7df310a8-HKG",
+      "content-length": "535"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/nav_gradient.png": {
+    "status": 200,
+    "req": {
+      "Referer": ""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:46:06 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT",
+      "server": "cloudflare",
+      "age": "1025",
+      "etag": "\"50e95be54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd932ffab610a8-HKG",
+      "content-length": "2889"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/expand.gif": {
+    "status": 200,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:49:20 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT",
+      "server": "cloudflare",
+      "age": "1284",
+      "etag": "\"42c254e54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/gif",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd97ed5bdd10a8-HKG",
+      "content-length": "72"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/bullet000.gif": {
+    "status": 200,
+    "req": {
+      "Referer": ""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:49:44 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT",
+      "server": "cloudflare",
+      "age": "4010",
+      "etag": "\"9c2457e54b2c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/gif",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd9881cbde10a8-HKG",
+      "content-length": "64"
+    }
+  },
+  "https://legacy.senate.gov.ph/images/header1.png": {
+    "status": 200,
+    "req": {
+      "Referer": ""
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:49:53 GMT",
+      "cf-cache-status": "HIT",
+      "last-modified": "Mon, 25 Jun 2007 01:52:43 GMT",
+      "server": "cloudflare",
+      "age": "2395",
+      "etag": "\"f6d71a85cbb6c71:2a1\"",
+      "x-powered-by": "ASP.NET",
+      "vary": "Accept-Encoding",
+      "microsoftofficewebserver": "5.0_Pub",
+      "content-type": "image/png",
+      "cache-control": "max-age=1800",
+      "accept-ranges": "bytes",
+      "cf-ray": "85cd98bf2cc610a8-HKG",
+      "content-length": "2863"
+    }
+  },
+  "https://legacy.senate.gov.ph/cdn-cgi/rum?": {
+    "status": 204,
+    "req": {
+      "sec-ch-ua": "\"Chromium\";v=\"121\", \"Not A(Brand\";v=\"99\"",
+      "sec-ch-ua-platform": "\"Linux\"",
+      "Referer": "https://legacy.senate.gov.ph/publications/sepo_publications.asp",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "content-type": "application/json"
+    },
+    "res": {
+      "date": "Thu, 29 Feb 2024 02:51:09 GMT",
+      "x-content-type-options": "nosniff",
+      "server": "cloudflare",
+      "vary": "Origin",
+      "access-control-max-age": "86400",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-origin": "https://legacy.senate.gov.ph",
+      "x-frame-options": "DENY",
+      "access-control-allow-credentials": "true",
+      "cf-ray": "85cd9a97cb8310a8-HKG"
+    }
+  }
+}

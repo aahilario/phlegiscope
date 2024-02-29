@@ -1,0 +1,22 @@
+[
+  {
+    "domain": "vpn.senate.gov.ph",
+    "expiry": 1709779691,
+    "httpOnly": false,
+    "name": "SessURL",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "https%3A%2F%2Fvpn.senate.gov.ph%2Fcgi-bin%2Fwelcome"
+  },
+  {
+    "domain": ".senate.gov.ph",
+    "expiry": 1740710767,
+    "httpOnly": true,
+    "name": "cf_clearance",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "xjNyMjBvt4gn48JfnWjBcUK1HC9rwkLRYoRwuxcLYOU-1709174767-1.0-AUGFsAMIU8qO4iMf7s3GDcdLsLHdLRJRdipZPEJb0wMYRTQz4PNyo7Uo5+oGhAC36bt1eKlk8uNqTln/WMzVA0k="
+  }
+]

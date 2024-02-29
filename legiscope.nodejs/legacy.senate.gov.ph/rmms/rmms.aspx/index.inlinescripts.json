@@ -1,0 +1,4 @@
+[
+  "\ntry {\n\tif (window.opener && window != window.opener && window.opener.location.host == window.location.host) {\n\t\twindow.opener.top.location.href = location.href;\n\t\twindow.close();\n\t}\n} catch (err) {\n\t// This happens if the opener was not the SSL-VPN; nothing to worry about\n}\nif(window!=top) {\n\ttop.location.href=location.href;\n}\n",
+  "\n\n\twindow.status = window.defaultStatus = \"Secure Remote Access\";\n\n\n\t$(document).ready(function () {\n\n\n\n\n\n\n\n\t});\n"
+]

@@ -576,6 +576,7 @@ async function extract_hosts_from_urlarray( target_url, result )
   let mapsorter = new Array;
   // Sort map: Copy keys to array, and empty map into a new one.
   unique_host_pathmap.forEach((value, key, map) => { mapsorter.push(key); });
+  mapsorter.sort();
   mapsorter.forEach((url) => {
     unique_host_pathmap_sorted.set( url, unique_host_pathmap.get(url) );
     unique_host_pathmap.delete(url);

@@ -175,10 +175,10 @@ function stashUrlDomain( u )
 }//}}}
 
 function parse_err_handler( e )
-{
+{//{{{
   console.log(e);
   return true;
-}
+}//}}}
 
 function detag( index, element, depth = 0, elementParent = null, indexlimit = 0, tagstack )
 {//{{{
@@ -364,7 +364,6 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       }
       //,headinfo_raw: head_info
     });
-      console.log( "  %s", unique_entry );
   }
   else {
     let prior_entry = unique_host_path.get( unique_entry );
@@ -472,7 +471,7 @@ async function extract_hosts_from_urlarray( target_url, result )
     if ( /^javascript:.*/.test(g) )
       excluded = true;
 
-    if ( /.*\.(pdf|sh|css|java|jpeg|jpg|gif|ico|png|tiff|tif|js)$/gi.test(u.pathname) )
+    if ( /.*\.(sh|css|java|jpeg|jpg|gif|ico|png|tiff|tif|js)$/gi.test(u.pathname) )
       excluded = true;
 
     if ( excluded ) {

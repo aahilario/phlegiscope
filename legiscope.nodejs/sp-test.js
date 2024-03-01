@@ -8,6 +8,7 @@
 //  console.log("Fooie");
 //}
 //
+//const v8 = require("v8");
 const { browser, $, $$, expect } = require("@wdio/globals");
 const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync } = require('node:fs');
 const assert = require("assert");
@@ -120,6 +121,15 @@ function normalizeUrl( u )
         let tailchecker = new RegExp('.*'.concat(fromPage.pathname,'$')); // Match against tail 
         if ( tailchecker.test( parsedUrl.pathname ) ) {
           fromPage.pathname = parsedUrl.pathname;
+        }
+        else {
+          let parsed_sans_tail = (parsedUrl.pathname || '').split('/');
+          if ( parsed_sans_tail.length > 1 ) {
+            parsed_sans_tail.pop();
+            parsed_sans_tail.push(fromPage.pathname);
+            fromPage.pathname = parsed_sans_tail.join('/');
+            if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("M> Possible tail replacement");
+          }
         }
       }
     }
@@ -257,6 +267,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0,
     // Newline between containing chunks
     if ( (process.env['SILENT_PARSE'] === undefined) ) if ( 0 == depth ) console.log( "" );
   }
+  $("*").remove();
   return true;
 };//}}}
 
@@ -279,6 +290,8 @@ function extract_urls( data, target, parse_roots )
         }
       });
   });
+  
+  $("*").remove();
 
   let pageUrlsArray = new Array;
 
@@ -338,7 +351,7 @@ function mapified_cookies( ca )
 
 function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info )
 {//{{{
-  let content_type = head_info['content-type'];
+  let content_type = head_info['content-type'] || null;
   // Retain unique paths and hosts
   if ( unique_host_path.get( unique_entry ) === undefined ) {
     unique_host_path.set( unique_entry, {
@@ -390,7 +403,7 @@ function write_map_to_file( description, map_file, map_obj, loadedUrl )
 async function extract_hosts_from_urlarray( target_url, result )
 {//{{{
   const head_standoff = 50;
-  let unique_host_path = new Map;
+  let unique_host_pathmap = new Map;
   let unique_hosts = new Map;
 
   // For writing lists of permitted hosts, hosts referred on page, and link HEAD info
@@ -459,7 +472,7 @@ async function extract_hosts_from_urlarray( target_url, result )
     if ( /^javascript:.*/.test(g) )
       excluded = true;
 
-    if ( /.*\.(pdf|sh|css|java|jpeg|jpg|png|tiff|tif|js)$/gi.test(u.pathname) )
+    if ( /.*\.(pdf|sh|css|java|jpeg|jpg|gif|ico|png|tiff|tif|js)$/gi.test(u.pathname) )
       excluded = true;
 
     if ( excluded ) {
@@ -468,13 +481,17 @@ async function extract_hosts_from_urlarray( target_url, result )
     else if ( !fileProps || unique_hosts.has( u.host ) ) {
       // Determine asset mimetype configured on server
       let head_info;
+      if ( !(process.env['SKIP_HEAD_FETCH'] === undefined) ) {
+        keep_unique_host_path( u, result, unique_host_pathmap, unique_entry, {} );
+      }
+      else 
       if ( u.protocol == 'https:' ) {
         try {
           await https.request( g, head_options, (res) => {
             // console.log("Intrinsic A", g, res.headers);
             if ( head_info === undefined ) {
               head_info = res.headers;
-              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+              keep_unique_host_path( u, result, unique_host_pathmap, unique_entry, head_info );
             }
             res.on('data', (d) => {
               if ( (process.env['SILENT_PARSE'] === undefined) ) console.log('Data from', g, d);
@@ -484,7 +501,7 @@ async function extract_hosts_from_urlarray( target_url, result )
           }).on('response', (m) => {
             if ( head_info === undefined ) {
               head_info = m.headers;
-              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+              keep_unique_host_path( u, result, unique_host_pathmap, unique_entry, head_info );
             }
           }).on('data', (d) => {
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log('Data B from', g, d);
@@ -500,7 +517,7 @@ async function extract_hosts_from_urlarray( target_url, result )
             // console.log("Intrinsic B", g, res.headers);
             if ( head_info === undefined ) {
               head_info = res.headers;
-              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+              keep_unique_host_path( u, result, unique_host_pathmap, unique_entry, head_info );
             }
             res.on('data', (d) => {
               if ( (process.env['SILENT_PARSE'] === undefined) ) console.log('Data from', g, d);
@@ -510,7 +527,7 @@ async function extract_hosts_from_urlarray( target_url, result )
           }).on('response', (m) => {
             if ( head_info === undefined ) {
               head_info = m.headers;
-              keep_unique_host_path( u, result, unique_host_path, unique_entry, head_info );
+              keep_unique_host_path( u, result, unique_host_pathmap, unique_entry, head_info );
             }
           }).on('data', (d) => {
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log('Data B from', g, d);
@@ -538,7 +555,7 @@ async function extract_hosts_from_urlarray( target_url, result )
   } //}}}
   // while ( result.length > 0 )
 
-  console.log( "Obtained %d unique pathnames (sans URL query part)", unique_host_path.size, (process.env['SILENT_PARSE'] === undefined) ? unique_host_path : '' );
+  console.log( "Obtained %d unique whole URLs", unique_host_pathmap.size, (process.env['SILENT_PARSE'] === undefined) ? unique_host_pathmap : '' );
   console.log( "Obtained %d unique hostnames", unique_hosts.size, (process.env['SILENT_PARSE'] === undefined) ? unique_hosts : '' );
 
   console.log( "Target path: %s", targetDir );
@@ -549,12 +566,12 @@ async function extract_hosts_from_urlarray( target_url, result )
   }
   write_map_to_file( "reachable hosts list", current_hosts, unique_hosts, target_url ); 
 
-  // Write linkinfo.json containing unique_host_path
-  write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_path, target_url );
+  // Write linkinfo.json containing unique_host_pathmap
+  write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_pathmap, target_url );
 
   return new Promise((resolve) => {
-    console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_path.size, unique_hosts.size );
-    resolve({ paths: unique_host_path, hosts: unique_hosts });
+    console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_pathmap.size, unique_hosts.size );
+    resolve({ paths: unique_host_pathmap, hosts: unique_hosts });
   });
 
 }//}}}
@@ -858,8 +875,8 @@ async function fetch_and_extract( initial_target, depth )
         iteration_subjects.paths.forEach((value, urlhere, map) => {
           // URLFIX
           let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
-          let content_type = value['headinfo']['content-type'];
-          if ( (!visited_pages.has( key ) || recursive || resweep) && /^text\/html.*/.test( content_type ) ) {
+          let content_type = value['headinfo']['content-type'] || 'text/html';
+          if ( (!visited_pages.has( key ) || resweep) && /^text\/html.*/.test( content_type ) ) {
             console.log( "%s page scan to %s", recursive ? "Extending" : "Deferring", key );
             if ( recursive ) {
               targets.unshift( key );
@@ -915,6 +932,9 @@ async function fetch_and_extract( initial_target, depth )
   });
 }//}}}
 
+//v8.setFlagsFromString('--expose-gc');
+//v8.setFlagsFromString('--trace-gc');
+//v8.setFlagsFromString('--max-old-space-size=16384');
 let pagelinks = await fetch_and_extract( targetUrl, 1 );
 
 });

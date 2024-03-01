@@ -2,6 +2,7 @@
 
 rm -f output.log
 export SILENT_PARSE=1 
+#export NOISY_PARSE=1
 export RECURSIVE=1 
 #export REFRESH=1
 export TARGETURL="$1" 

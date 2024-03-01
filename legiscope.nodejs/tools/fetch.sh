@@ -7,6 +7,7 @@ export RECURSIVE=1
 #export REFRESH=1
 #export SKIP_HEAD_FETCH=1
 export TARGETURL="$1" 
+export SHOW_HEADINFO=1
 # time npx --expose-gc wdio run ./wdio.conf.js 2>&1 | tee -a output.log
 time node \
   --expose-gc \
@@ -14,5 +15,5 @@ time node \
   --max-old-space-size=8192 \
   --max-heap-size=8192 \
   --huge-max-old-generation-size \
-  ./node_modules/.bin/wdio run ./wdio.conf.js | tee -a output.log | less
+  ./node_modules/.bin/wdio run ./wdio.conf.js | tee -a output.log
 cat lastrun.json | jq .  | tee -a output.log

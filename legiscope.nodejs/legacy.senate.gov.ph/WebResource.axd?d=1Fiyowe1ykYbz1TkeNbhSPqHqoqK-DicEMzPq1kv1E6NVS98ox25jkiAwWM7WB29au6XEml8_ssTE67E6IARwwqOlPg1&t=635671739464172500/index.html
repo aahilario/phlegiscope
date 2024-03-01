@@ -1,0 +1,93 @@
+<html><head><meta name="color-scheme" content="light dark"></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">function WebForm_FindFirstFocusableChild(control) {
+    if (!control || !(control.tagName)) {
+        return null;
+    }
+    var tagName = control.tagName.toLowerCase();
+    if (tagName == "undefined") {
+        return null;
+    }
+    var children = control.childNodes;
+    if (children) {
+        for (var i = 0; i &lt; children.length; i++) {
+            try {
+                if (WebForm_CanFocus(children[i])) {
+                    return children[i];
+                }
+                else {
+                    var focused = WebForm_FindFirstFocusableChild(children[i]);
+                    if (WebForm_CanFocus(focused)) {
+                        return focused;
+                    }
+                }
+            } catch (e) {
+            }
+        }
+    }
+    return null;
+}
+function WebForm_AutoFocus(focusId) {
+    var targetControl;
+    if (__nonMSDOMBrowser) {
+        targetControl = document.getElementById(focusId);
+    }
+    else {
+        targetControl = document.all[focusId];
+    }
+    var focused = targetControl;
+    if (targetControl &amp;&amp; (!WebForm_CanFocus(targetControl)) ) {
+        focused = WebForm_FindFirstFocusableChild(targetControl);
+    }
+    if (focused) {
+        try {
+            focused.focus();
+            if (__nonMSDOMBrowser) {
+                focused.scrollIntoView(false);
+            }
+            if (window.__smartNav) {
+                window.__smartNav.ae = focused.id;
+            }
+        }
+        catch (e) {
+        }
+    }
+}
+function WebForm_CanFocus(element) {
+    if (!element || !(element.tagName)) return false;
+    var tagName = element.tagName.toLowerCase();
+    return (!(element.disabled) &amp;&amp;
+            (!(element.type) || element.type.toLowerCase() != "hidden") &amp;&amp;
+            WebForm_IsFocusableTag(tagName) &amp;&amp;
+            WebForm_IsInVisibleContainer(element)
+            );
+}
+function WebForm_IsFocusableTag(tagName) {
+    return (tagName == "input" ||
+            tagName == "textarea" ||
+            tagName == "select" ||
+            tagName == "button" ||
+            tagName == "a");
+}
+function WebForm_IsInVisibleContainer(ctrl) {
+    var current = ctrl;
+    while((typeof(current) != "undefined") &amp;&amp; (current != null)) {
+        if (current.disabled ||
+            ( typeof(current.style) != "undefined" &amp;&amp;
+            ( ( typeof(current.style.display) != "undefined" &amp;&amp;
+                current.style.display == "none") ||
+                ( typeof(current.style.visibility) != "undefined" &amp;&amp;
+                current.style.visibility == "hidden") ) ) ) {
+            return false;
+        }
+        if (typeof(current.parentNode) != "undefined" &amp;&amp;
+                current.parentNode != null &amp;&amp;
+                current.parentNode != current &amp;&amp;
+                current.parentNode.tagName.toLowerCase() != "body") {
+            current = current.parentNode;
+        }
+        else {
+            return true;
+        }
+    }
+    return true;
+}
+</pre></body></html>

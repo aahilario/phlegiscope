@@ -1,14 +1,59 @@
 {
-  "https://legacy.senate.gov.ph/senators/senlist.asp/scripts_web/print.css": {
+  "https://legacy.senate.gov.ph/about/history.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/scripts_web/xhtml.css": {
+  "https://legacy.senate.gov.ph": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/about/legpro.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/schedwk.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=resolution": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -17,7 +62,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp": {
+  "https://legacy.senate.gov.ph/ctte_quick_notes.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -26,34 +71,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/scripts_web/div.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/senators/senlist.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/senators/roll.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/scripts_web/xhtml_body.css": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -62,7 +80,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/about/RULES%20OF%20THE%20SENATE%20MARCH%202023.pdf": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=journal": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -71,259 +89,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/about/legpro.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/committee/duties.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/committee/adhocctte_list19th.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/senators/composition.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/officers.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/senators/sen19th.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/osec.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/committee/schedwk.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/about/history.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/committee/oversight_mem19th.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/notice_ctte.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/ctte_quick_notes.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/about/symbols%20of%20authority.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/mission_vision.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/lis/leg_sys.aspx?congress=19&type=bill": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/admin.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/leg.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/osaa.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/secretariat/extaffairs.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/lis/leg_sys.aspx?congress=19&type=journal": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/lis/leg_sys.aspx?congress=19&type=resolution": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/lbrmo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/committee/ctte_list19th.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/lis/pdf_sys.aspx?congress=19&type=republic_act": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/senators/terms.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/sepo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/statistical.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/19th_congress/Treaties/Treaties%20-%2019th%20Congress022724.pdf": {
+  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -332,7 +98,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#fourth_leg": {
+  "https://legacy.senate.gov.ph/notice_ctte.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -341,61 +107,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/ils_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/lrs_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#eighth_leg": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/lls_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/ells_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/GAD/gad.asp": {
+  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=republic_act": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -404,7 +116,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#Commonwealth": {
+  "https://legacy.senate.gov.ph/publications/ells_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -413,16 +125,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/other_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#fifth_leg": {
+  "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -431,7 +134,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#sixth_leg": {
+  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -440,7 +143,160 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#fourth_congress": {
+  "https://legacy.senate.gov.ph/secretariat/extaffairs.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/lrs_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/lls_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/other_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/stsro_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/rss.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/search.aspx": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": "Thu, 29 Feb 2024 21:42:59 GMT"
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/admin.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/leg.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/mission_vision.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/officers.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/osaa.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/osec.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/composition.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/roll.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/sen19th.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -458,6 +314,24 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/senators/senlist.asp#fifth_leg": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/senlist.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/senators/senlist.asp#first_congress": {
     "hits": 1,
     "headinfo": {
@@ -467,7 +341,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#second_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#Commonwealth": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -476,70 +350,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#seventh_leg": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#third_congress": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/cdn-cgi/apps/head/0Rm8od53jTImAgr2lmH9Zowxsn0.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#ninth_leg": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/publications/stsro_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#fourteenth_congress": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#seventh_congress": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#sixth_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#eighth_congress": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -557,7 +368,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#tenth_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#eighth_leg": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -575,7 +386,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#thirteenth_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#fifteenth_congress": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -584,7 +395,34 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#fifteenth_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#seventh_leg": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/senlist.asp#fourteenth_congress": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/senlist.asp#fourth_congress": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/senators/senlist.asp#fourth_leg": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -602,7 +440,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#sixteenth_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#ninth_leg": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -611,79 +449,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/rafael_palma.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_altavasd.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_clarin.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/manuel_quezon.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/hadji_butu.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/committee/ctte_mem19th.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/isauro_gabaldon.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/joaquin_luna.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#tenth_leg": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#tenth_congress": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -692,408 +458,12 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/alejo_mabanag.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_ma_veloso.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#eighth_congress": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#second_congress": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/html",
       "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/celestino_rodriguez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/isabelo_delos_reyes.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/emiliano_tria_tirona.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/santiago_fonacier.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/francisco_enage.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/luis_morales.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/filemon_sotto.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/camilo_osias.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_hontiveros.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/pedro_guevarra.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_alejandrino.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#twelfth_congress": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/juan_sumulong.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_fuentebella.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_avelino.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/melecio_arranz.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/antonio_belo.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_generoso.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/manuel_camus.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/claro_recto.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/sotero_baluyot.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/potenciano_trenas.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp#top": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/alauya_alonto.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/manuel_briones.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ruperto_montinola.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/nicolas_buendia.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/juan_nolasco.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/pedro_hernaez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/juan_gaerlan.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/isaac_lacson.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/manuel_roxas.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/daniel_maramba.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_ozamis.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/vicente_rama.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/mariano_cuenco.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/tomas_cabili.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/carlos_garcia.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/hermogenes_concepcion.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/quintin_paredes.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/enrique_magalona.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/esteban_de_la_rama.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
       "last-modified": null
     }
   },
@@ -1106,1255 +476,13 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/tomas_confesor.htm": {
+  "https://legacy.senate.gov.ph/senators/senlist.asp#seventh_congress": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/vicente_sotto.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ramon_diokno.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/fernando_lopez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/rafael_martinez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/francisco_delgado.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/eulogio_rodriguez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_locsin.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/salipada_pendatun.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/pablo_angeles_david.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/geronima_pecson.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/justiano_montano.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/cipriano_primicias.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_romero.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/carlos_tan.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/esteban_abada.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/teodoro_sandiko.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/emmanuel_pelaez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/macario_peralta_jr.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/prospero_sanidad.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/gil_puyat.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/lorenzo_sumulong.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/eulogio_balao.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/pacita_madrigal.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ambrosio_padilla.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/decoroso_rosales.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/francisco_soc_%20rodrigo.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/pedro_sabido.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/rogelio_dela_rosa.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/gaudencio_antonino.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/alejandro_almendras.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ferdinand_marcos.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/manuel_manahan.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_diokno.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jose_roy.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/rodolfo_ganzon.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/domocao_alonto.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/arturo_tolentino.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/john_osmena.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/eva_estrada_kalaw.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/sergio_osmena_jr.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/raul_manglapus.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/jovito_salonga.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/dominador_aytona.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ramon_mitra.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ernesto_maceda.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/edgardo_angara.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/agapito_aquino.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/neptali_gonzales.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/sotero_laurel.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/teofisto_guingona_jr.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/helena_benitez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/orlando_mercado.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/wenceslao_lagumbay.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/mamintal_tamano.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/santanina_rasul.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/leticia_shahani.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ernesto_herrera.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/genaro_magsayasay.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/joey_lina.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/pimentel_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/rene_saguisag.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/joseph_estrada.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/juan_liwag.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/ramon_revilla.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/salvador_laurel.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/biazon_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/sotto_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/freddie_webb.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/heherson_alvarez.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/enrile_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/drilon_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/anna_dominique_coseteng.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/marcelo_fernan.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/flavier_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/blas_ople.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/victor_ziga.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/vicente_paterno.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/raul_roco.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/robert_jaworski.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/magsaysay_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/santiago_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/legarda_loren_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/robert_barbers.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/recto_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/arroyo_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/gregorio_honasan.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/sosmena_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/villar_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/noli_de_castro.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/pcayetano_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/lacson_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/gloria_arroyo.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/teresa_aquino_oreta.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/zubiri_juanmiguel_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/pangilinan_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/senpres/pimentel.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/jestrada_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/madrigal_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/former_senators/magnolia_antonino.htm": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/escudero_francisjoseph_bio1.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/lapid_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/angara_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/honasan_gregorio_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/lim_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/revillajr_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/guingona_tg_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/aquino_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/cayetano_alanpeter_resume.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/angara_sonny_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/trillanes_antonio_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/binay_nancy_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/gordon_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/roxas_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/estrada_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/bmarcos_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/osmena_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/ejercito_jv_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/hontiveros_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/delima_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/aquino_bam_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/cayetano_alanpeter_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/poe_grace_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/search.aspx": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/pimentel_koko_resume.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/cdn-cgi/apps/head/0Rm8od53jTImAgr2lmH9Zowxsn0.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1342",
-      "content-type": "application/javascript; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": "Sat, 16 Jul 2022 10:09:20 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/delarosa_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/gatchalian_resume.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/scripts_web/xhtml.css": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/css",
-      "content-encoding": "gzip",
-      "last-modified": "Sat, 19 Jun 2021 12:10:22 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/tolentino_tol_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/scripts_web/xhtml_body.css": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/css",
-      "content-encoding": "gzip",
-      "last-modified": "Sat, 19 Jun 2021 12:10:22 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/images/website_banner19th.jpg": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "52950",
-      "content-type": "image/jpeg",
-      "content-encoding": null,
-      "last-modified": "Sun, 24 Jul 2022 23:43:37 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/[UPDATED]%20The%20Senators%27%20Directory_10.25.2023.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=utf-8",
+      "content-type": "text/html",
       "content-encoding": "gzip",
       "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/sen_bio/villar_cynthia_bio.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/images/backtotop.gif": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "53",
-      "content-type": "image/gif",
-      "content-encoding": null,
-      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/senlist.asp/rss.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": null,
-      "content-encoding": null,
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/scripts_web/div.js": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/x-javascript",
-      "content-encoding": "gzip",
-      "last-modified": "Sat, 19 Jun 2021 12:10:21 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/images/nav_fade.gif": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "535",
-      "content-type": "image/gif",
-      "content-encoding": null,
-      "last-modified": "Tue, 19 Jun 2007 09:27:26 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/images/feed10.png": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "3162",
-      "content-type": "image/png",
-      "content-encoding": null,
-      "last-modified": "Tue, 19 Jun 2007 09:27:29 GMT"
     }
   }
 }

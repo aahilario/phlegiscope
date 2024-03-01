@@ -1,5 +1,4 @@
 [
-  "\n<!--\n  function showDesc(DivName) {\n      var obj = document.getElementById(DivName);\n      if (obj) {\n\t      obj.style.display = \"inline\";\n      }\n  }\n  function hideDesc(DivName) {\n      var obj = document.getElementById(DivName);\n      if (obj) {\n\t      obj.style.display = \"none\";\n      }\n  }\n-->\n",
   "\n//<![CDATA[\nvar theForm = document.forms['frmSearch'];\nif (!theForm) {\n    theForm = document.frmSearch;\n}\nfunction __doPostBack(eventTarget, eventArgument) {\n    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {\n        theForm.__EVENTTARGET.value = eventTarget;\n        theForm.__EVENTARGUMENT.value = eventArgument;\n        theForm.submit();\n    }\n}\n//]]>\n",
   "\n//<![CDATA[\nWebForm_AutoFocus('txtSearch');//]]>\n"
 ]

@@ -1,4 +1,3 @@
 [
-  " \n<!-- \nfunction navConfirm(loc) { \nif (confirm('This link will take you to the Senate YouTube Channel. The Senate of the Philippines is not responsible for the content of the external website.')) { \nwindow.location.href = loc; \n} \nreturn false; // cancel the click event always \n} \n//--> \n",
   "\n\t\tdocument.write('<img name=\"imgslide\" id=\"imgslide\" src=\"'+theimage[0][0]+'\" border=\"0\">')\n\t"
 ]

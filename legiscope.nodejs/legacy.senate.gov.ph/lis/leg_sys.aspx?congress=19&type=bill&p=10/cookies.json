@@ -1,13 +1,12 @@
 [
   {
-    "domain": ".senate.gov.ph",
-    "expiry": 1740769491,
-    "httpOnly": true,
-    "name": "cf_clearance",
+    "domain": ".legacy.senate.gov.ph",
+    "httpOnly": false,
+    "name": "ASPSESSIONIDSATCSCQD",
     "path": "/",
-    "sameSite": "None",
+    "sameSite": "Lax",
     "secure": true,
-    "value": "dPJuaiLVzwBe9Ef79Zf3SccAyLa1KRUNSlMkJhIb_88-1709233491-1.0-ATSQyhT0JDNYuCbkzWTa6mdasdZ9OybbXjGZ9QbfdIyVeu+7pytRJrAfzZMd1SJTT6OE9qHjFh7PCLLFI6wnoJg="
+    "value": "LBLNNNDACAACOEDDBBAMKAMP"
   },
   {
     "domain": ".legacy.senate.gov.ph",
@@ -19,12 +18,22 @@
     "value": "1cpje145awcwhx45htw3j3z0"
   },
   {
-    "domain": ".legacy.senate.gov.ph",
-    "httpOnly": false,
-    "name": "ASPSESSIONIDSATCSCQD",
+    "domain": ".senate.gov.ph",
+    "expiry": 1740769491,
+    "httpOnly": true,
+    "name": "cf_clearance",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "dPJuaiLVzwBe9Ef79Zf3SccAyLa1KRUNSlMkJhIb_88-1709233491-1.0-ATSQyhT0JDNYuCbkzWTa6mdasdZ9OybbXjGZ9QbfdIyVeu+7pytRJrAfzZMd1SJTT6OE9qHjFh7PCLLFI6wnoJg="
+  },
+  {
+    "domain": "legacy.senate.gov.ph",
+    "httpOnly": true,
+    "name": "ASP.NET_SessionId",
     "path": "/",
     "sameSite": "Lax",
-    "secure": true,
-    "value": "LBLNNNDACAACOEDDBBAMKAMP"
+    "secure": false,
+    "value": "sm0wvhio1mp4kgiigicde033"
   }
 ]

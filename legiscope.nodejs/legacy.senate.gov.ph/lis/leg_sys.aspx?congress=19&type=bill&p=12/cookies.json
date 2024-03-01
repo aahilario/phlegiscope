@@ -1,12 +1,12 @@
 [
   {
     "domain": ".legacy.senate.gov.ph",
-    "httpOnly": true,
-    "name": "ASP.NET_SessionId",
+    "httpOnly": false,
+    "name": "ASPSESSIONIDSATCSCQD",
     "path": "/",
     "sameSite": "Lax",
     "secure": true,
-    "value": "ctt5ksrrs4egln55ubg35mam"
+    "value": "LBLNNNDACAACOEDDBBAMKAMP"
   },
   {
     "domain": ".senate.gov.ph",
@@ -20,11 +20,20 @@
   },
   {
     "domain": ".legacy.senate.gov.ph",
-    "httpOnly": false,
-    "name": "ASPSESSIONIDSATCSCQD",
+    "httpOnly": true,
+    "name": "ASP.NET_SessionId",
     "path": "/",
     "sameSite": "Lax",
     "secure": true,
-    "value": "LBLNNNDACAACOEDDBBAMKAMP"
+    "value": "ctt5ksrrs4egln55ubg35mam"
+  },
+  {
+    "domain": "legacy.senate.gov.ph",
+    "httpOnly": true,
+    "name": "ASP.NET_SessionId",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "hpfsyuylwf3ovcyrvrezmn55"
   }
 ]

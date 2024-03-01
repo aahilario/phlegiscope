@@ -1,0 +1,30 @@
+[
+  {
+    "domain": ".senate.gov.ph",
+    "expiry": 1740810064,
+    "httpOnly": true,
+    "name": "cf_clearance",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "gTi7NwJqhotK0m8TAIlHKonPqa_Or_92F4.rIJq.92c-1709274064-1.0-AfFsLhGNyBLINVXUdR+pmO6kS42xaWvsB26WszsD3FDIknNBBCXqHcDiMi3rpG7U9UjFUuMErULCVzefkmow2VM="
+  },
+  {
+    "domain": ".legacy.senate.gov.ph",
+    "httpOnly": true,
+    "name": "ASP.NET_SessionId",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "xhcaloie0sm2j2uwpx1zh045"
+  },
+  {
+    "domain": "legacy.senate.gov.ph",
+    "httpOnly": true,
+    "name": "ASP.NET_SessionId",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "ept4biqhlk01vm55ew5wxx45"
+  }
+]

@@ -859,7 +859,7 @@ async function fetch_and_extract( initial_target, depth )
           // URLFIX
           let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
           let content_type = value['headinfo']['content-type'];
-          if ( (!visited_pages.has( key ) || resweep) && /^text\/html.*/.test( content_type ) ) {
+          if ( (!visited_pages.has( key ) || recursive || resweep) && /^text\/html.*/.test( content_type ) ) {
             console.log( "%s page scan to %s", recursive ? "Extending" : "Deferring", key );
             if ( recursive ) {
               targets.unshift( key );

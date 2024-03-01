@@ -390,7 +390,7 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       headinfo: prior_entry.headinfo
     });
   }
-  if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d:\t%s %s %s",
+  if ( (process.env['SILENT_PARSE'] === undefined) || (process.env['SHOW_HEADINFO'] !== undefined) ) console.log("%d:\t%s %s %s",
     result.length,
     content_type,
     head_info['content-length'],
@@ -572,7 +572,19 @@ async function extract_hosts_from_urlarray( target_url, result )
   } //}}}
   // while ( result.length > 0 )
 
-  console.log( "Obtained %d unique whole URLs", unique_host_pathmap.size, (process.env['SILENT_PARSE'] === undefined) ? unique_host_pathmap : '' );
+  let unique_host_pathmap_sorted = new Map;
+  let mapsorter = new Array;
+  // Sort map: Copy keys to array, and empty map into a new one.
+  unique_host_pathmap.forEach((value, key, map) => { mapsorter.push(key); });
+  mapsorter.forEach((url) => {
+    unique_host_pathmap_sorted.set( url, unique_host_pathmap.get(url) );
+    unique_host_pathmap.delete(url);
+  });
+  unique_host_pathmap.clear();
+  while ( mapsorter.length > 0 ) { mapsorter.shift(); }
+  mapsorter = null;
+
+  console.log( "Obtained %d unique whole URLs", unique_host_pathmap_sorted.size, (process.env['SILENT_PARSE'] === undefined) ? unique_host_pathmap_sorted : '' );
   console.log( "Obtained %d unique hostnames", unique_hosts.size, (process.env['SILENT_PARSE'] === undefined) ? unique_hosts : '' );
 
   console.log( "Target path: %s", targetDir );
@@ -583,12 +595,12 @@ async function extract_hosts_from_urlarray( target_url, result )
   }
   write_map_to_file( "reachable hosts list", current_hosts, unique_hosts, target_url ); 
 
-  // Write linkinfo.json containing unique_host_pathmap
-  write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_pathmap, target_url );
+  // Write linkinfo.json containing unique_host_pathmap_sorted
+  write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_pathmap_sorted, target_url );
 
   return new Promise((resolve) => {
-    console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_pathmap.size, unique_hosts.size );
-    resolve({ paths: unique_host_pathmap, hosts: unique_hosts });
+    console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_pathmap_sorted.size, unique_hosts.size );
+    resolve({ paths: unique_host_pathmap_sorted, hosts: unique_hosts });
   });
 
 }//}}}
@@ -881,7 +893,7 @@ async function fetch_and_extract( initial_target, depth )
         write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
       }
       else {
-        console.log( "! Skipping %s", target ); 
+        console.log( "! Skipping browser fetch of %s", target ); 
       };//}}}
 
       if ( iteration_subjects === undefined ) {

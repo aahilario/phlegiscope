@@ -1,13 +1,4 @@
 {
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/about/history.asp": {
     "hits": 1,
     "headinfo": {
@@ -17,7 +8,16 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/legpro.asp": {
+  "https://legacy.senate.gov.ph": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -44,7 +44,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph": {
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#Historical_Background": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -53,7 +53,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#Historical_Background": {
+  "https://legacy.senate.gov.ph/about/legpro.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -71,7 +71,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#Lion_Rampant_(The_Dexter_Side)": {
+  "https://legacy.senate.gov.ph/ctte_quick_notes.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -81,6 +81,15 @@
     }
   },
   "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#Mace_of_the_Senate": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#Lion_Rampant_(The_Dexter_Side)": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -107,20 +116,11 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#The_Sampaguita_Flower": {
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#The_Motto_and_the_24_Stars": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=utf-8",
       "content-encoding": "gzip",
       "last-modified": null
     }
@@ -134,7 +134,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#The_Motto_and_the_24_Stars": {
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp#The_Sampaguita_Flower": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -152,6 +152,24 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/notice_ctte.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/committee/schedwk.asp": {
     "hits": 1,
     "headinfo": {
@@ -161,20 +179,11 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/ctte_quick_notes.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
+      "content-type": "text/html; charset=utf-8",
       "content-encoding": "gzip",
       "last-modified": null
     }
@@ -188,29 +197,20 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/other_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=republic_act": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
       "content-encoding": "gzip",
       "last-modified": null
     }
@@ -233,13 +233,22 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/notice_ctte.asp": {
+  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/html",
       "content-encoding": "gzip",
       "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/search.aspx": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": "Fri, 01 Mar 2024 00:28:18 GMT"
     }
   },
   "https://legacy.senate.gov.ph/publications/ells_publications.asp": {
@@ -260,15 +269,6 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/search.aspx": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": "Fri, 01 Mar 2024 00:24:15 GMT"
-    }
-  },
   "https://legacy.senate.gov.ph/publications/lls_publications.asp": {
     "hits": 1,
     "headinfo": {
@@ -287,7 +287,16 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
+  "https://legacy.senate.gov.ph/secretariat/leg.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/other_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,

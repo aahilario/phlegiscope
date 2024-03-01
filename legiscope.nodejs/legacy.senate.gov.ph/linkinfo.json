@@ -1,5 +1,5 @@
 {
-  "https://legacy.senate.gov.ph/about/legpro.asp": {
+  "https://legacy.senate.gov.ph": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -17,7 +17,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph": {
+  "https://legacy.senate.gov.ph/about/legpro.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -35,7 +35,16 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -44,7 +53,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
+  "https://legacy.senate.gov.ph/committee/duties.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -80,15 +89,6 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/press_release/2024/0228_zubiri1.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=journal": {
     "hits": 1,
     "headinfo": {
@@ -98,7 +98,16 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
+  "https://legacy.senate.gov.ph/press_release/2024/0228_zubiri2.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -125,15 +134,6 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=resolution": {
     "hits": 1,
     "headinfo": {
@@ -152,7 +152,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/press_release/2024/0228_zubiri2.asp": {
+  "https://legacy.senate.gov.ph/press_release/2024/0228_zubiri1.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -188,34 +188,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/rss/rss_news.aspx": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/rss+xml; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": "Fri, 01 Mar 2024 00:23:39 GMT"
-    }
-  },
   "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/news.asp?year=2024": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -233,7 +206,43 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/rss/rss_photos.aspx": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/rss+xml; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": "Fri, 01 Mar 2024 00:28:11 GMT"
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/admin.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/publications/lrs_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/news.asp?year=2024": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -278,16 +287,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/rss/rss_photos.aspx": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "application/rss+xml; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": "Fri, 01 Mar 2024 00:24:08 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/secretariat/admin.asp": {
+  "https://legacy.senate.gov.ph/secretariat/osaa.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -302,7 +302,16 @@
       "content-length": null,
       "content-type": "text/html; charset=utf-8",
       "content-encoding": "gzip",
-      "last-modified": "Fri, 01 Mar 2024 00:24:08 GMT"
+      "last-modified": "Fri, 01 Mar 2024 00:28:11 GMT"
+    }
+  },
+  "https://legacy.senate.gov.ph/rss/rss_news.aspx": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "application/rss+xml; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": "Fri, 01 Mar 2024 00:28:11 GMT"
     }
   }
 }

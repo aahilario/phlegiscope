@@ -1,23 +1,14 @@
 {
-  "https://legacy.senate.gov.ph": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/about/history.asp#Philippine_Commission_(1900-1916)": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/about/history.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -35,7 +26,25 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/about/legpro.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/about/history.asp#Congress_of_the_Philippines_(1946-1972)": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/about/history.asp#Introduction": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -53,7 +62,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/history.asp#Introduction": {
+  "https://legacy.senate.gov.ph/about/history.asp#Philippine_Commission_(1900-1916)": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -98,24 +107,6 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/about/legpro.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
     "hits": 1,
     "headinfo": {
@@ -134,7 +125,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/notice_ctte.asp": {
+  "https://legacy.senate.gov.ph/committee/duties.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -152,7 +143,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
+  "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -170,7 +161,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=journal": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -179,7 +170,25 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=journal": {
+  "https://legacy.senate.gov.ph/publications/lrs_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -197,7 +206,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=resolution": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -206,11 +215,20 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=resolution": {
+  "https://legacy.senate.gov.ph/notice_ctte.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": "text/html; charset=utf-8",
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/stsro_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
       "content-encoding": "gzip",
       "last-modified": null
     }
@@ -224,25 +242,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/secretariat/extaffairs.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/lrs_publications.asp": {
+  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -269,25 +269,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/secretariat/mission_vision.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/stsro_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -312,6 +294,15 @@
       "content-type": "text/html",
       "content-encoding": "gzip",
       "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/search.aspx": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": "Fri, 01 Mar 2024 00:28:14 GMT"
     }
   }
 }

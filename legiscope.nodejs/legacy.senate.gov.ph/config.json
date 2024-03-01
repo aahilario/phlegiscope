@@ -1,5 +1,6 @@
 {
   "parse_roots": [
-    "html body"
+    "html body table#container tbody tr td#content form#form1.lis_div div#pnl_NavTop div.lis_pagesort div.lis_pagenav",
+    "html body table#container tbody tr td#content form#form1.lis_div div.alight"
   ]
 }

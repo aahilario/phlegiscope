@@ -1,59 +1,5 @@
 {
-  "https://legacy.senate.gov.ph/committee/schedwk.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/about/history.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/about/legpro.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/lis.aspx": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2024": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -62,16 +8,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/ctte_quick_notes.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2025": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -80,7 +17,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=17&type=bill": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2027": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -89,7 +26,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill&p=19": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2029": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -98,7 +35,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=resolution": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2031": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -107,7 +44,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=committee_rpt": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2035": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -116,7 +53,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=adopted_res": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2038": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -125,7 +62,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=republic_act": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2041": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -134,52 +71,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/stsro_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/ells_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/notice_ctte.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=13&type=bill": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2043": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -188,25 +80,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/lls_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=bill&p=22": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2044": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -215,56 +89,11 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/lrs_publications.asp": {
+  "https://legacy.senate.gov.ph/lis/bill_res.aspx?congress=19&q=SBN-2042": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/publications/other_publications.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/secretariat/officers.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/rss.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/secretariat/admin.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/senators/roll.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
+      "content-type": "text/html; charset=utf-8",
       "content-encoding": "gzip",
       "last-modified": null
     }

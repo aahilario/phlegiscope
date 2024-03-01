@@ -1,22 +1,4 @@
 {
-  "https://legacy.senate.gov.ph/committee/duties.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Banks,%20Financial%20Institutions%20and%20Currencies": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph": {
     "hits": 1,
     "headinfo": {
@@ -53,97 +35,16 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/committee/duties.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/about/symbols%20of%20authority.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Accountability%20of%20public%20Officers%20and%20Investigations%20(Blue%20Ribbon)": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Accounts": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Economic%20Affairs": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Agriculture,%20Food%20and%20Agrarian%20Reform": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Electoral%20Reforms%20and%20People’s%20Participation": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Basic%20Education": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Constitutional%20Amendments%20and%20Revision%20of%20Codes": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Ethics%20and%20Privileges": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Cultural%20Communities%20and%20Muslim%20Affairs": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Culture%20and%20the%20Arts": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -161,7 +62,106 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Accountability%20of%20public%20Officers%20and%20Investigations%20(Blue%20Ribbon)": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Agriculture,%20Food%20and%20Agrarian%20Reform": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Banks,%20Financial%20Institutions%20and%20Currencies": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Accounts": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Basic%20Education": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/committee/duties.asp#Energy": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Constitutional%20Amendments%20and%20Revision%20of%20Codes": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Culture%20and%20the%20Arts": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Cultural%20Communities%20and%20Muslim%20Affairs": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Economic%20Affairs": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Electoral%20Reforms%20and%20People’s%20Participation": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Justice%20and%20Human%20Rights": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -179,6 +179,15 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Ethics%20and%20Privileges": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/committee/duties.asp#Finance": {
     "hits": 1,
     "headinfo": {
@@ -188,7 +197,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Games%20and%20Amusement": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Foreign%20Relations": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -197,7 +206,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Foreign%20Relations": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Games%20and%20Amusement": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -224,6 +233,15 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Public%20Order%20and%20Dangerous%20Drugs": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/committee/duties.asp#Higher,%20Technical%20and%20Vocational%20Education": {
     "hits": 1,
     "headinfo": {
@@ -233,34 +251,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Public%20Services": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Justice%20and%20Human%20Rights": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/committee/duties.asp#Labor,%20Employment%20and%20Human%20Resources%20Development": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Public%20Works": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -305,7 +296,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Public%20Order%20and%20Dangerous%20Drugs": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Tourism": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -314,7 +305,16 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Science%20and%20Technology": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Public%20Services": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/committee/duties.asp#Public%20Works": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -332,7 +332,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Social%20Justice,%20Welfare%20and%20Rural%20Development": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Science%20and%20Technology": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -341,7 +341,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Youth": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Social%20Justice,%20Welfare%20and%20Rural%20Development": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -377,7 +377,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Tourism": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Urban%20Planning,%20Housing%20and%20Resettlement": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -404,16 +404,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/committee/duties.asp#Urban%20Planning,%20Housing%20and%20Resettlement": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/ctte_quick_notes.asp": {
+  "https://legacy.senate.gov.ph/committee/duties.asp#Youth": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -431,7 +422,16 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/ells_publications.asp": {
+  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=republic_act": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/ctte_quick_notes.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -440,11 +440,11 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
+  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=journal": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": "text/html",
+      "content-type": "text/html; charset=utf-8",
       "content-encoding": "gzip",
       "last-modified": null
     }
@@ -476,15 +476,6 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/pdf_sys.aspx?congress=19&type=republic_act": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html; charset=utf-8",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
   "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=resolution": {
     "hits": 1,
     "headinfo": {
@@ -503,16 +494,34 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/lis/leg_sys.aspx?congress=19&type=journal": {
+  "https://legacy.senate.gov.ph/publications/ells_publications.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
-      "content-type": "text/html; charset=utf-8",
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/publications/ils_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
       "content-encoding": "gzip",
       "last-modified": null
     }
   },
   "https://legacy.senate.gov.ph/publications/lbrmo_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
+  "https://legacy.senate.gov.ph/secretariat/admin.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -530,7 +539,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/other_publications.asp": {
+  "https://legacy.senate.gov.ph/secretariat/extaffairs.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -548,6 +557,15 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/publications/other_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/publications/sepo_publications.asp": {
     "hits": 1,
     "headinfo": {
@@ -557,7 +575,7 @@
       "last-modified": null
     }
   },
-  "https://legacy.senate.gov.ph/publications/stsro_publications.asp": {
+  "https://legacy.senate.gov.ph/secretariat/mission_vision.asp": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
@@ -584,31 +602,22 @@
       "last-modified": null
     }
   },
+  "https://legacy.senate.gov.ph/publications/stsro_publications.asp": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": null,
+      "content-type": "text/html",
+      "content-encoding": "gzip",
+      "last-modified": null
+    }
+  },
   "https://legacy.senate.gov.ph/search.aspx": {
     "hits": 1,
     "headinfo": {
       "content-length": null,
       "content-type": "text/html; charset=utf-8",
       "content-encoding": "gzip",
-      "last-modified": "Fri, 01 Mar 2024 00:25:01 GMT"
-    }
-  },
-  "https://legacy.senate.gov.ph/secretariat/admin.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
-    }
-  },
-  "https://legacy.senate.gov.ph/secretariat/extaffairs.asp": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": null,
-      "content-type": "text/html",
-      "content-encoding": "gzip",
-      "last-modified": null
+      "last-modified": "Fri, 01 Mar 2024 00:28:23 GMT"
     }
   }
 }

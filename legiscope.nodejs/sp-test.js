@@ -271,54 +271,72 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0,
   return true;
 };//}}}
 
-function extract_urls( data, target, parse_roots )
+function extract_urls( data, target, parse_roots, have_extracted_urls )
 {//{{{
   assert( parse_roots !== undefined );
-  let tagstack = new Array;
-  const $ = cheerio.load( data, { onParseError: parse_err_handler } );
-  console.log("Fetched markup.  Parsing...");
 
-  parse_roots.forEach((parse_root) => { 
-    $(parse_root)
-      .children()
-      .each( function(i,e) { 
-        try {
-          detag(i,e,0,null,sampleCount,tagstack); 
-        }
-        catch(err) {
-          console.log( "Error parsing element %s", e );
-        }
-      });
-  });
-  
-  $("*").remove();
+  let pageUrlsArray;
 
-  let pageUrlsArray = new Array;
-
-  if ( pageUrls.size > 0 ) {
-
-    urlListFile = targetFile.concat(".urls.json");
-    console.log("Dumping %d URLs rooted at '%s'", pageUrls.size, target ); 
-
-    for ( const url of pageUrls.keys() ) {
-      pageUrlsArray.push( url );
+  if ( have_extracted_urls ) {
+    try { 
+      let extracted_urls = readFileSync( targetFile.concat(".urls.json") );
+      pageUrlsArray = JSON.parse( extracted_urls );
+      console.log( "+ Reloaded %d URLs", pageUrlsArray.length );
     }
+    catch (e) {
+      console.log( "* Preparsed URL load error", e );
+      have_extracted_urls = false;
+    }
+  }
 
-    writeFile( urlListFile, JSON.stringify( pageUrlsArray.sort() ), function(err) {
-      if ( err ) {
-        console.log( "Failed to write URLs from page at '%s'", target );
-      }
-      else {
-        console.log( "Wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
-      }
+  if (!have_extracted_urls ) {
+
+    let tagstack = new Array;
+    const $ = cheerio.load( data, { onParseError: parse_err_handler } );
+    console.log("Fetched markup.  Parsing...");
+
+    parse_roots.forEach((parse_root) => { 
+      $(parse_root)
+        .children()
+        .each( function(i,e) { 
+          try {
+            detag(i,e,0,null,sampleCount,tagstack); 
+          }
+          catch(err) {
+            console.log( "Error parsing element %s", e );
+          }
+        });
     });
 
-    // FIXME: Use fsPromises.writeFile to serialize writes.
-    if ( inlineScripts.length > 0 )
-    writeFileSync( inlineScriptsFile, JSON.stringify( inlineScripts, null, 2 ), {
-      flag  : 'w',
-      flush : true
-    }); 
+    $("*").remove();
+
+    pageUrlsArray = new Array;
+
+    if ( pageUrls.size > 0 ) {
+
+      urlListFile = targetFile.concat(".urls.json");
+      console.log("Dumping %d URLs rooted at '%s'", pageUrls.size, target ); 
+
+      for ( const url of pageUrls.keys() ) {
+        pageUrlsArray.push( url );
+      }
+
+      writeFile( urlListFile, JSON.stringify( pageUrlsArray.sort() ), function(err) {
+        if ( err ) {
+          console.log( "Failed to write URLs from page at '%s'", target );
+        }
+        else {
+          console.log( "Wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
+        }
+      });
+
+      // FIXME: Use fsPromises.writeFile to serialize writes.
+      if ( inlineScripts.length > 0 )
+        writeFileSync( inlineScriptsFile, JSON.stringify( inlineScripts, null, 2 ), {
+          flag  : 'w',
+          flush : true
+        }); 
+    }
   }
   return pageUrlsArray;
 };//}}}
@@ -706,6 +724,7 @@ async function fetch_and_extract( initial_target, depth )
       // let target = normalizeUrl(targets.shift()); // .replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let target = targets.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let page_assets = new Map;
+      let have_extracted_urls = false;
       let iteration_subjects;
       let visited_pages;
 
@@ -739,15 +758,21 @@ async function fetch_and_extract( initial_target, depth )
       let visited = visited_pages.has( target );
       let fileProps = null;
 
+
       try {
+        have_extracted_urls = statSync( targetFile.concat(".urls.json"), { throwIfNoEntry: true } );
         fileProps = statSync( targetFile, { throwIfNoEntry: true } );
         console.log( "Target '%s' props:", targetFile, (process.env['SILENT_PARSE'] === undefined) ? fileProps : '' );
       } catch(e) {
         console.log("Must fetch '%s' from %s", targetFile, target );
         fileProps = null;
+        have_extracted_urls = false;
       }
 
       console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
+
+      if ( !fileProps ) 
+        have_extracted_urls = false;
 
       if ( !fileProps || !visited || resweep ) 
       {//{{{
@@ -839,7 +864,7 @@ async function fetch_and_extract( initial_target, depth )
           }
         });
 
-        extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots') );
+        extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
 
         // Prepend all page asset URLs to the array of DOM-embedded URLs.
         page_assets.forEach( (headers, urlraw, map) => {
@@ -861,7 +886,7 @@ async function fetch_and_extract( initial_target, depth )
 
       if ( iteration_subjects === undefined ) {
         let data = readFileSync(targetFile);
-        extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots') );
+        extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
 

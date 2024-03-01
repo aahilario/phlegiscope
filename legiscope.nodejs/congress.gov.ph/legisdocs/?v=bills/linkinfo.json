@@ -2,7 +2,7 @@
   "https://congress.gov.ph": {
     "hits": 1,
     "headinfo": {
-      "content-length": "15923",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -11,7 +11,7 @@
   "https://congress.gov.ph/legisdocs": {
     "hits": 1,
     "headinfo": {
-      "content-length": "16367",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -20,16 +20,16 @@
   "https://congress.gov.ph/legisdocs#HistoryModal": {
     "hits": 1,
     "headinfo": {
-      "content-length": "16349",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
   "https://congress.gov.ph/legisdocs/?v=bills": {
-    "hits": 1,
+    "hits": 2,
     "headinfo": {
-      "content-length": "16413",
+      "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -113523,6 +113523,24 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Tue, 21 Mar 2023 10:57:01 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/HJR0014.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "168731",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 01 Feb 2023 02:39:59 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/third_19/RBH0006.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "178268",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Tue, 14 Mar 2023 09:22:04 GMT"
     }
   }
 }

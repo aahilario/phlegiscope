@@ -411,6 +411,7 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
 function write_map_to_file( description, map_file, map_obj, loadedUrl )
 {//{{{
   const objson = Object.fromEntries( map_obj );
+  console.log( "Writing %s to %s", description, map_file );
   writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
     flag  : 'w',
     flush : true

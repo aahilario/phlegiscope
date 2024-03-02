@@ -1726,5 +1726,23 @@
   },
   "https://congress.gov.ph/legisdocs/?v=ob": {
     "hits": 1
+  },
+  "https://congress.gov.ph/legisdocs?v=bills&csrf_token=ba843964c269530016bd21fa756d37f9f52d6c74391bb7cb18384e2062f88467&congress=14": {
+    "hits": 1
+  },
+  "https://congress.gov.ph/legisdocs?v=bills&csrf_token=ba843964c269530016bd21fa756d37f9f52d6c74391bb7cb18384e2062f88467&congress=15": {
+    "hits": 1
+  },
+  "https://congress.gov.ph/legisdocs?v=bills&csrf_token=ba843964c269530016bd21fa756d37f9f52d6c74391bb7cb18384e2062f88467&congress=16": {
+    "hits": 1
+  },
+  "https://congress.gov.ph/legisdocs?v=bills&csrf_token=ba843964c269530016bd21fa756d37f9f52d6c74391bb7cb18384e2062f88467&congress=17": {
+    "hits": 1
+  },
+  "https://congress.gov.ph/legisdocs?v=bills&csrf_token=ba843964c269530016bd21fa756d37f9f52d6c74391bb7cb18384e2062f88467&congress=18": {
+    "hits": 1
+  },
+  "https://congress.gov.ph/legisdocs?v=bills&csrf_token=ba843964c269530016bd21fa756d37f9f52d6c74391bb7cb18384e2062f88467&congress=19": {
+    "hits": 1
   }
 }

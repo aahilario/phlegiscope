@@ -91,11 +91,11 @@ function sleep( millis )
   });
 }//}}}
 
-function normalizeUrl( u )
+function normalizeUrl( u, parse_input )
 {//{{{
   // URLFIX
   // Only fill in missing URL components from corresponding targetUrl parts
-  let fromPage = url.parse(u);
+  let fromPage = parse_input === undefined ? url.parse(u) : parse_input;
   let q = '';
   let h = '';
   if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log( "A> %s", parsedUrl.href || '' );
@@ -390,12 +390,14 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       headinfo: prior_entry.headinfo
     });
   }
-  if ( (process.env['SILENT_PARSE'] === undefined) || (process.env['SHOW_HEADINFO'] !== undefined) ) console.log("%d:\t%s %s %s",
-    result.length,
-    content_type,
-    head_info['content-length'],
-    u.href
-  );
+  if ( ( process.env['SKIP_HEAD_FETCH'] === undefined ) ) {
+    if ( (process.env['SILENT_PARSE'] === undefined) || (process.env['SHOW_HEADINFO'] !== undefined) ) console.log("%d:\t%s %s %s",
+      result.length,
+      content_type,
+      head_info['content-length'],
+      u.href
+    );
+  }
   //console.log("%d:\tHost %s type '%s' (%db) pathname '%s' %s %s", 
   //  result.length,
   //  u.host,
@@ -597,8 +599,10 @@ async function extract_hosts_from_urlarray( target_url, result )
   }
   write_map_to_file( "reachable hosts list", current_hosts, unique_hosts, target_url ); 
 
-  // Write linkinfo.json containing unique_host_pathmap_sorted
-  write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_pathmap_sorted, target_url );
+  if ( process.env['SKIP_HEAD_FETCH'] === undefined ) {
+    // Write linkinfo.json containing unique_host_pathmap_sorted
+    write_map_to_file( "unique HEAD info from links", linkinfo, unique_host_pathmap_sorted, target_url );
+  }
 
   return new Promise((resolve) => {
     console.log('Done. Found %d unique host paths, %d unique hosts', unique_host_pathmap_sorted.size, unique_hosts.size );
@@ -710,8 +714,117 @@ function recompute_filepaths_from_url(target)
   console.log( '  Asset catalog %s'        , assetCatalogFile );
   console.log( '  Inline scripts %s'       , inlineScriptsFile );
   console.log( '  Page cookies %s'         , pageCookieFile );
-  console.log( '  Visited URLs %s'         , visitFile  );
-  console.log( '  Permitted hosts %s'      , permittedHosts  );
+  console.log( '  Visited URLs %s'         , visitFile );
+  console.log( '  Permitted hosts %s'      , permittedHosts );
+}//}}}
+
+async function interaction_test( browser, rr )
+{//{{{
+  //let congress_selector_css = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group select.form-control.input-sm';
+  let congress_selector_css = 'select.form-control.input-sm[name="congress"]';
+  let option_n = 0;
+  //let gobutton = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group span.input-group-btn input.btn.btn-default.input-sm';
+  //let gobutton = 'submit=Go';
+  let gobutton = '//html/body/div[2]/div/div[1]/div[1]/div[1]/form[2]/div/span/input';
+  let halttime = 2;
+  let selector, trigger;
+  let o;
+  let option_val, initial_val, current_val;
+  let index_limit = 0;
+  let title = await browser.getTitle();
+  let currentUrl = await browser.getUrl();
+
+  selector = await browser.$(congress_selector_css);
+  assert.equal("House of Representatives", title);
+  console.log( "Test of interaction in %d seconds", halttime );
+  await sleep( halttime * 1000 );
+
+  await selector.click();
+  await sleep( 1000 );
+
+  current_val = selector.getValue(); 
+  initial_val = current_val;
+
+  for ( ; option_n < 30; option_n++ ) {
+    try {
+      o = await selector.selectByIndex(option_n);
+      option_val = await selector.getValue();
+      console.log( "- Option %d[%s]: %s", option_n, typeof o, option_val);
+      if ( o && current_val != option_val ) {
+        await o.click();
+        await selector.click();
+      }
+      index_limit = option_n;
+      await sleep( 200 );
+    }
+    catch (e) {
+      console.log("No option with index %d, maximum %d.  Leaving", option_n, index_limit );
+      index_limit++;
+      option_n = 30;
+    }
+    if ( option_n == 30 ) {
+      break;
+    }
+  }
+
+  for ( option_n = 0 ; option_n < index_limit ; option_n++ ) {
+
+    let from_end = index_limit - option_n - 1;
+    let rrv;
+    let p_url; 
+    let markup;
+    let request_map = new Map;
+    let target_dir;
+
+    selector   = await browser.$(congress_selector_css);
+    o          = await selector.selectByIndex( from_end );
+    trigger    = await browser.$(gobutton);
+    option_val = await selector.getValue();
+    console.log( "- Triggering option '%s'[%d]", option_val, from_end );
+    await trigger.moveTo();
+    await sleep( 200 );
+    await trigger.click();
+    console.log("Sleeping a second");
+    await sleep( 1000 );
+    loadedUrl = await browser.getUrl();
+    rrv = rr.get( loadedUrl );
+
+    console.log("Obtained %s", loadedUrl, rrv ); 
+
+    if ( rrv !== undefined ) {
+      p_url = url.parse( loadedUrl );
+      p_url.query = rrv.data;
+      p_url.href = normalizeUrl( p_url.href, p_url );
+      rr.set( p_url.href, rrv );
+      request_map.set( p_url.href, rrv ); // WRITE
+      console.log( "Recording virtual URL %s", p_url.href );
+      target_dir = targetDir.concat('/',p_url.query);
+      if ( !existsSync( target_dir ) ) 
+        mkdirSync( target_dir );
+      markup = await browser.$('html').getHTML(); // WRITE
+      writeFileSync( target_dir.concat('/index.html'), markup, {
+        flag  : 'w',
+        flush : true
+      });
+      write_map_to_file( 
+        "catalog of assets", 
+        target_dir.concat('/index.assets.json'),
+        request_map,
+        p_url.href
+      );
+    }
+
+    if ( from_end == initial_val ) 
+      console.log( "Loaded page content at default selector value" ); 
+
+    request_map.clear();
+    request_map = null;
+
+  }
+
+  return new Promise((resolve) => {
+    resolve(browser);
+  });
 }//}}}
 
 async function fetch_and_extract( initial_target, depth )
@@ -720,11 +833,11 @@ async function fetch_and_extract( initial_target, depth )
 
   let state_timeout = 7200000;
   let recursion_depth = 0;
+  let depth_iterations = 0;
   let targets = new Array;
   let depth_plus_one = new Map;
 
   // Breadth-first link traversal state flags
-  let iteration_depth = 0;
   let step_targets = 0;
   let resweep = (process.env.REFRESH !== undefined);
 
@@ -732,7 +845,7 @@ async function fetch_and_extract( initial_target, depth )
 
     targets.push( initial_target );
 
-    while ( targets.length > 0 ) {
+    while ( targets.length > 0 && depth_iterations < 10 ) {
 
       // URLFIX
       // let target = normalizeUrl(targets.shift()); // .replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
@@ -741,6 +854,8 @@ async function fetch_and_extract( initial_target, depth )
       let have_extracted_urls = false;
       let iteration_subjects;
       let visited_pages;
+
+      depth_iterations++;
 
       fetch_reset();
 
@@ -771,7 +886,6 @@ async function fetch_and_extract( initial_target, depth )
 
       let visited = visited_pages.has( target );
       let fileProps = null;
-
 
       try {
         have_extracted_urls = statSync( targetFile.concat(".urls.json"), { throwIfNoEntry: true } );
@@ -807,6 +921,9 @@ async function fetch_and_extract( initial_target, depth )
           root_request_header = event.request.headers;
           page_assets.set( event.request.url, {
             status: null, 
+            method: event.request.method,
+            dataEntries: event.request.hasPostData ? event.request.postDataEntries : [],
+            data: event.request.postData ? event.request.postData : "",
             req: event.request.headers,
             res: null
           });
@@ -817,7 +934,7 @@ async function fetch_and_extract( initial_target, depth )
             pair.res    = event.response.headers;
             pair.status = event.response.status;
             page_assets.set( event.response.url, pair );
-            if ( (process.env['SILENT_PARSE'] === undefined) ) console.log(`Response: ${event.response.status} ${event.response.url}`, pair);
+            if ( (process.env['SILENT_PARSE'] === undefined) ) console.log(`${pair.method} Response: ${event.response.status} ${event.response.url}`, pair);
           }
           else {
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log(`Unpaired Response: ${event.response.status} ${event.response.url}`, pair);
@@ -848,15 +965,17 @@ async function fetch_and_extract( initial_target, depth )
         // Already-visited URLs will not reach this code at all
         visited_pages.set( target, { hits: 1 } ); 
 
-        let title = await browser.getTitle();
-        let loadedUrl = await browser.getUrl(); 
-        cookies = await browser.getCookies();
+        let title     = await browser.getTitle();
+        let loadedUrl = await browser.getUrl();
+        cookies       = await browser.getCookies();
 
         console.log( "Loaded URL %s", loadedUrl );
         console.log( "Page title %s", title );
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Cookies:", cookies );
 
-        // assert.equal("House of Representatives", title);
+        if ( target == "https://congress.gov.ph/legisdocs/?v=bills" ) {
+          await interaction_test( browser, page_assets );
+        }
 
         let markup = await browser.$('html').getHTML();
 
@@ -908,24 +1027,24 @@ async function fetch_and_extract( initial_target, depth )
       let recursive = ( process.env["RECURSIVE"] !== undefined );
 
       if ( step_targets == 0 ) {
-        console.log("Breadth-first sweep of %d URLs", iteration_subjects.paths.size );
-        step_targets = iteration_subjects.paths.size;
-        iteration_subjects.paths.forEach((value, urlhere, map) => {
-          // URLFIX
-          let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
-          let content_type = value['headinfo']['content-type'] || 'text/html';
-          if ( (!visited_pages.has( key ) || resweep) && /^text\/html.*/.test( content_type ) ) {
-            console.log( "%s page scan to %s", recursive ? "Extending" : "Deferring", key );
-            if ( recursive ) {
+        if ( recursive ) {
+          console.log("Breadth-first sweep of %d URLs", iteration_subjects.paths.size );
+          step_targets = iteration_subjects.paths.size;
+          iteration_subjects.paths.forEach((value, urlhere, map) => {
+            // URLFIX
+            let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
+            let content_type = value['headinfo']['content-type'] || 'text/html';
+            if ( (!visited_pages.has( key ) || resweep) && /^text\/html.*/.test( content_type ) ) {
+              console.log( "%s page scan to %s", recursive ? "Extending" : "Deferring", key );
               targets.unshift( key );
             }
-          }
-          // Sort the URLs
-          targets.sort();
-        });
+            // Sort the URLs
+            targets.sort();
+          });
+        }
+        depth_iterations = 0;
       }
       else {
-
         let childcount = 0;
         console.log(">>>>>>>>>>>>> Remaining %d", targets.length);
         console.log("+ %d children, %d probables", iteration_subjects.paths.size, depth_plus_one.size );

@@ -725,7 +725,9 @@ async function interaction_test( browser, rr )
   let option_n = 0;
   //let gobutton = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group span.input-group-btn input.btn.btn-default.input-sm';
   //let gobutton = 'submit=Go';
-  let gobutton = '//html/body/div[2]/div/div[1]/div[1]/div[1]/form[2]/div/span/input';
+  let parentForm;
+  //let gobutton = '//html/body/div[2]/div/div[1]/div[1]/div[1]/form[2]/div/span/input';
+  let gobutton; // Submit trigger is a sibling element in the enclosing form
   let halttime = 2;
   let selector, trigger;
   let o;
@@ -733,6 +735,79 @@ async function interaction_test( browser, rr )
   let index_limit = 0;
   let title = await browser.getTitle();
   let currentUrl = await browser.getUrl();
+
+  async function get_parent_form( select_e )
+  {//{{{
+    // Locate SELECT tag's parent FORM tag
+    let parent_form;
+    let child = select_e;
+    while ( parent_form === undefined ) {//{{{
+      let parent_element = await child.$('..'); 
+      let candidate_tagname = await parent_element.getTagName(); 
+      if ( candidate_tagname  === undefined || candidate_tagname == 'html' ) {
+        console.log( "Processing cannot continue." );
+        break;
+      }
+      else if ( parent_element.getTagName() == 'form' ) {
+        console.log( "Got parent form" );
+        parent_form = parent_element;
+        break;
+      }
+      else {
+        child = parent_element;
+      }
+    }//}}}
+    return new Promise((resolve) => {
+      return resolve(parent_form);
+    });
+  }//}}}
+
+  async function get_submit_button_in( parent_form )
+  {//{{{
+    let go_button;
+    // Fetch the "Go" button within parent_form
+    if ( parent_form !== undefined ) {//{{{
+      let candidate_trigger = await parent_form.$('input.btn.btn-default.input-sm');
+      let trigger_tagname = await candidate_trigger.getProperty('tagName');
+      let trigger_typename = await candidate_trigger.getAttribute('type');
+      if ( trigger_tagname == 'input' && trigger_typename == 'submit' ) {
+        console.log( "Located 'Go' button" );
+        go_button = candidate_trigger;
+      }
+      else {
+        console.log( "Processing cannot continue." );
+      }
+    }//}}}
+    return new Promise((resolve) => { resolve(go_button); });
+  }//}}}
+
+  async function get_select_index_limit( select_e )
+  {//{{{
+    // Determine index limit
+    for ( ; option_n < 30; option_n++ ) {//{{{
+      try {
+        let o = await select_e.selectByIndex(option_n);
+        let o_val = await select_e.getValue();
+        console.log( "- Option %d[%s]: %s", option_n, typeof o, o_val);
+        if ( o && current_val != o_val ) {
+          await o.click();
+          await select_e.click();
+        }
+        index_limit = option_n;
+        await sleep( 200 );
+      }
+      catch (e) {
+        console.log("No option with index %d, maximum %d.  Leaving", option_n, index_limit );
+        index_limit++;
+        option_n = 30;
+      }
+      if ( option_n == 30 ) {
+        break;
+      }
+    }//}}}
+    return new Promise((resolve) => { resolve(index_limit); });
+  }//}}}
+
 
   selector = await browser.$(congress_selector_css);
   assert.equal("House of Representatives", title);
@@ -742,30 +817,12 @@ async function interaction_test( browser, rr )
   await selector.click();
   await sleep( 1000 );
 
-  current_val = selector.getValue(); 
+  current_val = selector.getValue();
   initial_val = current_val;
 
-  for ( ; option_n < 30; option_n++ ) {
-    try {
-      o = await selector.selectByIndex(option_n);
-      option_val = await selector.getValue();
-      console.log( "- Option %d[%s]: %s", option_n, typeof o, option_val);
-      if ( o && current_val != option_val ) {
-        await o.click();
-        await selector.click();
-      }
-      index_limit = option_n;
-      await sleep( 200 );
-    }
-    catch (e) {
-      console.log("No option with index %d, maximum %d.  Leaving", option_n, index_limit );
-      index_limit++;
-      option_n = 30;
-    }
-    if ( option_n == 30 ) {
-      break;
-    }
-  }
+  parentForm  = await get_parent_form( selector );
+  gobutton    = await get_submit_button_in( parentForm );
+  index_limit = await get_select_index_limit( selector );
 
   for ( option_n = 0 ; option_n < index_limit ; option_n++ ) {
 

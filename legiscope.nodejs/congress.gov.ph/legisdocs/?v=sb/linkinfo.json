@@ -2,16 +2,25 @@
   "https://congress.gov.ph": {
     "hits": 1,
     "headinfo": {
-      "content-length": "4518",
+      "content-length": "16157",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "18028",
+      "content-type": null,
+      "content-encoding": null,
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+    }
+  },
   "https://congress.gov.ph/legisdocs": {
     "hits": 1,
     "headinfo": {
-      "content-length": "4518",
+      "content-length": "16623",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -20,7 +29,70 @@
   "https://congress.gov.ph/legisdocs/?v=sb": {
     "hits": 2,
     "headinfo": {
-      "content-length": "4518",
+      "content-length": "16673",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=02&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17403",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=05&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17403",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=06&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17403",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=07&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17403",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=08&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17403",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=11&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17424",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?csrf_token=74174924bd89b9d02103ed196c6de7d4f50143764f8e26d784742efb2108c2b1&release_month=12&release_year=2024": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "17402",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null

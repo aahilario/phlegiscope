@@ -18,7 +18,7 @@
     }
   },
   "https://congress.gov.ph/legisdocs/?v=ra": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
@@ -420,24 +420,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 21 Feb 2024 11:10:46 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/ra_19/RA11979.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "1191044",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 21 Feb 2024 11:12:30 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/ra_19/RA11980.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "7610205",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 21 Feb 2024 11:15:48 GMT"
     }
   }
 }

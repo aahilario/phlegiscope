@@ -8,6 +8,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "18028",
+      "content-type": null,
+      "content-encoding": null,
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+    }
+  },
   "https://congress.gov.ph/legisdocs": {
     "hits": 1,
     "headinfo": {
@@ -249,6 +258,15 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 05 Oct 2023 08:16:25 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/congrec/19th/2nd/19C2RS-VOL1REC9-2023-08-14.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "378697",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 05 Oct 2023 08:28:48 GMT"
     }
   }
 }

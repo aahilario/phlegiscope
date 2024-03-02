@@ -8,6 +8,15 @@
       "last-modified": null
     }
   },
+  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "18028",
+      "content-type": null,
+      "content-encoding": null,
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
+    }
+  },
   "https://congress.gov.ph/legisdocs": {
     "hits": 1,
     "headinfo": {
@@ -18,7 +27,7 @@
     }
   },
   "https://congress.gov.ph/legisdocs/?v=cdb": {
-    "hits": 2,
+    "hits": 1,
     "headinfo": {
       "content-length": "4518",
       "content-type": "text/html; charset=UTF-8",
@@ -36,6 +45,24 @@
     }
   },
   "https://congress.gov.ph/legisdocs?v=cdb&congress=19&volno=2": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=cdb&csrf_token=96f8da1a1523fa360b606902a399995f5b719e738d88a624d73a71dd51f5022a&congress=16": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "4518",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=cdb&csrf_token=96f8da1a1523fa360b606902a399995f5b719e738d88a624d73a71dd51f5022a&congress=17": {
     "hits": 1,
     "headinfo": {
       "content-length": "4518",

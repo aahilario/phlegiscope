@@ -380,7 +380,6 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
         'content-encoding' : head_info['content-encoding'] || null,
         'last-modified'    : head_info['last-modified'] || null
       }
-      //,headinfo_raw: head_info
     });
   }
   else {
@@ -398,16 +397,6 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
       u.href
     );
   }
-  //console.log("%d:\tHost %s type '%s' (%db) pathname '%s' %s %s", 
-  //  result.length,
-  //  u.host,
-  //  content_type,
-  //  head_info['content-length'],
-  //  u.pathname, 
-  //  u.query ? "query '".concat(u.query,"' ") : '',
-  //  u.hash ? "hash '".concat(u.hash,"'") : '',
-  //  u.href 
-  //);
 }//}}}
 
 function write_map_to_file( description, map_file, map_obj, loadedUrl )
@@ -721,7 +710,7 @@ function recompute_filepaths_from_url(target)
 async function interaction_test( browser, rr )
 {//{{{
   //let congress_selector_css = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group select.form-control.input-sm';
-  let congress_selector_css = 'select.form-control.input-sm[name="congress"]';
+  let congress_selector_css = 'select.form-control.input-sm';
   let option_n = 0;
   //let gobutton = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group span.input-group-btn input.btn.btn-default.input-sm';
   //let gobutton = 'submit=Go';
@@ -741,25 +730,25 @@ async function interaction_test( browser, rr )
     // Locate SELECT tag's parent FORM tag
     let parent_form;
     let child = select_e;
+    let iterations = 0;
     while ( parent_form === undefined ) {//{{{
       let parent_element = await child.$('..'); 
       let candidate_tagname = await parent_element.getTagName(); 
+      iterations++;
       if ( candidate_tagname  === undefined || candidate_tagname == 'html' ) {
-        console.log( "Processing cannot continue." );
+        console.log( "%d: Processing cannot continue.", iterations );
         break;
       }
-      else if ( parent_element.getTagName() == 'form' ) {
+      else if ( candidate_tagname == 'form' ) {
         console.log( "Got parent form" );
-        parent_form = parent_element;
-        break;
+        return Promise.resolve(parent_element);
       }
       else {
+        console.log( "%d: Processing next parent %s", iterations, candidate_tagname );
         child = parent_element;
       }
     }//}}}
-    return new Promise((resolve) => {
-      return resolve(parent_form);
-    });
+    return Promise.resolve(parent_form);
   }//}}}
 
   async function get_submit_button_in( parent_form )
@@ -770,15 +759,16 @@ async function interaction_test( browser, rr )
       let candidate_trigger = await parent_form.$('input.btn.btn-default.input-sm');
       let trigger_tagname = await candidate_trigger.getProperty('tagName');
       let trigger_typename = await candidate_trigger.getAttribute('type');
-      if ( trigger_tagname == 'input' && trigger_typename == 'submit' ) {
+      console.log( "Button search found '%s' (%s)", trigger_tagname, trigger_typename );
+      if ( trigger_tagname == 'INPUT' && trigger_typename == 'submit' ) {
         console.log( "Located 'Go' button" );
-        go_button = candidate_trigger;
+        return Promise.resolve(candidate_trigger);
       }
       else {
-        console.log( "Processing cannot continue." );
+        console.log( "Processing cannot continue - button not found." );
       }
     }//}}}
-    return new Promise((resolve) => { resolve(go_button); });
+    return Promise.resolve(go_button);
   }//}}}
 
   async function get_select_index_limit( select_e )
@@ -834,8 +824,9 @@ async function interaction_test( browser, rr )
     let target_dir;
 
     selector   = await browser.$(congress_selector_css);
+    parentForm = await get_parent_form( selector );
+    trigger    = await get_submit_button_in( parentForm );
     o          = await selector.selectByIndex( from_end );
-    trigger    = await browser.$(gobutton);
     option_val = await selector.getValue();
     console.log( "- Triggering option '%s'[%d]", option_val, from_end );
     await trigger.moveTo();
@@ -897,6 +888,16 @@ async function fetch_and_extract( initial_target, depth )
   // Breadth-first link traversal state flags
   let step_targets = 0;
   let resweep = (process.env.REFRESH !== undefined);
+  let interactable = new Map;
+
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=adopted", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=bills", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=cdb", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=cr", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=journals", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=ob", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=ra", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=sb", {} ); 
 
   it('Scrape starting at '.concat(initial_target), async function () {
 
@@ -1030,7 +1031,7 @@ async function fetch_and_extract( initial_target, depth )
         console.log( "Page title %s", title );
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Cookies:", cookies );
 
-        if ( target == "https://congress.gov.ph/legisdocs/?v=bills" ) {
+        if ( interactable.has( target ) ) {
           await interaction_test( browser, page_assets );
         }
 

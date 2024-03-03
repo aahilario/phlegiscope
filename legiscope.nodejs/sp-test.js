@@ -143,9 +143,10 @@ function normalizeUrl( u, parse_input )
     '//',
     fromPage.hostname,
     fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
-    (q && q.length && q.length > 0 ? '/'.concat(q) : ''),
+    (q && q.length && q.length > 0 ? '/'.concat(q) : ''), // FIXME: URL query parts should be converted to path components
     (h && h.length && h.length > 0 ? h : '')
   ).replace(/#$/,''); // Scrub empty hash part
+  assert( !/[\?]/g.test( u ) ); // Ensure path excludes query delimiter
   fromPage.href = u;
   if ( !(process.env['NOISY_PARSE'] === undefined) ) {
     console.log( "C> %s", fromPage.href );

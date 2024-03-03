@@ -931,8 +931,6 @@ async function fetch_and_extract( initial_target, depth )
 
     while ( targets.length > 0 && depth_iterations < 10 ) {
 
-      // URLFIX
-      // let target = normalizeUrl(targets.shift()); // .replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let target = targets.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let page_assets = new Map;
       let have_extracted_urls = false;
@@ -940,8 +938,6 @@ async function fetch_and_extract( initial_target, depth )
       let visited_pages;
 
       depth_iterations++;
-
-      fetch_reset();
 
       recompute_filepaths_from_url(target);
 
@@ -1161,6 +1157,8 @@ async function fetch_and_extract( initial_target, depth )
 
       page_assets.clear();
       page_assets = null;
+
+      fetch_reset();
     }
   });
 

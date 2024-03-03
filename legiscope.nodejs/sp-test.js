@@ -143,7 +143,7 @@ function normalizeUrl( u, parse_input )
     '//',
     fromPage.hostname,
     fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
-    (q && q.length && q.length > 0 ? '?'.concat(q) : ''),
+    (q && q.length && q.length > 0 ? '/'.concat(q) : ''),
     (h && h.length && h.length > 0 ? h : '')
   ).replace(/#$/,''); // Scrub empty hash part
   fromPage.href = u;
@@ -674,7 +674,7 @@ function recompute_filepaths_from_url(target)
   parsedUrl = url.parse(target);
   // Generate targetFile path based on URL path components.
   let relativePath = new Array();
-  let pathParts = parsedUrl.host.concat('/', parsedUrl.pathname).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/\/$/,'').split('/');
+  let pathParts = parsedUrl.host.concat('/', parsedUrl.pathname).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/[\/.]$/,'').split('/');
   let pathComponent = 0; 
   targetDir = '';
 

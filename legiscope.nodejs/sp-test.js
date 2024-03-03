@@ -155,10 +155,10 @@ function normalizeUrl( u, parse_input )
 }//}}}
 
 function stashInlineScript( s )
-{
+{//{{{
   console.log("Inline\r\n%s\r\n", s );
   inlineScripts.push(s);
-}
+}//}}}
 
 function stashPageUrl( u )
 {//{{{
@@ -674,7 +674,7 @@ function recompute_filepaths_from_url(target)
   parsedUrl = url.parse(target);
   // Generate targetFile path based on URL path components.
   let relativePath = new Array();
-  let pathParts = parsedUrl.host.concat('/', parsedUrl.path).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/\/$/,'').split('/');
+  let pathParts = parsedUrl.host.concat('/', parsedUrl.pathname).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/\/$/,'').split('/');
   let pathComponent = 0; 
   targetDir = '';
 
@@ -724,6 +724,7 @@ async function interaction_test( browser, rr )
   let index_limit = 0;
   let title = await browser.getTitle();
   let currentUrl = await browser.getUrl();
+  let query_splitter = /([0-9a-z_]{1,})\=([0-9a-z_]{1,})/gi;
 
   async function get_parent_form( select_e )
   {//{{{
@@ -814,6 +815,8 @@ async function interaction_test( browser, rr )
   gobutton    = await get_submit_button_in( parentForm );
   index_limit = await get_select_index_limit( selector );
 
+  console.log( "targetDir: %s", targetDir );
+
   for ( option_n = 0 ; option_n < index_limit ; option_n++ ) {
 
     let from_end = index_limit - option_n - 1;
@@ -840,12 +843,34 @@ async function interaction_test( browser, rr )
     console.log("Obtained %s", loadedUrl, rrv ); 
 
     if ( rrv !== undefined ) {
+      let query_map = new Map;
+      let query_arr = rrv.data ? rrv.data.split('&') : [];
+      query_arr.forEach((e) => {
+        query_map.set( 
+          e.replace(/^([^=]{1,})=.*$/, '$1'),
+          e.replace(/^([^=]{1,})=/,'')
+        );
+      });
+
+      query_map.delete('csrf_token');
+
+      while ( query_arr.length > 0 ) query_arr.shift();
+
+      query_arr.sort();
+
+      query_map.forEach((value, key, map) => {
+        query_arr.push( key.concat('=',value) );
+      });
+
+      // FIXME: Decompose query parameters into path components
       p_url = url.parse( loadedUrl );
-      p_url.query = rrv.data;
-      p_url.href = normalizeUrl( p_url.href, p_url );
+      // The .data element is simply urlencoded POST data
+      p_url.query = query_arr.join('&');
+      p_url.parse( normalizeUrl( p_url.href, p_url ) );
+      console.log( "Recording virtual URL %s", p_url.href );
       rr.set( p_url.href, rrv );
       request_map.set( p_url.href, rrv ); // WRITE
-      console.log( "Recording virtual URL %s", p_url.href );
+
       target_dir = targetDir.concat('/',p_url.query);
       if ( !existsSync( target_dir ) ) 
         mkdirSync( target_dir );
@@ -890,14 +915,14 @@ async function fetch_and_extract( initial_target, depth )
   let resweep = (process.env.REFRESH !== undefined);
   let interactable = new Map;
 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=adopted", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=bills", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=cdb", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=cr", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=journals", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=ob", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=ra", {} ); 
-  interactable.set( "https://congress.gov.ph/legisdocs/?v=sb", {} ); 
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=adopted" , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=bills"   , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=cdb"     , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=cr"      , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=journals", { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=ob"      , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=ra"      , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legisdocs/?v=sb"      , { method: interaction_test, params: {} } );
 
   it('Scrape starting at '.concat(initial_target), async function () {
 
@@ -1032,7 +1057,8 @@ async function fetch_and_extract( initial_target, depth )
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Cookies:", cookies );
 
         if ( interactable.has( target ) ) {
-          await interaction_test( browser, page_assets );
+          let m = interactable.get( target );
+          m.method( browser, page_assets, m.params );
         }
 
         let markup = await browser.$('html').getHTML();

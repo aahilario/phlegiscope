@@ -2,25 +2,115 @@
   "https://congress.gov.ph": {
     "hits": 1,
     "headinfo": {
-      "content-length": "4518",
+      "content-length": "16051",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/fonts/glyphicons-halflings-regular.woff2": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "18028",
+      "content-type": null,
+      "content-encoding": null,
+      "last-modified": "Sat, 28 Nov 2015 02:17:46 GMT"
     }
   },
   "https://congress.gov.ph/legisdocs": {
     "hits": 1,
     "headinfo": {
-      "content-length": "4518",
-      "content-type": "text/html; charset=UTF-8",
+      "content-length": null,
+      "content-type": "text/html; charset=iso-8859-1",
       "content-encoding": null,
       "last-modified": null
     }
   },
   "https://congress.gov.ph/legisdocs/?v=ra": {
+    "hits": 2,
+    "headinfo": {
+      "content-length": "16545",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=08": {
     "hits": 1,
     "headinfo": {
-      "content-length": "4518",
+      "content-length": "16613",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=09": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16591",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=10": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16613",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=12": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16591",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=14": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16613",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=15": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16613",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=16": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16591",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=17": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16613",
+      "content-type": "text/html; charset=UTF-8",
+      "content-encoding": null,
+      "last-modified": null
+    }
+  },
+  "https://congress.gov.ph/legisdocs?v=ra&congress=19": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "16613",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -420,6 +510,24 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Wed, 21 Feb 2024 11:10:46 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/ra_19/RA11979.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "1191044",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 21 Feb 2024 11:12:30 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/ra_19/RA11980.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "7610205",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Wed, 21 Feb 2024 11:15:48 GMT"
     }
   }
 }

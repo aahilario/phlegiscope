@@ -675,9 +675,17 @@ function recompute_filepaths_from_url(target)
   parsedUrl = url.parse(target);
   // Generate targetFile path based on URL path components.
   let relativePath = new Array();
-  let pathParts = parsedUrl.host.concat('/', parsedUrl.pathname).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/[\/.]$/,'').split('/');
+  let pathParts;
   let pathComponent = 0; 
+
   targetDir = '';
+
+  pathParts = parsedUrl.host.concat('/', parsedUrl.pathname)
+    .replace(/[\/]{1,}/gi,'/')
+    .replace(/[\/]{1,}$/,'')
+    .replace(/^[\/]{1,}/,'')
+    .replace(/\/\.\.\//,'/')
+    .replace(/[\/.]$/,'').split('/');
 
   // Unique visited URL and permitted hosts files
   visitFile      = parsedUrl.host.concat('/visited.json');
@@ -708,7 +716,18 @@ function recompute_filepaths_from_url(target)
   console.log( '  Permitted hosts %s'      , permittedHosts );
 }//}}}
 
-async function interaction_test( browser, rr )
+async function interaction_v2_test( browser, rr, site_parse_settings, url_params )
+{
+  let pager_selector = 'html body.flex.flex-col.mx-0.lg:mx-auto.antialiased main section.container-fluid.-mt-24.lg:container.lg:mt-2 div.container.items-start.lg:py-8.aos-init.aos-animate div.flex.justify-center.bg-white.pb-4 ul.pagination.flex.items-center';
+
+  if ( await $(pager_selector).isExisting() ) {
+    console.log("Booyah!  We will crawl this pager");
+    await $(pager_selector).$('li a');
+  }
+
+}
+
+async function interaction_test( browser, rr, site_parse_settings, url_params )
 {//{{{
   //let congress_selector_css = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group select.form-control.input-sm';
   let congress_selector_css = 'select.form-control.input-sm';
@@ -726,6 +745,7 @@ async function interaction_test( browser, rr )
   let title = await browser.getTitle();
   let currentUrl = await browser.getUrl();
   let query_splitter = /([0-9a-z_]{1,})\=([0-9a-z_]{1,})/gi;
+  let markup;
 
   async function get_parent_form( select_e )
   {//{{{
@@ -823,7 +843,6 @@ async function interaction_test( browser, rr )
     let from_end = index_limit - option_n - 1;
     let rrv;
     let p_url; 
-    let markup;
     let request_map = new Map;
     let target_dir;
 
@@ -846,6 +865,7 @@ async function interaction_test( browser, rr )
     if ( rrv !== undefined ) {
       let query_map = new Map;
       let query_arr = rrv.data ? rrv.data.split('&') : [];
+      let perform_head_fetch = false;
       query_arr.forEach((e) => {
         query_map.set( 
           e.replace(/^([^=]{1,})=.*$/, '$1'),
@@ -873,13 +893,42 @@ async function interaction_test( browser, rr )
       request_map.set( p_url.href, rrv ); // WRITE
 
       target_dir = targetDir.concat('/',p_url.query);
-      if ( !existsSync( target_dir ) ) 
+      if ( !existsSync( target_dir ) ) { 
         mkdirSync( target_dir );
+        perform_head_fetch = true;
+      }
       markup = await browser.$('html').getHTML(); // WRITE
       writeFileSync( target_dir.concat('/index.html'), markup, {
         flag  : 'w',
         flush : true
       });
+
+      if ( perform_head_fetch ) {
+      extractedUrls = extract_urls( 
+        markup, 
+        loadedUrl, 
+        site_parse_settings.get('parse_roots'), 
+        false /* have_extracted_urls */ 
+      );
+
+      iteration_subjects = await extract_hosts_from_urlarray( 
+        loadedUrl, 
+        extractedUrls
+      );
+
+      try {
+      write_map_to_file(
+        "iterable URLs including text/html",
+        target_dir.concat('/index.potentially-iterable.json'),
+        iteration_subjects,
+        p_url.href
+      );
+      }
+      catch(e) {
+        console.log("Unable to write iterable URLs from %s", p_url.href );
+      }
+      } // perform_head_fetch
+
       write_map_to_file( 
         "catalog of assets", 
         target_dir.concat('/index.assets.json'),
@@ -896,16 +945,14 @@ async function interaction_test( browser, rr )
 
   }
 
-  return new Promise((resolve) => {
-    resolve(browser);
-  });
+  return Promise.resolve(markup);
 }//}}}
 
 async function fetch_and_extract( initial_target, depth )
 {//{{{
   // Walk through all nodes in DOM
 
-  let state_timeout = 7200000;
+  let state_timeout = 14400000;
   let recursion_depth = 0;
   let depth_iterations = 0;
   let targets = new Array;
@@ -924,6 +971,7 @@ async function fetch_and_extract( initial_target, depth )
   interactable.set( "https://congress.gov.ph/legisdocs/?v=ob"      , { method: interaction_test, params: {} } );
   interactable.set( "https://congress.gov.ph/legisdocs/?v=ra"      , { method: interaction_test, params: {} } );
   interactable.set( "https://congress.gov.ph/legisdocs/?v=sb"      , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legislative-documents", { method: interaction_v2_test, params: {} } );
 
   it('Scrape starting at '.concat(initial_target), async function () {
 
@@ -1040,6 +1088,7 @@ async function fetch_and_extract( initial_target, depth )
           cookies = await browser.getCookies();
           console.log( "Previous cookies", cookies );
         }
+        await sleep(5000);
 
         // Record the URL as visited
         // Already-visited URLs will not reach this code at all
@@ -1047,7 +1096,9 @@ async function fetch_and_extract( initial_target, depth )
 
         let title     = await browser.getTitle();
         let loadedUrl = await browser.getUrl();
+        let markup;
         cookies       = await browser.getCookies();
+
 
         console.log( "Loaded URL %s", loadedUrl );
         console.log( "Page title %s", title );
@@ -1055,10 +1106,36 @@ async function fetch_and_extract( initial_target, depth )
 
         if ( interactable.has( target ) ) {
           let m = interactable.get( target );
-          m.method( browser, page_assets, m.params );
+          markup = await m.method( browser, page_assets, siteParseSettings, m.params );
         }
+        else {
+          markup = await browser.$('html').getHTML();
+          await writeFile( targetFile, markup, function(err) {
+            if ( err ) {
+              console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
+            }
+            else {
+              console.log( "Wrote %s to %s", loadedUrl, targetFile );
+            }
+          });
 
-        let markup = await browser.$('html').getHTML();
+          extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
+
+          // Prepend all page asset URLs to the array of DOM-embedded URLs.
+          page_assets.forEach( (headers, urlraw, map) => {
+            // URLFIX
+            let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
+            if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d Adding %s", extractedUrls.length, urlraw );
+            if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d     as %s", extractedUrls.length, url );
+            extractedUrls.push(url);
+          });
+
+          iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
+
+          write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
+          write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
+
+        }
 
         await writeFile( pageCookieFile, JSON.stringify( cookies, null, 2 ), function(err) {
           if ( err ) {
@@ -1069,30 +1146,6 @@ async function fetch_and_extract( initial_target, depth )
           }
         });
 
-        await writeFile( targetFile, markup, function(err) {
-          if ( err ) {
-            console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
-          }
-          else {
-            console.log( "Wrote %s to %s", loadedUrl, targetFile );
-          }
-        });
-
-        extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
-
-        // Prepend all page asset URLs to the array of DOM-embedded URLs.
-        page_assets.forEach( (headers, urlraw, map) => {
-          // URLFIX
-          let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
-          if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d Adding %s", extractedUrls.length, urlraw );
-          if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d     as %s", extractedUrls.length, url );
-          extractedUrls.push(url);
-        });
-
-        iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
-
-        write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
-        write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
       }
       else {
         console.log( "! Skipping browser fetch of %s", target ); 

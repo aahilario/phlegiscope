@@ -2,16 +2,16 @@
   "https://congress.gov.ph": {
     "hits": 1,
     "headinfo": {
-      "content-length": "16307",
+      "content-length": null,
       "content-type": "text/html; charset=UTF-8",
-      "content-encoding": null,
+      "content-encoding": "gzip",
       "last-modified": null
     }
   },
   "https://congress.gov.ph/legisdocs": {
     "hits": 1,
     "headinfo": {
-      "content-length": "16367",
+      "content-length": "16388",
       "content-type": "text/html; charset=UTF-8",
       "content-encoding": null,
       "last-modified": null
@@ -303,15 +303,6 @@
       "content-type": "application/pdf",
       "content-encoding": null,
       "last-modified": "Thu, 16 Nov 2023 08:04:17 GMT"
-    }
-  },
-  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/ra_19/RA11965.pdf": {
-    "hits": 1,
-    "headinfo": {
-      "content-length": "3388508",
-      "content-type": "application/pdf",
-      "content-encoding": null,
-      "last-modified": "Wed, 06 Dec 2023 09:20:01 GMT"
     }
   },
   "https://hrep-website.s3.ap-southeast-1.amazonaws.com/legisdocs/ra_19/RA11968.pdf": {

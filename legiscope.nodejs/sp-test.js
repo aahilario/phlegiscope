@@ -123,12 +123,20 @@ function normalizeUrl( u, parse_input )
           fromPage.pathname = parsedUrl.pathname;
         }
         else {
-          let parsed_sans_tail = (parsedUrl.pathname || '').split('/');
-          if ( parsed_sans_tail.length > 1 ) {
-            parsed_sans_tail.pop();
-            parsed_sans_tail.push(fromPage.pathname);
-            fromPage.pathname = parsed_sans_tail.join('/');
-            if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("M> Possible tail replacement");
+          let test_concat = [ parsedUrl.pathname, fromPage.pathname ].join('/');
+
+          if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("N> %s", test_concat );
+          if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("O> %s", test_concat.replace(/\/([^\/]{1,})\/\.\.\//,'/') );
+          fromPage.pathname = test_concat.replace(/\/([^\/]{1,})\/\.\.\//,'/');
+
+          if ( process.env['PERMIT_BROKEN'] !== undefined ) {
+            let parsed_sans_tail = (parsedUrl.pathname || '').split('/');
+            if ( parsed_sans_tail.length > 1 ) {
+              parsed_sans_tail.pop();
+              parsed_sans_tail.push(fromPage.pathname);
+              fromPage.pathname = parsed_sans_tail.join('/');
+              if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("M> Possible tail replacement: %s", fromPage.pathname );
+            }
           }
         }
       }
@@ -139,7 +147,7 @@ function normalizeUrl( u, parse_input )
   if ( (fromPage.host     || '').length == 0 ) fromPage.host     = parsedUrl.host;
   if ( (fromPage.hostname || '').length == 0 ) fromPage.hostname = parsedUrl.hostname;
 
-  let query_component = (q && q.length && q.length > 0 ? '/?'.concat(q) : '');
+  let query_component = (q && q.length && q.length > 0 ? '?'.concat(q) : '');
 
   u = ''.concat(
     fromPage.protocol,
@@ -280,6 +288,9 @@ function extract_urls( data, target, parse_roots, have_extracted_urls )
   assert( parse_roots !== undefined );
 
   let pageUrlsArray;
+
+  if ( !( process.env['FORCE_EXTRACT'] === undefined ) )
+    have_extracted_urls = false;
 
   if ( have_extracted_urls ) {
     try { 
@@ -477,24 +488,26 @@ async function extract_hosts_from_urlarray( target_url, result )
     // Issue HEAD requests to each URL when cookies are available
     // from a prior run executing fetch_and_extract( target_url ); 
 
+    head_headers = {
+      "User-Agent"                : root_request_header && root_request_header['User-Agent'] ? root_request_header['User-Agent'] : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
+      "Accept"                    : "text/html,application/xhtml+xml,application/pdf,application/javascript,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language"           : "en-US,en;q=0.5",
+      "Accept-Encoding"           : "gzip, deflate, br",
+      "Connection"                : "keep-alive",
+      "Referer"                   : target_url.replace(/\/\.\.\//,'/').replace(/\/$/,''),
+      "Cookie"                    : stringified_cookies( cookies ), 
+      "Upgrade-Insecure-Requests" : 1,
+      "Sec-Fetch-Dest"            : "document",
+      "Sec-Fetch-Mode"            : "navigate",
+      "Sec-Fetch-Site"            : "same-origin",
+      "Sec-Fetch-User"            : "?1",
+      "Pragma"                    : "no-cache",
+      "Cache-Control"             : "no-cache"
+    }
+
     head_options = {
       method: "HEAD",
-      headers: {
-        "User-Agent"                : root_request_header && root_request_header['User-Agent'] ? root_request_header['User-Agent'] : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
-        "Accept"                    : "text/html,application/xhtml+xml,application/pdf,application/javascript,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language"           : "en-US,en;q=0.5",
-        "Accept-Encoding"           : "gzip, deflate, br",
-        "Connection"                : "keep-alive",
-        "Referer"                   : target_url.replace(/\/\.\.\//,'/').replace(/\/$/,''),
-        "Cookie"                    : stringified_cookies( cookies ), 
-        "Upgrade-Insecure-Requests" : 1,
-        "Sec-Fetch-Dest"            : "document",
-        "Sec-Fetch-Mode"            : "navigate",
-        "Sec-Fetch-Site"            : "same-origin",
-        "Sec-Fetch-User"            : "?1",
-        "Pragma"                    : "no-cache",
-        "Cache-Control"             : "no-cache"
-      }
+      headers: head_headers
     }
 
     let content_type = null;
@@ -870,8 +883,12 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
     let from_end = index_limit - option_n - 1;
     let rrv;
     let p_url; 
+    let loaded_url;
     let request_map = new Map;
     let target_dir;
+
+    // pageUrls.clear(); // FIXME: This global array MUST be cleared through each pass, as is done in fetch_reset()
+    fetch_reset();
 
     selector   = await browser.$(congress_selector_css);
     parentForm = await get_parent_form( selector );
@@ -884,15 +901,15 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
     await trigger.click();
     console.log("Sleeping a second");
     await sleep( 1000 );
-    loadedUrl = await browser.getUrl();
-    rrv = rr.get( loadedUrl );
+    loaded_url = await browser.getUrl();
+    rrv = rr.get( loaded_url );
 
-    console.log("Obtained %s", loadedUrl, rrv ); 
+    console.log("Obtained %s", loaded_url, rrv ); 
 
     if ( rrv !== undefined ) {
       let query_map = new Map;
       let query_arr = rrv.data ? rrv.data.split('&') : [];
-      let perform_head_fetch = false;
+      let perform_head_fetch = process.env['FORCE_INTERACTABLE_HEAD_FETCH'] !== undefined; // false;
 
       // Construct Map with query components as key-value pair elements.
       query_arr.forEach((e) => {
@@ -915,7 +932,8 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       query_arr.sort();
 
       // FIXME: Decompose query parameters into path components
-      p_url = url.parse( loadedUrl );
+      parsedUrl = loaded_url;
+      p_url = url.parse( loaded_url );
       // The .data element is simply urlencoded POST data
       p_url.query = query_arr.join('&');
       p_url.parse( normalizeUrl( p_url.href, p_url ) );
@@ -924,7 +942,12 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       request_map.set( p_url.href, rrv ); // WRITE
 
       // Exclude query segment delimiter '?'
-      target_dir = targetDir.concat('/',p_url.query).replace(/\?/,'');
+      target_dir = p_url.href.split('?').join('/');
+      recompute_filepaths_from_url( target_dir );
+      //target_dir = targetDir.concat('/',p_url.query).replace(/\?/,'');
+      target_dir = targetDir;
+
+      console.log( "Interactable target dir %s", target_dir );
       if ( !existsSync( target_dir ) ) { 
         mkdirSync( target_dir, { recursive: true } );
         perform_head_fetch = true;
@@ -936,37 +959,45 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       });
 
       if ( perform_head_fetch ) {
-      extractedUrls = extract_urls( 
-        markup, 
-        loadedUrl, 
-        site_parse_settings.get('parse_roots'), 
-        false /* have_extracted_urls */ 
-      );
+        let extracted_urls = extract_urls( 
+          markup, 
+          loaded_url, 
+          site_parse_settings.get('parse_roots'), 
+          false /* have_extracted_urls */ 
+        );
 
-      iteration_subjects = await extract_hosts_from_urlarray( 
-        loadedUrl, 
-        extractedUrls
-      );
+        let iteration_subject_map = await extract_hosts_from_urlarray( 
+          loaded_url, 
+          extracted_urls
+        );
 
-      try {
-      write_map_to_file(
-        "iterable URLs including text/html",
-        target_dir.concat('/index.potentially-iterable.json'),
-        iteration_subjects,
-        p_url.href
-      );
-      }
-      catch(e) {
-        console.log("Unable to write iterable URLs from %s", p_url.href );
-      }
+        let iterable_list_file = target_dir.concat('/index.potentially-iterable.json');
+
+        try {
+          console.log( "Writing triggered fetch iterable URLs into %s", iterable_list_file, iteration_subject_map );
+
+          write_map_to_file(
+            "iterable URLs including text/html",
+            iterable_list_file,
+            iteration_subject_map.paths,
+            p_url.href
+          );
+        }
+        catch(e) {
+          console.log("Unable to write iterable URLs from %s into %s", 
+            p_url.href,
+            iterable_list_file
+          );
+        }
       } // perform_head_fetch
 
       write_map_to_file( 
-        "catalog of assets", 
+        "request_map", 
         target_dir.concat('/index.assets.json'),
         request_map,
         p_url.href
       );
+      fetch_reset();
     }
 
     if ( from_end == initial_val ) 
@@ -1070,7 +1101,7 @@ async function fetch_and_extract( initial_target, depth )
         console.log( "Fetching from %s", target );
 
         ////////////////////////////////
-        loadCookies();
+        if ( process.env['COOKIES_IGNORE'] === undefined ) loadCookies();
 
         await browser.setTimeout({ 'script': state_timeout });
 
@@ -1110,7 +1141,7 @@ async function fetch_and_extract( initial_target, depth )
 
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Browser status", await browser.status() );
 
-        if ( !cookies ) {
+        if ( !cookies || !( process.env['COOKIES_IGNORE'] === undefined ) ) {
           console.log( "Cookie-free fetch of %s", target );
           await browser.url(target);
         }
@@ -1187,6 +1218,7 @@ async function fetch_and_extract( initial_target, depth )
 
       if ( iteration_subjects === undefined ) {
         let data = readFileSync(targetFile);
+        console.log( "Loaded page from %s", targetFile );
         extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
@@ -1259,9 +1291,6 @@ async function fetch_and_extract( initial_target, depth )
   });
 }//}}}
 
-//v8.setFlagsFromString('--expose-gc');
-//v8.setFlagsFromString('--trace-gc');
-//v8.setFlagsFromString('--max-old-space-size=16384');
 let pagelinks = await fetch_and_extract( targetUrl, 1 );
 
 });

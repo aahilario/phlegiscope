@@ -97,5 +97,23 @@
       "content-encoding": null,
       "last-modified": null
     }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/house-member-kit/1-checklist-requirements.pdf": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "144711",
+      "content-type": "application/pdf",
+      "content-encoding": null,
+      "last-modified": "Thu, 12 May 2022 11:53:40 GMT"
+    }
+  },
+  "https://hrep-website.s3.ap-southeast-1.amazonaws.com/download/house-member-kit/2-pds-house-members.xlsx": {
+    "hits": 1,
+    "headinfo": {
+      "content-length": "96600",
+      "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "content-encoding": null,
+      "last-modified": "Thu, 12 May 2022 11:57:04 GMT"
+    }
   }
 }

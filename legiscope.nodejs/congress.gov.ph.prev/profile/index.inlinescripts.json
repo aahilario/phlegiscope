@@ -1,0 +1,4 @@
+[
+  "\n    $(document).ready(function() {\n      $('[data-toggle=\"tooltip\"]').tooltip();\n    });\n  ",
+  "\n    // create the back to top button\n    $('body').prepend('<a href=\"#\" class=\"back-to-top\">Back to Top</a>');\n\n    var amountScrolled = 50;\n\n    $(window).scroll(function() {\n      if ($(window).scrollTop() > amountScrolled) {\n        $('a.back-to-top').fadeIn('slow');\n      } else {\n        $('a.back-to-top').fadeOut('slow');\n      }\n    });\n\n    $('a.back-to-top, a.simple-back-to-top').click(function() {\n      $('html, body').animate({\n        scrollTop: 0\n      }, 700);\n      return false;\n    });\n  "
+]

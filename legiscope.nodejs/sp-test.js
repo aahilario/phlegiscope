@@ -138,15 +138,18 @@ function normalizeUrl( u, parse_input )
   if ( (fromPage.protocol || '').length == 0 ) fromPage.protocol = parsedUrl.protocol;
   if ( (fromPage.host     || '').length == 0 ) fromPage.host     = parsedUrl.host;
   if ( (fromPage.hostname || '').length == 0 ) fromPage.hostname = parsedUrl.hostname;
+
+  let query_component = (q && q.length && q.length > 0 ? '/?'.concat(q) : '');
+
   u = ''.concat(
     fromPage.protocol,
     '//',
     fromPage.hostname,
     fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
-    (q && q.length && q.length > 0 ? '/'.concat(q) : ''), // FIXME: URL query parts should be converted to path components
+    query_component, // FIXME: URL query parts should be converted to path components
     (h && h.length && h.length > 0 ? h : '')
   ).replace(/#$/,''); // Scrub empty hash part
-  assert( !/[\?]/g.test( u ) ); // Ensure path excludes query delimiter
+  //assert( !/[\?]/g.test( u ) ); // Ensure path excludes query delimiter
   fromPage.href = u;
   if ( !(process.env['NOISY_PARSE'] === undefined) ) {
     console.log( "C> %s", fromPage.href );
@@ -262,7 +265,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0,
       }
       catch(err)
       {
-        console.log( "Error parsing element %s", e );
+        console.log( "Error parsing %s %s", tagname, e );
       }
     });
     // Newline between containing chunks
@@ -324,10 +327,10 @@ function extract_urls( data, target, parse_roots, have_extracted_urls )
 
       writeFile( urlListFile, JSON.stringify( pageUrlsArray.sort() ), function(err) {
         if ( err ) {
-          console.log( "Failed to write URLs from page at '%s'", target );
+          console.log( "Extractor failed to write URLs from page at '%s'", target );
         }
         else {
-          console.log( "Wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
+          console.log( "Extractor wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
         }
       });
 
@@ -400,9 +403,31 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
   }
 }//}}}
 
+function return_sorted_map( map_obj )
+{
+  let sorter = new Array;
+  let sorted = new Map;
+  map_obj.forEach((value, key, map) => {
+    sorter.push(key);
+  });
+  sorter.sort();
+  sorter.forEach((e) => {
+    sorted.set( e, map_obj.get(e) );
+    map_obj.delete(e);
+  });
+  sorter.forEach((e) => {
+    map_obj.set( e, sorted.get(e) );
+    sorted.delete(e);
+  });
+  while ( sorter.length > 0 ) { sorter.pop(); }
+  sorted.clear();
+  sorted = null
+  sorter = null;
+  return map_obj;
+}
 function write_map_to_file( description, map_file, map_obj, loadedUrl )
 {//{{{
-  const objson = Object.fromEntries( map_obj );
+  const objson = Object.fromEntries( return_sorted_map(map_obj) );
   console.log( "Writing %s to %s", description, map_file );
   writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
     flag  : 'w',
@@ -681,11 +706,13 @@ function recompute_filepaths_from_url(target)
   targetDir = '';
 
   pathParts = parsedUrl.host.concat('/', parsedUrl.pathname)
-    .replace(/[\/]{1,}/gi,'/')
-    .replace(/[\/]{1,}$/,'')
-    .replace(/^[\/]{1,}/,'')
-    .replace(/\/\.\.\//,'/')
-    .replace(/[\/.]$/,'').split('/');
+    .replace(/[?]/g,'/')       // Replace query delimiter at any position with '/'
+    .replace(/[\/]{1,}/gi,'/') // Replace multiple forward-slashes to '/'
+    .replace(/[\/]{1,}$/,'')   // Trim multiple trailing slashes
+    .replace(/^[\/]{1,}/,'')   // Trim multile leading slashes
+    .replace(/\/\.\.\//,'/')   // Remove intervening double-dot components
+    .replace(/[\/.]$/,'')      // Remove trailing slash-dot
+    .split('/');
 
   // Unique visited URL and permitted hosts files
   visitFile      = parsedUrl.host.concat('/visited.json');
@@ -866,6 +893,8 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       let query_map = new Map;
       let query_arr = rrv.data ? rrv.data.split('&') : [];
       let perform_head_fetch = false;
+
+      // Construct Map with query components as key-value pair elements.
       query_arr.forEach((e) => {
         query_map.set( 
           e.replace(/^([^=]{1,})=.*$/, '$1'),
@@ -883,6 +912,8 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         query_arr.push( key.concat('=',value) );
       });
 
+      query_arr.sort();
+
       // FIXME: Decompose query parameters into path components
       p_url = url.parse( loadedUrl );
       // The .data element is simply urlencoded POST data
@@ -892,9 +923,10 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       rr.set( p_url.href, rrv );
       request_map.set( p_url.href, rrv ); // WRITE
 
-      target_dir = targetDir.concat('/',p_url.query);
+      // Exclude query segment delimiter '?'
+      target_dir = targetDir.concat('/',p_url.query).replace(/\?/,'');
       if ( !existsSync( target_dir ) ) { 
-        mkdirSync( target_dir );
+        mkdirSync( target_dir, { recursive: true } );
         perform_head_fetch = true;
       }
       markup = await browser.$('html').getHTML(); // WRITE
@@ -1027,7 +1059,9 @@ async function fetch_and_extract( initial_target, depth )
 
       console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
 
-      if ( !fileProps ) 
+      if ( process.env['REFRESH'] !== undefined )
+        have_extracted_urls = false;
+      else if ( !fileProps ) 
         have_extracted_urls = false;
 
       if ( !fileProps || !visited || resweep ) 

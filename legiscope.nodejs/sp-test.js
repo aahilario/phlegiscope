@@ -953,7 +953,8 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         perform_head_fetch = true;
       }
       markup = await browser.$('html').getHTML(); // WRITE
-      writeFileSync( target_dir.concat('/index.html'), markup, {
+      targetFile = target_dir.concat('/index.html');
+      writeFileSync( targetFile, markup, {
         flag  : 'w',
         flush : true
       });
@@ -974,7 +975,7 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         let iterable_list_file = target_dir.concat('/index.potentially-iterable.json');
 
         try {
-          console.log( "Writing triggered fetch iterable URLs into %s", iterable_list_file, iteration_subject_map );
+          console.log( "Writing triggered fetch iterable URLs into %s", iterable_list_file );
 
           write_map_to_file(
             "iterable URLs including text/html",
@@ -997,7 +998,6 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         request_map,
         p_url.href
       );
-      fetch_reset();
     }
 
     if ( from_end == initial_val ) 
@@ -1217,8 +1217,8 @@ async function fetch_and_extract( initial_target, depth )
       };//}}}
 
       if ( iteration_subjects === undefined ) {
+        console.log( "Loading page from %s", targetFile );
         let data = readFileSync(targetFile);
-        console.log( "Loaded page from %s", targetFile );
         extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }

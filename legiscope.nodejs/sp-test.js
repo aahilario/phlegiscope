@@ -14,6 +14,7 @@ const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync 
 const assert = require("assert");
 const System = require("systemjs");
 const cheerio = require("cheerio");
+const { createHash } = require("node:crypto");
 const url = require("node:url");
 const http = require("node:http");
 const https = require("node:https");
@@ -51,6 +52,7 @@ let pageParseSettings;
 let inlineScripts     = new Array;
 let pageUrls          = new Map;
 let pageHosts         = new Map;
+let cdpRRdata         = new Map;
 let extractedUrls;
 let cookies;
 let root_request_header;
@@ -787,13 +789,12 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
   let query_splitter = /([0-9a-z_]{1,})\=([0-9a-z_]{1,})/gi;
   let markup;
 
-  async function get_parent_form( select_e )
+  async function get_parent( tagname, e )
   {//{{{
-    // Locate SELECT tag's parent FORM tag
-    let parent_form;
-    let child = select_e;
+    let parent_element;
+    let child = e;
     let iterations = 0;
-    while ( parent_form === undefined ) {//{{{
+    while ( parent_element === undefined ) {//{{{
       let parent_element = await child.$('..'); 
       let candidate_tagname = await parent_element.getTagName(); 
       iterations++;
@@ -801,16 +802,22 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         console.log( "%d: Processing cannot continue.", iterations );
         break;
       }
-      else if ( candidate_tagname == 'form' ) {
-        console.log( "Got parent form" );
+      else if ( candidate_tagname == tagname ) {
+        console.log( "Got parent %s", tagname );
         return Promise.resolve(parent_element);
       }
       else {
-        console.log( "%d: Processing next parent %s", iterations, candidate_tagname );
+        console.log( "%d: Processing next ancestor %s", iterations, candidate_tagname );
         child = parent_element;
       }
     }//}}}
-    return Promise.resolve(parent_form);
+    return Promise.resolve(parent_element);
+  }//}}}
+
+  async function get_parent_form( select_e )
+  {//{{{
+    // Locate SELECT tag's parent FORM tag
+    return Promise.resolve(await get_parent( 'form', select_e ));
   }//}}}
 
   async function get_submit_button_in( parent_form )
@@ -860,12 +867,26 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
     return new Promise((resolve) => { resolve(index_limit); });
   }//}}}
 
+  async function bills_history_modal( b )
+  {
+    // Parameters:
+    // - b: browser object from caller context
+    // Trigger modal markup fetch event
+    // - Click on "History" link to trigger event
+    // - Wait for 'html body.modal-open div.container-fluid div.row.section div.col-md-8 div#HistoryModal.modal.fade.in'
+    //   - Save modal markup
+    // - Locate and click on "Close" button 'html body.modal-open div.container-fluid div.row.section div.col-md-8 div#HistoryModal.modal.fade.in div.modal-dialog div.modal-content div.modal-footer a.btn.btn-default.btn-success'
+    // 
+    return Promise.resolve(true);
+  }
 
+  // Enumerate options from registry selection tag
   selector = await browser.$(congress_selector_css);
   assert.equal("House of Representatives", title);
   console.log( "Test of interaction in %d seconds", halttime );
   await sleep( halttime * 1000 );
 
+  // Visibly enable selector
   await selector.click();
   await sleep( 1000 );
 
@@ -887,18 +908,24 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
     let request_map = new Map;
     let target_dir;
 
-    // pageUrls.clear(); // FIXME: This global array MUST be cleared through each pass, as is done in fetch_reset()
+    // pageUrls.clear(); // FIXME: This global array MUST be cleared through each pass.
+    // Done in fetch_reset():
     fetch_reset();
 
+    // The document registry pages in a document type have 
+    // homologous structure across document classes (bills, Republic Acts, etc.)
+    // 
     selector   = await browser.$(congress_selector_css);
     parentForm = await get_parent_form( selector );
     trigger    = await get_submit_button_in( parentForm );
     o          = await selector.selectByIndex( from_end );
     option_val = await selector.getValue();
+
     console.log( "- Triggering option '%s'[%d]", option_val, from_end );
     await trigger.moveTo();
     await sleep( 200 );
     await trigger.click();
+
     console.log("Sleeping a second");
     await sleep( 1000 );
     loaded_url = await browser.getUrl();
@@ -944,7 +971,6 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       // Exclude query segment delimiter '?'
       target_dir = p_url.href.split('?').join('/');
       recompute_filepaths_from_url( target_dir );
-      //target_dir = targetDir.concat('/',p_url.query).replace(/\?/,'');
       target_dir = targetDir;
 
       console.log( "Interactable target dir %s", target_dir );
@@ -958,6 +984,98 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         flag  : 'w',
         flush : true
       });
+
+      // At this point, we can scan through/wait for e.g. the "#HistoryModal" <A>
+      // tags, which, when clicked, invoke POST events to retrieve bill history 
+      // markup text. WIth the target directory for markup created, we can proceed
+      // to fetch those fragments.
+      for await (const e of browser.$$('a[href="#HistoryModal"]') ) 
+      {//{{{
+        let parent_div;
+        let close_button;
+        let history_modal;
+        let data_attr = await $(e).getAttribute('data-id');
+        let hasher = createHash('sha256');
+        let matcher = new RegExp('('.concat(data_attr,')'), 'g');
+        let fragment_hash;
+        let cdp_rr;
+        let parsed_u;
+        let cache_path;
+        
+        if ( data_attr && data_attr.length > 0 ) {
+          hasher.update(data_attr);
+          fragment_hash = hasher.digest('hex');
+          cache_path = target_dir.concat('/cache/', fragment_hash );
+          if ( !existsSync( cache_path ) ) {
+            mkdirSync( cache_path, { recursive: true } );
+          }
+        }
+
+        // We can avoid triggering HTML fragment fetches if a cache path and
+        // cached markup is present.
+        cdpRRdata.clear();
+
+        console.log( "Match %s %s", await $(e).getText(), data_attr );
+        await $(e).scrollIntoView({ block: 'center', inline: 'center' });
+        parent_div = await get_parent( 'div', e );
+        // Trigger modal fetch
+        await e.click();
+
+        history_modal = await browser.$('div.modal.fade.in');
+        await history_modal.waitForDisplayed( { timeout: 5000 } ); 
+        console.log("Got modal window");
+
+        // Wait for the modal window close trigger to be available.
+        close_button = await history_modal.$('button.close');
+        console.log("Button '%s'", await await history_modal.$('button.close').getText() );
+        await close_button.waitForClickable( { timeout: 4000 } );
+
+        console.log( "Test CDP response (if any) against '%s'", data_attr );
+        cdpRRdata.forEach((value, key, map) => {
+          if ( value.method == 'POST' && matcher.test(value.data) ) {
+            let t; 
+            cdp_rr = new Map;
+            cdp_rr.set( key, value );
+            console.log("Found CDP %s response from %s", value.method, key, value);
+            parsed_u = url.parse( key );
+            parsed_u.query = [data_attr, parsed_u.query].join('&').replace(/\&$/,'');
+            t = normalizeUrl( key, parsed_u );
+            console.log( ">> Target URL: %s", t );
+            console.log( ">> Request URL hash: %s", fragment_hash );
+            cdp_rr.set( 'meta_url', t );
+            cdp_rr.set( 'meta_hash', fragment_hash );
+            cdp_rr.set( 'record', key );
+          }
+        });
+
+
+        console.log( "Closing dialog" );
+        // Save the markup
+        if ( cdp_rr !== undefined && cache_path !== undefined ) {
+          let fragment_markup = await history_modal.getHTML(); 
+          let markup_file = cache_path.concat('/fragment.html');
+          let cdp_file = cache_path.concat('/network.json');
+          writeFileSync( markup_file, fragment_markup, {
+            flag: 'w',
+            flush: true
+          });
+          write_map_to_file( "markup fragment metadata", cdp_file, cdp_rr, cdp_rr.meta_url ); 
+        }
+
+        if ( cdp_rr !== undefined ) {
+          cdp_rr.clear();
+          cdp_rr = null;
+        }
+
+        // Close the dialog
+        await close_button.click();
+
+        matcher = null;
+        hasher = null;
+
+        await sleep(2000);
+
+      }//}}}
 
       if ( perform_head_fetch ) {
         let extracted_urls = extract_urls( 
@@ -1112,6 +1230,15 @@ async function fetch_and_extract( initial_target, depth )
           if ( event.request.url == target )
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log(`Request: ${event.request.method} ${event.request.url}`, event.request.headers);
           root_request_header = event.request.headers;
+          cdpRRdata.set( event.request.url, {
+            target: event.request.url,
+            status: null, 
+            method: event.request.method,
+            dataEntries: event.request.hasPostData ? event.request.postDataEntries : [],
+            data: event.request.postData ? event.request.postData : "",
+            req: event.request.headers,
+            res: null
+          });
           page_assets.set( event.request.url, {
             status: null, 
             method: event.request.method,
@@ -1137,6 +1264,23 @@ async function fetch_and_extract( initial_target, depth )
               res: event.response.headers
             });
           }
+
+          // Unlogged data
+          pair = cdpRRdata.get( event.response.url );
+          if ( pair !== undefined ) {
+            pair.res    = event.response.headers;
+            pair.status = event.response.status;
+            cdpRRdata.set( event.response.url, pair );
+          }
+          else {
+            cdpRRdata.set( event.response.url, {
+              status: event.response.status,
+              req: null,
+              res: event.response.headers
+            });
+          }
+
+
         });
 
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Browser status", await browser.status() );
@@ -1173,7 +1317,7 @@ async function fetch_and_extract( initial_target, depth )
           let m = interactable.get( target );
           markup = await m.method( browser, page_assets, siteParseSettings, m.params );
         }
-        else {
+        else {//{{{
           markup = await browser.$('html').getHTML();
           await writeFile( targetFile, markup, function(err) {
             if ( err ) {
@@ -1186,7 +1330,7 @@ async function fetch_and_extract( initial_target, depth )
 
           extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
 
-          // Prepend all page asset URLs to the array of DOM-embedded URLs.
+          // Append all page asset URLs to the array of DOM-embedded URLs.
           page_assets.forEach( (headers, urlraw, map) => {
             // URLFIX
             let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
@@ -1197,10 +1341,10 @@ async function fetch_and_extract( initial_target, depth )
 
           iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
 
-          write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
-          write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
+          write_map_to_file( "catalog of assets", assetCatalogFile, page_assets  , loadedUrl );
+          write_map_to_file( "visited URLs"     , visitFile       , visited_pages, loadedUrl );
 
-        }
+        }//}}}
 
         await writeFile( pageCookieFile, JSON.stringify( cookies, null, 2 ), function(err) {
           if ( err ) {
@@ -1218,7 +1362,7 @@ async function fetch_and_extract( initial_target, depth )
 
       if ( iteration_subjects === undefined ) {
         console.log( "Loading page from %s", targetFile );
-        let data = readFileSync(targetFile);
+        let data = readFileSync( targetFile );
         extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }

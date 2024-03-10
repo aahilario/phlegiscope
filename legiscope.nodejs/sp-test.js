@@ -1001,6 +1001,7 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         let cdp_rr;
         let parsed_u;
         let cache_path;
+        let uncached_fragment = false;
         
         if ( data_attr && data_attr.length > 0 ) {
           hasher.update(data_attr);
@@ -1017,63 +1018,78 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
 
         console.log( "Match %s %s", await $(e).getText(), data_attr );
         await $(e).scrollIntoView({ block: 'center', inline: 'center' });
-        parent_div = await get_parent( 'div', e );
-        // Trigger modal fetch
-        await e.click();
 
-        history_modal = await browser.$('div.modal.fade.in');
-        await history_modal.waitForDisplayed( { timeout: 5000 } ); 
-        console.log("Got modal window");
+        uncached_fragment = !existsSync( cache_path.concat('/fragment.html') );
 
-        // Wait for the modal window close trigger to be available.
-        close_button = await history_modal.$('button.close');
-        console.log("Button '%s'", await await history_modal.$('button.close').getText() );
-        await close_button.waitForClickable( { timeout: 4000 } );
+        if ( uncached_fragment ) {
 
-        console.log( "Test CDP response (if any) against '%s'", data_attr );
-        cdpRRdata.forEach((value, key, map) => {
-          if ( value.method == 'POST' && matcher.test(value.data) ) {
-            let t; 
-            cdp_rr = new Map;
-            cdp_rr.set( key, value );
-            console.log("Found CDP %s response from %s", value.method, key, value);
-            parsed_u = url.parse( key );
-            parsed_u.query = [data_attr, parsed_u.query].join('&').replace(/\&$/,'');
-            t = normalizeUrl( key, parsed_u );
-            console.log( ">> Target URL: %s", t );
-            console.log( ">> Request URL hash: %s", fragment_hash );
-            cdp_rr.set( 'meta_url', t );
-            cdp_rr.set( 'meta_hash', fragment_hash );
-            cdp_rr.set( 'record', key );
+          parent_div = await get_parent( 'div', e );
+          // Trigger modal fetch
+          try {
+            await e.waitForDisplayed( { timeout: 5000 } );
+            await e.waitForClickable( { timeout: 10000 } );
+            await e.click();
+
+            history_modal = await browser.$('div.modal.fade.in');
+            await history_modal.waitForDisplayed( { timeout: 5000 } ); 
+            console.log("Got modal window");
+
+            // Wait for the modal window close trigger to be available.
+            close_button = await history_modal.$('button.close');
+            console.log("Button '%s'", await await history_modal.$('button.close').getText() );
+            await close_button.waitForDisplayed( { timeout: 5000 } );
+            await close_button.waitForClickable( { timeout: 10000 } );
+
+            console.log( "Test CDP response (if any) against '%s'", data_attr );
+            cdpRRdata.forEach((value, key, map) => {
+              if ( value.method == 'POST' && matcher.test(value.data) ) {
+                let t; 
+                cdp_rr = new Map;
+                cdp_rr.set( key, value );
+                console.log("Found CDP %s response from %s", value.method, key, value);
+                parsed_u = url.parse( key );
+                parsed_u.query = [data_attr, parsed_u.query].join('&').replace(/\&$/,'');
+                t = normalizeUrl( key, parsed_u );
+                console.log( ">> Target URL: %s", t );
+                console.log( ">> Request URL hash: %s", fragment_hash );
+                cdp_rr.set( 'meta_url', t );
+                cdp_rr.set( 'meta_hash', fragment_hash );
+                cdp_rr.set( 'record', key );
+              }
+            });
           }
-        });
+          catch (e) {
+            console.log( "Element event could not be completed", e );
+          }
 
+          console.log( "Closing dialog" );
+          // Save the markup
+          if ( cdp_rr !== undefined && cache_path !== undefined ) {
+            let fragment_markup = await history_modal.getHTML(); 
+            let markup_file = cache_path.concat('/fragment.html');
+            let cdp_file = cache_path.concat('/network.json');
+            writeFileSync( markup_file, fragment_markup, {
+              flag: 'w',
+              flush: true
+            });
+            write_map_to_file( "markup fragment metadata", cdp_file, cdp_rr, cdp_rr.meta_url ); 
+          }
 
-        console.log( "Closing dialog" );
-        // Save the markup
-        if ( cdp_rr !== undefined && cache_path !== undefined ) {
-          let fragment_markup = await history_modal.getHTML(); 
-          let markup_file = cache_path.concat('/fragment.html');
-          let cdp_file = cache_path.concat('/network.json');
-          writeFileSync( markup_file, fragment_markup, {
-            flag: 'w',
-            flush: true
-          });
-          write_map_to_file( "markup fragment metadata", cdp_file, cdp_rr, cdp_rr.meta_url ); 
+          if ( cdp_rr !== undefined ) {
+            cdp_rr.clear();
+            cdp_rr = null;
+          }
+
+          // Close the dialog
+          await close_button.click();
+          await close_button.waitForDisplayed( { reverse: true, timeout: 3000 } );
         }
-
-        if ( cdp_rr !== undefined ) {
-          cdp_rr.clear();
-          cdp_rr = null;
-        }
-
-        // Close the dialog
-        await close_button.click();
 
         matcher = null;
         hasher = null;
 
-        await sleep(2000);
+        if ( uncached_fragment )
+        await sleep(1000);
 
       }//}}}
 

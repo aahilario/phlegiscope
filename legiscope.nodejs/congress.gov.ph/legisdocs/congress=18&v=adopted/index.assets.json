@@ -4,10 +4,10 @@
     "method": "POST",
     "dataEntries": [
       {
-        "bytes": "dj1hZG9wdGVkJmNzcmZfdG9rZW49OTZhN2E3ZTVlZDZjMWI3ODEwYzdlYjEwNDJhNjc3MmI3NDQ0ZjliY2Q3YTZmMTg4NGNkMzE1OWJmMDAyYzI0NiZjb25ncmVzcz0xOA=="
+        "bytes": "dj1hZG9wdGVkJmNzcmZfdG9rZW49YjY0Mjk0NTJlMjg4ZDQyNmFhYmYxNGEzMGY2NzMyODYxNjg1MmY2ZjIxZTEzYzExMTllZWQ1MzZiMThhNzhmNCZjb25ncmVzcz0xOA=="
       }
     ],
-    "data": "v=adopted&csrf_token=96a7a7e5ed6c1b7810c7eb1042a6772b7444f9bcd7a6f1884cd3159bf002c246&congress=18",
+    "data": "v=adopted&csrf_token=b6429452e288d426aabf14a30f67328616852f6f21e13c1119eed536b18a78f4&congress=18",
     "req": {
       "Content-Type": "application/x-www-form-urlencoded",
       "Origin": "https://congress.gov.ph",
@@ -21,10 +21,10 @@
     "res": {
       "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
       "cf-cache-status": "DYNAMIC",
-      "cf-ray": "861a99199d4d402e-MNL",
+      "cf-ray": "861cdc12a9f54046-MNL",
       "content-encoding": "gzip",
       "content-type": "text/html; charset=UTF-8",
-      "date": "Sat, 09 Mar 2024 11:06:51 GMT",
+      "date": "Sat, 09 Mar 2024 17:42:06 GMT",
       "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
       "pragma": "no-cache",
       "server": "cloudflare",

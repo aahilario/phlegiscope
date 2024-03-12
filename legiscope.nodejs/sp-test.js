@@ -1017,7 +1017,7 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         cdpRRdata.clear();
 
         console.log( "Match %s %s", await $(e).getText(), data_attr );
-        await $(e).scrollIntoView({ block: 'center', inline: 'center' });
+        await $(e).scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' });
 
         uncached_fragment = !existsSync( cache_path.concat('/fragment.html') );
 
@@ -1080,16 +1080,28 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
             cdp_rr = null;
           }
 
+          let done = false;
           // Close the dialog
-          await close_button.click();
-          await close_button.waitForDisplayed( { reverse: true, timeout: 3000 } );
+          while ( !done ) {
+            try {
+              if ( await close_button.isClickable() ) {
+                console.log( "Closing modal" );
+                await close_button.click();
+                await close_button.waitForDisplayed( { reverse: true, timeout: 3000 } );
+              }
+              done = true;
+            }
+            catch(e) {
+              console.log( "Must retry modal close" );
+            }
+          }
         }
 
         matcher = null;
         hasher = null;
 
         if ( uncached_fragment )
-        await sleep(1000);
+        await sleep(200);
 
       }//}}}
 

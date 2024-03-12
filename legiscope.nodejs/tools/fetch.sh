@@ -16,10 +16,10 @@ time node \
   --max-old-space-size=8192 \
   --max-heap-size=8192 \
   --huge-max-old-generation-size \
-  ./node_modules/.bin/wdio run ./wdio.conf.js 2>&1 | tee -a output.log
+  ./node_modules/.bin/wdio run ./wdio.conf.js 2>&1 | tee output.log
   #--expose-gc \
   #--trace-gc \
 
 cat lastrun.json | jq .  | tee -a output.log
 
-less output.log
+#less output.log

@@ -1,0 +1,38 @@
+{
+  "https://congress.gov.ph/legisdocs/fetch_history.php": {
+    "target": "https://congress.gov.ph/legisdocs/fetch_history.php",
+    "status": 200,
+    "method": "POST",
+    "dataEntries": [
+      {
+        "bytes": "cm93aWQ9I0hCMDQ0MDAtMTM="
+      }
+    ],
+    "data": "rowid=#HB04400-13",
+    "req": {
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"24\", \"Chromium\";v=\"122\"",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Accept": "*/*",
+      "Referer": "https://congress.gov.ph/legisdocs/?v=bills",
+      "X-Requested-With": "XMLHttpRequest",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Sun, 10 Mar 2024 12:49:12 GMT",
+      "content-encoding": "gzip",
+      "cf-cache-status": "DYNAMIC",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "max-age=1, must-revalidate",
+      "cf-ray": "86236c61592c403a-MNL",
+      "x-xss-protection": "1; mode=block",
+      "expires": "Sun, 10 Mar 2024 12:49:12 GMT"
+    }
+  },
+  "meta_hash": "97fbb7b8cd3658634529b806b9829428debb922d4d9c502b76dbfd8a07fa5359",
+  "meta_url": "https://congress.gov.ph/legisdocs/fetch_history.php?#HB04400-13",
+  "record": "https://congress.gov.ph/legisdocs/fetch_history.php"
+}

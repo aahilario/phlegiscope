@@ -1006,7 +1006,7 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         if ( data_attr && data_attr.length > 0 ) {
           hasher.update(data_attr);
           fragment_hash = hasher.digest('hex');
-          cache_path = target_dir.concat('/cache/', fragment_hash );
+          cache_path = target_dir.concat('/lib/', fragment_hash );
           if ( !existsSync( cache_path ) ) {
             mkdirSync( cache_path, { recursive: true } );
           }
@@ -1017,7 +1017,7 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         cdpRRdata.clear();
 
         console.log( "Match %s %s", await $(e).getText(), data_attr );
-        await $(e).scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' });
+        await e.scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' });
 
         uncached_fragment = !existsSync( cache_path.concat('/fragment.html') );
 

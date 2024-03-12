@@ -1,0 +1,27 @@
+{
+  "https://congress.gov.ph/legisdocs/fetch_history.php": {
+    "target": "https://congress.gov.ph/legisdocs/fetch_history.php",
+    "status": null,
+    "method": "POST",
+    "dataEntries": [
+      {
+        "bytes": "cm93aWQ9I0hCMDU3NDctMTM="
+      }
+    ],
+    "data": "rowid=#HB05747-13",
+    "req": {
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"24\", \"Chromium\";v=\"122\"",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Accept": "*/*",
+      "Referer": "https://congress.gov.ph/legisdocs/?v=bills",
+      "X-Requested-With": "XMLHttpRequest",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": null
+  },
+  "meta_hash": "421a5bf07106f39bd44b573cd430c0a22adbd82fc1bf515cf23daec823fd112f",
+  "meta_url": "https://congress.gov.ph/legisdocs/fetch_history.php?#HB05747-13",
+  "record": "https://congress.gov.ph/legisdocs/fetch_history.php"
+}

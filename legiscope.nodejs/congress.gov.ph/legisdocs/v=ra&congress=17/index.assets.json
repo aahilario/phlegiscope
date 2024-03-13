@@ -1,0 +1,35 @@
+{
+  "https://congress.gov.ph/legisdocs/v=ra&congress=17?v=ra": {
+    "status": 200,
+    "method": "POST",
+    "dataEntries": [
+      {
+        "bytes": "dj1yYSZjc3JmX3Rva2VuPTQyNmFkZDExYTdiNTE0YjgxMjhmMzNjN2RhY2MxZGRjMzAyNDUyYzczNjU3MDUxOGU3NmM2ODg1MmRkYjFhYmEmY29uZ3Jlc3M9MTc="
+      }
+    ],
+    "data": "v=ra&csrf_token=426add11a7b514b8128f33c7dacc1ddc302452c736570518e76c68852ddb1aba&congress=17",
+    "req": {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Origin": "https://congress.gov.ph",
+      "Referer": "https://congress.gov.ph/legisdocs/?v=ra",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"24\", \"Chromium\";v=\"122\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "cache-control": "no-store, no-cache, must-revalidate, must-revalidate",
+      "cf-cache-status": "DYNAMIC",
+      "cf-ray": "85ff5c9ceef00eb8-HKG",
+      "content-encoding": "gzip",
+      "content-type": "text/html; charset=UTF-8",
+      "date": "Wed, 06 Mar 2024 03:46:58 GMT",
+      "expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+      "pragma": "no-cache",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "x-xss-protection": "1; mode=block"
+    }
+  }
+}

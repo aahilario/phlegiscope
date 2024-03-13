@@ -1,0 +1,47 @@
+{
+  "https://congress.gov.ph/legisdocs/fetch_history.php": {
+    "target": "https://congress.gov.ph/legisdocs/fetch_history.php",
+    "status": 403,
+    "method": "POST",
+    "dataEntries": [
+      {
+        "bytes": "cm93aWQ9I0hCMDMxNzItMTU="
+      }
+    ],
+    "data": "rowid=#HB03172-15",
+    "req": {
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"24\", \"Chromium\";v=\"122\"",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Accept": "*/*",
+      "Referer": "https://congress.gov.ph/legisdocs/?v=bills",
+      "X-Requested-With": "XMLHttpRequest",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Wed, 13 Mar 2024 01:22:14 GMT",
+      "via": "1.1 a4830e13106c7fdebdc2298346e15b76.cloudfront.net (CloudFront)",
+      "x-content-type-options": "nosniff",
+      "strict-transport-security": "max-age=31536000",
+      "cf-cache-status": "DYNAMIC",
+      "x-amz-cf-pop": "MNL52-P2",
+      "age": "1179",
+      "x-amz-server-side-encryption": "AES256",
+      "content-encoding": "gzip",
+      "x-cache": "Error from cloudfront",
+      "x-xss-protection": "1; mode=block",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "last-modified": "Tue, 17 Oct 2023 02:46:11 GMT",
+      "server": "cloudflare",
+      "vary": "Accept-Encoding",
+      "x-frame-options": "SAMEORIGIN",
+      "content-type": "text/html",
+      "cf-ray": "86383637df97403a-MNL",
+      "x-amz-cf-id": "0MhDQ9284gSuBlC3E098wVgKmS3p7LAmya82T5K3D9Orfse4hR5W1w=="
+    }
+  },
+  "meta_hash": "5725acfd40400d2990c4c97a7ed5fe293916b5f03d57cd924eb04d2af1a4f08f",
+  "meta_url": "https://congress.gov.ph/legisdocs/fetch_history.php?#HB03172-15",
+  "record": "https://congress.gov.ph/legisdocs/fetch_history.php"
+}

@@ -14,6 +14,7 @@ const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync 
 const assert = require("assert");
 const System = require("systemjs");
 const cheerio = require("cheerio");
+const { createHash } = require("node:crypto");
 const url = require("node:url");
 const http = require("node:http");
 const https = require("node:https");
@@ -51,6 +52,7 @@ let pageParseSettings;
 let inlineScripts     = new Array;
 let pageUrls          = new Map;
 let pageHosts         = new Map;
+let cdpRRdata         = new Map;
 let extractedUrls;
 let cookies;
 let root_request_header;
@@ -123,12 +125,20 @@ function normalizeUrl( u, parse_input )
           fromPage.pathname = parsedUrl.pathname;
         }
         else {
-          let parsed_sans_tail = (parsedUrl.pathname || '').split('/');
-          if ( parsed_sans_tail.length > 1 ) {
-            parsed_sans_tail.pop();
-            parsed_sans_tail.push(fromPage.pathname);
-            fromPage.pathname = parsed_sans_tail.join('/');
-            if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("M> Possible tail replacement");
+          let test_concat = [ parsedUrl.pathname, fromPage.pathname ].join('/');
+
+          if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("N> %s", test_concat );
+          if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("O> %s", test_concat.replace(/\/([^\/]{1,})\/\.\.\//,'/') );
+          fromPage.pathname = test_concat.replace(/\/([^\/]{1,})\/\.\.\//,'/');
+
+          if ( process.env['PERMIT_BROKEN'] !== undefined ) {
+            let parsed_sans_tail = (parsedUrl.pathname || '').split('/');
+            if ( parsed_sans_tail.length > 1 ) {
+              parsed_sans_tail.pop();
+              parsed_sans_tail.push(fromPage.pathname);
+              fromPage.pathname = parsed_sans_tail.join('/');
+              if ( !(process.env['NOISY_PARSE'] === undefined) ) console.log("M> Possible tail replacement: %s", fromPage.pathname );
+            }
           }
         }
       }
@@ -138,15 +148,18 @@ function normalizeUrl( u, parse_input )
   if ( (fromPage.protocol || '').length == 0 ) fromPage.protocol = parsedUrl.protocol;
   if ( (fromPage.host     || '').length == 0 ) fromPage.host     = parsedUrl.host;
   if ( (fromPage.hostname || '').length == 0 ) fromPage.hostname = parsedUrl.hostname;
+
+  let query_component = (q && q.length && q.length > 0 ? '?'.concat(q) : '');
+
   u = ''.concat(
     fromPage.protocol,
     '//',
     fromPage.hostname,
     fromPage.pathname.replace(/[\/]{1,}/gi,'/').replace(/\/([^\/]{1,})\/\.\.\//,'/').replace(/\/$/,''),
-    (q && q.length && q.length > 0 ? '/'.concat(q) : ''), // FIXME: URL query parts should be converted to path components
+    query_component, // FIXME: URL query parts should be converted to path components
     (h && h.length && h.length > 0 ? h : '')
   ).replace(/#$/,''); // Scrub empty hash part
-  assert( !/[\?]/g.test( u ) ); // Ensure path excludes query delimiter
+  //assert( !/[\?]/g.test( u ) ); // Ensure path excludes query delimiter
   fromPage.href = u;
   if ( !(process.env['NOISY_PARSE'] === undefined) ) {
     console.log( "C> %s", fromPage.href );
@@ -262,7 +275,7 @@ function detag( index, element, depth = 0, elementParent = null, indexlimit = 0,
       }
       catch(err)
       {
-        console.log( "Error parsing element %s", e );
+        console.log( "Error parsing %s %s", tagname, e );
       }
     });
     // Newline between containing chunks
@@ -277,6 +290,9 @@ function extract_urls( data, target, parse_roots, have_extracted_urls )
   assert( parse_roots !== undefined );
 
   let pageUrlsArray;
+
+  if ( !( process.env['FORCE_EXTRACT'] === undefined ) )
+    have_extracted_urls = false;
 
   if ( have_extracted_urls ) {
     try { 
@@ -324,10 +340,10 @@ function extract_urls( data, target, parse_roots, have_extracted_urls )
 
       writeFile( urlListFile, JSON.stringify( pageUrlsArray.sort() ), function(err) {
         if ( err ) {
-          console.log( "Failed to write URLs from page at '%s'", target );
+          console.log( "Extractor failed to write URLs from page at '%s'", target );
         }
         else {
-          console.log( "Wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
+          console.log( "Extractor wrote %d URLs from '%s' into '%s'", pageUrls.size, target, urlListFile );
         }
       });
 
@@ -400,9 +416,31 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
   }
 }//}}}
 
+function return_sorted_map( map_obj )
+{
+  let sorter = new Array;
+  let sorted = new Map;
+  map_obj.forEach((value, key, map) => {
+    sorter.push(key);
+  });
+  sorter.sort();
+  sorter.forEach((e) => {
+    sorted.set( e, map_obj.get(e) );
+    map_obj.delete(e);
+  });
+  sorter.forEach((e) => {
+    map_obj.set( e, sorted.get(e) );
+    sorted.delete(e);
+  });
+  while ( sorter.length > 0 ) { sorter.pop(); }
+  sorted.clear();
+  sorted = null
+  sorter = null;
+  return map_obj;
+}
 function write_map_to_file( description, map_file, map_obj, loadedUrl )
 {//{{{
-  const objson = Object.fromEntries( map_obj );
+  const objson = Object.fromEntries( return_sorted_map(map_obj) );
   console.log( "Writing %s to %s", description, map_file );
   writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
     flag  : 'w',
@@ -452,24 +490,26 @@ async function extract_hosts_from_urlarray( target_url, result )
     // Issue HEAD requests to each URL when cookies are available
     // from a prior run executing fetch_and_extract( target_url ); 
 
+    head_headers = {
+      "User-Agent"                : root_request_header && root_request_header['User-Agent'] ? root_request_header['User-Agent'] : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
+      "Accept"                    : "text/html,application/xhtml+xml,application/pdf,application/javascript,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language"           : "en-US,en;q=0.5",
+      "Accept-Encoding"           : "gzip, deflate, br",
+      "Connection"                : "keep-alive",
+      "Referer"                   : target_url.replace(/\/\.\.\//,'/').replace(/\/$/,''),
+      "Cookie"                    : stringified_cookies( cookies ), 
+      "Upgrade-Insecure-Requests" : 1,
+      "Sec-Fetch-Dest"            : "document",
+      "Sec-Fetch-Mode"            : "navigate",
+      "Sec-Fetch-Site"            : "same-origin",
+      "Sec-Fetch-User"            : "?1",
+      "Pragma"                    : "no-cache",
+      "Cache-Control"             : "no-cache"
+    }
+
     head_options = {
       method: "HEAD",
-      headers: {
-        "User-Agent"                : root_request_header && root_request_header['User-Agent'] ? root_request_header['User-Agent'] : "Mozilla/5.0 rX11; Linux x86_64; rv: 109.0) Gecko/20100101 Firefox/115.0",
-        "Accept"                    : "text/html,application/xhtml+xml,application/pdf,application/javascript,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language"           : "en-US,en;q=0.5",
-        "Accept-Encoding"           : "gzip, deflate, br",
-        "Connection"                : "keep-alive",
-        "Referer"                   : target_url.replace(/\/\.\.\//,'/').replace(/\/$/,''),
-        "Cookie"                    : stringified_cookies( cookies ), 
-        "Upgrade-Insecure-Requests" : 1,
-        "Sec-Fetch-Dest"            : "document",
-        "Sec-Fetch-Mode"            : "navigate",
-        "Sec-Fetch-Site"            : "same-origin",
-        "Sec-Fetch-User"            : "?1",
-        "Pragma"                    : "no-cache",
-        "Cache-Control"             : "no-cache"
-      }
+      headers: head_headers
     }
 
     let content_type = null;
@@ -675,9 +715,19 @@ function recompute_filepaths_from_url(target)
   parsedUrl = url.parse(target);
   // Generate targetFile path based on URL path components.
   let relativePath = new Array();
-  let pathParts = parsedUrl.host.concat('/', parsedUrl.pathname).replace(/[\/]{1,}/gi,'/').replace(/[\/]{1,}$/,'').replace(/^[\/]{1,}/,'').replace(/\/\.\.\//,'/').replace(/[\/.]$/,'').split('/');
+  let pathParts;
   let pathComponent = 0; 
+
   targetDir = '';
+
+  pathParts = parsedUrl.host.concat('/', parsedUrl.pathname)
+    .replace(/[?]/g,'/')       // Replace query delimiter at any position with '/'
+    .replace(/[\/]{1,}/gi,'/') // Replace multiple forward-slashes to '/'
+    .replace(/[\/]{1,}$/,'')   // Trim multiple trailing slashes
+    .replace(/^[\/]{1,}/,'')   // Trim multile leading slashes
+    .replace(/\/\.\.\//,'/')   // Remove intervening double-dot components
+    .replace(/[\/.]$/,'')      // Remove trailing slash-dot
+    .split('/');
 
   // Unique visited URL and permitted hosts files
   visitFile      = parsedUrl.host.concat('/visited.json');
@@ -708,7 +758,18 @@ function recompute_filepaths_from_url(target)
   console.log( '  Permitted hosts %s'      , permittedHosts );
 }//}}}
 
-async function interaction_test( browser, rr )
+async function interaction_v2_test( browser, rr, site_parse_settings, url_params )
+{
+  let pager_selector = 'html body.flex.flex-col.mx-0.lg:mx-auto.antialiased main section.container-fluid.-mt-24.lg:container.lg:mt-2 div.container.items-start.lg:py-8.aos-init.aos-animate div.flex.justify-center.bg-white.pb-4 ul.pagination.flex.items-center';
+
+  if ( await $(pager_selector).isExisting() ) {
+    console.log("Booyah!  We will crawl this pager");
+    await $(pager_selector).$('li a');
+  }
+
+}
+
+async function interaction_test( browser, rr, site_parse_settings, url_params )
 {//{{{
   //let congress_selector_css = 'html body div.container-fluid div.row.section div.col-md-8 div.container-fluid div.row form.form-inline div.form-group.input-group select.form-control.input-sm';
   let congress_selector_css = 'select.form-control.input-sm';
@@ -726,14 +787,14 @@ async function interaction_test( browser, rr )
   let title = await browser.getTitle();
   let currentUrl = await browser.getUrl();
   let query_splitter = /([0-9a-z_]{1,})\=([0-9a-z_]{1,})/gi;
+  let markup;
 
-  async function get_parent_form( select_e )
+  async function get_parent( tagname, e )
   {//{{{
-    // Locate SELECT tag's parent FORM tag
-    let parent_form;
-    let child = select_e;
+    let parent_element;
+    let child = e;
     let iterations = 0;
-    while ( parent_form === undefined ) {//{{{
+    while ( parent_element === undefined ) {//{{{
       let parent_element = await child.$('..'); 
       let candidate_tagname = await parent_element.getTagName(); 
       iterations++;
@@ -741,16 +802,22 @@ async function interaction_test( browser, rr )
         console.log( "%d: Processing cannot continue.", iterations );
         break;
       }
-      else if ( candidate_tagname == 'form' ) {
-        console.log( "Got parent form" );
+      else if ( candidate_tagname == tagname ) {
+        console.log( "Got parent %s", tagname );
         return Promise.resolve(parent_element);
       }
       else {
-        console.log( "%d: Processing next parent %s", iterations, candidate_tagname );
+        console.log( "%d: Processing next ancestor %s", iterations, candidate_tagname );
         child = parent_element;
       }
     }//}}}
-    return Promise.resolve(parent_form);
+    return Promise.resolve(parent_element);
+  }//}}}
+
+  async function get_parent_form( select_e )
+  {//{{{
+    // Locate SELECT tag's parent FORM tag
+    return Promise.resolve(await get_parent( 'form', select_e ));
   }//}}}
 
   async function get_submit_button_in( parent_form )
@@ -800,12 +867,26 @@ async function interaction_test( browser, rr )
     return new Promise((resolve) => { resolve(index_limit); });
   }//}}}
 
+  async function bills_history_modal( b )
+  {
+    // Parameters:
+    // - b: browser object from caller context
+    // Trigger modal markup fetch event
+    // - Click on "History" link to trigger event
+    // - Wait for 'html body.modal-open div.container-fluid div.row.section div.col-md-8 div#HistoryModal.modal.fade.in'
+    //   - Save modal markup
+    // - Locate and click on "Close" button 'html body.modal-open div.container-fluid div.row.section div.col-md-8 div#HistoryModal.modal.fade.in div.modal-dialog div.modal-content div.modal-footer a.btn.btn-default.btn-success'
+    // 
+    return Promise.resolve(true);
+  }
 
+  // Enumerate options from registry selection tag
   selector = await browser.$(congress_selector_css);
   assert.equal("House of Representatives", title);
   console.log( "Test of interaction in %d seconds", halttime );
   await sleep( halttime * 1000 );
 
+  // Visibly enable selector
   await selector.click();
   await sleep( 1000 );
 
@@ -823,29 +904,41 @@ async function interaction_test( browser, rr )
     let from_end = index_limit - option_n - 1;
     let rrv;
     let p_url; 
-    let markup;
+    let loaded_url;
     let request_map = new Map;
     let target_dir;
 
+    // pageUrls.clear(); // FIXME: This global array MUST be cleared through each pass.
+    // Done in fetch_reset():
+    fetch_reset();
+
+    // The document registry pages in a document type have 
+    // homologous structure across document classes (bills, Republic Acts, etc.)
+    // 
     selector   = await browser.$(congress_selector_css);
     parentForm = await get_parent_form( selector );
     trigger    = await get_submit_button_in( parentForm );
     o          = await selector.selectByIndex( from_end );
     option_val = await selector.getValue();
+
     console.log( "- Triggering option '%s'[%d]", option_val, from_end );
     await trigger.moveTo();
     await sleep( 200 );
     await trigger.click();
+
     console.log("Sleeping a second");
     await sleep( 1000 );
-    loadedUrl = await browser.getUrl();
-    rrv = rr.get( loadedUrl );
+    loaded_url = await browser.getUrl();
+    rrv = rr.get( loaded_url );
 
-    console.log("Obtained %s", loadedUrl, rrv ); 
+    console.log("Obtained %s", loaded_url, rrv ); 
 
     if ( rrv !== undefined ) {
       let query_map = new Map;
       let query_arr = rrv.data ? rrv.data.split('&') : [];
+      let perform_head_fetch = process.env['FORCE_INTERACTABLE_HEAD_FETCH'] !== undefined; // false;
+
+      // Construct Map with query components as key-value pair elements.
       query_arr.forEach((e) => {
         query_map.set( 
           e.replace(/^([^=]{1,})=.*$/, '$1'),
@@ -863,8 +956,11 @@ async function interaction_test( browser, rr )
         query_arr.push( key.concat('=',value) );
       });
 
+      query_arr.sort();
+
       // FIXME: Decompose query parameters into path components
-      p_url = url.parse( loadedUrl );
+      parsedUrl = loaded_url;
+      p_url = url.parse( loaded_url );
       // The .data element is simply urlencoded POST data
       p_url.query = query_arr.join('&');
       p_url.parse( normalizeUrl( p_url.href, p_url ) );
@@ -872,16 +968,188 @@ async function interaction_test( browser, rr )
       rr.set( p_url.href, rrv );
       request_map.set( p_url.href, rrv ); // WRITE
 
-      target_dir = targetDir.concat('/',p_url.query);
-      if ( !existsSync( target_dir ) ) 
-        mkdirSync( target_dir );
+      // Exclude query segment delimiter '?'
+      target_dir = p_url.href.split('?').join('/');
+      recompute_filepaths_from_url( target_dir );
+      target_dir = targetDir;
+
+      console.log( "Interactable target dir %s", target_dir );
+      if ( !existsSync( target_dir ) ) { 
+        mkdirSync( target_dir, { recursive: true } );
+        perform_head_fetch = true;
+      }
       markup = await browser.$('html').getHTML(); // WRITE
-      writeFileSync( target_dir.concat('/index.html'), markup, {
+      targetFile = target_dir.concat('/index.html');
+      writeFileSync( targetFile, markup, {
         flag  : 'w',
         flush : true
       });
+
+      // Fetch markup fragments only if the /lib directory hasn't yet been populated.
+      if ( existsSync( target_dir.concat('/lib/completed') ) ) {
+        console.log( "Skip walking preexisting [History] for %s", p_url.href );
+      }
+      else {
+        // At this point, we can scan through/wait for e.g. the "#HistoryModal" <A>
+        // tags, which, when clicked, invoke POST events to retrieve bill history 
+        // markup text. WIth the target directory for markup created, we can proceed
+        // to fetch those fragments.
+        for await (const e of browser.$$('a[href="#HistoryModal"]') ) 
+        {//{{{
+          let parent_div;
+          let close_button;
+          let history_modal;
+          let data_attr = await $(e).getAttribute('data-id');
+          let hasher = createHash('sha256');
+          let matcher = new RegExp('('.concat(data_attr,')'), 'g');
+          let fragment_hash;
+          let cdp_rr;
+          let parsed_u;
+          let cache_path;
+          let uncached_fragment = false;
+
+          if ( data_attr && data_attr.length > 0 ) {
+            hasher.update(data_attr);
+            fragment_hash = hasher.digest('hex');
+            cache_path = target_dir.concat('/lib/', fragment_hash );
+            if ( !existsSync( cache_path ) ) {
+              mkdirSync( cache_path, { recursive: true } );
+            }
+          }
+
+          // We can avoid triggering HTML fragment fetches if a cache path and
+          // cached markup is present.
+          cdpRRdata.clear();
+
+          console.log( "Match %s %s", await $(e).getText(), data_attr );
+          await e.scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' });
+
+          uncached_fragment = !existsSync( cache_path.concat('/fragment.html') );
+
+          if ( uncached_fragment ) {
+
+            parent_div = await get_parent( 'div', e );
+            // Trigger modal fetch
+            try {
+              await e.waitForDisplayed( { timeout: 5000 } );
+              await e.waitForClickable( { timeout: 10000 } );
+              await e.click();
+
+              history_modal = await browser.$('div.modal.fade.in');
+              await history_modal.waitForDisplayed( { timeout: 5000 } ); 
+              console.log("Got modal window");
+
+              // Wait for the modal window close trigger to be available.
+              close_button = await history_modal.$('button.close');
+              console.log("Button '%s'", await await history_modal.$('button.close').getText() );
+              await close_button.waitForDisplayed( { timeout: 5000 } );
+              await close_button.waitForClickable( { timeout: 10000 } );
+
+              console.log( "Test CDP response (if any) against '%s'", data_attr );
+              cdpRRdata.forEach((value, key, map) => {
+                if ( value.method == 'POST' && matcher.test(value.data) ) {
+                  let t; 
+                  cdp_rr = new Map;
+                  cdp_rr.set( key, value );
+                  console.log("Found CDP %s response from %s", value.method, key, value);
+                  parsed_u = url.parse( key );
+                  parsed_u.query = [data_attr, parsed_u.query].join('&').replace(/\&$/,'');
+                  t = normalizeUrl( key, parsed_u );
+                  console.log( ">> Target URL: %s", t );
+                  console.log( ">> Request URL hash: %s", fragment_hash );
+                  cdp_rr.set( 'meta_url', t );
+                  cdp_rr.set( 'meta_hash', fragment_hash );
+                  cdp_rr.set( 'record', key );
+                }
+              });
+            }
+            catch (e) {
+              console.log( "Element event could not be completed", e );
+            }
+
+            console.log( "Closing dialog" );
+            // Save the markup
+            if ( cdp_rr !== undefined && cache_path !== undefined ) {
+              let fragment_markup = await history_modal.getHTML(); 
+              let markup_file = cache_path.concat('/fragment.html');
+              let cdp_file = cache_path.concat('/network.json');
+              writeFileSync( markup_file, fragment_markup, {
+                flag: 'w',
+                flush: true
+              });
+              write_map_to_file( "markup fragment metadata", cdp_file, cdp_rr, cdp_rr.meta_url ); 
+            }
+
+            if ( cdp_rr !== undefined ) {
+              cdp_rr.clear();
+              cdp_rr = null;
+            }
+
+            let done = false;
+            // Close the dialog
+            while ( !done ) {
+              try {
+                if ( await close_button.isClickable() ) {
+                  console.log( "Closing modal" );
+                  await close_button.click();
+                  await close_button.waitForDisplayed( { reverse: true, timeout: 3000 } );
+                }
+                done = true;
+              }
+              catch(e) {
+                console.log( "Must retry modal close" );
+              }
+            }
+          }
+
+          matcher = null;
+          hasher = null;
+
+          if ( uncached_fragment )
+            await sleep(200);
+
+        }//}}}
+        writeFileSync( target_dir.concat('/lib/completed'), 'done', {
+          flag  : 'w',
+          flush : true
+        });
+      }
+
+      if ( perform_head_fetch ) {
+        let extracted_urls = extract_urls( 
+          markup, 
+          loaded_url, 
+          site_parse_settings.get('parse_roots'), 
+          false /* have_extracted_urls */ 
+        );
+
+        let iteration_subject_map = await extract_hosts_from_urlarray( 
+          loaded_url, 
+          extracted_urls
+        );
+
+        let iterable_list_file = target_dir.concat('/index.potentially-iterable.json');
+
+        try {
+          console.log( "Writing triggered fetch iterable URLs into %s", iterable_list_file );
+
+          write_map_to_file(
+            "iterable URLs including text/html",
+            iterable_list_file,
+            iteration_subject_map.paths,
+            p_url.href
+          );
+        }
+        catch(e) {
+          console.log("Unable to write iterable URLs from %s into %s", 
+            p_url.href,
+            iterable_list_file
+          );
+        }
+      } // perform_head_fetch
+
       write_map_to_file( 
-        "catalog of assets", 
+        "request_map", 
         target_dir.concat('/index.assets.json'),
         request_map,
         p_url.href
@@ -896,16 +1164,14 @@ async function interaction_test( browser, rr )
 
   }
 
-  return new Promise((resolve) => {
-    resolve(browser);
-  });
+  return Promise.resolve(markup);
 }//}}}
 
 async function fetch_and_extract( initial_target, depth )
 {//{{{
   // Walk through all nodes in DOM
 
-  let state_timeout = 7200000;
+  let state_timeout = 14400000;
   let recursion_depth = 0;
   let depth_iterations = 0;
   let targets = new Array;
@@ -924,6 +1190,7 @@ async function fetch_and_extract( initial_target, depth )
   interactable.set( "https://congress.gov.ph/legisdocs/?v=ob"      , { method: interaction_test, params: {} } );
   interactable.set( "https://congress.gov.ph/legisdocs/?v=ra"      , { method: interaction_test, params: {} } );
   interactable.set( "https://congress.gov.ph/legisdocs/?v=sb"      , { method: interaction_test, params: {} } );
+  interactable.set( "https://congress.gov.ph/legislative-documents", { method: interaction_v2_test, params: {} } );
 
   it('Scrape starting at '.concat(initial_target), async function () {
 
@@ -979,7 +1246,9 @@ async function fetch_and_extract( initial_target, depth )
 
       console.log( "%s url %s", visited ? "Already visited" : "Unvisited", target );
 
-      if ( !fileProps ) 
+      if ( process.env['REFRESH'] !== undefined )
+        have_extracted_urls = false;
+      else if ( !fileProps ) 
         have_extracted_urls = false;
 
       if ( !fileProps || !visited || resweep ) 
@@ -988,7 +1257,7 @@ async function fetch_and_extract( initial_target, depth )
         console.log( "Fetching from %s", target );
 
         ////////////////////////////////
-        loadCookies();
+        if ( process.env['COOKIES_IGNORE'] === undefined ) loadCookies();
 
         await browser.setTimeout({ 'script': state_timeout });
 
@@ -999,6 +1268,15 @@ async function fetch_and_extract( initial_target, depth )
           if ( event.request.url == target )
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log(`Request: ${event.request.method} ${event.request.url}`, event.request.headers);
           root_request_header = event.request.headers;
+          cdpRRdata.set( event.request.url, {
+            target: event.request.url,
+            status: null, 
+            method: event.request.method,
+            dataEntries: event.request.hasPostData ? event.request.postDataEntries : [],
+            data: event.request.postData ? event.request.postData : "",
+            req: event.request.headers,
+            res: null
+          });
           page_assets.set( event.request.url, {
             status: null, 
             method: event.request.method,
@@ -1024,11 +1302,28 @@ async function fetch_and_extract( initial_target, depth )
               res: event.response.headers
             });
           }
+
+          // Unlogged data
+          pair = cdpRRdata.get( event.response.url );
+          if ( pair !== undefined ) {
+            pair.res    = event.response.headers;
+            pair.status = event.response.status;
+            cdpRRdata.set( event.response.url, pair );
+          }
+          else {
+            cdpRRdata.set( event.response.url, {
+              status: event.response.status,
+              req: null,
+              res: event.response.headers
+            });
+          }
+
+
         });
 
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Browser status", await browser.status() );
 
-        if ( !cookies ) {
+        if ( !cookies || !( process.env['COOKIES_IGNORE'] === undefined ) ) {
           console.log( "Cookie-free fetch of %s", target );
           await browser.url(target);
         }
@@ -1040,6 +1335,7 @@ async function fetch_and_extract( initial_target, depth )
           cookies = await browser.getCookies();
           console.log( "Previous cookies", cookies );
         }
+        await sleep(5000);
 
         // Record the URL as visited
         // Already-visited URLs will not reach this code at all
@@ -1047,7 +1343,9 @@ async function fetch_and_extract( initial_target, depth )
 
         let title     = await browser.getTitle();
         let loadedUrl = await browser.getUrl();
+        let markup;
         cookies       = await browser.getCookies();
+
 
         console.log( "Loaded URL %s", loadedUrl );
         console.log( "Page title %s", title );
@@ -1055,10 +1353,36 @@ async function fetch_and_extract( initial_target, depth )
 
         if ( interactable.has( target ) ) {
           let m = interactable.get( target );
-          m.method( browser, page_assets, m.params );
+          markup = await m.method( browser, page_assets, siteParseSettings, m.params );
         }
+        else {//{{{
+          markup = await browser.$('html').getHTML();
+          await writeFile( targetFile, markup, function(err) {
+            if ( err ) {
+              console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
+            }
+            else {
+              console.log( "Wrote %s to %s", loadedUrl, targetFile );
+            }
+          });
 
-        let markup = await browser.$('html').getHTML();
+          extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
+
+          // Append all page asset URLs to the array of DOM-embedded URLs.
+          page_assets.forEach( (headers, urlraw, map) => {
+            // URLFIX
+            let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
+            if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d Adding %s", extractedUrls.length, urlraw );
+            if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d     as %s", extractedUrls.length, url );
+            extractedUrls.push(url);
+          });
+
+          iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
+
+          write_map_to_file( "catalog of assets", assetCatalogFile, page_assets  , loadedUrl );
+          write_map_to_file( "visited URLs"     , visitFile       , visited_pages, loadedUrl );
+
+        }//}}}
 
         await writeFile( pageCookieFile, JSON.stringify( cookies, null, 2 ), function(err) {
           if ( err ) {
@@ -1069,37 +1393,14 @@ async function fetch_and_extract( initial_target, depth )
           }
         });
 
-        await writeFile( targetFile, markup, function(err) {
-          if ( err ) {
-            console.log( "Unable to write %s to %s: %s", loadedUrl, targetFile, err );
-          }
-          else {
-            console.log( "Wrote %s to %s", loadedUrl, targetFile );
-          }
-        });
-
-        extractedUrls = extract_urls( markup, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
-
-        // Prepend all page asset URLs to the array of DOM-embedded URLs.
-        page_assets.forEach( (headers, urlraw, map) => {
-          // URLFIX
-          let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
-          if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d Adding %s", extractedUrls.length, urlraw );
-          if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d     as %s", extractedUrls.length, url );
-          extractedUrls.push(url);
-        });
-
-        iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
-
-        write_map_to_file( "catalog of assets", assetCatalogFile, page_assets, loadedUrl );
-        write_map_to_file( "visited URLs", visitFile, visited_pages, loadedUrl );
       }
       else {
         console.log( "! Skipping browser fetch of %s", target ); 
       };//}}}
 
       if ( iteration_subjects === undefined ) {
-        let data = readFileSync(targetFile);
+        console.log( "Loading page from %s", targetFile );
+        let data = readFileSync( targetFile );
         extractedUrls = extract_urls( data, target, siteParseSettings.get('parse_roots'), have_extracted_urls );
         iteration_subjects = await extract_hosts_from_urlarray( target, extractedUrls );
       }
@@ -1172,9 +1473,6 @@ async function fetch_and_extract( initial_target, depth )
   });
 }//}}}
 
-//v8.setFlagsFromString('--expose-gc');
-//v8.setFlagsFromString('--trace-gc');
-//v8.setFlagsFromString('--max-old-space-size=16384');
 let pagelinks = await fetch_and_extract( targetUrl, 1 );
 
 });

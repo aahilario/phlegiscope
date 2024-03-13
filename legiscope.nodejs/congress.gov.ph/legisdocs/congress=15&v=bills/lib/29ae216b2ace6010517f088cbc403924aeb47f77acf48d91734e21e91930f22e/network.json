@@ -1,0 +1,46 @@
+{
+  "https://congress.gov.ph/legisdocs/fetch_history.php": {
+    "target": "https://congress.gov.ph/legisdocs/fetch_history.php",
+    "status": 403,
+    "method": "POST",
+    "dataEntries": [
+      {
+        "bytes": "cm93aWQ9I0hCMDM0MDktMTU="
+      }
+    ],
+    "data": "rowid=#HB03409-15",
+    "req": {
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"24\", \"Chromium\";v=\"122\"",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Accept": "*/*",
+      "Referer": "https://congress.gov.ph/legisdocs/?v=bills",
+      "X-Requested-With": "XMLHttpRequest",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Wed, 13 Mar 2024 01:57:12 GMT",
+      "content-encoding": "gzip",
+      "cross-origin-embedder-policy": "require-corp",
+      "cross-origin-resource-policy": "same-origin",
+      "cf-chl-out": "b+gXWvv3hd+YTJtf0jXa5WnR81XTQvS5Uir3Lvz9y5cE0Sc0rJndgPy+nvFaPXe0LDMTtm+nJxJuqZ+6ZlE1ChxNRT2R6WqiMa2jVUGALSM=$g2aHg5bBjrFtW6ovwmdN7w==",
+      "referrer-policy": "same-origin",
+      "accept-ch": "Sec-CH-UA-Bitness, Sec-CH-UA-Arch, Sec-CH-UA-Full-Version, Sec-CH-UA-Mobile, Sec-CH-UA-Model, Sec-CH-UA-Platform-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Platform, Sec-CH-UA, UA-Bitness, UA-Arch, UA-Full-Version, UA-Mobile, UA-Model, UA-Platform-Version, UA-Platform, UA",
+      "cross-origin-opener-policy": "same-origin",
+      "cf-mitigated": "challenge",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "vary": "Accept-Encoding",
+      "content-type": "text/html; charset=UTF-8",
+      "origin-agent-cluster": "?1",
+      "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+      "permissions-policy": "accelerometer=(),autoplay=(),browsing-topics=(),camera=(),clipboard-read=(),clipboard-write=(),geolocation=(),gyroscope=(),hid=(),interest-cohort=(),magnetometer=(),microphone=(),payment=(),publickey-credentials-get=(),screen-wake-lock=(),serial=(),sync-xhr=(),usb=()",
+      "cf-ray": "863869716cb3403a-MNL",
+      "expires": "Thu, 01 Jan 1970 00:00:01 GMT"
+    }
+  },
+  "meta_hash": "29ae216b2ace6010517f088cbc403924aeb47f77acf48d91734e21e91930f22e",
+  "meta_url": "https://congress.gov.ph/legisdocs/fetch_history.php?#HB03409-15",
+  "record": "https://congress.gov.ph/legisdocs/fetch_history.php"
+}

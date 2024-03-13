@@ -1,0 +1,37 @@
+{
+  "https://congress.gov.ph/legisdocs/fetch_history.php": {
+    "target": "https://congress.gov.ph/legisdocs/fetch_history.php",
+    "status": 504,
+    "method": "POST",
+    "dataEntries": [
+      {
+        "bytes": "cm93aWQ9I0hCMDI3MzUtMTU="
+      }
+    ],
+    "data": "rowid=#HB02735-15",
+    "req": {
+      "sec-ch-ua": "\"Not(A:Brand\";v=\"24\", \"Chromium\";v=\"122\"",
+      "sec-ch-ua-mobile": "?0",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Accept": "*/*",
+      "Referer": "https://congress.gov.ph/legisdocs/?v=bills",
+      "X-Requested-With": "XMLHttpRequest",
+      "sec-ch-ua-platform": "\"Linux\""
+    },
+    "res": {
+      "date": "Wed, 13 Mar 2024 00:18:39 GMT",
+      "referrer-policy": "same-origin",
+      "server": "cloudflare",
+      "x-frame-options": "SAMEORIGIN",
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+      "cf-ray": "8637d7a01808403a-MNL",
+      "content-length": "6344",
+      "expires": "Thu, 01 Jan 1970 00:00:01 GMT"
+    }
+  },
+  "meta_hash": "fbf04059eebb975d54eccf35186df05ab03e5ee9e24eb34f44179188a289d087",
+  "meta_url": "https://congress.gov.ph/legisdocs/fetch_history.php?#HB02735-15",
+  "record": "https://congress.gov.ph/legisdocs/fetch_history.php"
+}

@@ -985,125 +985,135 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
         flush : true
       });
 
-      // At this point, we can scan through/wait for e.g. the "#HistoryModal" <A>
-      // tags, which, when clicked, invoke POST events to retrieve bill history 
-      // markup text. WIth the target directory for markup created, we can proceed
-      // to fetch those fragments.
-      for await (const e of browser.$$('a[href="#HistoryModal"]') ) 
-      {//{{{
-        let parent_div;
-        let close_button;
-        let history_modal;
-        let data_attr = await $(e).getAttribute('data-id');
-        let hasher = createHash('sha256');
-        let matcher = new RegExp('('.concat(data_attr,')'), 'g');
-        let fragment_hash;
-        let cdp_rr;
-        let parsed_u;
-        let cache_path;
-        let uncached_fragment = false;
-        
-        if ( data_attr && data_attr.length > 0 ) {
-          hasher.update(data_attr);
-          fragment_hash = hasher.digest('hex');
-          cache_path = target_dir.concat('/lib/', fragment_hash );
-          if ( !existsSync( cache_path ) ) {
-            mkdirSync( cache_path, { recursive: true } );
-          }
-        }
+      // Fetch markup fragments only if the /lib directory hasn't yet been populated.
+      if ( existsSync( target_dir.concat('/lib/completed') ) ) {
+        console.log( "Skip walking preexisting [History] for %s", p_url.href );
+      }
+      else {
+        // At this point, we can scan through/wait for e.g. the "#HistoryModal" <A>
+        // tags, which, when clicked, invoke POST events to retrieve bill history 
+        // markup text. WIth the target directory for markup created, we can proceed
+        // to fetch those fragments.
+        for await (const e of browser.$$('a[href="#HistoryModal"]') ) 
+        {//{{{
+          let parent_div;
+          let close_button;
+          let history_modal;
+          let data_attr = await $(e).getAttribute('data-id');
+          let hasher = createHash('sha256');
+          let matcher = new RegExp('('.concat(data_attr,')'), 'g');
+          let fragment_hash;
+          let cdp_rr;
+          let parsed_u;
+          let cache_path;
+          let uncached_fragment = false;
 
-        // We can avoid triggering HTML fragment fetches if a cache path and
-        // cached markup is present.
-        cdpRRdata.clear();
-
-        console.log( "Match %s %s", await $(e).getText(), data_attr );
-        await e.scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' });
-
-        uncached_fragment = !existsSync( cache_path.concat('/fragment.html') );
-
-        if ( uncached_fragment ) {
-
-          parent_div = await get_parent( 'div', e );
-          // Trigger modal fetch
-          try {
-            await e.waitForDisplayed( { timeout: 5000 } );
-            await e.waitForClickable( { timeout: 10000 } );
-            await e.click();
-
-            history_modal = await browser.$('div.modal.fade.in');
-            await history_modal.waitForDisplayed( { timeout: 5000 } ); 
-            console.log("Got modal window");
-
-            // Wait for the modal window close trigger to be available.
-            close_button = await history_modal.$('button.close');
-            console.log("Button '%s'", await await history_modal.$('button.close').getText() );
-            await close_button.waitForDisplayed( { timeout: 5000 } );
-            await close_button.waitForClickable( { timeout: 10000 } );
-
-            console.log( "Test CDP response (if any) against '%s'", data_attr );
-            cdpRRdata.forEach((value, key, map) => {
-              if ( value.method == 'POST' && matcher.test(value.data) ) {
-                let t; 
-                cdp_rr = new Map;
-                cdp_rr.set( key, value );
-                console.log("Found CDP %s response from %s", value.method, key, value);
-                parsed_u = url.parse( key );
-                parsed_u.query = [data_attr, parsed_u.query].join('&').replace(/\&$/,'');
-                t = normalizeUrl( key, parsed_u );
-                console.log( ">> Target URL: %s", t );
-                console.log( ">> Request URL hash: %s", fragment_hash );
-                cdp_rr.set( 'meta_url', t );
-                cdp_rr.set( 'meta_hash', fragment_hash );
-                cdp_rr.set( 'record', key );
-              }
-            });
-          }
-          catch (e) {
-            console.log( "Element event could not be completed", e );
+          if ( data_attr && data_attr.length > 0 ) {
+            hasher.update(data_attr);
+            fragment_hash = hasher.digest('hex');
+            cache_path = target_dir.concat('/lib/', fragment_hash );
+            if ( !existsSync( cache_path ) ) {
+              mkdirSync( cache_path, { recursive: true } );
+            }
           }
 
-          console.log( "Closing dialog" );
-          // Save the markup
-          if ( cdp_rr !== undefined && cache_path !== undefined ) {
-            let fragment_markup = await history_modal.getHTML(); 
-            let markup_file = cache_path.concat('/fragment.html');
-            let cdp_file = cache_path.concat('/network.json');
-            writeFileSync( markup_file, fragment_markup, {
-              flag: 'w',
-              flush: true
-            });
-            write_map_to_file( "markup fragment metadata", cdp_file, cdp_rr, cdp_rr.meta_url ); 
-          }
+          // We can avoid triggering HTML fragment fetches if a cache path and
+          // cached markup is present.
+          cdpRRdata.clear();
 
-          if ( cdp_rr !== undefined ) {
-            cdp_rr.clear();
-            cdp_rr = null;
-          }
+          console.log( "Match %s %s", await $(e).getText(), data_attr );
+          await e.scrollIntoView({ behavior: 'instant', block: 'start', inline: 'nearest' });
 
-          let done = false;
-          // Close the dialog
-          while ( !done ) {
+          uncached_fragment = !existsSync( cache_path.concat('/fragment.html') );
+
+          if ( uncached_fragment ) {
+
+            parent_div = await get_parent( 'div', e );
+            // Trigger modal fetch
             try {
-              if ( await close_button.isClickable() ) {
-                console.log( "Closing modal" );
-                await close_button.click();
-                await close_button.waitForDisplayed( { reverse: true, timeout: 3000 } );
-              }
-              done = true;
+              await e.waitForDisplayed( { timeout: 5000 } );
+              await e.waitForClickable( { timeout: 10000 } );
+              await e.click();
+
+              history_modal = await browser.$('div.modal.fade.in');
+              await history_modal.waitForDisplayed( { timeout: 5000 } ); 
+              console.log("Got modal window");
+
+              // Wait for the modal window close trigger to be available.
+              close_button = await history_modal.$('button.close');
+              console.log("Button '%s'", await await history_modal.$('button.close').getText() );
+              await close_button.waitForDisplayed( { timeout: 5000 } );
+              await close_button.waitForClickable( { timeout: 10000 } );
+
+              console.log( "Test CDP response (if any) against '%s'", data_attr );
+              cdpRRdata.forEach((value, key, map) => {
+                if ( value.method == 'POST' && matcher.test(value.data) ) {
+                  let t; 
+                  cdp_rr = new Map;
+                  cdp_rr.set( key, value );
+                  console.log("Found CDP %s response from %s", value.method, key, value);
+                  parsed_u = url.parse( key );
+                  parsed_u.query = [data_attr, parsed_u.query].join('&').replace(/\&$/,'');
+                  t = normalizeUrl( key, parsed_u );
+                  console.log( ">> Target URL: %s", t );
+                  console.log( ">> Request URL hash: %s", fragment_hash );
+                  cdp_rr.set( 'meta_url', t );
+                  cdp_rr.set( 'meta_hash', fragment_hash );
+                  cdp_rr.set( 'record', key );
+                }
+              });
             }
-            catch(e) {
-              console.log( "Must retry modal close" );
+            catch (e) {
+              console.log( "Element event could not be completed", e );
+            }
+
+            console.log( "Closing dialog" );
+            // Save the markup
+            if ( cdp_rr !== undefined && cache_path !== undefined ) {
+              let fragment_markup = await history_modal.getHTML(); 
+              let markup_file = cache_path.concat('/fragment.html');
+              let cdp_file = cache_path.concat('/network.json');
+              writeFileSync( markup_file, fragment_markup, {
+                flag: 'w',
+                flush: true
+              });
+              write_map_to_file( "markup fragment metadata", cdp_file, cdp_rr, cdp_rr.meta_url ); 
+            }
+
+            if ( cdp_rr !== undefined ) {
+              cdp_rr.clear();
+              cdp_rr = null;
+            }
+
+            let done = false;
+            // Close the dialog
+            while ( !done ) {
+              try {
+                if ( await close_button.isClickable() ) {
+                  console.log( "Closing modal" );
+                  await close_button.click();
+                  await close_button.waitForDisplayed( { reverse: true, timeout: 3000 } );
+                }
+                done = true;
+              }
+              catch(e) {
+                console.log( "Must retry modal close" );
+              }
             }
           }
-        }
 
-        matcher = null;
-        hasher = null;
+          matcher = null;
+          hasher = null;
 
-        if ( uncached_fragment )
-        await sleep(200);
+          if ( uncached_fragment )
+            await sleep(200);
 
-      }//}}}
+        }//}}}
+        writeFileSync( target_dir.concat('/lib/completed'), 'done', {
+          flag  : 'w',
+          flush : true
+        });
+      }
 
       if ( perform_head_fetch ) {
         let extracted_urls = extract_urls( 

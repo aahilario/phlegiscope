@@ -881,6 +881,16 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
   }
 
   // Enumerate options from registry selection tag
+  console.log( "Waiting for presence of selector '%s'", congress_selector_css );
+  await browser.$('title').waitUntil(async function() {
+    title = await this.getText();
+    console.log( "Checking title: '%s'", title);
+    return title === "House of Representatives";
+  },{
+    timeout: 24 * 60 * 60 * 1000, 
+    interval: 1000 
+  });
+
   selector = await browser.$(congress_selector_css);
   assert.equal("House of Representatives", title);
   console.log( "Test of interaction in %d seconds", halttime );
@@ -986,7 +996,10 @@ async function interaction_test( browser, rr, site_parse_settings, url_params )
       });
 
       // Fetch markup fragments only if the /lib directory hasn't yet been populated.
-      if ( existsSync( target_dir.concat('/lib/completed') ) ) {
+      if ( process.env['HISTORY_FETCH'] === undefined ) {
+        console.log( "Skipping [History] fetch" );
+      }
+      else if ( existsSync( target_dir.concat('/lib/completed') ) ) {
         console.log( "Skip walking preexisting [History] for %s", p_url.href );
       }
       else {
@@ -1335,20 +1348,30 @@ async function fetch_and_extract( initial_target, depth )
           cookies = await browser.getCookies();
           console.log( "Previous cookies", cookies );
         }
+
         await sleep(5000);
 
         // Record the URL as visited
         // Already-visited URLs will not reach this code at all
         visited_pages.set( target, { hits: 1 } ); 
 
-        let title     = await browser.getTitle();
-        let loadedUrl = await browser.getUrl();
         let markup;
+        let loadedUrl = await browser.getUrl();
+        let title     = await browser.getTitle();
         cookies       = await browser.getCookies();
 
+        await browser.$('head title').waitUntil(async function() {
+          title = await browser.getTitle();
+          console.log( "Checking title: '%s'", title);
+          return title === "House of Representatives";
+        },{
+          timeout: 24 * 60 * 60 * 1000, 
+          interval: 1000 
+        });
 
         console.log( "Loaded URL %s", loadedUrl );
         console.log( "Page title %s", title );
+
         if (process.env['SILENT_PARSE'] === undefined) console.log( "Cookies:", cookies );
 
         if ( interactable.has( target ) ) {

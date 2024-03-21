@@ -51,12 +51,29 @@ exports.config = {
     // Sauce Labs platform configurator - a great tool to configure your capabilities:
     // https://saucelabs.com/platform/platform-configurator
     //
-    capabilities: [{
+    capabilities: [
+//      {
+//        browserName: 'firefox',
+//        proxy: {
+//          proxyType: "manual",
+//          socksProxy: "127.0.0.1:4430",
+//          socksVersion: 5
+//        }
+//      }
+//
+      {
         browserName: 'chrome',
+        proxy: {
+          proxyType: "manual",
+          socksProxy: "127.0.0.1:4430",
+          socksVersion: 5,
+          noProxy: "127.0.0.1,ana.avahilario.net"
+        },
         'goog:chromeOptions': {
           binary: '/usr/bin/chromium-browser'
         }
-    }],
+      }
+    ],
 
     //
     // ===================
@@ -65,7 +82,7 @@ exports.config = {
     // Define all options that are relevant for the WebdriverIO instance here
     //
     // Level of logging verbosity: trace | debug | info | warn | error | silent
-    logLevel: 'error',
+    logLevel: 'debug',
     //
     // Set specific log levels per logger
     // loggers:

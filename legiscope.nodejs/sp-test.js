@@ -417,7 +417,7 @@ function keep_unique_host_path( u, result, unique_host_path, unique_entry, head_
 }//}}}
 
 function return_sorted_map( map_obj )
-{
+{//{{{
   let sorter = new Array;
   let sorted = new Map;
   map_obj.forEach((value, key, map) => {
@@ -437,7 +437,8 @@ function return_sorted_map( map_obj )
   sorted = null
   sorter = null;
   return map_obj;
-}
+}//}}}
+
 function write_map_to_file( description, map_file, map_obj, loadedUrl )
 {//{{{
   const objson = Object.fromEntries( return_sorted_map(map_obj) );

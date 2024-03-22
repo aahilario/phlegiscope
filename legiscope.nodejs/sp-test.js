@@ -20,8 +20,8 @@ const http = require("node:http");
 const https = require("node:https");
 const { argv, pid } = require("node:process");
 const { spawnSync } = require("child_process");
-const controller = new AbortController();
-const { signal } = controller;
+//const controller = new AbortController();
+//const { signal } = controller;
 
 const targetUrl     = process.env.TARGETURL || 'https://congress.gov.ph/';
 const sampleCount   = 0;
@@ -688,8 +688,6 @@ function load_visit_map( visit_file )
   return visited_map;
 }//}}}
 
-describe("Recursively descend ".concat(targetUrl), async () => {
-
 function loadCookies()
 {//{{{
   try {
@@ -757,6 +755,8 @@ function recompute_filepaths_from_url(target)
   console.log( '  Visited URLs %s'         , visitFile );
   console.log( '  Permitted hosts %s'      , permittedHosts );
 }//}}}
+
+describe("Recursively descend ".concat(targetUrl), async () => {
 
 async function interaction_v2_test( browser, rr, site_parse_settings, url_params )
 {

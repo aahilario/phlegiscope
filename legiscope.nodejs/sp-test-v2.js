@@ -14,7 +14,7 @@ const CDP = require('chrome-remote-interface');
 
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 5; // Seconds of inactivity before flushing page metadata 
-const node_request_depth = 6;
+const node_request_depth = 7;
 
 let outstanding_rr = new Map;
 let rr_map = new Map;
@@ -94,7 +94,7 @@ function return_sorted_map( map_obj )
   map_obj.forEach((value, key, map) => {
     sorter.push(key);
   });
-  sorter.sort();
+  sorter.sort((a,b) => {return a - b;});
   sorter.forEach((e) => {
     sorted.set( e, map_obj.get(e) );
     map_obj.delete(e);
@@ -116,7 +116,7 @@ function write_map_to_file( description, map_file, map_obj, loadedUrl )
   console.log( "Writing %s to %s", description, map_file );
   writeFileSync( map_file, inspect(map_obj, {showHidden: false, depth: null, colors: true}), {
   //writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
-    flag  : 'w',
+    flag  : 'w+',
     flush : true
   }); 
 }//}}}
@@ -126,6 +126,7 @@ async function monitor() {
   let client;
   let nodes_seen = new Map;
   let nodes_tree = new Map;
+  let tag_stack = new Array;
   let parents_pending_children = new Array; 
   let waiting_parent = 0;
   let depth = 0;
@@ -135,6 +136,10 @@ async function monitor() {
   client = await CDP();
 
   const { Network, Page, DOM } = client;
+
+  //client.DOM.on("setChildNodes", (params) => {
+  //  console.log("Received Nodes", params);
+  //});
 
   async function watchdog(cb)
   {//{{{
@@ -151,13 +156,85 @@ async function monitor() {
           }
           else {
             mark_steps++;
-            console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
+            if ( process.env['VERBOSE'] !== undefined ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
             if ( cb ) await cb( mark_steps );
           }
         }
         resolve(true);
-      },100);
+      },50);
     });
+  }//}}}
+
+  function register_parent_in_waiting( nodeId )
+  {//{{{
+    // Only call this method 
+    // if node.childNodeCount > 0 AND node.children === undefined
+    console.log("ENQUEUE [%d]", nodeId);
+    parents_pending_children.push( nodeId );
+  }//}}}
+
+  async function recursively_add_and_register( m, parent_nodeId, depth )
+  {//{{{
+    // Parameters:
+    // m: CDP DOM.Node
+    // parentNode: Abbreviated node record ID
+    // depth: Current recursive call nesting depth
+    let child_node;
+    let parentNode = nodes_seen.get( parent_nodeId ); 
+    if ( !nodes_seen.has(m.nodeId) ) {
+      let attrset = m.attributes ? m.attributes : [];
+      let attrmap = new Map;
+      while ( attrset.length > 0 ) {
+        let attr = attrset.shift();
+        let attrval = attrset.shift();
+        attrmap.set( attr, attrval );
+      }
+      nodes_seen.set(m.nodeId, {
+        nodeName: m.nodeName ? m.nodeName : '---',
+        parentId: parent_nodeId,
+        content:  m.childNodeCount && m.childNodeCount > 0 
+          ? new Map 
+          : m.nodeValue,
+        attributes: attrmap
+      });
+      attrmap.clear();
+      attrmap = null;
+    }
+    child_node = nodes_seen.get(m.nodeId);
+
+    // Update flat Map node entry
+    parentNode.content.set(m.nodeId, null);
+    nodes_seen.set( parent_nodeId, parentNode );
+
+    console.log("Sub[%d] %s %d <- parent %d children %d",
+      depth,
+      m.nodeName ? m.nodeName : '---',
+      m.nodeId,
+      parent_nodeId,
+      m.childNodeCount ? m.childNodeCount : 0
+      //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
+      //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
+      //,m
+      ,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, {showHidden: false, depth: null, colors: true})
+      ,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
+    );
+
+    let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
+    let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
+
+    if ( enqueue_m_nodeid ) {
+      register_parent_in_waiting( m.nodeId );
+    }
+
+    if ( has_child_array && m.children.length > 0 ) {
+      m.children.forEach(async (c) => {
+        await recursively_add_and_register( c, m.nodeId, depth + 1 );
+        child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
+        nodes_seen.set( m.nodeId, child_node );
+        return Promise.resolve(true);
+      });
+    }
+    return Promise.resolve(true);
   }//}}}
 
   async function domSetChildNodes(params) 
@@ -165,93 +242,44 @@ async function monitor() {
     const {parentId, nodes} = params;
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
 
-    console.log( "Node[%d] %s %d <== parent %d children %d { %s }", 
+    // let R = (await DOM.describeNode({nodeId: parentId})).node;
+
+    console.log( "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
       nodes_seen.size,
       descriptor.description,
       parentId, 
       waiting_parent,
       nodes.length,
-      nodes.map((e) => e.nodeId).join(','),
-      descriptor
+      nodes.map((e) => e.nodeId).join(',')
+      //,descriptor
       //,params
+      //,R
     );
 
     let parent_node;
     if ( !nodes_seen.has( parentId ) ) {
+      let R = (await DOM.describeNode({nodeId: parentId})).node;
+      let attrset = R.attributes ? R.attributes : [];
+      let attrmap = new Map;
+      while ( attrset.length > 0 ) {
+        let attr = attrset.shift();
+        let attrval = attrset.shift();
+        attrmap.set( attr, attrval );
+      }
       nodes_seen.set( parentId, {
-        nodeName: descriptor.description,
+        nodeName: R.nodeName,
         parentId: waiting_parent,
-        branches: new Map 
+        content: R.childNodeCount && R.childNodeCount > 0 
+          ? new Map 
+          : R.nodeValue, 
+        attributes: attrmap 
       });
+      attrmap.clear();
+      attrmap = null;
     }
-    parent_node = nodes_seen.get( parentId );
 
     await nodes.forEach(async (n,nn,node) => {
-      console.log("Node[%d] %s %d <- parent %d children %d", 
-        nn,
-        n.nodeName ? n.nodeName : '---',
-        n.nodeId, 
-        parentId,
-        n.childNodeCount ? n.childNodeCount : 0, 
-        //(n.childNodeCount && n.childNodeCount <= 1) ? (await DOM.getOuterHTML({nodeId: n.nodeId})).outerHTML : '...',
-        (await DOM.resolveNode({nodeId: n.nodeId})).object
-      );
-
-      let this_node;
-      if ( !nodes_seen.has(n.nodeId) ) {
-        nodes_seen.set( n.nodeId, {
-          nodeName: n.nodeName ? n.nodeName : '---',
-          parentId: parentId,
-          branches: new Map 
-        });
-      }
-      this_node = nodes_seen.get(n.nodeId);
-
-      parent_node.branches.set( n.nodeId, null );
-      nodes_seen.delete( parentId );
-      nodes_seen.set( parentId, parent_node );
-
-      try {
-        if ( n.children && n.children.length > 0 ) {
-          n.children.forEach(async function(m,nm,n_) {
-            if ( m && m.nodeId ) {
-              let child_node;
-              if ( !nodes_seen.has(m.nodeId) ) {
-                nodes_seen.set(m.nodeId, {
-                  nodeName: m.nodeName ? m.nodeName : '---',
-                  parentId: n.nodeId,
-                  branches: new Map 
-                });
-              }
-              child_node = nodes_seen.get(m.nodeId);
-
-              this_node.branches.set(m.nodeId, null);
-              nodes_seen.set( n.nodeId, this_node );
-
-              console.log("Sub[%d] %s %d <- parent %d children %d",
-                nm,
-                m.nodeName ? m.nodeName : '---',
-                m.nodeId,
-                n.nodeId,
-
-                m.childNodeCount ? m.childNodeCount : 0
-                //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
-                //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
-                // m.childNodeCount == 0 ? await DOM.getOuterHTML({nodeId: m.nodeId}) : '...'
-              );
-              //if ( !nodes_seen.has( m.nodeId ) )
-                parents_pending_children.push( m.nodeId )
-              //if ( m.childNodeCount && m.childNodeCount > 0 )
-              //  await DOM.requestChildNodes({nodeId: m.nodeId, depth: node_request_depth});
-            }
-            return true;
-          });
-        }
-      }
-      catch(e) {
-        console.log('Err', e);
-      }
-
+      await recursively_add_and_register( n, parentId, 0 );
       return true;
     });
     rr_mark = hrtime.bigint();
@@ -260,9 +288,12 @@ async function monitor() {
 
   function graft( m, depth )
   {//{{{
-    if ( m.branches.size > 0 ) {
+    let isLeaf = m.leaf ? m.leaf : false;
+    tag_stack.push( m.nodeName );
+    if ( !isLeaf && m.content && m.content.size && m.content.size > 0 ) {
+      console.log("Grafted %d { %s }", depth, tag_stack.join(' ') );
       let tstk = new Array;
-      m.branches.forEach((value, key, map) => {
+      m.content.forEach((value, key, map) => {
         tstk.push( key );
       });
       while ( tstk.length > 0 ) {
@@ -271,12 +302,31 @@ async function monitor() {
           let b = nodes_seen.get(k);
           nodes_seen.delete(k);
           b = graft( b, depth + 1 );
-          m.branches.set( k, b );
+          m.content.set( k, b );
         }
       }
-      console.log("Grafted", m.branches, depth );
     }
+    tag_stack.pop();
     return m;
+  }//}}}
+
+  async function trigger_dom_fetch()
+  {//{{{
+    if ( parents_pending_children.length > 0 ) {
+      waiting_parent = parents_pending_children.shift();
+      let rq_result = await DOM.requestChildNodes({
+        nodeId : waiting_parent,
+        depth  : node_request_depth,
+        pierce : true
+      });
+      console.log("requestChildNodes %d", 
+        waiting_parent, 
+        nodes_seen.has(waiting_parent), 
+        parents_pending_children.length,
+        rq_result
+      ); 
+      rr_mark = hrtime.bigint();
+    }
   }//}}}
 
   async function finalize_metadata( step )
@@ -285,12 +335,57 @@ async function monitor() {
     
     if ( step == 0 ) {
 
+      nodes_seen = return_sorted_map( nodes_seen );
       console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
       write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, "" );
       console.log( "TRANSFORM" );
 
       let st = new Array;
       let runs = 0;
+
+      // Ensure that child nodes are referenced in .content
+      // across all nodes.
+      console.log("Fixing cross-references");
+      nodes_seen.forEach((value, key, map) => {
+        st.push( key );
+      });
+      while ( st.length > 0 ) {
+        let n = st.shift();
+        if ( nodes_seen.has(n) ) {
+          let s = nodes_seen.get(n);
+          nodes_seen.delete(n);
+          nodes_seen.forEach((value, key, map) => {
+            if ( value.parentId == n ) {
+              s.content.set( key, null );
+            }
+          });
+          nodes_seen.set(n, s);
+        }
+      }
+
+      console.log("Replace leaf node contents");
+      nodes_seen.forEach((value, key, map) => {
+        st.push( key );
+      });
+      while ( st.length > 0 ) {
+        let n = st.shift();
+        let s = nodes_seen.get(n);
+        nodes_seen.delete(n);
+        if ( s.content.size == 0 ) {
+          let sr = {
+            leaf     : true,
+            nodeName : s.nodeName,
+            parentId : s.parentId,
+            content  : (await DOM.getOuterHTML({ nodeId: n })).outerHTML
+          };
+          s = sr;
+        }
+        nodes_seen.set(n, s);
+      }
+
+      nodes_seen = return_sorted_map( nodes_seen );
+      write_map_to_file("Pre-processed", "pre-processed.json", nodes_seen, "" );
+
 
       while ( nodes_seen.size > 1 && runs < 10 ) {
         console.log( "Run %d : %d", runs, nodes_seen.size );
@@ -303,11 +398,20 @@ async function monitor() {
             let b = nodes_seen.get( k );
             if ( b.parentId > 0 ) {
               // Append all leaves to their parents
-              if ( b.branches.size == 0 ) {
+              if ( b.content.size == 0 ) {
+                console.log( "Zero-len content", k );
                 if ( nodes_seen.has( b.parentId ) ) {
                   let p = nodes_seen.get( b.parentId ); 
                   nodes_seen.delete(k);
-                  p.branches.set( k, p );
+                  b = {
+                    nodeName: b.nodeName,
+                    parentId: b.parentId,
+                    content: await DOM.getOuterHTML({nodeId: k}),
+                    leaf : true
+                  };
+                  console.log( "Munging", b );
+                  p.content.delete( k );
+                  p.content.set( k, b );
                   nodes_seen.set( b.parentId, p );
                 }
               }
@@ -318,12 +422,11 @@ async function monitor() {
 
               if ( nodes_seen.has( b.parentId ) ) {
                 let p = nodes_seen.get( b.parentId );
-                p.branches.set( k, b );
+                p.content.set( k, b );
                 nodes_seen.delete( b.parentId );
                 nodes_seen.set( b.parentId, p );
                 nodes_seen.delete( k );
               }
-
             } // b.parentId > 0
           } // nodes_seen.has( k )
         } // st.length > 0
@@ -336,16 +439,7 @@ async function monitor() {
       nodes_tree.clear();
     }
     else {
-      if ( parents_pending_children.length > 0 ) {
-        waiting_parent = parents_pending_children.shift();
-        console.log("Fetch %d", waiting_parent, parents_pending_children.length); 
-        //await DOM.requestChildNodes({nodeId: waiting_parent, depth: -1});
-        await DOM.requestChildNodes({nodeId: waiting_parent, depth: node_request_depth});
-        rr_mark = hrtime.bigint();
-      }
-      else {
-        waiting_parent = 0;
-      }
+      await trigger_dom_fetch();
     }
     return Promise.resolve(true);
   }//}}}
@@ -378,9 +472,10 @@ async function monitor() {
       nodes_seen.set( waiting_parent, {
         nodeName: rootnode_n.description,
         parentId: 0,
-        branches: new Map
+        content: new Map
       });
-      await DOM.requestChildNodes({nodeId: nodeId, depth: node_request_depth});
+      parents_pending_children.unshift( nodeId );
+      trigger_dom_fetch();
     });
 
     await Page.domContentEventFired(async (ts) => {

@@ -19,6 +19,7 @@ const node_request_depth = 6;
 let outstanding_rr = new Map;
 let rr_map = new Map;
 let rr_mark = 0; // hrtime.bigint(); 
+let mark_steps = 0;
 
 function networkResponseReceived(params)
 {//{{{
@@ -111,9 +112,10 @@ function return_sorted_map( map_obj )
 
 function write_map_to_file( description, map_file, map_obj, loadedUrl )
 {//{{{
-  const objson = Object.fromEntries( return_sorted_map(map_obj) );
+  //const objson = Object.fromEntries( return_sorted_map(map_obj) );
   console.log( "Writing %s to %s", description, map_file );
-  writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
+  writeFileSync( map_file, inspect(map_obj, {showHidden: false, depth: null, colors: true}), {
+  //writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
     flag  : 'w',
     flush : true
   }); 
@@ -124,13 +126,15 @@ async function monitor() {
   let client;
   let nodes_seen = new Map;
   let nodes_tree = new Map;
+  let parents_pending_children = new Array; 
+  let waiting_parent = 0;
   let depth = 0;
   let rootnode = 0;
   let completed = false;
 
   client = await CDP();
 
-  const {Network, Page, DOM} = client;
+  const { Network, Page, DOM } = client;
 
   async function watchdog(cb)
   {//{{{
@@ -141,15 +145,18 @@ async function monitor() {
           let delta = Number((rr_current - rr_mark)/BigInt(1000 * 1000));
           if ( delta > 1000 * rr_timeout_s ) { 
             rr_mark = 0;
+            mark_steps = 0;
             console.log("--CLEAR--");
-            if ( cb ) await cb();
+            if ( cb ) await cb( mark_steps );
           }
           else {
-            console.log("--MARK--");
+            mark_steps++;
+            console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
+            if ( cb ) await cb( mark_steps );
           }
         }
         resolve(true);
-      },1000);
+      },100);
     });
   }//}}}
 
@@ -157,17 +164,23 @@ async function monitor() {
   {//{{{
     const {parentId, nodes} = params;
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
-    console.log( "Parent %d children %d {%s}", 
+
+    console.log( "Node[%d] %s %d <== parent %d children %d { %s }", 
+      nodes_seen.size,
+      descriptor.description,
       parentId, 
+      waiting_parent,
       nodes.length,
       nodes.map((e) => e.nodeId).join(','),
       descriptor
+      //,params
     );
+
     let parent_node;
     if ( !nodes_seen.has( parentId ) ) {
       nodes_seen.set( parentId, {
         nodeName: descriptor.description,
-        parentId: 0,
+        parentId: waiting_parent,
         branches: new Map 
       });
     }
@@ -180,7 +193,7 @@ async function monitor() {
         n.nodeId, 
         parentId,
         n.childNodeCount ? n.childNodeCount : 0, 
-        (n.childNodeCount && n.childNodeCount <= 1) ? (await DOM.getOuterHTML({nodeId: n.nodeId})).outerHTML : '...',
+        //(n.childNodeCount && n.childNodeCount <= 1) ? (await DOM.getOuterHTML({nodeId: n.nodeId})).outerHTML : '...',
         (await DOM.resolveNode({nodeId: n.nodeId})).object
       );
 
@@ -195,6 +208,7 @@ async function monitor() {
       this_node = nodes_seen.get(n.nodeId);
 
       parent_node.branches.set( n.nodeId, null );
+      nodes_seen.delete( parentId );
       nodes_seen.set( parentId, parent_node );
 
       try {
@@ -220,13 +234,15 @@ async function monitor() {
                 m.nodeId,
                 n.nodeId,
 
-                m.childNodeCount ? m.childNodeCount : 0,
-                (await DOM.resolveNode({nodeId: m.nodeId})).object, 
-                (await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
+                m.childNodeCount ? m.childNodeCount : 0
+                //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
+                //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
                 // m.childNodeCount == 0 ? await DOM.getOuterHTML({nodeId: m.nodeId}) : '...'
               );
-              if ( m.childNodeCount && m.childNodeCount > 0 )
-                await DOM.requestChildNodes({nodeId: m.nodeId, depth: node_request_depth});
+              //if ( !nodes_seen.has( m.nodeId ) )
+                parents_pending_children.push( m.nodeId )
+              //if ( m.childNodeCount && m.childNodeCount > 0 )
+              //  await DOM.requestChildNodes({nodeId: m.nodeId, depth: node_request_depth});
             }
             return true;
           });
@@ -238,13 +254,12 @@ async function monitor() {
 
       return true;
     });
-
     rr_mark = hrtime.bigint();
     return true;
   }//}}}
 
   function graft( m, depth )
-  {
+  {//{{{
     if ( m.branches.size > 0 ) {
       let tstk = new Array;
       m.branches.forEach((value, key, map) => {
@@ -262,35 +277,78 @@ async function monitor() {
       console.log("Grafted", m.branches, depth );
     }
     return m;
-  }
+  }//}}}
 
-  async function finalize_metadata()
-  {
+  async function finalize_metadata( step )
+  {//{{{
     // Chew up, digest, dump, and clear captured nodes.
     
-    console.log( "Pre-update", nodes_seen );
-    console.log( "TRANSFORM" );
-    let st = new Array;
-    nodes_seen.forEach((value, key, map) => {
-      st.push( key );
-    });
-    while ( st.length > 0 ) {
-      let k = st.shift();
-      if ( nodes_seen.has( k ) ) {
-        let b = nodes_seen.get( k );
-        console.log("Next %d", k);
-        b = graft( b, 0 );
-        nodes_seen.set( k, b );
+    if ( step == 0 ) {
+
+      console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, "" );
+      console.log( "TRANSFORM" );
+
+      let st = new Array;
+      let runs = 0;
+
+      while ( nodes_seen.size > 1 && runs < 10 ) {
+        console.log( "Run %d : %d", runs, nodes_seen.size );
+        nodes_seen.forEach((value, key, map) => {
+          st.push( key );
+        });
+        while ( st.length > 0 ) {
+          let k = st.shift();
+          if ( nodes_seen.has( k ) ) {
+            let b = nodes_seen.get( k );
+            if ( b.parentId > 0 ) {
+              // Append all leaves to their parents
+              if ( b.branches.size == 0 ) {
+                if ( nodes_seen.has( b.parentId ) ) {
+                  let p = nodes_seen.get( b.parentId ); 
+                  nodes_seen.delete(k);
+                  p.branches.set( k, p );
+                  nodes_seen.set( b.parentId, p );
+                }
+              }
+              console.log("Next %d", k);
+              nodes_seen.set( k, graft( b, 0 ) );
+
+              b = nodes_seen.get( k );
+
+              if ( nodes_seen.has( b.parentId ) ) {
+                let p = nodes_seen.get( b.parentId );
+                p.branches.set( k, b );
+                nodes_seen.delete( b.parentId );
+                nodes_seen.set( b.parentId, p );
+                nodes_seen.delete( k );
+              }
+
+            } // b.parentId > 0
+          } // nodes_seen.has( k )
+        } // st.length > 0
+        runs++;
+      }
+      console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      // Clear metadata storage
+      write_map_to_file("Everything", "everything.json", nodes_seen, "" );
+      nodes_seen.clear();
+      nodes_tree.clear();
+    }
+    else {
+      if ( parents_pending_children.length > 0 ) {
+        waiting_parent = parents_pending_children.shift();
+        console.log("Fetch %d", waiting_parent, parents_pending_children.length); 
+        //await DOM.requestChildNodes({nodeId: waiting_parent, depth: -1});
+        await DOM.requestChildNodes({nodeId: waiting_parent, depth: node_request_depth});
+        rr_mark = hrtime.bigint();
+      }
+      else {
+        waiting_parent = 0;
       }
     }
-    console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
-    // Clear metadata storage
-    write_map_to_file("Everything", "everything.json", nodes_seen, "" );
-    nodes_seen.clear();
-    nodes_tree.clear();
-
     return Promise.resolve(true);
-  }
+  }//}}}
 
   try {
 
@@ -305,6 +363,7 @@ async function monitor() {
     await Page.loadEventFired(async (ts) => {
       const { currentIndex, entries } = await Page.getNavigationHistory();
       const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
+      let rootnode_n;
       rootnode = nodeId;
       rr_mark = hrtime.bigint();
       console.log("LOAD EVENT %d", 
@@ -314,6 +373,13 @@ async function monitor() {
         ? entries[currentIndex].url 
         : '---'
       );
+      rootnode_n = (await DOM.resolveNode({nodeId: nodeId})).object;
+      waiting_parent = nodeId;
+      nodes_seen.set( waiting_parent, {
+        nodeName: rootnode_n.description,
+        parentId: 0,
+        branches: new Map
+      });
       await DOM.requestChildNodes({nodeId: nodeId, depth: node_request_depth});
     });
 

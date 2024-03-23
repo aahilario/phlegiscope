@@ -192,13 +192,13 @@ async function monitor() {
       nodes_seen.set(m.nodeId, {
         nodeName: m.nodeName ? m.nodeName : '---',
         parentId: parent_nodeId,
+        attributes: attrmap.size > 0 ? attrmap : null,
         content:  m.childNodeCount && m.childNodeCount > 0 
           ? new Map 
-          : m.nodeValue,
-        attributes: attrmap
+          : m.nodeValue
       });
-      attrmap.clear();
-      attrmap = null;
+      //attrmap.clear();
+      //attrmap = null;
     }
     child_node = nodes_seen.get(m.nodeId);
 
@@ -216,7 +216,7 @@ async function monitor() {
       //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
       //,m
       ,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, {showHidden: false, depth: null, colors: true})
-      ,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
+      //,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
     );
 
     let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
@@ -227,7 +227,7 @@ async function monitor() {
     }
 
     if ( has_child_array && m.children.length > 0 ) {
-      m.children.forEach(async (c) => {
+      await m.children.forEach(async (c) => {
         await recursively_add_and_register( c, m.nodeId, depth + 1 );
         child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
         nodes_seen.set( m.nodeId, child_node );

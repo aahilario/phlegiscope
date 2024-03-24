@@ -215,7 +215,7 @@ async function monitor() {
       //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
       //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
       //,m
-      ,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, {showHidden: false, depth: null, colors: true})
+      //,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, {showHidden: false, depth: null, colors: true})
       //,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
     );
 

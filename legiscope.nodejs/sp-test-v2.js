@@ -399,6 +399,7 @@ async function monitor() {
             if ( b.parentId > 0 ) {
               // Append all leaves to their parents
               if ( b.content.size == 0 ) {
+                // FIXME: REMOVE: This block is not actually entered
                 console.log( "Zero-len content", k );
                 if ( nodes_seen.has( b.parentId ) ) {
                   let p = nodes_seen.get( b.parentId ); 

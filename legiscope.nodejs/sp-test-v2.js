@@ -397,25 +397,6 @@ async function monitor() {
           if ( nodes_seen.has( k ) ) {
             let b = nodes_seen.get( k );
             if ( b.parentId > 0 ) {
-              // Append all leaves to their parents
-              if ( b.content.size == 0 ) {
-                // FIXME: REMOVE: This block is not actually entered
-                console.log( "Zero-len content", k );
-                if ( nodes_seen.has( b.parentId ) ) {
-                  let p = nodes_seen.get( b.parentId ); 
-                  nodes_seen.delete(k);
-                  b = {
-                    nodeName: b.nodeName,
-                    parentId: b.parentId,
-                    content: await DOM.getOuterHTML({nodeId: k}),
-                    leaf : true
-                  };
-                  console.log( "Munging", b );
-                  p.content.delete( k );
-                  p.content.set( k, b );
-                  nodes_seen.set( b.parentId, p );
-                }
-              }
               console.log("Next %d", k);
               nodes_seen.set( k, graft( b, 0 ) );
 

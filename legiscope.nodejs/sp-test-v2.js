@@ -181,7 +181,9 @@ async function monitor() {
   async function recursively_add_and_register( m, parent_nodeId, depth )
   {//{{{
     // Regular inorder tree traversal to populate nodes from 
-    // array nodes_seen
+    // array nodes_seen. Fully populating the tree requires a
+    // second traversal to pick up newly-fetched nodes 
+    // acquired by triggering requestChildNodes (in trigger_dom_fetch) 
     //
     // Parameters:
     // m: CDP DOM.Node
@@ -237,7 +239,7 @@ async function monitor() {
     }
 
     if ( has_child_array && m.children.length > 0 ) {
-      await m.children.forEach(async (c) => {
+      await m.children.forEach(async (c) => { // DOM.Node.children is an array
         let u = await recursively_add_and_register( c, m.nodeId, depth + 1 );
         //child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
         //nodes_seen.set( m.nodeId, child_node );

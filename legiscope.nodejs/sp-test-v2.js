@@ -215,7 +215,7 @@ async function monitor() {
     }
     child_node = nodes_seen.get(m.nodeId);
 
-    // Update flat Map node entry
+    // Create placeholder flat Map node entry
     parentNode.content.set(m.nodeId, null);
     nodes_seen.set( parent_nodeId, parentNode );
 
@@ -238,7 +238,7 @@ async function monitor() {
 
     if ( has_child_array && m.children.length > 0 ) {
       await m.children.forEach(async (c) => {
-        await recursively_add_and_register( c, m.nodeId, depth + 1 );
+        let u = await recursively_add_and_register( c, m.nodeId, depth + 1 );
         //child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
         //nodes_seen.set( m.nodeId, child_node );
         //FIXME: Method should probably return node to be attached to parent
@@ -247,7 +247,7 @@ async function monitor() {
         return Promise.resolve(true);
       });
     }
-    return Promise.resolve(true);
+    return Promise.resolve(m);
     //FIXME: Method should probably return node to be attached to parent
     //  .content node.  Do this to avoid postprocessing to purge
     //  the nodes_seen map.
@@ -255,6 +255,8 @@ async function monitor() {
 
   async function domSetChildNodes(params) 
   {//{{{
+    // Populate nodes_seen array with all DOM nodes.
+    // Inorder traversal takes care of appending already-fetched nodes.
     const {parentId, nodes} = params;
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
 
@@ -305,6 +307,7 @@ async function monitor() {
 
   function graft( m, depth )
   {//{{{
+    // Recursive descent through all nodes to attach all leaves to parents.
     tag_stack.push( m.nodeName );
     if ( m.isLeaf ) {
       console.log("Grafted %d { %s }", depth, tag_stack.join(' '), m.content );
@@ -318,6 +321,8 @@ async function monitor() {
       while ( tstk.length > 0 ) {
         let k = tstk.shift();
         if ( nodes_seen.has(k) ) {
+          // Append newly-fetched nodes found in linear map
+          // onto this node
           let b = nodes_seen.get(k);
           nodes_seen.delete(k);
           b = graft( b, depth + 1 );

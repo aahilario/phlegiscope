@@ -182,14 +182,13 @@ async function monitor() {
   {//{{{
     // Regular inorder tree traversal to populate nodes from 
     // array nodes_seen. Fully populating the tree requires a
-    // second traversal to pick up newly-fetched nodes 
-    // acquired by triggering requestChildNodes (in trigger_dom_fetch) 
+    // second traversal to pick up newly-fetched nodes acquired 
+    // by triggering requestChildNodes (in trigger_dom_fetch) 
     //
     // Parameters:
     // m: CDP DOM.Node
     // parentNode: Abbreviated node record ID
     // depth: Current recursive call nesting depth
-    let child_node;
     let parentNode = nodes_seen.get( parent_nodeId ); 
     let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
     let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
@@ -202,7 +201,7 @@ async function monitor() {
         attrmap.set( attr, attrval );
       }
       let isLeaf = !((m.childNodeCount && m.childNodeCount > 0) || has_child_array); 
-      nodes_seen.set(m.nodeId, {
+      nodes_seen.set( m.nodeId, {
         nodeName   : m.nodeName ? m.nodeName : '---',
         parentId   : parent_nodeId,
         attributes : attrmap.size > 0 ? attrmap : null,
@@ -210,12 +209,10 @@ async function monitor() {
         content    : /*new Map */ isLeaf
         ? m.nodeValue
         : new Map
-
       });
       //attrmap.clear();
       //attrmap = null;
     }
-    child_node = nodes_seen.get(m.nodeId);
 
     // Create placeholder flat Map node entry
     parentNode.content.set(m.nodeId, null);
@@ -240,19 +237,10 @@ async function monitor() {
 
     if ( has_child_array && m.children.length > 0 ) {
       await m.children.forEach(async (c) => { // DOM.Node.children is an array
-        let u = await recursively_add_and_register( c, m.nodeId, depth + 1 );
-        //child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
-        //nodes_seen.set( m.nodeId, child_node );
-        //FIXME: Method should probably return node to be attached to parent
-        //  .content node.  Do this to avoid postprocessing to purge
-        //  the nodes_seen map.
-        return Promise.resolve(true);
+        return await recursively_add_and_register( c, m.nodeId, depth + 1 );
       });
     }
-    return Promise.resolve(m);
-    //FIXME: Method should probably return node to be attached to parent
-    //  .content node.  Do this to avoid postprocessing to purge
-    //  the nodes_seen map.
+    return Promise.resolve(true);
   }//}}}
 
   async function domSetChildNodes(params) 
@@ -262,7 +250,6 @@ async function monitor() {
     const {parentId, nodes} = params;
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
 
-    // let R = (await DOM.describeNode({nodeId: parentId})).node;
 
     if ( envSet('VERBOSE') ) console.log( "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
       nodes_seen.size,
@@ -273,10 +260,8 @@ async function monitor() {
       nodes.map((e) => e.nodeId).join(',')
       //,descriptor
       //,params
-      //,R
     );
 
-    let parent_node;
     if ( !nodes_seen.has( parentId ) ) {
       let R = (await DOM.describeNode({nodeId: parentId})).node;
       let attrset = R.attributes ? R.attributes : [];
@@ -295,8 +280,8 @@ async function monitor() {
           ? new Map 
           : R.nodeValue 
       });
-      attrmap.clear();
-      attrmap = null;
+      //attrmap.clear();
+      //attrmap = null;
     }
 
     await nodes.forEach(async (n,nn,node) => {
@@ -315,7 +300,7 @@ async function monitor() {
       console.log("Grafted %d { %s }", depth, tag_stack.join(' '), m.content );
     }
     else if ( m.content && m.content.size && m.content.size > 0 ) {
-      console.log("Grafted %d { %s }", depth, tag_stack.join(' ') );
+      // console.log("Grafted %d { %s }", depth, tag_stack.join(' ') );
       let tstk = new Array;
       m.content.forEach((value, key, map) => {
         tstk.push( key );
@@ -362,7 +347,7 @@ async function monitor() {
     if ( step == 0 ) {
 
       nodes_seen = return_sorted_map( nodes_seen );
-      console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      if ( envSet('VERBOSE') ) console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
       write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, "" );
       console.log( "TRANSFORM" );
 
@@ -412,7 +397,6 @@ async function monitor() {
 
       nodes_seen = return_sorted_map( nodes_seen );
       write_map_to_file("Pre-processed", "pre-processed.json", nodes_seen, "" );
-
 
       while ( nodes_seen.size > 1 && runs < 10 ) {
         console.log( "Run %d : %d", runs, nodes_seen.size );

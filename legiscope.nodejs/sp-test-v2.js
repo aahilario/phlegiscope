@@ -206,9 +206,9 @@ async function monitor() {
         attributes : attrmap.size > 0 ? attrmap : null,
         isLeaf     : isLeaf,
         content    : /*new Map */ isLeaf
-          ? m.nodeValue
-          : new Map
-          
+        ? m.nodeValue
+        : new Map
+
       });
       //attrmap.clear();
       //attrmap = null;
@@ -239,13 +239,18 @@ async function monitor() {
     if ( has_child_array && m.children.length > 0 ) {
       await m.children.forEach(async (c) => {
         await recursively_add_and_register( c, m.nodeId, depth + 1 );
-        child_node.isLeaf = false;
-        child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
-        nodes_seen.set( m.nodeId, child_node );
+        //child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
+        //nodes_seen.set( m.nodeId, child_node );
+        //FIXME: Method should probably return node to be attached to parent
+        //  .content node.  Do this to avoid postprocessing to purge
+        //  the nodes_seen map.
         return Promise.resolve(true);
       });
     }
     return Promise.resolve(true);
+    //FIXME: Method should probably return node to be attached to parent
+    //  .content node.  Do this to avoid postprocessing to purge
+    //  the nodes_seen map.
   }//}}}
 
   async function domSetChildNodes(params) 

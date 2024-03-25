@@ -121,6 +121,11 @@ function write_map_to_file( description, map_file, map_obj, loadedUrl )
   }); 
 }//}}}
 
+function envSet( v )
+{
+  return ( process.env[v] !== undefined );
+}
+
 async function monitor() {
 
   let client;
@@ -156,7 +161,7 @@ async function monitor() {
           }
           else {
             mark_steps++;
-            if ( process.env['VERBOSE'] !== undefined ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
+            if ( envSet('VERBOSE') ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
             if ( cb ) await cb( mark_steps );
           }
         }
@@ -169,18 +174,23 @@ async function monitor() {
   {//{{{
     // Only call this method 
     // if node.childNodeCount > 0 AND node.children === undefined
-    console.log("ENQUEUE [%d]", nodeId);
+    if ( envSet('VERBOSE') ) console.log("ENQUEUE [%d]", nodeId);
     parents_pending_children.push( nodeId );
   }//}}}
 
   async function recursively_add_and_register( m, parent_nodeId, depth )
   {//{{{
+    // Regular inorder tree traversal to populate nodes from 
+    // array nodes_seen
+    //
     // Parameters:
     // m: CDP DOM.Node
     // parentNode: Abbreviated node record ID
     // depth: Current recursive call nesting depth
     let child_node;
     let parentNode = nodes_seen.get( parent_nodeId ); 
+    let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
+    let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
     if ( !nodes_seen.has(m.nodeId) ) {
       let attrset = m.attributes ? m.attributes : [];
       let attrmap = new Map;
@@ -189,13 +199,16 @@ async function monitor() {
         let attrval = attrset.shift();
         attrmap.set( attr, attrval );
       }
+      let isLeaf = !((m.childNodeCount && m.childNodeCount > 0) || has_child_array); 
       nodes_seen.set(m.nodeId, {
-        nodeName: m.nodeName ? m.nodeName : '---',
-        parentId: parent_nodeId,
-        attributes: attrmap.size > 0 ? attrmap : null,
-        content:  m.childNodeCount && m.childNodeCount > 0 
-          ? new Map 
-          : m.nodeValue
+        nodeName   : m.nodeName ? m.nodeName : '---',
+        parentId   : parent_nodeId,
+        attributes : attrmap.size > 0 ? attrmap : null,
+        isLeaf     : isLeaf,
+        content    : /*new Map */ isLeaf
+          ? m.nodeValue
+          : new Map
+          
       });
       //attrmap.clear();
       //attrmap = null;
@@ -206,7 +219,7 @@ async function monitor() {
     parentNode.content.set(m.nodeId, null);
     nodes_seen.set( parent_nodeId, parentNode );
 
-    console.log("Sub[%d] %s %d <- parent %d children %d",
+    if ( envSet('VERBOSE') ) console.log("Sub[%d] %s %d <- parent %d children %d",
       depth,
       m.nodeName ? m.nodeName : '---',
       m.nodeId,
@@ -219,9 +232,6 @@ async function monitor() {
       //,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
     );
 
-    let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
-    let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
-
     if ( enqueue_m_nodeid ) {
       register_parent_in_waiting( m.nodeId );
     }
@@ -229,6 +239,7 @@ async function monitor() {
     if ( has_child_array && m.children.length > 0 ) {
       await m.children.forEach(async (c) => {
         await recursively_add_and_register( c, m.nodeId, depth + 1 );
+        child_node.isLeaf = false;
         child_node.content.set( c.nodeId, nodes_seen.get( c.nodeId ) );
         nodes_seen.set( m.nodeId, child_node );
         return Promise.resolve(true);
@@ -244,7 +255,7 @@ async function monitor() {
 
     // let R = (await DOM.describeNode({nodeId: parentId})).node;
 
-    console.log( "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
+    if ( envSet('VERBOSE') ) console.log( "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
       nodes_seen.size,
       descriptor.description,
       parentId, 
@@ -267,12 +278,13 @@ async function monitor() {
         attrmap.set( attr, attrval );
       }
       nodes_seen.set( parentId, {
-        nodeName: R.nodeName,
-        parentId: waiting_parent,
-        content: R.childNodeCount && R.childNodeCount > 0 
+        nodeName   : R.nodeName,
+        parentId   : waiting_parent,
+        attributes : attrmap,
+        isLeaf     : !(R.childNodeCount && R.childNodeCount > 0),
+        content    : R.childNodeCount && R.childNodeCount > 0
           ? new Map 
-          : R.nodeValue, 
-        attributes: attrmap 
+          : R.nodeValue 
       });
       attrmap.clear();
       attrmap = null;
@@ -288,9 +300,11 @@ async function monitor() {
 
   function graft( m, depth )
   {//{{{
-    let isLeaf = m.leaf ? m.leaf : false;
     tag_stack.push( m.nodeName );
-    if ( !isLeaf && m.content && m.content.size && m.content.size > 0 ) {
+    if ( m.isLeaf ) {
+      console.log("Grafted %d { %s }", depth, tag_stack.join(' '), m.content );
+    }
+    else if ( m.content && m.content.size && m.content.size > 0 ) {
       console.log("Grafted %d { %s }", depth, tag_stack.join(' ') );
       let tstk = new Array;
       m.content.forEach((value, key, map) => {
@@ -319,7 +333,7 @@ async function monitor() {
         depth  : node_request_depth,
         pierce : true
       });
-      console.log("requestChildNodes %d", 
+      if ( envSet('VERBOSE') ) console.log("requestChildNodes %d", 
         waiting_parent, 
         nodes_seen.has(waiting_parent), 
         parents_pending_children.length,
@@ -373,10 +387,11 @@ async function monitor() {
         nodes_seen.delete(n);
         if ( s.content.size == 0 ) {
           let sr = {
-            leaf     : true,
-            nodeName : s.nodeName,
-            parentId : s.parentId,
-            content  : (await DOM.getOuterHTML({ nodeId: n })).outerHTML
+            nodeName   : s.nodeName,
+            parentId   : s.parentId,
+            attributes : s.attributes,
+            isLeaf     : true,
+            content    : (await DOM.getOuterHTML({ nodeId : n })).outerHTML
           };
           s = sr;
         }
@@ -452,9 +467,11 @@ async function monitor() {
       rootnode_n = (await DOM.resolveNode({nodeId: nodeId})).object;
       waiting_parent = nodeId;
       nodes_seen.set( waiting_parent, {
-        nodeName: rootnode_n.description,
-        parentId: 0,
-        content: new Map
+        nodeName   : rootnode_n.description,
+        parentId   : 0,
+        attributes : new Map,
+        isLeaf     : false,
+        content    : new Map
       });
       parents_pending_children.unshift( nodeId );
       trigger_dom_fetch();

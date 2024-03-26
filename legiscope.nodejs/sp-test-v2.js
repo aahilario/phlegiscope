@@ -297,11 +297,29 @@ async function monitor() {
     // Recursive descent through all nodes to attach all leaves to parents.
     tag_stack.push( m.nodeName );
     if ( m.isLeaf ) {
-      console.log("Grafted %d { %s }", depth, tag_stack.join(' '), m.content );
+      console.log("Grafted %d { %s }", 
+        depth, 
+        tag_stack.join(' '), 
+        m.content );
     }
     else if ( m.content && m.content.size && m.content.size > 0 ) {
-      // console.log("Grafted %d { %s }", depth, tag_stack.join(' ') );
       let tstk = new Array;
+      let attrinfo;
+      if ( m.nodeName == 'A' ) {
+        let attrarr = new Array();
+        m.attributes.forEach((value, key, map) => {
+          attrarr.push( key.concat('=',value) );
+        });
+        attrarr.sort();
+        attrinfo = attrarr.join(' ');
+        while ( attrarr.length > 0 ) attrarr.shift();
+        attrarr = null;
+      }
+      console.log("Grafted %d | %s >", 
+        depth,
+        tag_stack.join(' '),
+        attrinfo ? attrinfo : ''
+      );
       m.content.forEach((value, key, map) => {
         tstk.push( key );
       });

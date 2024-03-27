@@ -371,7 +371,9 @@ async function monitor() {
           }
           let nrn = nr.get( n.nodeName ) + 1;
           nr.set( n.nodeName, nrn );
-          br.set( [ n.nodeName,'[', nrn, ']', ].join(''), n.content );
+          br.set( [ n.nodeName,'[', nrn, ']', ].join(''),
+            n.content
+          );
         }
         else {
           n.content.forEach((m, nodeId, content_) => {
@@ -381,12 +383,23 @@ async function monitor() {
             }
             let nrn = nr.get( tagname ) + 1;
             nr.set( tagname, nrn );
-            if ( !m.isLeaf ) {
-              let branch = inorder_traversal(m.content, d + 1); 
-              br.set( [ tagname,'[', nrn, ']', ].join(''), branch );
+            if ( m.isLeaf ) {
+              br.set( [ tagname,'[', nrn, ']', ].join(''), 
+                {
+                  content: ['{',m.content,'}'].join(''),
+                  attributes: n.nodeName == 'A'
+                  ? n.attributes
+                  : m.attributes
+                }
+              );
             }
             else {
-              br.set( [ tagname,'[', nrn, ']', ].join(''), m.content );
+              let branch = inorder_traversal(m.content, d + 1); 
+              br.set( [ tagname,'[', nrn, ']', ].join(''), 
+                tagname == 'A' 
+                ? { attributes: m.attributes, content: branch }
+                : branch 
+              );
             }
           });
         }

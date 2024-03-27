@@ -308,7 +308,7 @@ async function monitor() {
       if ( m.nodeName == 'A' ) {
         let attrarr = new Array();
         m.attributes.forEach((value, key, map) => {
-          attrarr.push( key.concat('=',value) );
+          attrarr.push( [key,'="',value,'"'].join('') );
         });
         attrarr.sort();
         attrinfo = attrarr.join(' ');
@@ -357,6 +357,47 @@ async function monitor() {
       rr_mark = hrtime.bigint();
     }
   }//}}}
+
+  function inorder_traversal( nm, d )
+  {
+    let br = new Map;
+    let nr = new Map;
+    // Depth-first inorder traversal of .content maps in each node.
+    try {
+      nm.forEach((n, node_id, map) => {
+        if ( n.isLeaf ) {
+          if ( !nr.has( n.nodeName ) ) {
+            nr.set( n.nodeName, 0 );
+          }
+          let nrn = nr.get( n.nodeName ) + 1;
+          nr.set( n.nodeName, nrn );
+          br.set( [ n.nodeName,'[', nrn, ']', ].join(''), n.content );
+        }
+        else {
+          n.content.forEach((m, nodeId, content_) => {
+            let tagname = m.nodeName;
+            if ( !nr.has( tagname ) ) {
+              nr.set( tagname, 0 );
+            }
+            let nrn = nr.get( tagname ) + 1;
+            nr.set( tagname, nrn );
+            if ( !m.isLeaf ) {
+              let branch = inorder_traversal(m.content, d + 1); 
+              br.set( [ tagname,'[', nrn, ']', ].join(''), branch );
+            }
+            else {
+              br.set( [ tagname,'[', nrn, ']', ].join(''), m.content );
+            }
+          });
+        }
+      });
+    } catch(e) {
+      console.log("Exception", nm.nodeName, e);
+    }
+    nr.clear();
+    nr = null;
+    return br; // After complete traversal, return complete tree
+  }
 
   async function finalize_metadata( step )
   {//{{{
@@ -443,6 +484,13 @@ async function monitor() {
         } // st.length > 0
         runs++;
       }
+
+      // Inorder traversal to reconstruct "clean" HTML
+
+      console.log( "Building" );
+      let trie = inorder_traversal( nodes_seen, 0 );
+      console.log( "Built", inspect(trie, {showHidden: false, depth: null, colors: true}) );
+
       console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
       // Clear metadata storage
       write_map_to_file("Everything", "everything.json", nodes_seen, "" );

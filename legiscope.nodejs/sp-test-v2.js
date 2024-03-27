@@ -365,43 +365,45 @@ async function monitor() {
     // Depth-first inorder traversal of .content maps in each node.
     try {
       nm.forEach((n, node_id, map) => {
+        if ( !nr.has( n.nodeName ) ) {
+          nr.set( n.nodeName, 0 );
+        }
+        let nrn = nr.get( n.nodeName ) + 1;
+        let altname = [ n.nodeName,'[', nrn, ']', ].join('');
+        nr.set( n.nodeName, nrn );
+
         if ( n.isLeaf ) {
-          if ( !nr.has( n.nodeName ) ) {
-            nr.set( n.nodeName, 0 );
-          }
-          let nrn = nr.get( n.nodeName ) + 1;
-          nr.set( n.nodeName, nrn );
-          br.set( [ n.nodeName,'[', nrn, ']', ].join(''),
-            n.content
-          );
+          br.set( altname, n.content );
         }
         else {
+          let branches = new Map;
+          let child_nr = new Map;
           n.content.forEach((m, nodeId, content_) => {
             let tagname = m.nodeName;
-            if ( !nr.has( tagname ) ) {
-              nr.set( tagname, 0 );
+            if ( !child_nr.has( tagname ) ) {
+              child_nr.set( tagname, 0 );
             }
-            let nrn = nr.get( tagname ) + 1;
-            nr.set( tagname, nrn );
+            let child_nrn = child_nr.get( tagname ) + 1;
+            let child_altname = [ tagname,'[', child_nrn, ']', ].join('');
+            child_nr.set( tagname, child_nrn );
             if ( m.isLeaf ) {
-              br.set( [ tagname,'[', nrn, ']', ].join(''), 
-                {
-                  content: ['{',m.content,'}'].join(''),
-                  attributes: n.nodeName == 'A'
-                  ? n.attributes
-                  : m.attributes
-                }
-              );
+              branches.set( child_altname, {
+                content: ['{',m.content,'}'].join(''),
+                attributes: n.nodeName == 'A'
+                ? n.attributes
+                : m.attributes
+              });
             }
             else {
               let branch = inorder_traversal(m.content, d + 1); 
-              br.set( [ tagname,'[', nrn, ']', ].join(''), 
+              branches.set( child_altname, 
                 tagname == 'A' 
                 ? { attributes: m.attributes, content: branch }
                 : branch 
               );
             }
           });
+          br.set( altname, branches );
         }
       });
     } catch(e) {

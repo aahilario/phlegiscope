@@ -280,8 +280,6 @@ async function monitor() {
           ? new Map 
           : R.nodeValue 
       });
-      //attrmap.clear();
-      //attrmap = null;
     }
 
     await nodes.forEach(async (n,nn,node) => {
@@ -358,7 +356,7 @@ async function monitor() {
     }
   }//}}}
 
-  function inorder_traversal( nm, d )
+  function inorder_traversal( nm, d, cb )
   {
     let br = new Map;
     let nr = new Map;
@@ -373,38 +371,13 @@ async function monitor() {
         nr.set( n.nodeName, nrn );
 
         if ( n.isLeaf ) {
-          br.set( altname, n.content );
+          br.set( altname, cb ? cb('L', d, n) : n.content );
         }
         else {
-          br.set( altname, inorder_traversal( n.content, d + 1 ) );
-          //let branches = new Map;
-          //let child_nr = new Map;
-          //n.content.forEach((m, nodeId, content_) => {
-          //  let tagname = m.nodeName;
-          //  if ( !child_nr.has( tagname ) ) {
-          //    child_nr.set( tagname, 0 );
-          //  }
-          //  let child_nrn = child_nr.get( tagname ) + 1;
-          //  let child_altname = [ tagname,'[', child_nrn, ']', ].join('');
-          //  child_nr.set( tagname, child_nrn );
-          //  if ( m.isLeaf ) {
-          //    branches.set( child_altname, {
-          //      content: ['{',m.content,'}'].join(''),
-          //      attributes: n.nodeName == 'A'
-          //      ? n.attributes
-          //      : m.attributes
-          //    });
-          //  }
-          //  else {
-          //    let branch = inorder_traversal(m.content, d + 1); 
-          //    branches.set( child_altname, 
-          //      tagname == 'A' 
-          //      ? { attributes: m.attributes, content: branch }
-          //      : branch 
-          //    );
-          //  }
-          //});
-          //br.set( altname, branches );
+          br.set( altname, cb 
+            ? cb('N', d, inorder_traversal( n.content, d + 1 ) )
+            : inorder_traversal( n.content, d + 1 )
+          );
         }
       });
     } catch(e) {

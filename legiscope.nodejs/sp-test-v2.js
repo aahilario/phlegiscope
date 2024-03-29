@@ -261,6 +261,7 @@ async function monitor() {
       nodes_seen.size,
       descriptor.description,
       parentId, 
+
       waiting_parent,
       nodes.length,
       nodes.map((e) => e.nodeId).join(',')
@@ -298,20 +299,25 @@ async function monitor() {
       });
     }
     parent_node = nodes_seen.get( parentId );
-    if ( parent_node.content.size == 0 && !parent_node.isLeaf ) {
+    if ( 1/*parent_node.content.size == 0 && !parent_node.isLeaf*/ ) {
       let modified = 0;
-      console.log( "- Attach %d nodes to parent[%d]",
-        nodes.length,
-        parentId
-      );
       nodes.forEach((n,nn,node) => {
-        if ( !parent_node.content.has( n.nodeId ) ) {
+        if ( n.nodeId != parentId && !parent_node.content.has( n.nodeId ) ) {
           parent_node.content.set( n.nodeId, null );
           modified++;
         }
       });
-      if ( modified > 0 )
+      if ( envSet('DOMSETCHILDNODES','1') ) {
+        console.log( "- Preregister %d/%d nodes with parent[%d]",
+          modified,
+          nodes.length,
+          parentId
+        );
+      }
+      if ( modified > 0 ) {
+        parent_node.isLeaf = false;
         nodes_seen.set( parentId, parent_node );
+      }
     }
 
     await nodes.forEach(async (n,nn,node) => {
@@ -322,13 +328,29 @@ async function monitor() {
     return true;
   }//}}}
 
-  function graft( m, depth )
+  async function graft( m, nodeId, depth )
   {//{{{
     // Recursive descent through all nodes to attach all leaves to parents.
     tag_stack.push( m.nodeName );
+    if ( !m.isLeaf && m.content && m.content.size == 0 ) {
+      let sr = {
+        nodeName   : m.nodeName,
+        parentId   : m.parentId,
+        attributes : m.attributes,
+        isLeaf     : true,
+        content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
+      };
+      if ( envSet('GRAFT','1') ) console.log("Leafify %d",
+        depth,
+        nodeId,
+        m.content
+      );
+      m = sr;
+    }
     if ( m.isLeaf ) {
-      if ( envSet('GRAFT','1') ) console.log("   Leaf %d { %s }", 
+      if ( envSet('GRAFT','1') ) console.log("   Leaf %d %d { %s }", 
         depth, 
+        nodeId,
         tag_stack.join(' '), 
         m.content );
     }
@@ -345,28 +367,30 @@ async function monitor() {
         while ( attrarr.length > 0 ) attrarr.shift();
         attrarr = null;
       }
-      if ( envSet('GRAFT','1') ) console.log("Grafted %d | %s >", 
+      if ( envSet('GRAFT','1') ) console.log("Grafted %d %d | %s >", 
         depth,
+        nodeId,
         tag_stack.join(' '),
         attrinfo ? attrinfo : ''
       );
       m.content.forEach((value, key, map) => {
         tstk.push( key );
       });
+      tstk.sort((a,b) => {return b - a;});
+      
       while ( tstk.length > 0 ) {
         let k = tstk.shift();
         if ( nodes_seen.has(k) ) {
           // Append newly-fetched nodes found in linear map
           // onto this node
-          let b = nodes_seen.get(k);
-          nodes_seen.delete(k);
-          b = graft( b, depth + 1 );
+          let b = await graft( nodes_seen.get(k), k, depth + 1 );
           m.content.set( k, b );
+          nodes_seen.delete(k);
         }
       }
     }
     tag_stack.pop();
-    return m;
+    return Promise.resolve(m);
   }//}}}
 
   async function trigger_dom_fetch()
@@ -510,10 +534,10 @@ async function monitor() {
 
       // First, sort nodes - just because we can.
       nodes_seen = return_sorted_map( nodes_seen );
-      if ( envSet('FINALIZE_METADATA','0') ) console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      if ( envSet('FINALIZE_METADATA','1') ) console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
       write_map_to_file("Pre-transform", "pre-transform.json", 
         inspect(nodes_seen, {
-          showHidden: false, 
+          showHidden: true, 
           depth: null,
           colors: true 
         }), ""
@@ -566,96 +590,40 @@ async function monitor() {
       {//{{{
         // Ensure that child nodes are referenced in .content
         // across all nodes.
-        if (0) {
-          console.log("Fixing cross-references among %d nodes", nodes_seen.size);
-          nodes_seen.forEach((value, key, map) => {
-            st.push( key );
-          });
-          while ( st.length > 0 ) {
-            let n = st.shift();
-            if ( nodes_seen.has(n) ) {
-              let s = nodes_seen.get(n);
-              console.log( "Check", n );
-              nodes_seen.delete(n);
-              nodes_seen.forEach((value, key, map) => {
-                if ( value.parentId == n ) {
-                  if ( !s.content.has(key) ) {
-                    console.log( "Fixup [%d] <- [%d]", key, n );
-                    s.content.set( key, null );
-                  }
-                }
-              });
-              nodes_seen.set(n, s);
-            }
-          }
-        }
-
-        if (0) {
-        console.log("Replace leaf node contents");
-        nodes_seen.forEach((value, key, map) => {
-          st.push( key );
-        });
-        while ( st.length > 0 ) {
-          let n = st.shift();
-          let s = nodes_seen.get(n);
-          nodes_seen.delete(n);
-          if ( s.content.size == 0 ) {
-            let sr = {
-              nodeName   : s.nodeName,
-              parentId   : s.parentId,
-              attributes : s.attributes,
-              isLeaf     : true,
-              content    : (await DOM.getOuterHTML({ nodeId : n })).outerHTML
-            };
-            s = sr;
-          }
-          nodes_seen.set(n, s);
-        }
-        }
-
         console.log( "Sorting %d nodes", nodes_seen.size );
-        nodes_seen = return_sorted_map( nodes_seen );
-        write_map_to_file(
-          "Pre-processed",
-          "pre-processed.json",
-          inspect(nodes_seen, {showHidden: false, depth: null, colors: true}),
-          ""
+        writeFileSync( "pre-processed.json", 
+          inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ),
+          {
+            flag : "w+",
+            flush: true
+          }
         );
 
-        while ( nodes_seen.size > 1 && runs < 10 ) {
+        while ( nodes_seen.size > 1 && runs < 500 ) {
           console.log( "Run %d : %d", runs, nodes_seen.size );
           nodes_seen.forEach((value, key, map) => {
             st.push( key );
           });
+          st.sort((a,b) => {return b - a;});
+          console.log( "Reduction of %d nodes", st.length );
           while ( st.length > 0 ) {
             let k = st.shift();
             if ( nodes_seen.has( k ) ) {
-              let b = nodes_seen.get( k );
-
-          if ( b.content.size == 0 ) {
-            let sr = {
-              nodeName   : b.nodeName,
-              parentId   : b.parentId,
-              attributes : b.attributes,
-              isLeaf     : true,
-              content    : (await DOM.getOuterHTML({ nodeId : k })).outerHTML
-            };
-            b = sr;
-            nodes_seen.set( k, b );
-          }
-
+              // Node[k] may have been relocated by graft(m,nodeId,depth)
+              b = nodes_seen.get( k );
               if ( b.parentId > 0 ) {
-                console.log("Next %d", k);
-                nodes_seen.set( k, graft( b, 0 ) );
+                console.log("Next %d, remaining %d", k, nodes_seen.size);
+                nodes_seen.set( k, await graft( b, k, 0 ) );
 
                 b = nodes_seen.get( k );
 
                 if ( nodes_seen.has( b.parentId ) ) {
                   let p = nodes_seen.get( b.parentId );
                   p.content.set( k, b );
-                  nodes_seen.delete( b.parentId );
                   nodes_seen.set( b.parentId, p );
                   nodes_seen.delete( k );
+                  nodes_seen.delete( b.parentId );
+                  console.log("Remaining nodes", nodes_seen.size);
                 }
               } // b.parentId > 0
             } // nodes_seen.has( k )
@@ -673,9 +641,11 @@ async function monitor() {
 
       if (envSet("DUMP_PRODUCT","1")) console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
       // Clear metadata storage
+
+      console.log( "DONE" );
       write_map_to_file("Everything",
         "everything.json",
-        inspect(nodes_seen, {showHidden: false, depth: null, colors: true}),
+        inspect(nodes_seen, {showHidden: true, depth: null, colors: true}),
         ""
       );
       nodes_seen.clear();

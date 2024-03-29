@@ -36,7 +36,7 @@ function networkResponseReceived(params)
   if ( rr_map.has( params.requestId ) ) {
     let m = rr_map.get( params.requestId );
     m.response = response;
-    console.log("A[%s] %d %s %s", 
+    if (envSet('QA')) console.log("A[%s] %d %s %s", 
       params.requestId, 
       response.status,
       params.response.url, 
@@ -70,7 +70,7 @@ function networkRequestWillBeSent(params)
   if ( !outstanding_rr.has( params.requestId ) ) {
     outstanding_rr.set( params.requestId, markdata );
   }
-  console.log("Q[%s] %s %s", 
+  if (envSet('QA')) console.log("Q[%s] %s %s", 
     params.requestId, 
     markdata.method,
     markdata.url
@@ -83,7 +83,7 @@ function networkLoadingFinished(params)
   if ( outstanding_rr.has( params.requestId ) ) {
     outstanding_rr.delete( params.requestId );
   }
-  console.log("L[%s]", params.requestId, outstanding_rr.size );
+  if (envSet('QA')) console.log("L[%s]", params.requestId, outstanding_rr.size );
   rr_mark = hrtime.bigint();
 }//}}}
 
@@ -114,16 +114,18 @@ function write_map_to_file( description, map_file, map_obj, loadedUrl )
 {//{{{
   //const objson = Object.fromEntries( return_sorted_map(map_obj) );
   console.log( "Writing %s to %s", description, map_file );
-  writeFileSync( map_file, inspect(map_obj, {showHidden: false, depth: null, colors: true}), {
+  writeFileSync( map_file, map_obj, {
   //writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
     flag  : 'w+',
     flush : true
   }); 
 }//}}}
 
-function envSet( v )
+function envSet( v, w )
 {
-  return ( process.env[v] !== undefined );
+  return w === undefined
+  ? ( process.env[v] !== undefined )
+  : ( process.env[v] !== undefined && process.env[v] === w );
 }
 
 async function monitor() {
@@ -161,12 +163,12 @@ async function monitor() {
           }
           else {
             mark_steps++;
-            if ( envSet('VERBOSE') ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
+            if ( envSet('WATCHDOG','1') ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
             if ( cb ) await cb( mark_steps );
           }
         }
         resolve(true);
-      },50);
+      },1);
     });
   }//}}}
 
@@ -174,7 +176,8 @@ async function monitor() {
   {//{{{
     // Only call this method 
     // if node.childNodeCount > 0 AND node.children === undefined
-    if ( envSet('VERBOSE') ) console.log("ENQUEUE [%d]", nodeId);
+    if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('?');
+    if ( envSet('DOMSETCHILDNODES','1') ) console.log("ENQUEUE [%d]", nodeId);
     parents_pending_children.push( nodeId );
   }//}}}
 
@@ -218,7 +221,8 @@ async function monitor() {
     parentNode.content.set(m.nodeId, null);
     nodes_seen.set( parent_nodeId, parentNode );
 
-    if ( envSet('VERBOSE') ) console.log("Sub[%d] %s %d <- parent %d children %d",
+    if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('.');
+    if ( envSet('DOMSETCHILDNODES','1') ) console.log("Sub[%d] %s %d <- parent %d children %d",
       depth,
       m.nodeName ? m.nodeName : '---',
       m.nodeId,
@@ -251,7 +255,9 @@ async function monitor() {
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
 
 
-    if ( envSet('VERBOSE') ) console.log( "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
+    if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('.');
+    if ( envSet('DOMSETCHILDNODES','1') ) console.log( 
+      "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
       nodes_seen.size,
       descriptor.description,
       parentId, 
@@ -261,7 +267,17 @@ async function monitor() {
       //,descriptor
       //,params
     );
-
+    let parent_node;
+    if ( nodes_seen.has( waiting_parent ) ) {
+      // Avoid need for fixup by fixing waiting_parent content map
+      parent_node = nodes_seen.get( waiting_parent );
+      if ( !parent_node.content.has( parentId ) && (waiting_parent != parentId) ) {
+        parent_node.content.set( parentId, null );
+        nodes_seen.set( waiting_parent, parent_node );
+        if ( envSet('DOMSETCHILDNODES','1') ) 
+          console.log( "Fixup %d[%d]", waiting_parent, parentId );
+      }
+    }
     if ( !nodes_seen.has( parentId ) ) {
       let R = (await DOM.describeNode({nodeId: parentId})).node;
       let attrset = R.attributes ? R.attributes : [];
@@ -281,6 +297,22 @@ async function monitor() {
           : R.nodeValue 
       });
     }
+    parent_node = nodes_seen.get( parentId );
+    if ( parent_node.content.size == 0 && !parent_node.isLeaf ) {
+      let modified = 0;
+      console.log( "- Attach %d nodes to parent[%d]",
+        nodes.length,
+        parentId
+      );
+      nodes.forEach((n,nn,node) => {
+        if ( !parent_node.content.has( n.nodeId ) ) {
+          parent_node.content.set( n.nodeId, null );
+          modified++;
+        }
+      });
+      if ( modified > 0 )
+        nodes_seen.set( parentId, parent_node );
+    }
 
     await nodes.forEach(async (n,nn,node) => {
       await recursively_add_and_register( n, parentId, 0 );
@@ -295,7 +327,7 @@ async function monitor() {
     // Recursive descent through all nodes to attach all leaves to parents.
     tag_stack.push( m.nodeName );
     if ( m.isLeaf ) {
-      console.log("Grafted %d { %s }", 
+      if ( envSet('GRAFT','1') ) console.log("   Leaf %d { %s }", 
         depth, 
         tag_stack.join(' '), 
         m.content );
@@ -313,7 +345,7 @@ async function monitor() {
         while ( attrarr.length > 0 ) attrarr.shift();
         attrarr = null;
       }
-      console.log("Grafted %d | %s >", 
+      if ( envSet('GRAFT','1') ) console.log("Grafted %d | %s >", 
         depth,
         tag_stack.join(' '),
         attrinfo ? attrinfo : ''
@@ -346,7 +378,7 @@ async function monitor() {
         depth  : node_request_depth,
         pierce : true
       });
-      if ( envSet('VERBOSE') ) console.log("requestChildNodes %d", 
+      if ( envSet('TRIGGER_DOM_FETCH','1') ) console.log("requestChildNodes %d", 
         waiting_parent, 
         nodes_seen.has(waiting_parent), 
         parents_pending_children.length,
@@ -356,37 +388,119 @@ async function monitor() {
     }
   }//}}}
 
-  function inorder_traversal( nm, d, cb )
-  {
+  function inorder_traversal_cb( mode, p, depth, nm, node_id )
+  {//{{{
+    // Parameters:
+    // mode    : Indicates where we are invoked in the execution path. See inorder_traversal().
+    // p       : Abbreviated node {n, node_id} to be placed in nodes_tree
+    // d       : Traversal depth in destination tree nodes_tree
+    // nm      : Depending on value of {mode}, either an abbreviated node, or a Map of such nodes from N.content
+    // node_id : A unique ID identical to that in DOM.Node
+    let retval;
+    switch ( mode ) {
+      case 'A':
+        // nm      : Map of abbreviated nodes
+        // node_id : Undefined
+        // Return value: Unused
+        break;
+      case 'B':
+        // nm      : Map of abbreviated nodes
+        // node_id : Undefined
+        // Return value: Unused
+        break;
+      case 'L':
+        // nm: Abbreviated node from N.content 
+        // node_id: node_id for {nm}
+        // Return value: either of
+        // - An abbreviated node to insert into returned Map
+        // - undefined, to prevent altering Map returned from inorder_traversal
+        break;
+      case 'N':
+        // nm: Abbreviated node from N.content 
+        // node_id: node_id for {nm}
+        // Return value: either of
+        // - An abbreviated node to insert into returned Map
+        // - undefined, to prevent altering Map returned from inorder_traversal
+        break;
+    }
+    return retval;
+  }//}}}
+
+  function inorder_traversal( nm, d, cb, cb_param )
+  {//{{{
     let br = new Map;
     let nr = new Map;
     // Depth-first inorder traversal of .content maps in each node.
+    if ( cb ) cb('A', cb_param, d, nm);
     try {
+      // Map insert order determines the traversal order
       nm.forEach((n, node_id, map) => {
+        if ( !n ) return true;
         if ( !nr.has( n.nodeName ) ) {
-          nr.set( n.nodeName, 0 );
+          nr.set( n.nodeName, -1 );
         }
         let nrn = nr.get( n.nodeName ) + 1;
         let altname = [ n.nodeName,'[', nrn, ']', ].join('');
+        let v;
         nr.set( n.nodeName, nrn );
-
         if ( n.isLeaf ) {
-          br.set( altname, cb ? cb('L', d, n) : n.content );
+          v = cb 
+            ? cb('L', cb_param, d, n, node_id ) 
+            : n.content;
+          if ( v !== undefined )
+            br.set( altname, v );
         }
         else {
-          br.set( altname, cb 
-            ? cb('N', d, inorder_traversal( n.content, d + 1 ) )
-            : inorder_traversal( n.content, d + 1 )
-          );
+          v = cb 
+            ? cb(
+              'N', 
+              cb_param, 
+              d, 
+              inorder_traversal( n.content, d + 1, cb, cb_param ),
+              node_id )
+            : inorder_traversal( n.content, d + 1, cb, cb_param );
+          if ( v !== undefined )
+            br.set( altname, v );
         }
       });
     } catch(e) {
-      console.log("Exception", nm.nodeName, e);
+      console.log("Exception at depth %d", 
+        d, 
+        nm.nodeName, 
+        e, 
+        inspect(nm, {showHidden: false, depth: null, colors: true})
+      );
     }
+    if ( cb ) cb('B', cb_param, d, nm);
     nr.clear();
     nr = null;
     return br; // After complete traversal, return complete tree
-  }
+  }//}}}
+
+  function sn_inorder_traversal( nm, d, p )
+  {//{{{
+    try {
+      nm.forEach((n, node_id, map) => {
+        if ( !n || n.isLeaf ) {
+          // We cannot append to a leaf node
+        }
+        else {
+          if (envSet("SN_INORDER_TRAVERSAL","2")) process.stdout.write('.');
+          if ( p.n.parentId == node_id ) {
+            if (envSet("SN_INORDER_TRAVERSAL","2")) console.log( "\r\nPlaced %d %d %d", d, node_id, nodes_seen.size );
+            if (envSet("SN_INORDER_TRAVERSAL","1")) console.log( "Placed %d %d", d, node_id );
+            n.content.set( p.node_id, p.n );
+            return false;
+          }
+          else {
+            sn_inorder_traversal( n.content, d + 1, p );
+          }
+        }
+      });
+    } catch(e) {
+      console.log("Exception at depth %d", d, nm, e);
+    }
+  }//}}}
 
   async function finalize_metadata( step )
   {//{{{
@@ -394,99 +508,181 @@ async function monitor() {
     
     if ( step == 0 ) {
 
+      // First, sort nodes - just because we can.
       nodes_seen = return_sorted_map( nodes_seen );
-      if ( envSet('VERBOSE') ) console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
-      write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, "" );
+      if ( envSet('FINALIZE_METADATA','0') ) console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      write_map_to_file("Pre-transform", "pre-transform.json", 
+        inspect(nodes_seen, {
+          showHidden: false, 
+          depth: null,
+          colors: true 
+        }), ""
+      );
       console.log( "TRANSFORM" );
 
       let st = new Array;
       let runs = 0;
 
-      // Ensure that child nodes are referenced in .content
-      // across all nodes.
-      console.log("Fixing cross-references");
-      nodes_seen.forEach((value, key, map) => {
-        st.push( key );
-      });
-      while ( st.length > 0 ) {
-        let n = st.shift();
-        if ( nodes_seen.has(n) ) {
-          let s = nodes_seen.get(n);
-          nodes_seen.delete(n);
+      ///////////////////////////////////////////////////////////
+      // FIXME: Refactor to use tree traversal to populate nodes_tree
+
+      if (0) {//{{{
+
+        console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
+        nodes_seen.forEach((value, key, map) => {
+          process.stdout.write("+");
+          st.push( key );
+        });
+
+        console.log( "\r\nObtained key array of length", st.length );
+
+        // Here, nodes_tree contains parent nodes, 
+        // and sn_inorder_traversal recurses through this tree
+        // to find the parent of each node taken from nodes_seen.
+        while ( nodes_seen.size > 0 && st.length > 0 ) {
+          let ni = st.shift();
+          let n = nodes_seen.get( ni );
+          nodes_seen.delete( ni );
+
+          if (envSet("SN_INORDER_TRAVERSAL","1")) console.log( "Pluck node", ni );
+
+          if ( n.parentId == 0 ) {
+            nodes_tree.set( ni, n );
+          }
+          else {
+            sn_inorder_traversal( nodes_tree, 0, {
+              n       : n,
+              node_id : ni 
+            }); 
+          }
+        }
+        console.log(
+          "Completed buffer",
+          inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
+        );
+        
+      }//}}}
+      else
+      {//{{{
+        // Ensure that child nodes are referenced in .content
+        // across all nodes.
+        if (0) {
+          console.log("Fixing cross-references among %d nodes", nodes_seen.size);
           nodes_seen.forEach((value, key, map) => {
-            if ( value.parentId == n ) {
-              s.content.set( key, null );
-            }
+            st.push( key );
           });
-          nodes_seen.set(n, s);
+          while ( st.length > 0 ) {
+            let n = st.shift();
+            if ( nodes_seen.has(n) ) {
+              let s = nodes_seen.get(n);
+              console.log( "Check", n );
+              nodes_seen.delete(n);
+              nodes_seen.forEach((value, key, map) => {
+                if ( value.parentId == n ) {
+                  if ( !s.content.has(key) ) {
+                    console.log( "Fixup [%d] <- [%d]", key, n );
+                    s.content.set( key, null );
+                  }
+                }
+              });
+              nodes_seen.set(n, s);
+            }
+          }
         }
-      }
 
-      console.log("Replace leaf node contents");
-      nodes_seen.forEach((value, key, map) => {
-        st.push( key );
-      });
-      while ( st.length > 0 ) {
-        let n = st.shift();
-        let s = nodes_seen.get(n);
-        nodes_seen.delete(n);
-        if ( s.content.size == 0 ) {
-          let sr = {
-            nodeName   : s.nodeName,
-            parentId   : s.parentId,
-            attributes : s.attributes,
-            isLeaf     : true,
-            content    : (await DOM.getOuterHTML({ nodeId : n })).outerHTML
-          };
-          s = sr;
-        }
-        nodes_seen.set(n, s);
-      }
-
-      nodes_seen = return_sorted_map( nodes_seen );
-      write_map_to_file("Pre-processed", "pre-processed.json", nodes_seen, "" );
-
-      while ( nodes_seen.size > 1 && runs < 10 ) {
-        console.log( "Run %d : %d", runs, nodes_seen.size );
+        if (0) {
+        console.log("Replace leaf node contents");
         nodes_seen.forEach((value, key, map) => {
           st.push( key );
         });
         while ( st.length > 0 ) {
-          let k = st.shift();
-          if ( nodes_seen.has( k ) ) {
-            let b = nodes_seen.get( k );
-            if ( b.parentId > 0 ) {
-              console.log("Next %d", k);
-              nodes_seen.set( k, graft( b, 0 ) );
+          let n = st.shift();
+          let s = nodes_seen.get(n);
+          nodes_seen.delete(n);
+          if ( s.content.size == 0 ) {
+            let sr = {
+              nodeName   : s.nodeName,
+              parentId   : s.parentId,
+              attributes : s.attributes,
+              isLeaf     : true,
+              content    : (await DOM.getOuterHTML({ nodeId : n })).outerHTML
+            };
+            s = sr;
+          }
+          nodes_seen.set(n, s);
+        }
+        }
 
-              b = nodes_seen.get( k );
+        console.log( "Sorting %d nodes", nodes_seen.size );
+        nodes_seen = return_sorted_map( nodes_seen );
+        write_map_to_file(
+          "Pre-processed",
+          "pre-processed.json",
+          inspect(nodes_seen, {showHidden: false, depth: null, colors: true}),
+          ""
+        );
 
-              if ( nodes_seen.has( b.parentId ) ) {
-                let p = nodes_seen.get( b.parentId );
-                p.content.set( k, b );
-                nodes_seen.delete( b.parentId );
-                nodes_seen.set( b.parentId, p );
-                nodes_seen.delete( k );
-              }
-            } // b.parentId > 0
-          } // nodes_seen.has( k )
-        } // st.length > 0
-        runs++;
-      }
+        while ( nodes_seen.size > 1 && runs < 10 ) {
+          console.log( "Run %d : %d", runs, nodes_seen.size );
+          nodes_seen.forEach((value, key, map) => {
+            st.push( key );
+          });
+          while ( st.length > 0 ) {
+            let k = st.shift();
+            if ( nodes_seen.has( k ) ) {
+              let b = nodes_seen.get( k );
 
-      // Inorder traversal to reconstruct "clean" HTML
+          if ( b.content.size == 0 ) {
+            let sr = {
+              nodeName   : b.nodeName,
+              parentId   : b.parentId,
+              attributes : b.attributes,
+              isLeaf     : true,
+              content    : (await DOM.getOuterHTML({ nodeId : k })).outerHTML
+            };
+            b = sr;
+            nodes_seen.set( k, b );
+          }
 
+              if ( b.parentId > 0 ) {
+                console.log("Next %d", k);
+                nodes_seen.set( k, graft( b, 0 ) );
+
+                b = nodes_seen.get( k );
+
+                if ( nodes_seen.has( b.parentId ) ) {
+                  let p = nodes_seen.get( b.parentId );
+                  p.content.set( k, b );
+                  nodes_seen.delete( b.parentId );
+                  nodes_seen.set( b.parentId, p );
+                  nodes_seen.delete( k );
+                }
+              } // b.parentId > 0
+            } // nodes_seen.has( k )
+          } // st.length > 0
+          runs++;
+        }
+      }//}}}
+
+      console.log( "\r\nDOM tree structures finalized\r\n" );
+
+      // Inorder traversal demo to reconstruct "clean" HTML
       console.log( "Building" );
       let trie = inorder_traversal( nodes_seen, 0 );
       console.log( "Built", inspect(trie, {showHidden: false, depth: null, colors: true}) );
 
-      console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      if (envSet("DUMP_PRODUCT","1")) console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
       // Clear metadata storage
-      write_map_to_file("Everything", "everything.json", nodes_seen, "" );
+      write_map_to_file("Everything",
+        "everything.json",
+        inspect(nodes_seen, {showHidden: false, depth: null, colors: true}),
+        ""
+      );
       nodes_seen.clear();
       nodes_tree.clear();
     }
     else {
+      // Trigger requestChildNodes
       await trigger_dom_fetch();
     }
     return Promise.resolve(true);

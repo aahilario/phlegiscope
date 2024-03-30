@@ -760,7 +760,7 @@ function recompute_filepaths_from_url(target)
 describe("Recursively descend ".concat(targetUrl), async () => {
 
 async function interaction_v2_test( browser, rr, site_parse_settings, url_params )
-{
+{//{{{
   let pager_selector = 'html body.flex.flex-col.mx-0.lg:mx-auto.antialiased main section.container-fluid.-mt-24.lg:container.lg:mt-2 div.container.items-start.lg:py-8.aos-init.aos-animate div.flex.justify-center.bg-white.pb-4 ul.pagination.flex.items-center';
 
   if ( await $(pager_selector).isExisting() ) {
@@ -768,7 +768,7 @@ async function interaction_v2_test( browser, rr, site_parse_settings, url_params
     await $(pager_selector).$('li a');
   }
 
-}
+}//}}}
 
 async function interaction_test( browser, rr, site_parse_settings, url_params )
 {//{{{

@@ -19,6 +19,7 @@ const node_request_depth = 7;
 let outstanding_rr = new Map;
 let rr_map = new Map;
 let rr_mark = 0; // hrtime.bigint(); 
+let rr_begin = 0;
 let mark_steps = 0;
 
 function networkResponseReceived(params)
@@ -235,6 +236,7 @@ async function monitor() {
       //,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
     );
 
+    // Only enqueue requestChildNodes for parents missing .children array
     if ( enqueue_m_nodeid ) {
       register_parent_in_waiting( m.nodeId );
     }
@@ -564,6 +566,12 @@ async function monitor() {
     }
   }//}}}
 
+  function rr_time_delta()
+  {//{{{
+    let rr_time = hrtime.bigint();
+    return Number.parseFloat(Number((rr_time - rr_begin)/BigInt(1000 * 1000))/1000.0);
+  }//}}}
+
   async function finalize_metadata( step )
   {//{{{
     // Chew up, digest, dump, and clear captured nodes.
@@ -571,6 +579,7 @@ async function monitor() {
     if ( step == 0 ) {
 
       // First, sort nodes - just because we can.
+      console.log( "TIME: domSetChildNodes", rr_time_delta() );
       nodes_seen = return_sorted_map( nodes_seen );
       if ( envSet('FINALIZE_METADATA','1') ) console.log(
         "Pre-update",
@@ -583,15 +592,14 @@ async function monitor() {
           colors: true 
         }), ""
       );
-      console.log( "TRANSFORM" );
+      console.log( "TRANSFORM", rr_time_delta() );
 
       let st = new Array;
       let runs = 0;
 
-      ///////////////////////////////////////////////////////////
-      // FIXME: Refactor to use tree traversal to populate nodes_tree
-
       if (nodes_seen.size <= 1024) {//{{{
+
+        // Slower O(n(n+q)), where q is a function of tree depth and length of the .content Map at each node
 
         console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
         nodes_seen.forEach((value, key, map) => {
@@ -642,12 +650,12 @@ async function monitor() {
         );
 
         while ( nodes_seen.size > 1 && runs < 10 ) {
-          console.log( "Run %d : %d", runs, nodes_seen.size );
+          console.log( "Run %d : %d", runs, nodes_seen.size, rr_time_delta() );
           nodes_seen.forEach((value, key, map) => {
             st.push( key );
           });
           st.sort((a,b) => {return b - a;});
-          console.log( "Reduction of %d nodes", st.length );
+          console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
           while ( st.length > 0 ) {
             let k = st.shift();
             if ( nodes_seen.has( k ) ) {
@@ -674,17 +682,25 @@ async function monitor() {
         }
       }//}}}
 
-      console.log( "\r\nDOM tree structures finalized\r\n" );
+      rr_time = hrtime.bigint();
+      console.log( "\r\nDOM tree structures finalized", rr_time_delta() );
 
       // Inorder traversal demo to reconstruct "clean" HTML
       console.log( "Building" );
       let trie = inorder_traversal( nodes_seen, 0 );
-      console.log( "Built", inspect(trie, {showHidden: false, depth: null, colors: true}) );
+      rr_time = hrtime.bigint();
+      console.log( "Built", rr_time_delta(), inspect(trie, {showHidden: false, depth: null, colors: true}) );
 
-      if (envSet("DUMP_PRODUCT","1")) console.log( "Everything", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      if (envSet("DUMP_PRODUCT","1")) console.log( "Everything", 
+        rr_time_delta(), 
+        inspect(nodes_seen, {
+          showHidden: false, depth: null, colors: true
+        })
+      );
       // Clear metadata storage
 
-      console.log( "DONE" );
+      rr_time = hrtime.bigint();
+      console.log( "DONE", rr_time_delta() );
       write_map_to_file("Everything",
         "everything.json",
         inspect(nodes_seen, {showHidden: true, depth: null, colors: true}),
@@ -716,7 +732,8 @@ async function monitor() {
       let rootnode_n;
       rootnode = nodeId;
       rr_mark = hrtime.bigint();
-      console.log("LOAD EVENT %d", 
+      rr_begin = rr_mark;
+      console.log("LOAD EVENT root[%d]", 
         nodeId, 
         ts,
         entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 

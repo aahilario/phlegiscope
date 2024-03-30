@@ -17,6 +17,7 @@ const rr_timeout_s = 5; // Seconds of inactivity before flushing page metadata
 const node_request_depth = 7;
 
 let outstanding_rr = new Map;
+let latest_rr = 0;
 let rr_map = new Map;
 let rr_mark = 0; // hrtime.bigint(); 
 let rr_begin = 0;
@@ -72,6 +73,7 @@ function networkRequestWillBeSent(params)
   }
   if ( !outstanding_rr.has( params.requestId ) ) {
     outstanding_rr.set( params.requestId, markdata );
+    latest_rr = params.requestId;
   }
   if (envSet('QA','1')) console.log("Q[%s] %s %s", 
     params.requestId, 
@@ -84,6 +86,7 @@ function networkRequestWillBeSent(params)
 function networkLoadingFinished(params)
 {//{{{
   if ( outstanding_rr.has( params.requestId ) ) {
+    latest_rr = params.requestId; // Potentially usable for tracking XMLHTTPRequest markup fetches
     outstanding_rr.delete( params.requestId );
   }
   if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
@@ -282,7 +285,6 @@ async function monitor() {
     // Inorder traversal takes care of appending already-fetched nodes.
     const {parentId, nodes} = params;
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
-
 
     if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('.');
     if ( envSet('DOMSETCHILDNODES','1') ) console.log( 
@@ -783,10 +785,15 @@ async function monitor() {
       console.log( 'DOM::attributeModified', params );
       // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
       if ( params.value == 'modal fade in' ) {
-        console.log( 
-          "Markup", 
-          (await DOM.getOuterHTML({nodeId: params.nodeId})).outerHTML
-        );
+        let markup = (await DOM.getOuterHTML({nodeId: params.nodeId})).outerHTML;
+        console.log( "Markup",  markup  );
+        if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
+          let rr_entry = rr_map.get( latest_rr );
+          rr_entry.markup = markup;
+          rr_map.set( latest_rr, rr_entry );
+          console.log( "Markup recorded", latest_rr ); 
+          latest_rr = 0;
+        }
       }
     });
 

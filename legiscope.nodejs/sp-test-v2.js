@@ -743,19 +743,12 @@ async function monitor() {
 
         rr_time = hrtime.bigint();
         console.log( "DONE", rr_time_delta() );
+
         write_map_to_file("Everything",
           "everything.json",
           nodes_seen,
           file_ts 
         );
-
-        //writeFileSync( ["everything-",file_ts,".txt"].join(''), 
-        //  inspect(nodes_seen, {showHidden: false, depth: null, colors: true}),
-        //  {
-        //    flag : "w+",
-        //    flush: true
-        //  }
-        //);
 
         console.log( "Currently", Date() );
       }
@@ -785,6 +778,41 @@ async function monitor() {
     Network.responseReceived(networkResponseReceived);
     Network.loadingFinished(networkLoadingFinished);
     DOM.setChildNodes(domSetChildNodes);
+
+    await DOM.attributeModified(async (params) => {
+      console.log( 'DOM::attributeModified', params );
+      // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
+      if ( params.value == 'modal fade in' ) {
+        console.log( 
+          "Markup", 
+          (await DOM.getOuterHTML({nodeId: params.nodeId})).outerHTML
+        );
+      }
+    });
+
+    await DOM.attributeRemoved(async (params) => {
+      console.log( 'DOM::attributeRemoved', params );
+    });
+
+    await DOM.characterDataModified(async (params) => {
+      console.log( 'DOM::characterDataModified', params );
+    });
+
+    await DOM.childNodeCountUpdated(async (params) => {
+      console.log( 'DOM::childNodeCountUpdated', params );
+    });
+
+    await DOM.childNodeInserted(async (params) => {
+      console.log( 'DOM::childNodeInserted', params );
+    });
+
+    await DOM.childNodeRemoved(async (params) => {
+      console.log( 'DOM::childNodeRemoved', params );
+    });
+
+    await DOM.documentUpdated(async (params) => {
+      console.log( 'DOM::documentUpdated', params );
+    });
 
     await Page.loadEventFired(async (ts) => {
       const { currentIndex, entries } = await Page.getNavigationHistory();

@@ -328,6 +328,44 @@ async function monitor() {
     return true;
   }//}}}
 
+  async function tfarg( m, nodeId, depth )
+  {//{{{
+    let b = m.get( nodeId );
+    if ( b.content.size == 0 ) {
+      let sr = {
+        nodeName   : b.nodeName,
+        parentId   : b.parentId,
+        attributes : b.attributes,
+        isLeaf     : true,
+        content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
+      };
+      nodes_seen.delete( nodeId );
+      nodes_seen.set( nodeId, sr );
+    }
+    else {
+      if ( !b.isLeaf ) {
+        let bk = new Array;
+        b.content.forEach(( value, key, ignore ) => {
+          bk.push(key);
+        });
+        bk.sort((a,b) => { return ( a - b );});
+        while ( bk.length > 0 ) {
+          let ch = bk.shift();
+          let c = b.content.get( ch );
+          b.content.delete(ch);
+          if ( !c && nodes_seen.has(ch) ) {
+            c = nodes_seen.get(ch);
+            if ( c.parentId == nodeId ) {
+              b.content.set( ch, c );
+              nodes_seen.delete( ch );
+              tfarg( b.content, ch, depth + 1 );
+            }
+          }
+        }
+      }
+    }
+  }//}}}
+  
   async function graft( m, nodeId, depth )
   {//{{{
     // Recursive descent through all nodes to attach all leaves to parents.
@@ -376,7 +414,7 @@ async function monitor() {
       m.content.forEach((value, key, map) => {
         tstk.push( key );
       });
-      tstk.sort((a,b) => {return b - a;});
+      tstk.sort((a,b) => {return a - b;});
       
       while ( tstk.length > 0 ) {
         let k = tstk.shift();
@@ -534,7 +572,10 @@ async function monitor() {
 
       // First, sort nodes - just because we can.
       nodes_seen = return_sorted_map( nodes_seen );
-      if ( envSet('FINALIZE_METADATA','1') ) console.log( "Pre-update", inspect(nodes_seen, {showHidden: false, depth: null, colors: true}) );
+      if ( envSet('FINALIZE_METADATA','1') ) console.log(
+        "Pre-update",
+        inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
+      );
       write_map_to_file("Pre-transform", "pre-transform.json", 
         inspect(nodes_seen, {
           showHidden: true, 
@@ -550,7 +591,7 @@ async function monitor() {
       ///////////////////////////////////////////////////////////
       // FIXME: Refactor to use tree traversal to populate nodes_tree
 
-      if (0) {//{{{
+      if (nodes_seen.size <= 1024) {//{{{
 
         console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
         nodes_seen.forEach((value, key, map) => {
@@ -591,6 +632,7 @@ async function monitor() {
         // Ensure that child nodes are referenced in .content
         // across all nodes.
         console.log( "Sorting %d nodes", nodes_seen.size );
+        // nodes_seen = return_sorted_map( nodes_seen );
         writeFileSync( "pre-processed.json", 
           inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ),
           {
@@ -599,7 +641,7 @@ async function monitor() {
           }
         );
 
-        while ( nodes_seen.size > 1 && runs < 500 ) {
+        while ( nodes_seen.size > 1 && runs < 10 ) {
           console.log( "Run %d : %d", runs, nodes_seen.size );
           nodes_seen.forEach((value, key, map) => {
             st.push( key );
@@ -620,9 +662,9 @@ async function monitor() {
                 if ( nodes_seen.has( b.parentId ) ) {
                   let p = nodes_seen.get( b.parentId );
                   p.content.set( k, b );
+                  nodes_seen.delete( b.parentId );
                   nodes_seen.set( b.parentId, p );
                   nodes_seen.delete( k );
-                  nodes_seen.delete( b.parentId );
                   console.log("Remaining nodes", nodes_seen.size);
                 }
               } // b.parentId > 0

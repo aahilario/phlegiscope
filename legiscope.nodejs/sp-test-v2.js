@@ -20,7 +20,9 @@ let outstanding_rr = new Map;
 let rr_map = new Map;
 let rr_mark = 0; // hrtime.bigint(); 
 let rr_begin = 0;
+let cycle_date;
 let mark_steps = 0;
+let rootnode_n;
 
 function networkResponseReceived(params)
 {//{{{
@@ -37,7 +39,7 @@ function networkResponseReceived(params)
   if ( rr_map.has( params.requestId ) ) {
     let m = rr_map.get( params.requestId );
     m.response = response;
-    if (envSet('QA')) console.log("A[%s] %d %s %s", 
+    if (envSet('QA','1')) console.log("A[%s] %d %s %s", 
       params.requestId, 
       response.status,
       params.response.url, 
@@ -46,7 +48,7 @@ function networkResponseReceived(params)
     rr_map.set( params.requestId, m );
   }
   else {
-    console.log("B[%s]", params.requestId, response );
+    if (envSet('QA','1')) console.log("B[%s]", params.requestId, response );
   }
   rr_mark = hrtime.bigint();
 }//}}}
@@ -71,7 +73,7 @@ function networkRequestWillBeSent(params)
   if ( !outstanding_rr.has( params.requestId ) ) {
     outstanding_rr.set( params.requestId, markdata );
   }
-  if (envSet('QA')) console.log("Q[%s] %s %s", 
+  if (envSet('QA','1')) console.log("Q[%s] %s %s", 
     params.requestId, 
     markdata.method,
     markdata.url
@@ -84,7 +86,7 @@ function networkLoadingFinished(params)
   if ( outstanding_rr.has( params.requestId ) ) {
     outstanding_rr.delete( params.requestId );
   }
-  if (envSet('QA')) console.log("L[%s]", params.requestId, outstanding_rr.size );
+  if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
   rr_mark = hrtime.bigint();
 }//}}}
 
@@ -123,11 +125,11 @@ function write_map_to_file( description, map_file, map_obj, loadedUrl )
 }//}}}
 
 function envSet( v, w )
-{
+{//{{{
   return w === undefined
   ? ( process.env[v] !== undefined )
   : ( process.env[v] !== undefined && process.env[v] === w );
-}
+}//}}}
 
 async function monitor() {
 
@@ -349,6 +351,17 @@ async function monitor() {
       );
       m = sr;
     }
+    //////////////////////////////////////////////
+    if ( m.nodeName == '#text' && m.content == '[History]' ) {
+      try {
+        await DOM.scrollIntoViewIfNeeded({nodeId: nodeId});
+        let box = await DOM.getBoxModel({nodeId: nodeId});
+        console.log( "Box['%s']", m.content, box );
+      }
+      catch(e) {
+      }
+    }
+    //////////////////////////////////////////////
     if ( m.isLeaf ) {
       if ( envSet('GRAFT','1') ) console.log("   Leaf %d %d { %s }", 
         depth, 
@@ -530,14 +543,33 @@ async function monitor() {
 
   function rr_time_delta()
   {//{{{
-    let rr_time = hrtime.bigint();
-    return Number.parseFloat(Number((rr_time - rr_begin)/BigInt(1000 * 1000))/1000.0);
+    let rr_now = hrtime.bigint();
+    if ( rr_begin == 0 ) rr_begin = hrtime.bigint();
+    let sec = Number.parseFloat(
+      Number((rr_now - rr_begin)/BigInt(1000 * 1000))/1000.0
+    );
+    let min = Number.parseInt(Number.parseInt(sec) / 60);
+    let s = Number.parseInt(sec) - (min*60);
+    return [ min, 'm ', s, 's', ' (', sec , 's)' ].join('');
   }//}}}
+
+  function datestring( d, fmt )
+  { if ( d === undefined || !d ) d = new Date;
+    if ( fmt === undefined ) fmt = "%Y%M%D-%H%i%s-%u";
+    return fmt
+      .replace(/%Y/g, d.getUTCFullYear())
+      .replace(/%M/g, (d.getUTCMonth()+1).toString().padStart(2,'0'))
+      .replace(/%D/g, d.getUTCDate().toString().padStart(2,'0'))
+      .replace(/%H/g, d.getUTCHours().toString().padStart(2,'0'))
+      .replace(/%i/g, d.getUTCMinutes().toString().padStart(2,'0'))
+      .replace(/%s/g, d.getUTCSeconds().toString().padStart(2,'0'))
+      .replace(/%u/g, d.getUTCMilliseconds());
+  }
 
   async function finalize_metadata( step )
   {//{{{
     // Chew up, digest, dump, and clear captured nodes.
-    
+    let file_ts = datestring( cycle_date );
     if ( step == 0 ) {
 
       // First, sort nodes - just because we can.
@@ -547,29 +579,44 @@ async function monitor() {
         "Pre-update",
         inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
       );
-      write_map_to_file("Pre-transform", "pre-transform.json", 
+      write_map_to_file("Pre-transform", ["pre-transform-",file_ts,".json"].join(''), 
         inspect(nodes_seen, {
           showHidden: true, 
           depth: null,
           colors: true 
         }), ""
       );
-      console.log( "TRANSFORM", rr_time_delta() );
+
+      let markupfile = ["index-",file_ts,".html"].join('');
+      try {
+        console.log( "Writing markup %s [%d]", markupfile, rootnode );
+        writeFileSync( markupfile, 
+          (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML,
+          {
+            flag : "w+",
+            flush: true
+          }
+        );
+      }
+      catch(e) {
+        console.log( "Unable to write markup file", markupfile );
+      }
+
+      console.log( "TIME: TRANSFORM", rr_time_delta() );
 
       let st = new Array;
       let runs = 0;
 
+      console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
+      nodes_seen.forEach((value, key, map) => {
+        process.stdout.write("+");
+        st.push( key );
+      });
+      console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
+
       if (nodes_seen.size <= 1024) {//{{{
 
         // Slower O(n(n+q)), where q is a function of tree depth and length of the .content Map at each node
-
-        console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
-        nodes_seen.forEach((value, key, map) => {
-          process.stdout.write("+");
-          st.push( key );
-        });
-
-        console.log( "\r\nObtained key array of length", st.length );
 
         // Here, nodes_tree contains parent nodes, 
         // and sn_inorder_traversal recurses through this tree
@@ -595,15 +642,14 @@ async function monitor() {
           "Completed buffer",
           inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
         );
-        
       }//}}}
       else
       {//{{{
         // Ensure that child nodes are referenced in .content
         // across all nodes.
         console.log( "Sorting %d nodes", nodes_seen.size );
-        // nodes_seen = return_sorted_map( nodes_seen );
-        writeFileSync( "pre-processed.json", 
+        nodes_seen = return_sorted_map( nodes_seen );
+        writeFileSync( ["pre-processed-",file_ts,".json"].join(''), 
           inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ),
           {
             flag : "w+",
@@ -613,11 +659,6 @@ async function monitor() {
 
         while ( nodes_seen.size > 1 && runs < 10 ) {
           console.log( "Run %d : %d", runs, nodes_seen.size, rr_time_delta() );
-          nodes_seen.forEach((value, key, map) => {
-            st.push( key );
-          });
-          st.sort((a,b) => {return b - a;});
-          console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
           while ( st.length > 0 ) {
             let k = st.shift();
             if ( nodes_seen.has( k ) ) {
@@ -641,6 +682,13 @@ async function monitor() {
             } // nodes_seen.has( k )
           } // st.length > 0
           runs++;
+          if ( nodes_seen.size > 1 ) {
+            nodes_seen.forEach((value, key, map) => {
+              st.push( key );
+            });
+            st.sort((a,b) => {return b - a;});
+            console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
+          }
         }
       }//}}}
 
@@ -651,25 +699,49 @@ async function monitor() {
       console.log( "Building" );
       let trie = inorder_traversal( nodes_seen, 0 );
       rr_time = hrtime.bigint();
-      console.log( "Built", rr_time_delta(), inspect(trie, {showHidden: false, depth: null, colors: true}) );
+      console.log( "Built", rr_time_delta(),
+        (envSet("DUMP_PRODUCT","1")) 
+        ? inspect(trie, {showHidden: false, depth: null, colors: true})
+        : nodes_seen.size 
+      );
+      writeFileSync( ["trie-",file_ts,".txt"].join(''), 
+        inspect(trie, {showHidden: false, depth: null, colors: true}),
+        {
+          flag : "w+",
+          flush: true
+        }
+      );
 
-      if (envSet("DUMP_PRODUCT","1")) console.log( "Everything", 
+
+      console.log( "Everything", 
         rr_time_delta(), 
-        inspect(nodes_seen, {
-          showHidden: false, depth: null, colors: true
-        })
+        (envSet("DUMP_PRODUCT","1"))
+        ? inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
+        : nodes_seen.size
       );
       // Clear metadata storage
 
       rr_time = hrtime.bigint();
       console.log( "DONE", rr_time_delta() );
       write_map_to_file("Everything",
-        "everything.json",
+        ["everything-",file_ts,".json"].join(''),
         inspect(nodes_seen, {showHidden: true, depth: null, colors: true}),
         ""
       );
+      console.log( "Currently", Date() );
       nodes_seen.clear();
       nodes_tree.clear();
+
+      writeFileSync( ["network-",file_ts,".json"].join(''),
+        inspect(rr_map, { showHidden: false, depth: null, colors: true}),
+        {
+          flag : "w+",
+          flush: true
+        }
+      );
+      rr_map.clear();
+      cycle_date = null;
+
     }
     else {
       // Trigger requestChildNodes
@@ -684,20 +756,18 @@ async function monitor() {
     Network.responseReceived(networkResponseReceived);
     Network.loadingFinished(networkLoadingFinished);
     DOM.setChildNodes(domSetChildNodes);
-    await Page.windowOpen(async (wo) => {
-      console.log("windowOpen", wo);
-    });
 
     await Page.loadEventFired(async (ts) => {
       const { currentIndex, entries } = await Page.getNavigationHistory();
       const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
-      let rootnode_n;
       rootnode = nodeId;
       rr_mark = hrtime.bigint();
+      cycle_date = new Date();
       rr_begin = rr_mark;
       console.log("LOAD EVENT root[%d]", 
         nodeId, 
         ts,
+        datestring( cycle_date ),
         entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
         ? entries[currentIndex].url 
         : '---'
@@ -715,6 +785,10 @@ async function monitor() {
       trigger_dom_fetch();
     });
 
+    await Page.windowOpen(async (wo) => {
+      console.log("windowOpen", wo);
+    });
+
     await Page.domContentEventFired(async (ts) => {
       console.log("DOM Content Event", ts );
     });
@@ -723,8 +797,11 @@ async function monitor() {
       console.log("Lifecycle", p);
     });
 
+    await Page.setLifecycleEventsEnabled({enabled: true});
+
     await Network.enable();
     await DOM.enable({ includeWhitespace: "none" });
+
     await Page.enable();
 
     nodes_seen.clear();

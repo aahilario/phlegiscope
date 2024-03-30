@@ -330,44 +330,6 @@ async function monitor() {
     return true;
   }//}}}
 
-  async function tfarg( m, nodeId, depth )
-  {//{{{
-    let b = m.get( nodeId );
-    if ( b.content.size == 0 ) {
-      let sr = {
-        nodeName   : b.nodeName,
-        parentId   : b.parentId,
-        attributes : b.attributes,
-        isLeaf     : true,
-        content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
-      };
-      nodes_seen.delete( nodeId );
-      nodes_seen.set( nodeId, sr );
-    }
-    else {
-      if ( !b.isLeaf ) {
-        let bk = new Array;
-        b.content.forEach(( value, key, ignore ) => {
-          bk.push(key);
-        });
-        bk.sort((a,b) => { return ( a - b );});
-        while ( bk.length > 0 ) {
-          let ch = bk.shift();
-          let c = b.content.get( ch );
-          b.content.delete(ch);
-          if ( !c && nodes_seen.has(ch) ) {
-            c = nodes_seen.get(ch);
-            if ( c.parentId == nodeId ) {
-              b.content.set( ch, c );
-              nodes_seen.delete( ch );
-              tfarg( b.content, ch, depth + 1 );
-            }
-          }
-        }
-      }
-    }
-  }//}}}
-  
   async function graft( m, nodeId, depth )
   {//{{{
     // Recursive descent through all nodes to attach all leaves to parents.

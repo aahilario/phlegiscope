@@ -1,4 +1,4 @@
-const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync } = require('node:fs');
+const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync, linkSync, unlinkSync, symlinkSync } = require('node:fs');
 const assert = require("assert");
 const System = require("systemjs");
 const cheerio = require("cheerio");
@@ -113,15 +113,40 @@ function return_sorted_map( map_obj )
   return map_obj;
 }//}}}
 
-function write_map_to_file( description, map_file, map_obj, loadedUrl )
+function write_to_file( fn, file_ts, content )
 {//{{{
-  //const objson = Object.fromEntries( return_sorted_map(map_obj) );
+  let ts = file_ts === undefined ? datestring( cycle_date ) : file_ts; 
+  let fn_parts = [ 
+    fn.replace(/^(.*)\.([^.]{1,})$/i,'$1'), 
+    fn.replace(/^(.*)\.([^.]{1,})$/i,'$2')
+  ];
+  let fn_ts = [ [ fn_parts[0], '-',  ts ].join(''), (fn_parts[1].length > 0 && fn_parts[1] != fn_parts[0]) ? ['.', fn_parts[1]].join('') : '' ].join(''); 
+  try {
+    // Plain name is used to create a symbolic link.
+    // Unlink that if it is present.
+    unlinkSync( fn );
+  } catch (e) {} 
+  writeFileSync( fn_ts, content, {
+    flag : "w+",
+    flush: true
+  });
+  symlinkSync( fn_ts, fn );
+}//}}}
+
+function write_map_to_file( description, map_file, map_obj, file_ts )
+{//{{{
   console.log( "Writing %s to %s", description, map_file );
-  writeFileSync( map_file, map_obj, {
-  //writeFileSync( map_file, JSON.stringify( objson, null, 2 ), {
-    flag  : 'w+',
-    flush : true
-  }); 
+  write_to_file( map_file, file_ts,  JSON.stringify( map_obj, 
+    // Stringify an ES6 Map
+    // https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
+    function (key, value) {
+      if(value instanceof Map) {
+        return Object.fromEntries(value);
+      } else {
+        return value;
+      }
+    }, 2 )
+  );
 }//}}}
 
 function envSet( v, w )
@@ -161,7 +186,7 @@ async function monitor() {
           if ( delta > 1000 * rr_timeout_s ) { 
             rr_mark = 0;
             mark_steps = 0;
-            console.log("--CLEAR--");
+            console.log("\r\n--CLEAR--\r\n");
             if ( cb ) await cb( mark_steps );
           }
           else {
@@ -572,176 +597,180 @@ async function monitor() {
     let file_ts = datestring( cycle_date );
     if ( step == 0 ) {
 
-      // First, sort nodes - just because we can.
-      console.log( "TIME: domSetChildNodes", rr_time_delta() );
-      nodes_seen = return_sorted_map( nodes_seen );
-      if ( envSet('FINALIZE_METADATA','1') ) console.log(
-        "Pre-update",
-        inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
-      );
-      write_map_to_file("Pre-transform", ["pre-transform-",file_ts,".json"].join(''), 
-        inspect(nodes_seen, {
-          showHidden: true, 
-          depth: null,
-          colors: true 
-        }), ""
-      );
-
-      let markupfile = ["index-",file_ts,".html"].join('');
-      try {
-        console.log( "Writing markup %s [%d]", markupfile, rootnode );
-        writeFileSync( markupfile, 
-          (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML,
-          {
-            flag : "w+",
-            flush: true
-          }
+      if ( nodes_seen.size > 0 ) {
+        // First, sort nodes - just because we can.
+        console.log( "TIME: finalize_metadata", rr_time_delta() );
+        nodes_seen = return_sorted_map( nodes_seen );
+        if ( envSet('FINALIZE_METADATA','1') ) console.log(
+          "Pre-update",
+          inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
         );
-      }
-      catch(e) {
-        console.log( "Unable to write markup file", markupfile );
-      }
+        write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, file_ts);
 
-      console.log( "TIME: TRANSFORM", rr_time_delta() );
-
-      let st = new Array;
-      let runs = 0;
-
-      console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
-      nodes_seen.forEach((value, key, map) => {
-        process.stdout.write("+");
-        st.push( key );
-      });
-      console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
-
-      if (nodes_seen.size <= 1024) {//{{{
-
-        // Slower O(n(n+q)), where q is a function of tree depth and length of the .content Map at each node
-
-        // Here, nodes_tree contains parent nodes, 
-        // and sn_inorder_traversal recurses through this tree
-        // to find the parent of each node taken from nodes_seen.
-        while ( nodes_seen.size > 0 && st.length > 0 ) {
-          let ni = st.shift();
-          let n = nodes_seen.get( ni );
-          nodes_seen.delete( ni );
-
-          if (envSet("SN_INORDER_TRAVERSAL","1")) console.log( "Pluck node", ni );
-
-          if ( n.parentId == 0 ) {
-            nodes_tree.set( ni, n );
-          }
-          else {
-            sn_inorder_traversal( nodes_tree, 0, {
-              n       : n,
-              node_id : ni 
-            }); 
-          }
+        let markupfile = "index.html";
+        try {
+          console.log( "Writing markup %s [%d]", markupfile, rootnode );
+          write_to_file( markupfile, file_ts,  
+            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML
+          );
         }
-        console.log(
-          "Completed buffer",
-          inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
-        );
-      }//}}}
-      else
-      {//{{{
-        // Ensure that child nodes are referenced in .content
-        // across all nodes.
+        catch(e) {
+          console.log( "Unable to write markup file", markupfile );
+        }
+
+        console.log( "TIME: TRANSFORM", rr_time_delta() );
+
+        let st = new Array;
+        let runs = 0;
+
+        console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
+        nodes_seen.forEach((value, key, map) => {
+          process.stdout.write("+");
+          st.push( key );
+        });
+        console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
+
         console.log( "Sorting %d nodes", nodes_seen.size );
         nodes_seen = return_sorted_map( nodes_seen );
-        writeFileSync( ["pre-processed-",file_ts,".json"].join(''), 
-          inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ),
-          {
-            flag : "w+",
-            flush: true
+        write_to_file( "pre-processed.json", file_ts, inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ));
+
+        if (nodes_seen.size <= 1024) {//{{{
+
+          // Slower O(n(n+q)), where q is a function of tree depth and length of the .content Map at each node
+
+          // Here, nodes_tree contains parent nodes, 
+          // and sn_inorder_traversal recurses through this tree
+          // to find the parent of each node taken from nodes_seen.
+          while ( nodes_seen.size > 0 && st.length > 0 ) {
+            let ni = st.shift();
+            let n = nodes_seen.get( ni );
+            nodes_seen.delete( ni );
+
+            if (envSet("SN_INORDER_TRAVERSAL","1")) console.log( "Pluck node", ni );
+
+            if ( n.parentId == 0 ) {
+              nodes_tree.set( ni, n );
+            }
+            else {
+              sn_inorder_traversal( nodes_tree, 0, {
+                n       : n,
+                node_id : ni 
+              }); 
+            }
           }
+          console.log(
+            "Completed buffer",
+            inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
+          );
+          // Transfer nodes_tree back
+          nodes_tree.forEach((value, key, map) => {
+            st.push( key );
+          });
+          while ( st.length > 0 ) {
+            let ni = st.shift();
+            if ( nodes_tree.has( ni ) ) {
+              let n = nodes_tree.get( ni );
+              nodes_tree.delete( ni );
+              nodes_seen.set( ni, n );
+            }
+          }
+
+        }//}}}
+        else
+        {//{{{
+          // Ensure that child nodes are referenced in .content
+          // across all nodes.
+          while ( nodes_seen.size > 1 && runs < 10 ) {
+            console.log( "Run %d : %d", runs, nodes_seen.size, rr_time_delta() );
+            while ( st.length > 0 ) {
+              let k = st.shift();
+              if ( nodes_seen.has( k ) ) {
+                // Node[k] may have been relocated by graft(m,nodeId,depth)
+                b = nodes_seen.get( k );
+                if ( b.parentId > 0 ) {
+                  console.log("Next %d, remaining %d", k, nodes_seen.size);
+                  nodes_seen.set( k, await graft( b, k, 0 ) );
+
+                  b = nodes_seen.get( k );
+
+                  if ( nodes_seen.has( b.parentId ) ) {
+                    let p = nodes_seen.get( b.parentId );
+                    p.content.set( k, b );
+                    nodes_seen.delete( b.parentId );
+                    nodes_seen.set( b.parentId, p );
+                    nodes_seen.delete( k );
+                    console.log("Remaining nodes", nodes_seen.size);
+                  }
+                } // b.parentId > 0
+              } // nodes_seen.has( k )
+            } // st.length > 0
+            runs++;
+            if ( nodes_seen.size > 1 ) {
+              nodes_seen.forEach((value, key, map) => {
+                st.push( key );
+              });
+              st.sort((a,b) => {return b - a;});
+              console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
+            }
+          }
+          console.log( "Reduced node tree to %d root nodes", nodes_seen.size ); 
+        }//}}}
+
+        rr_time = hrtime.bigint();
+        console.log( "\r\nDOM tree structure finalized with %d nodes", nodes_seen.size, rr_time_delta() );
+
+        // Inorder traversal demo to reconstruct "clean" HTML
+        console.log( "Building %d nodes", nodes_seen.size );
+        let trie = inorder_traversal( nodes_seen, 0 );
+        rr_time = hrtime.bigint();
+        console.log( "Built %d nodes", nodes_seen.size, rr_time_delta(),
+          (envSet("DUMP_PRODUCT","1")) 
+          ? inspect(trie, {showHidden: false, depth: null, colors: true})
+          : nodes_seen.size 
+        );
+        write_to_file( "trie.txt", file_ts, 
+          inspect(trie, {showHidden: false, depth: null, colors: true})
         );
 
-        while ( nodes_seen.size > 1 && runs < 10 ) {
-          console.log( "Run %d : %d", runs, nodes_seen.size, rr_time_delta() );
-          while ( st.length > 0 ) {
-            let k = st.shift();
-            if ( nodes_seen.has( k ) ) {
-              // Node[k] may have been relocated by graft(m,nodeId,depth)
-              b = nodes_seen.get( k );
-              if ( b.parentId > 0 ) {
-                console.log("Next %d, remaining %d", k, nodes_seen.size);
-                nodes_seen.set( k, await graft( b, k, 0 ) );
 
-                b = nodes_seen.get( k );
+        console.log( "Everything", 
+          rr_time_delta(), 
+          (envSet("DUMP_PRODUCT","1"))
+          ? inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
+          : nodes_seen.size
+        );
+        // Clear metadata storage
 
-                if ( nodes_seen.has( b.parentId ) ) {
-                  let p = nodes_seen.get( b.parentId );
-                  p.content.set( k, b );
-                  nodes_seen.delete( b.parentId );
-                  nodes_seen.set( b.parentId, p );
-                  nodes_seen.delete( k );
-                  console.log("Remaining nodes", nodes_seen.size);
-                }
-              } // b.parentId > 0
-            } // nodes_seen.has( k )
-          } // st.length > 0
-          runs++;
-          if ( nodes_seen.size > 1 ) {
-            nodes_seen.forEach((value, key, map) => {
-              st.push( key );
-            });
-            st.sort((a,b) => {return b - a;});
-            console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
-          }
-        }
-      }//}}}
+        rr_time = hrtime.bigint();
+        console.log( "DONE", rr_time_delta() );
+        write_map_to_file("Everything",
+          "everything.json",
+          nodes_seen,
+          file_ts 
+        );
 
-      rr_time = hrtime.bigint();
-      console.log( "\r\nDOM tree structures finalized", rr_time_delta() );
+        //writeFileSync( ["everything-",file_ts,".txt"].join(''), 
+        //  inspect(nodes_seen, {showHidden: false, depth: null, colors: true}),
+        //  {
+        //    flag : "w+",
+        //    flush: true
+        //  }
+        //);
 
-      // Inorder traversal demo to reconstruct "clean" HTML
-      console.log( "Building" );
-      let trie = inorder_traversal( nodes_seen, 0 );
-      rr_time = hrtime.bigint();
-      console.log( "Built", rr_time_delta(),
-        (envSet("DUMP_PRODUCT","1")) 
-        ? inspect(trie, {showHidden: false, depth: null, colors: true})
-        : nodes_seen.size 
-      );
-      writeFileSync( ["trie-",file_ts,".txt"].join(''), 
-        inspect(trie, {showHidden: false, depth: null, colors: true}),
-        {
-          flag : "w+",
-          flush: true
-        }
-      );
-
-
-      console.log( "Everything", 
-        rr_time_delta(), 
-        (envSet("DUMP_PRODUCT","1"))
-        ? inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
-        : nodes_seen.size
-      );
-      // Clear metadata storage
-
-      rr_time = hrtime.bigint();
-      console.log( "DONE", rr_time_delta() );
-      write_map_to_file("Everything",
-        ["everything-",file_ts,".json"].join(''),
-        inspect(nodes_seen, {showHidden: true, depth: null, colors: true}),
-        ""
-      );
-      console.log( "Currently", Date() );
+        console.log( "Currently", Date() );
+      }
       nodes_seen.clear();
       nodes_tree.clear();
 
-      writeFileSync( ["network-",file_ts,".json"].join(''),
-        inspect(rr_map, { showHidden: false, depth: null, colors: true}),
-        {
-          flag : "w+",
-          flush: true
-        }
-      );
-      rr_map.clear();
+      if ( rr_map.size > 0 ) {
+        write_map_to_file( "Network exchanges",
+          "network.json",
+          rr_map, 
+          file_ts
+        );
+        rr_map.clear();
+      }
       cycle_date = null;
-
     }
     else {
       // Trigger requestChildNodes

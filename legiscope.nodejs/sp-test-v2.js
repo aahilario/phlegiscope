@@ -18,6 +18,8 @@ const node_request_depth = 7;
 
 let outstanding_rr = new Map;
 let latest_rr = 0;
+let xhr_fetch_rr = 0;
+let append_buffer_to_rr_map = false;
 let rr_map = new Map;
 let rr_mark = 0; // hrtime.bigint(); 
 let rr_begin = 0;
@@ -668,14 +670,24 @@ async function monitor() {
           nodes_tree.forEach((value, key, map) => {
             st.push( key );
           });
+          let xhr_fetch;
+          if ( append_buffer_to_rr_map ) xhr_fetch = new Map;
+
           while ( st.length > 0 ) {
             let ni = st.shift();
             if ( nodes_tree.has( ni ) ) {
               let n = nodes_tree.get( ni );
               nodes_tree.delete( ni );
               nodes_seen.set( ni, n );
+              if ( xhr_fetch !== undefined ) {
+                let rr_entry = rr_map.get( xhr_fetch_rr );
+                rr_entry.markup = n;
+                rr_map.set( xhr_fetch_rr, rr_entry );
+              }
             }
           }
+          append_buffer_to_rr_map = false;
+          xhr_fetch_rr = 0;
 
         }//}}}
         else
@@ -774,6 +786,26 @@ async function monitor() {
     return Promise.resolve(true);
   }//}}}
 
+  async function setup_dom_fetch( nodeId )
+  {
+    rootnode   = nodeId;
+    rr_mark    = hrtime.bigint();
+    cycle_date = new Date();
+    rr_begin   = rr_mark;
+    rootnode_n = (await DOM.resolveNode({nodeId: nodeId})).object;
+    waiting_parent = nodeId;
+    nodes_seen.set( waiting_parent, {
+      nodeName   : rootnode_n.description,
+      parentId   : 0,
+      attributes : new Map,
+      isLeaf     : false,
+      content    : new Map
+    });
+    parents_pending_children.unshift( nodeId );
+    await trigger_dom_fetch();
+    return Promise.resolve(true);
+  }
+  
   try {
 
     Network.requestWillBeSent(networkRequestWillBeSent);
@@ -792,7 +824,11 @@ async function monitor() {
           rr_entry.markup = markup;
           rr_map.set( latest_rr, rr_entry );
           console.log( "Markup recorded", latest_rr ); 
+          xhr_fetch_rr = latest_rr;
           latest_rr = 0;
+          append_buffer_to_rr_map = true;
+
+          await setup_dom_fetch( params.nodeId );
         }
       }
     });
@@ -824,10 +860,9 @@ async function monitor() {
     await Page.loadEventFired(async (ts) => {
       const { currentIndex, entries } = await Page.getNavigationHistory();
       const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
-      rootnode = nodeId;
-      rr_mark = hrtime.bigint();
-      cycle_date = new Date();
-      rr_begin = rr_mark;
+
+      await setup_dom_fetch( nodeId );
+
       console.log("LOAD EVENT root[%d]", 
         nodeId, 
         ts,
@@ -836,17 +871,6 @@ async function monitor() {
         ? entries[currentIndex].url 
         : '---'
       );
-      rootnode_n = (await DOM.resolveNode({nodeId: nodeId})).object;
-      waiting_parent = nodeId;
-      nodes_seen.set( waiting_parent, {
-        nodeName   : rootnode_n.description,
-        parentId   : 0,
-        attributes : new Map,
-        isLeaf     : false,
-        content    : new Map
-      });
-      parents_pending_children.unshift( nodeId );
-      trigger_dom_fetch();
     });
 
     await Page.windowOpen(async (wo) => {

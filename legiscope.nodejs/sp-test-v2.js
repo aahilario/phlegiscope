@@ -380,17 +380,6 @@ async function monitor() {
       );
       m = sr;
     }
-    //////////////////////////////////////////////
-    if ( m.nodeName == '#text' && m.content == '[History]' ) {
-      try {
-        await DOM.scrollIntoViewIfNeeded({nodeId: nodeId});
-        let box = await DOM.getBoxModel({nodeId: nodeId});
-        console.log( "Box['%s']", m.content, box );
-      }
-      catch(e) {
-      }
-    }
-    //////////////////////////////////////////////
     if ( m.isLeaf ) {
       if ( envSet('GRAFT','1') ) console.log("   Leaf %d %d { %s }", 
         depth, 
@@ -494,55 +483,121 @@ async function monitor() {
     return retval;
   }//}}}
 
-  function inorder_traversal( nm, d, cb, cb_param )
-  {//{{{
-    let br = new Map;
-    let nr = new Map;
-    // Depth-first inorder traversal of .content maps in each node.
-    if ( cb ) cb('A', cb_param, d, nm);
-    try {
-      // Map insert order determines the traversal order
-      nm.forEach((n, node_id, map) => {
-        if ( !n ) return true;
-        if ( !nr.has( n.nodeName ) ) {
-          nr.set( n.nodeName, -1 );
-        }
-        let nrn = nr.get( n.nodeName ) + 1;
-        let altname = [ n.nodeName,'[', nrn, ']', ].join('');
-        let v;
-        nr.set( n.nodeName, nrn );
-        if ( n.isLeaf ) {
-          v = cb 
-            ? cb('L', cb_param, d, n, node_id ) 
-            : n.content;
-          if ( v !== undefined )
-            br.set( altname, v );
-        }
-        else {
-          v = cb 
-            ? cb(
-              'N', 
-              cb_param, 
-              d, 
-              inorder_traversal( n.content, d + 1, cb, cb_param ),
-              node_id )
-            : inorder_traversal( n.content, d + 1, cb, cb_param );
-          if ( v !== undefined )
-            br.set( altname, v );
-        }
-      });
-    } catch(e) {
-      console.log("Exception at depth %d", 
-        d, 
-        nm.nodeName, 
-        e, 
-        inspect(nm, {showHidden: false, depth: null, colors: true})
-      );
+  async function trigger_page_fetch_cb( nm, p, node_id, d )
+  {
+    // This callback performs two functions:
+    // 1. It takes each node nm passed to it by inorder_traversal(cb)
+    //    and assembles these into a simplified DOM tree
+    // 2. It traverses the (presumably still-loaded page) DOM, moves
+    //    those text links into focus, and executes an Input mouse click on
+    //    those selected nodes.
+    //
+    // Parameters
+    // nm           : Abbreviated node
+    // node_id      : node_id for {nm}
+    // p            : Callback parameters passed to inorder_traversal
+    // Return value : nm
+
+    // await inorder_traversal( nodes_seen, 0, trigger_page_fetch_cb, { tagstack: tagstack, target_tree: trie } );
+    let nr;
+
+    if ( !p.tagstack.has(d) )
+      p.tagstack.set(d, new Map);
+
+    nr = p.tagstack.get(d);
+
+    if ( !nr.has( nm.nodeName ) ) {
+      nr.set( nm.nodeName, -1 );
     }
-    if ( cb ) cb('B', cb_param, d, nm);
-    nr.clear();
-    nr = null;
-    return br; // After complete traversal, return complete tree
+
+    let nrn = nr.get( nm.nodeName ) + 1;
+    let altname = [ nm.nodeName,'[', nrn, ']', ].join('');
+
+    nr.set( nm.nodeName, nrn );
+
+    p.tagstack.set(d, nr);
+
+    console.log(
+      "%s%s[%d]", 
+      ' '.repeat(d * 2),
+      altname,
+      d,
+      nm.isLeaf ? nm.content : ''
+    );
+
+    if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
+      try {
+        await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
+        let box = await DOM.getBoxModel({nodeId: node_id});
+        console.log( "Box['%s']", nm.content, box );
+      }
+      catch(e) {
+        console.log("Exception at depth %d", 
+          d, 
+          nm.nodeName, 
+          e, 
+          inspect(nm, {showHidden: false, depth: null, colors: true})
+        );
+      }
+    }
+
+    return Promise.resolve(nm);
+  }
+  
+  async function inorder_traversal( nm, d, cb, cb_param, nodeId, parentId )
+  {//{{{
+    // Depth-first inorder traversal of .content maps in each node.
+
+    // Parameters:
+    // nm: Either a Map or an abbreviated node
+    //
+    // Return value:
+    // - An abbreviated node
+    if ( nm === undefined || !nm ) {
+      if (envSet("INORDER_TRAVERSAL","1")) console.log( "@empty node[%d]", d, nodeId, nm );
+    }
+    else if ( nm instanceof Map ) {
+      // We were passed a node tree - either the root or (possibly) 
+      // the nm.content Map of a non-root node.
+      // If nodeId is undefined, then we have received the root 
+      // node container; otherwise, nodeId identifies an instance
+      // containing Map nm as .content.
+      let ka = new Array;
+      nm.forEach((v, k, m) => {ka.push(k);});
+      while ( ka.length > 0 ) {
+        let k = ka.shift();
+        if (envSet("INORDER_TRAVERSAL","1")) console.log( "@root %d[%d]", k, d ); 
+        if ( nm.has( k ) ) {
+          nm.set(k,await inorder_traversal(nm.get(k),d+1,cb,cb_param,k));
+        }
+      }
+    }
+    else if ( nm.content !== undefined ) {
+      // nm is an abbreviated node, which should be the case
+      // whenever d > 0. We expect nodeId to be a DOM.nodeId type
+      // used as a search key for nm.
+      if ( cb !== undefined ) nm = await cb(nm,cb_param,nodeId,d+1);
+      if ( nm.isLeaf || nm.content.size === undefined ) {
+        if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Skipping leaf %d", nodeId );
+      }
+      else {
+        let ka = new Array;
+        nm.content.forEach((v,k,m)=>{ka.push(k);});
+        if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Traversing %d[%d]", nodeId, d, ka.length );
+        while ( ka.length > 0 ) {
+          let k = ka.shift();
+          let n = nm.content.get(k);
+          let rv = await inorder_traversal(n,d+1,cb,cb_param,k,nodeId);
+          if ( rv === undefined ) {
+            nm.content.delete(k);
+          }
+          else {
+            nm.content.set(k,rv);
+          }
+        }
+      }
+    }
+    return Promise.resolve(nm);
   }//}}}
 
   function sn_inorder_traversal( nm, d, p )
@@ -735,7 +790,14 @@ async function monitor() {
 
         // Inorder traversal demo to reconstruct "clean" HTML
         console.log( "Building %d nodes", nodes_seen.size );
-        let trie = inorder_traversal( nodes_seen, 0 );
+        let tagstack = new Map; // At each recursive step up the tree (from root node d = 0), we use this Map of array elements to track unique HTML tags found 
+        let trie = new Map; // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+        await inorder_traversal( 
+          nodes_seen, 
+          0, 
+          trigger_page_fetch_cb, 
+          { tagstack: tagstack, target_tree: trie }
+        );
         rr_time = hrtime.bigint();
         console.log( "Built %d nodes", nodes_seen.size, rr_time_delta(),
           (envSet("DUMP_PRODUCT","1")) 

@@ -381,6 +381,7 @@ async function monitor() {
       m = sr;
     }
     if ( m.isLeaf ) {
+      if (envSet("GRAFT","2")) process.stdout.write('g');
       if ( envSet('GRAFT','1') ) console.log("   Leaf %d %d { %s }", 
         depth, 
         nodeId,
@@ -400,6 +401,7 @@ async function monitor() {
         while ( attrarr.length > 0 ) attrarr.shift();
         attrarr = null;
       }
+      if (envSet("GRAFT","2")) process.stdout.write('G');
       if ( envSet('GRAFT','1') ) console.log("Grafted %d %d | %s >", 
         depth,
         nodeId,
@@ -517,12 +519,18 @@ async function monitor() {
 
     p.tagstack.set(d, nr);
 
+    let attrinfo = '';
+    if ( nm.nodeName == 'A' ) {
+      if ( nm.attributes.has('href') )
+        attrinfo = nm.attributes.get('href');
+    }
+
     console.log(
-      "%s%s[%d]", 
+      "%s[%d] %s", 
       ' '.repeat(d * 2),
-      altname,
       d,
-      nm.isLeaf ? nm.content : ''
+      altname,
+      nm.isLeaf ? nm.content : attrinfo 
     );
 
     if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
@@ -568,7 +576,7 @@ async function monitor() {
         let k = ka.shift();
         if (envSet("INORDER_TRAVERSAL","1")) console.log( "@root %d[%d]", k, d ); 
         if ( nm.has( k ) ) {
-          nm.set(k,await inorder_traversal(nm.get(k),d+1,cb,cb_param,k));
+          nm.set(k,await inorder_traversal(nm.get(k),d,cb,cb_param,k));
         }
       }
     }
@@ -768,6 +776,7 @@ async function monitor() {
                     nodes_seen.delete( b.parentId );
                     nodes_seen.set( b.parentId, p );
                     nodes_seen.delete( k );
+                    process.stdout.write("\r\n");
                     console.log("Remaining nodes", nodes_seen.size);
                   }
                 } // b.parentId > 0
@@ -796,7 +805,10 @@ async function monitor() {
           nodes_seen, 
           0, 
           trigger_page_fetch_cb, 
-          { tagstack: tagstack, target_tree: trie }
+          {
+            tagstack: tagstack, 
+            target_tree: trie
+          }
         );
         rr_time = hrtime.bigint();
         console.log( "Built %d nodes", nodes_seen.size, rr_time_delta(),

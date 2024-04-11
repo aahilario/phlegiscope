@@ -12,6 +12,7 @@ const { inspect } = require("node:util");
 
 const CDP = require('chrome-remote-interface');
 
+const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 5; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
@@ -126,16 +127,17 @@ function write_to_file( fn, file_ts, content )
     fn.replace(/^(.*)\.([^.]{1,})$/i,'$2')
   ];
   let fn_ts = [ [ fn_parts[0], '-',  ts ].join(''), (fn_parts[1].length > 0 && fn_parts[1] != fn_parts[0]) ? ['.', fn_parts[1]].join('') : '' ].join(''); 
+  let outfile = [output_path, fn_ts].join('/')
   try {
     // Plain name is used to create a symbolic link.
     // Unlink that if it is present.
-    unlinkSync( fn );
+    unlinkSync( [output_path,fn].join('/') );
   } catch (e) {} 
-  writeFileSync( fn_ts, content, {
+  writeFileSync( outfile, content, {
     flag : "w+",
     flush: true
   });
-  symlinkSync( fn_ts, fn );
+  symlinkSync( fn_ts, [output_path,fn].join('/') );
 }//}}}
 
 function write_map_to_file( description, map_file, map_obj, file_ts )
@@ -447,46 +449,8 @@ async function monitor() {
     }
   }//}}}
 
-  function inorder_traversal_cb( mode, p, depth, nm, node_id )
+  async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
   {//{{{
-    // Parameters:
-    // mode    : Indicates where we are invoked in the execution path. See inorder_traversal().
-    // p       : Abbreviated node {n, node_id} to be placed in nodes_tree
-    // d       : Traversal depth in destination tree nodes_tree
-    // nm      : Depending on value of {mode}, either an abbreviated node, or a Map of such nodes from N.content
-    // node_id : A unique ID identical to that in DOM.Node
-    let retval;
-    switch ( mode ) {
-      case 'A':
-        // nm      : Map of abbreviated nodes
-        // node_id : Undefined
-        // Return value: Unused
-        break;
-      case 'B':
-        // nm      : Map of abbreviated nodes
-        // node_id : Undefined
-        // Return value: Unused
-        break;
-      case 'L':
-        // nm: Abbreviated node from N.content 
-        // node_id: node_id for {nm}
-        // Return value: either of
-        // - An abbreviated node to insert into returned Map
-        // - undefined, to prevent altering Map returned from inorder_traversal
-        break;
-      case 'N':
-        // nm: Abbreviated node from N.content 
-        // node_id: node_id for {nm}
-        // Return value: either of
-        // - An abbreviated node to insert into returned Map
-        // - undefined, to prevent altering Map returned from inorder_traversal
-        break;
-    }
-    return retval;
-  }//}}}
-
-  async function trigger_page_fetch_cb( nm, p, node_id, d )
-  {
     // This callback performs two functions:
     // 1. It takes each node nm passed to it by inorder_traversal(cb)
     //    and assembles these into a simplified DOM tree
@@ -500,7 +464,6 @@ async function monitor() {
     // p            : Callback parameters passed to inorder_traversal
     // Return value : nm
 
-    // await inorder_traversal( nodes_seen, 0, trigger_page_fetch_cb, { tagstack: tagstack, target_tree: trie } );
     let nr;
 
     if ( !p.tagstack.has(d) )
@@ -515,9 +478,23 @@ async function monitor() {
     let nrn = nr.get( nm.nodeName ) + 1;
     let altname = [ nm.nodeName,'[', nrn, ']', ].join('');
 
-    nr.set( nm.nodeName, nrn );
+    nr.set(nm.nodeName, nrn);
 
     p.tagstack.set(d, nr);
+
+    // Find out if this leaf-terminated set of nodes is in our 
+    // motifs list
+    if ( nm.isLeaf ) {
+      let branchpat = p.branchpat.join('|');
+      let motif = {
+        n : 0
+      };
+      if ( p.motifs.has( branchpat ) ) {
+        motif = p.motifs.get( branchpat );
+      }
+      motif.n++;
+      p.motifs.set( branchpat, motif );
+    }
 
     let attrinfo = '';
     if ( nm.nodeName == 'A' ) {
@@ -530,7 +507,9 @@ async function monitor() {
       ' '.repeat(d * 2),
       d,
       altname,
-      nm.isLeaf ? nm.content : attrinfo 
+      nm.isLeaf 
+      ? nm.content.replace(/[\r\n]/g,' ').replace(/[ \t]{1,}/,' ')
+      : attrinfo 
     );
 
     if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
@@ -550,9 +529,9 @@ async function monitor() {
     }
 
     return Promise.resolve(nm);
-  }
+  }//}}}
   
-  async function inorder_traversal( nm, d, cb, cb_param, nodeId, parentId )
+  async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
   {//{{{
     // Depth-first inorder traversal of .content maps in each node.
 
@@ -576,7 +555,7 @@ async function monitor() {
         let k = ka.shift();
         if (envSet("INORDER_TRAVERSAL","1")) console.log( "@root %d[%d]", k, d ); 
         if ( nm.has( k ) ) {
-          nm.set(k,await inorder_traversal(nm.get(k),d,cb,cb_param,k));
+          nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k));
         }
       }
     }
@@ -584,7 +563,10 @@ async function monitor() {
       // nm is an abbreviated node, which should be the case
       // whenever d > 0. We expect nodeId to be a DOM.nodeId type
       // used as a search key for nm.
-      if ( cb !== undefined ) nm = await cb(nm,cb_param,nodeId,d+1);
+
+      sp.branchpat.push(nm.nodeName);
+
+      if ( cb !== undefined ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
       if ( nm.isLeaf || nm.content.size === undefined ) {
         if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Skipping leaf %d", nodeId );
       }
@@ -595,7 +577,7 @@ async function monitor() {
         while ( ka.length > 0 ) {
           let k = ka.shift();
           let n = nm.content.get(k);
-          let rv = await inorder_traversal(n,d+1,cb,cb_param,k,nodeId);
+          let rv = await inorder_traversal(sp,n,d+1,cb,cb_param,k,nodeId);
           if ( rv === undefined ) {
             nm.content.delete(k);
           }
@@ -604,6 +586,9 @@ async function monitor() {
           }
         }
       }
+
+      sp.branchpat.pop();
+
     }
     return Promise.resolve(nm);
   }//}}}
@@ -646,7 +631,8 @@ async function monitor() {
   }//}}}
 
   function datestring( d, fmt )
-  { if ( d === undefined || !d ) d = new Date;
+  {//{{{
+    if ( d === undefined || !d ) d = new Date;
     if ( fmt === undefined ) fmt = "%Y%M%D-%H%i%s-%u";
     return fmt
       .replace(/%Y/g, d.getUTCFullYear())
@@ -656,7 +642,7 @@ async function monitor() {
       .replace(/%i/g, d.getUTCMinutes().toString().padStart(2,'0'))
       .replace(/%s/g, d.getUTCSeconds().toString().padStart(2,'0'))
       .replace(/%u/g, d.getUTCMilliseconds());
-  }
+  }//}}}
 
   async function finalize_metadata( step )
   {//{{{
@@ -704,6 +690,7 @@ async function monitor() {
         if (nodes_seen.size <= 1024) {//{{{
 
           // Slower O(n(n+q)), where q is a function of tree depth and length of the .content Map at each node
+          // sn_inorder_traversal should be replaced by a balanced binary tree traverser.
 
           // Here, nodes_tree contains parent nodes, 
           // and sn_inorder_traversal recurses through this tree
@@ -799,25 +786,40 @@ async function monitor() {
 
         // Inorder traversal demo to reconstruct "clean" HTML
         console.log( "Building %d nodes", nodes_seen.size );
-        let tagstack = new Map; // At each recursive step up the tree (from root node d = 0), we use this Map of array elements to track unique HTML tags found 
-        let trie = new Map; // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+
+        let tagstack = new Map; // At each recursive step up the tree (from root node d = 0), we use this Map of array elements to track unique HTML tags found
+        let trie     = new Map;
+        let motifs   = new Map;
+        let tagmotif = new Array; // A simple array of all nodes reached at a point in tree traversal
+
         await inorder_traversal( 
+          {
+            branchpat   : tagmotif
+          },
           nodes_seen, 
-          0, 
+          -1, 
           trigger_page_fetch_cb, 
           {
-            tagstack: tagstack, 
-            target_tree: trie
+            tagstack    : tagstack, // Retains tag counts at depth d
+            motifs      : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
+            target_tree : trie // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
           }
         );
+         
         rr_time = hrtime.bigint();
         console.log( "Built %d nodes", nodes_seen.size, rr_time_delta(),
           (envSet("DUMP_PRODUCT","1")) 
           ? inspect(trie, {showHidden: false, depth: null, colors: true})
           : nodes_seen.size 
         );
+        write_to_file( "tagstack.txt", file_ts, 
+          inspect(tagstack, {showHidden: false, depth: null, colors: true})
+        );
         write_to_file( "trie.txt", file_ts, 
           inspect(trie, {showHidden: false, depth: null, colors: true})
+        );
+        write_to_file( "motifs.txt", file_ts, 
+          inspect(motifs, {showHidden: false, depth: null, colors: true})
         );
 
 
@@ -861,7 +863,7 @@ async function monitor() {
   }//}}}
 
   async function setup_dom_fetch( nodeId )
-  {
+  {//{{{
     rootnode   = nodeId;
     rr_mark    = hrtime.bigint();
     cycle_date = new Date();
@@ -878,7 +880,7 @@ async function monitor() {
     parents_pending_children.unshift( nodeId );
     await trigger_dom_fetch();
     return Promise.resolve(true);
-  }
+  }//}}}
   
   try {
 

@@ -18,7 +18,7 @@ const db_host = process.env.LEGISCOPE_HOST || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
-const rr_timeout_s = 5; // Seconds of inactivity before flushing page metadata 
+const rr_timeout_s = 10; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 
 var mysql = require("mysql");
@@ -34,8 +34,9 @@ let rr_begin = 0;
 let cycle_date;
 let mark_steps = 0;
 let rootnode_n;
+let postprocessing = 0;
 
-let triggerable = 5;
+let triggerable = -1;
 
 function sleep( millis )
 {//{{{
@@ -85,19 +86,19 @@ function networkRequestWillBeSent(params)
     wallTime  : params.wallTime,
     initiator : params.initiator
   };
-  if ( !rr_map.has( params.requestId ) ) {
-    rr_map.set( params.requestId, {
+  latest_rr = params.requestId;
+  if ( !rr_map.has( latest_rr ) ) {
+    rr_map.set( latest_rr, {
       url      : markdata.url,
       request  : markdata,
       response : {}
     });
   }
-  if ( !outstanding_rr.has( params.requestId ) ) {
-    outstanding_rr.set( params.requestId, markdata );
-    latest_rr = params.requestId;
+  if ( !outstanding_rr.has( latest_rr ) ) {
+    outstanding_rr.set( latest_rr, markdata );
   }
   if (envSet('QA','1')) console.log("Q[%s] %s %s", 
-    params.requestId, 
+    latest_rr, 
     markdata.method,
     markdata.url
   );
@@ -184,9 +185,10 @@ function envSet( v, w )
 async function monitor() {
 
   let client;
-  let nodes_seen = new Map;
-  let nodes_tree = new Map;
-  let tag_stack = new Array;
+  let nodes_seen  = new Map;
+  let nodes_tree  = new Map;
+  let lookup_tree = new Map;
+  let tag_stack   = new Array;
   let parents_pending_children = new Array; 
   let waiting_parent = 0;
   let depth = 0;
@@ -248,9 +250,21 @@ async function monitor() {
   {//{{{
     // Only call this method 
     // if node.childNodeCount > 0 AND node.children === undefined
-    if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('?');
-    if ( envSet('DOMSETCHILDNODES','1') ) console.log("ENQUEUE [%d]", nodeId);
+    if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('?');
+    if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log("ENQUEUE [%d]", nodeId);
     parents_pending_children.push( nodeId );
+  }//}}}
+
+  function mapify_attributes( ma )
+  {//{{{
+    let attrset = ma ? ma : [];
+    let attrmap = new Map;
+    while ( attrset.length > 0 ) {
+      let attr = attrset.shift();
+      let attrval = attrset.shift();
+      attrmap.set( attr, attrval );
+    }
+    return attrmap;
   }//}}}
 
   async function recursively_add_and_register( m, parent_nodeId, depth )
@@ -268,13 +282,7 @@ async function monitor() {
     let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
     let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
     if ( !nodes_seen.has(m.nodeId) ) {
-      let attrset = m.attributes ? m.attributes : [];
-      let attrmap = new Map;
-      while ( attrset.length > 0 ) {
-        let attr = attrset.shift();
-        let attrval = attrset.shift();
-        attrmap.set( attr, attrval );
-      }
+      let attrmap = mapify_attributes( m.attributes );
       let isLeaf = !((m.childNodeCount && m.childNodeCount > 0) || has_child_array); 
       nodes_seen.set( m.nodeId, {
         nodeName   : m.nodeName ? m.nodeName : '---',
@@ -293,8 +301,8 @@ async function monitor() {
     parentNode.content.set(m.nodeId, null);
     nodes_seen.set( parent_nodeId, parentNode );
 
-    if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('.');
-    if ( envSet('DOMSETCHILDNODES','1') ) console.log("Sub[%d] %s %d <- parent %d children %d",
+    if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
+    if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log("Sub[%d] %s %d <- parent %d children %d",
       depth,
       m.nodeName ? m.nodeName : '---',
       m.nodeId,
@@ -327,8 +335,8 @@ async function monitor() {
     const {parentId, nodes} = params;
     const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
 
-    if ( envSet('DOMSETCHILDNODES','2') ) process.stdout.write('.');
-    if ( envSet('DOMSETCHILDNODES','1') ) console.log( 
+    if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
+    if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log( 
       "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
       nodes_seen.size,
       descriptor.description,
@@ -347,8 +355,8 @@ async function monitor() {
       if ( !parent_node.content.has( parentId ) && (waiting_parent != parentId) ) {
         parent_node.content.set( parentId, null );
         nodes_seen.set( waiting_parent, parent_node );
-        if ( envSet('DOMSETCHILDNODES','1') ) 
-          console.log( "Fixup %d[%d]", waiting_parent, parentId );
+        if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) 
+          console.log( "Fixup %d.%d", parentId, waiting_parent );
       }
     }
     if ( !nodes_seen.has( parentId ) ) {
@@ -379,8 +387,8 @@ async function monitor() {
           modified++;
         }
       });
-      if ( envSet('DOMSETCHILDNODES','1') ) {
-        console.log( "- Preregister %d/%d nodes with parent[%d]",
+      if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) {
+        console.log( "- Preregistered %d/%d nodes with parent[%d]",
           modified,
           nodes.length,
           parentId
@@ -478,7 +486,7 @@ async function monitor() {
         depth  : node_request_depth,
         pierce : true
       });
-      if ( envSet('TRIGGER_DOM_FETCH','1') ) {
+      if ( envSet('TRIGGER_DOM_FETCH','1') || postprocessing == 1 ) {
         console.log("requestChildNodes %d", 
           waiting_parent, 
           nodes_seen.has(waiting_parent), 
@@ -488,6 +496,62 @@ async function monitor() {
       }
       rr_mark = hrtime.bigint();
     }
+  }//}}}
+
+  async function flatten_dialog_container( sp, nm, p, node_id, d )
+  {
+    if ( !p.dialog_nodes.has( node_id ) ) {
+      p.dialog_nodes.set( node_id, nm );
+      if ( 
+        nm.nodeName == '#text' && 
+        nm.isLeaf && 
+        !(nm.content instanceof Map) &&
+        nm.content == 'Close'
+      ) {
+        p.closer_node = node_id;
+        console.log(
+          "Found Modal Closer %d",
+          node_id
+        );
+      }
+    }
+    return Promise.resolve(nm);
+  }
+
+  async function clickon_node( node_id, nm )
+  {//{{{
+    await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
+    let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
+    let cx = (content[0] + content[2])/2;
+    let cy = (content[1] + content[5])/2;
+
+    // Move mouse pointer to object on page, send mouse click and release
+    console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
+    await Input.dispatchMouseEvent({
+      type: "mouseMoved",
+      x: parseFloat(cx),
+      y: parseFloat(cy)
+    });
+    await sleep(300);
+
+    console.log( "Click at (%d,%d)", cx, cy );
+    await Input.dispatchMouseEvent({
+      type: "mousePressed",
+      x: parseFloat(cx),
+      y: parseFloat(cy),
+      button: "left",
+      clickCount: 1
+    });
+    await sleep(10);
+
+    console.log( "Release (%d,%d)", cx, cy );
+    await Input.dispatchMouseEvent({
+      type: "mouseReleased",
+      x: parseFloat(cx),
+      y: parseFloat(cy),
+      button: "left"
+    });
+    return sleep(200);
   }//}}}
 
   async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
@@ -541,7 +605,7 @@ async function monitor() {
         attrinfo = nm.attributes.get('href');
     }
 
-    console.log(
+    if ( envSet('PAGE_FETCH_CB','1') ) console.log(
       "%s[%d] %s", 
       ' '.repeat(d * 2),
       d,
@@ -551,53 +615,100 @@ async function monitor() {
       : attrinfo 
     );
 
-    if ( triggerable > 0 ) {
+    if ( triggerable != 0 ) {
 
       if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
         try {
 
-          await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
-          let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
-          let cx = (content[0] + content[2])/2;
-          let cy = (content[1] + content[5])/2;
           triggerable--;
+          append_buffer_to_rr_map = 0;
 
-          console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
-          await Input.dispatchMouseEvent({
-            type: "mouseMoved",
-            x: parseFloat(cx),
-            y: parseFloat(cy)
-          });
-          await sleep(500);
-          console.log( "Click at (%d,%d)", cx, cy );
-          await Input.dispatchMouseEvent({
-            type: "mousePressed",
-            x: parseFloat(cx),
-            y: parseFloat(cy),
-            button: "left",
-            clickCount: 1
-          });
-          await sleep(150);
-          console.log( "Release (%d,%d)", cx, cy );
-          await Input.dispatchMouseEvent({
-            type: "mouseReleased",
-            x: parseFloat(cx),
-            y: parseFloat(cy),
-            button: "left"
-          });
-          await sleep(20000);
+          await clickon_node( node_id, nm );
+
+          if ( append_buffer_to_rr_map > 0 ) {
+            let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
+            let markup;
+            await setup_dom_fetch( append_buffer_to_rr_map );
+            await sleep(1000);
+            if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {
+              let dp = p.lookup_tree.get( append_buffer_to_rr_map );
+              let cka = new Array;
+              console.log("Populating container %d",
+                append_buffer_to_rr_map
+              );
+              dp.content.forEach((v,ck,map) => {
+                cka.push(ck);
+              });
+              while ( cka.length > 0 ) {
+                let ck = cka.shift();
+                console.log("- %d", ck);
+                await setup_dom_fetch( ck, append_buffer_to_rr_map );
+              }
+              console.log("Dialog container %d",
+                append_buffer_to_rr_map,
+                inspect(dp,{showHidden: false, depth: null, colors: true}),
+              );
+              // Decompose the dialog container to get at 
+              // the good bits: The Close button and link text.
+              let dialog_motif = new Array;
+              await inorder_traversal(
+                {
+                  branchpat : dialog_motif 
+                },
+                dp,
+                -1,
+                flatten_dialog_container,
+                p
+              );
+            }
+            else {
+              console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
+            }
+            await sleep(500);
+            markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
+            console.log( "TRIGGERED FETCH %s INTO %s %d", 
+              xhr_fetch_rr,
+              p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
+              append_buffer_to_rr_map,
+              markup,
+              inspect(R,{showHidden: false, depth: null, colors: true}),
+              nodes_seen.size
+              //inspect(nodes_seen,{showHidden: false, depth: null, colors: true}),
+            );
+            await sleep(500);
+            await reduce_nodes( nodes_seen );
+            console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
+
+            if ( p.closer_node > 0 ) {
+              await clickon_node( p.closer_node, nm );
+            }
+
+            // TODO: Dispatch dialog close mousePressed Input HERE
+            if ( rr_map.has( xhr_fetch_rr ) ) {
+              let rr_entry = rr_map.get( xhr_fetch_rr );
+              rr_entry.markup = nodes_seen;
+              rr_map.set( xhr_fetch_rr, rr_entry );
+            }
+
+            if ( p.closer_node == 0 ) {
+              console.log( "Input needed: Close dialog in 10s" );
+            }
+            await sleep(5000);
+          }
+          nodes_seen.clear();
         }
         catch(e) {
           console.log("Exception at depth %d", 
             d, 
             nm.nodeName, 
-            e, 
+            e && e.request !== undefined ? e.request : e, 
+            e && e.response !== undefined ? e.response : e, 
             inspect(nm, {showHidden: false, depth: null, colors: true})
           );
         }
       }
     }
-
+    rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
   
@@ -690,6 +801,56 @@ async function monitor() {
       .replace(/%u/g, d.getUTCMilliseconds());
   }//}}}
 
+  async function reduce_nodes( nodes )
+  {//{{{
+
+    let st = new Array;
+    let runs = 0;
+
+    console.log( "Populating tree buffer with %d nodes", nodes.size );
+    nodes.forEach((value, key, map) => {
+      process.stdout.write("+");
+      st.push( key );
+    });
+    console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
+
+    while ( nodes.size > 1 && runs < 10 ) {
+      console.log( "Run %d : %d", runs, nodes.size, rr_time_delta() );
+      while ( st.length > 0 ) {
+        let k = st.shift();
+        if ( nodes.has( k ) ) {
+          // Node[k] may have been relocated by graft(m,nodeId,depth)
+          b = nodes.get( k );
+          if ( b.parentId > 0 ) {
+            console.log("Next %d, remaining %d", k, nodes.size);
+            nodes.set( k, await graft( b, k, 0 ) );
+
+            b = nodes.get( k );
+
+            if ( nodes.has( b.parentId ) ) {
+              let p = nodes.get( b.parentId );
+              p.content.set( k, b );
+              nodes.delete( b.parentId );
+              nodes.set( b.parentId, p );
+              nodes.delete( k );
+              process.stdout.write("\r\n");
+              console.log("Remaining nodes", nodes.size);
+            }
+          } // b.parentId > 0
+        } // nodes.has( k )
+      } // st.length > 0
+      runs++;
+      if ( nodes.size > 1 ) {
+        nodes.forEach((value, key, map) => {
+          st.push( key );
+        });
+        st.sort((a,b) => {return b - a;});
+        console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
+      }
+    }
+    console.log( "Reduced node tree to %d root nodes", nodes.size ); 
+  }//}}}
+
   async function finalize_metadata( step )
   {//{{{
     // Chew up, digest, dump, and clear captured nodes.
@@ -719,110 +880,73 @@ async function monitor() {
 
         console.log( "TIME: TRANSFORM", rr_time_delta() );
 
-        let st = new Array;
-        let runs = 0;
-
-        console.log( "Populating tree buffer with %d nodes", nodes_seen.size );
-        nodes_seen.forEach((value, key, map) => {
-          process.stdout.write("+");
-          st.push( key );
-        });
-        console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
-
+        // Stash tree before post-processing, traversing
         console.log( "Sorting %d nodes", nodes_seen.size );
         nodes_seen = return_sorted_map( nodes_seen );
         write_to_file( "pre-processed.json", file_ts, inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ));
 
-        while ( nodes_seen.size > 1 && runs < 10 ) {
-          console.log( "Run %d : %d", runs, nodes_seen.size, rr_time_delta() );
-          while ( st.length > 0 ) {
-            let k = st.shift();
-            if ( nodes_seen.has( k ) ) {
-              // Node[k] may have been relocated by graft(m,nodeId,depth)
-              b = nodes_seen.get( k );
-              if ( b.parentId > 0 ) {
-                console.log("Next %d, remaining %d", k, nodes_seen.size);
-                nodes_seen.set( k, await graft( b, k, 0 ) );
+        // Copy into lookup_tree before reducing to tree
+        nodes_seen.forEach((v,key,map) => {
+          lookup_tree.set( key, {
+            nodeName : v.nodeName,
+            parentId : v.parentId,
+            content  : v.content,
+            isLeaf   : v.isLeaf
+          });
+        });
 
-                b = nodes_seen.get( k );
-
-                if ( nodes_seen.has( b.parentId ) ) {
-                  let p = nodes_seen.get( b.parentId );
-                  p.content.set( k, b );
-                  nodes_seen.delete( b.parentId );
-                  nodes_seen.set( b.parentId, p );
-                  nodes_seen.delete( k );
-                  process.stdout.write("\r\n");
-                  console.log("Remaining nodes", nodes_seen.size);
-                }
-              } // b.parentId > 0
-            } // nodes_seen.has( k )
-          } // st.length > 0
-          runs++;
-          if ( nodes_seen.size > 1 ) {
-            nodes_seen.forEach((value, key, map) => {
-              st.push( key );
-            });
-            st.sort((a,b) => {return b - a;});
-            console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
-          }
-        }
-        console.log( "Reduced node tree to %d root nodes", nodes_seen.size ); 
-
-        if (0) { // INOP: Must run asynchronously
-        // Attach nodes parsed from markup obtained by XMLHttpRequest
-        // to the rr_map registry of network requests-responses
-        if ( append_buffer_to_rr_map > 0 ) {
-          let rr_entry = rr_map.get( xhr_fetch_rr );
-          if ( nodes_seen.has( append_buffer_to_rr_map ) ) {
-            rr_entry.markup = nodes_seen.get( append_buffer_to_rr_map );
-          }
-          rr_map.set( xhr_fetch_rr, rr_entry );
-          console.log( "Attaching tree node %d to rr_map[%s]",
-            append_buffer_to_rr_map,
-            xhr_fetch_rr
-          );
-          append_buffer_to_rr_map = 0;
-          xhr_fetch_rr = 0;
-        }
-        }
+        // Reduce nodes_seen to traversable tree
+        await reduce_nodes( nodes_seen );
 
         rr_time = hrtime.bigint();
-        console.log( "\r\nDOM tree structure finalized with %d nodes", nodes_seen.size, rr_time_delta() );
+        console.log( "\r\nDOM tree structure finalized with %d nodes", lookup_tree.size, rr_time_delta() );
 
-        // Inorder traversal demo to reconstruct "clean" HTML
+        // Inorder traversal of "clean" HTML
         console.log( "Building %d nodes", nodes_seen.size );
 
         let tagstack = new Map; // At each recursive step up the tree (from root node d = 0), we use this Map of array elements to track unique HTML tags found
-        let trie     = new Map;
         let motifs   = new Map;
         let tagmotif = new Array; // A simple array of all nodes reached at a point in tree traversal
+
+        postprocessing = 3;
+
+        // Transfer working tree to nodes_tree; nodes_seen is reused
+        // to refetch modal popups filled with XHR-fetched HTML fragments.
+        nodes_seen.forEach((value,key,map) => {
+          let v = value;
+          nodes_tree.set( key, v );
+          nodes_seen.delete( key );
+        });
 
         await inorder_traversal( 
           {
             branchpat   : tagmotif
           },
-          nodes_seen, 
+          nodes_tree, 
           -1, 
           trigger_page_fetch_cb, 
           {
             tagstack    : tagstack, // Retains tag counts at depth d
             motifs      : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
-            target_tree : trie // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+            lookup_tree : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+            dialog_nodes : new Map,
+            closer_node : 0
           }
         );
          
+        postprocessing = 0;
+
         rr_time = hrtime.bigint();
-        console.log( "Built %d nodes", nodes_seen.size, rr_time_delta(),
+        console.log( "Built %d nodes", nodes_tree.size, rr_time_delta(),
           (envSet("DUMP_PRODUCT","1")) 
-          ? inspect(trie, {showHidden: false, depth: null, colors: true})
-          : nodes_seen.size 
+          ? inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
+          : nodes_tree.size 
         );
         write_to_file( "tagstack.txt", file_ts, 
           inspect(tagstack, {showHidden: false, depth: null, colors: true})
         );
         write_to_file( "trie.txt", file_ts, 
-          inspect(trie, {showHidden: false, depth: null, colors: true})
+          inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
         );
         write_to_file( "motifs.txt", file_ts, 
           inspect(motifs, {showHidden: false, depth: null, colors: true})
@@ -832,8 +956,8 @@ async function monitor() {
         console.log( "Everything", 
           rr_time_delta(), 
           (envSet("DUMP_PRODUCT","1"))
-          ? inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
-          : nodes_seen.size
+          ? inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
+          : nodes_tree.size
         );
         // Clear metadata storage
 
@@ -842,14 +966,12 @@ async function monitor() {
 
         write_map_to_file("Everything",
           "everything.json",
-          nodes_seen,
+          nodes_tree,
           file_ts 
         );
 
         console.log( "Currently", Date() );
       }
-      nodes_seen.clear();
-      nodes_tree.clear();
 
       if ( rr_map.size > 0 ) {
         write_map_to_file( "Network exchanges",
@@ -859,6 +981,10 @@ async function monitor() {
         );
         rr_map.clear();
       }
+
+      nodes_seen.clear();
+      nodes_tree.clear();
+      lookup_tree.clear();
       cycle_date = null;
     }
     else {
@@ -868,50 +994,149 @@ async function monitor() {
     return Promise.resolve(true);
   }//}}}
 
-  async function setup_dom_fetch( nodeId )
+  async function setup_dom_fetch( nodeId, parentId )
   {//{{{
     rootnode   = nodeId;
     rr_mark    = hrtime.bigint();
     cycle_date = new Date();
     rr_begin   = rr_mark;
-    rootnode_n = (await DOM.resolveNode({nodeId: nodeId})).object;
+    rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
     waiting_parent = nodeId;
     nodes_seen.set( waiting_parent, {
-      nodeName   : rootnode_n.description,
-      parentId   : 0,
+      nodeName   : rootnode_n.object.description,
+      parentId   : parentId !== undefined ? parentId : 0,
       attributes : new Map,
       isLeaf     : false,
       content    : new Map
     });
+    console.log("setup_dom_fetch( %d )", 
+      nodeId, 
+      inspect(rootnode_n,{showHidden: false, depth: null, colors: true})
+    );
     parents_pending_children.unshift( nodeId );
     await trigger_dom_fetch();
     return Promise.resolve(true);
   }//}}}
   
-  async function handleDOMattributeModified(params)
-  {
+  async function domAttributeModified(params)
+  {//{{{
     // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
     if ( params.value == 'modal fade in' ) {
-      let markup = (await DOM.getOuterHTML({nodeId: params.nodeId})).outerHTML;
-      console.log( "Markup in nodeId[%d]", params.nodeId,  markup  );
       append_buffer_to_rr_map = params.nodeId;
-
+      let markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
+      let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
       if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
         let rr_entry = rr_map.get( latest_rr );
         rr_entry.markup = markup;
         rr_map.set( latest_rr, rr_entry );
         console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
-          params.nodeId,
-          latest_rr
+          append_buffer_to_rr_map,
+          latest_rr,
+          markup,
+          inspect(R,{showHidden: false, depth: null, colors: true}),
         ); 
         xhr_fetch_rr = latest_rr;
         latest_rr = 0;
-
-        return setup_dom_fetch( params.nodeId );
+        return setup_dom_fetch( append_buffer_to_rr_map );
       }
     }
     return Promise.resolve(false);
-  }
+  }//}}}
+
+  async function domChildNodeInserted(params)
+  {//{{{
+    if ( postprocessing > 0 ) {
+      // Update lookup_tree
+      let nodeId = params.node.nodeId;
+      let parentId = params.parentNodeId;
+      let n = {
+        nodeName   : params.node.nodeName,
+        parentId   : parentId,
+        attributes : mapify_attributes( params.node.attributes ),
+        isLeaf     : params.node.childNodeCount == 0,
+        content    : new Map
+      };
+      // Ensure that parent exists and refers to this child node
+      if ( parentId !== undefined && parentId > 0 ) {
+        if ( lookup_tree.has( parentId ) ) {
+          let pn = lookup_tree.get( parentId );
+          if ( !pn.content instanceof Map ) {
+            console.log( "DOM::childNodeInserted: Replacing .content %s with Map", pn.content );
+            pn.content = new Map;
+          }
+          if ( pn.content !== undefined  && pn.content instanceof Map ) {
+            if ( pn.content.has( nodeId ) ) {
+              console.log( "DOM::childNodeInserted: Preexisting child %d in %d",
+                nodeId,
+                parentId
+              );
+            }
+            else {
+              pn.content.set( nodeId, null );
+              console.log( "DOM::childNodeInserted: Adding child %d to %d", nodeId, parentId );
+            }
+          }
+          lookup_tree.set( parentId, pn );
+        }
+        else {
+          console.log( "DOM::childNodeInserted: Parent %d missing", parentId );
+        }
+      }
+      // Insert the node if not yet present in lookup_tree
+      if ( lookup_tree.has( nodeId ) ) {
+        let dn = lookup_tree.get( nodeId );
+        console.log( "DOM::childNodeInserted",
+          "Node %d already present in tree", 
+          nodeId,
+          dn,
+          n
+        );
+      }
+      else {
+        lookup_tree.set( nodeId, n );
+        console.log(
+          "DOM::childNodeInserted: Added node %d to tree",
+          nodeId
+        );
+      }
+    }
+    else {
+      if ( envSet("VERBOSE","1") ) console.log( 'DOM::childNodeInserted', params );
+    }
+    return Promise.resolve(true);
+  }//}}}
+
+  async function domChildNodeRemoved(params)
+  {//{{{
+    if ( postprocessing > 0 ) {
+      let nodeId   = params.nodeId;
+      let parentId = params.parentNodeId;
+      if ( lookup_tree.has( nodeId ) ) {
+        let n = lookup_tree.get( nodeId );
+        lookup_tree.delete( nodeId );
+        console.log( 'DOM::childNodeRemoved[%d]',
+          nodeId,
+          inspect(n,{showHidden: false, depth: null, colors: true}) 
+        );
+      }
+      else {
+        console.log( 'DOM::childNodeRemoved[%d] not in tree', nodeId );
+      }
+      if ( lookup_tree.has( parentId ) ) {
+        let pn = lookup_tree.get( parentId );
+        if ( pn.content !== undefined && pn.content instanceof Map ) {
+          if ( pn.content.has( nodeId ) ) {
+            console.log( 'DOM::childNodeRemoved[%d] from %d',
+              nodeId, parentId
+            );
+            pn.content.delete( nodeId );
+          }
+        }
+        lookup_tree.set( parentId, pn );
+      }
+    }
+    return Promise.resolve(true);
+  }//}}}
 
   try {
 
@@ -921,28 +1146,29 @@ async function monitor() {
     DOM.setChildNodes(domSetChildNodes);
 
     await DOM.attributeModified(async (params) => {
-      console.log( 'DOM::attributeModified', params );
-      await handleDOMattributeModified(params);
+      if ( envSet("VERBOSE","1") ) console.log( 'DOM::attributeModified', params );
+      await domAttributeModified(params);
     });
 
     await DOM.attributeRemoved(async (params) => {
-      console.log( 'DOM::attributeRemoved', params );
+      if ( envSet("VERBOSE","1") ) console.log( 'DOM::attributeRemoved', params );
     });
 
     await DOM.characterDataModified(async (params) => {
-      console.log( 'DOM::characterDataModified', params );
+      if ( envSet("VERBOSE","1") ) console.log( 'DOM::characterDataModified', params );
     });
 
     await DOM.childNodeCountUpdated(async (params) => {
-      console.log( 'DOM::childNodeCountUpdated', params );
+      if ( envSet("VERBOSE","1") ) console.log( 'DOM::childNodeCountUpdated', params );
     });
 
     await DOM.childNodeInserted(async (params) => {
-      console.log( 'DOM::childNodeInserted', params );
+      await domChildNodeInserted(params);
     });
 
     await DOM.childNodeRemoved(async (params) => {
-      console.log( 'DOM::childNodeRemoved', params );
+      if ( envSet("VERBOSE","1") ) console.log( 'DOM::childNodeRemoved', params );
+      await domChildNodeRemoved(params);
     });
 
     await DOM.documentUpdated(async (params) => {

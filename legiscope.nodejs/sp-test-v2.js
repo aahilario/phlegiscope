@@ -519,6 +519,96 @@ async function monitor() {
     return Promise.resolve(nm);
   }
 
+  async function traverse_to( node_id, nm )
+  {
+    await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
+    let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
+    let cx = (content[0] + content[2])/2;
+    let cy = (content[1] + content[5])/2;
+
+    // Move mouse pointer to object on page, send mouse click and release
+    console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
+    return Promise.resolve(true);
+  }
+
+
+  async function trigger_page_traverse_cb( sp, nm, p, node_id, d )
+  {
+    let nr;
+
+    if ( exception_abort )
+      return Promise.resolve(nm);
+
+    if ( !p.tagstack.has(d) )
+      p.tagstack.set(d, new Map);
+
+    nr = p.tagstack.get(d);
+
+    if ( !nr.has( nm.nodeName ) ) {
+      nr.set( nm.nodeName, -1 );
+    }
+
+    let nrn = nr.get( nm.nodeName ) + 1;
+    let altname = [ nm.nodeName,'[', nrn, ']', ].join('');
+
+    nr.set(nm.nodeName, nrn);
+
+    p.tagstack.set(d, nr);
+
+    // Update our branch motifs list:
+    // Update or store the HTML tag pattern leading to this node.
+    let branchpat = sp.branchpat.join('|');
+    let motif = {
+      n : 0
+    };
+    if ( p.motifs.has( branchpat ) ) {
+      motif = p.motifs.get( branchpat );
+    }
+    motif.n++;
+    p.motifs.set( branchpat, motif );
+
+    let attrinfo = '';
+    if ( nm.nodeName == 'A' ) {
+      if ( nm.attributes.has('href') )
+        attrinfo = nm.attributes.get('href');
+    }
+
+    if ( envSet('PAGE_FETCH_CB','1') ) console.log(
+      "%s[%d] %s", 
+      ' '.repeat(d * 2),
+      d,
+      altname,
+      nm.isLeaf 
+      ? nm.content.replace(/[\r\n]/g,' ').replace(/[ \t]{1,}/,' ')
+      : attrinfo 
+    );
+
+    if ( triggerable != 0 ) {
+
+      if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
+        try {
+
+          triggerable--;
+          await traverse_to( node_id, nm );
+
+        }
+        catch(e) {
+          console.log("Exception at depth %d", 
+            d, 
+            nm.nodeName, 
+            e && e.request !== undefined ? e.request : e, 
+            e && e.response !== undefined ? e.response : e, 
+            inspect(nm, {showHidden: false, depth: null, colors: true})
+          );
+          exception_abort = true;
+        }
+      }
+    }
+    rr_mark = hrtime.bigint();
+    return Promise.resolve(nm);
+
+  }
+
   async function clickon_node( node_id, nm )
   {//{{{
     await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
@@ -933,7 +1023,9 @@ async function monitor() {
           },
           nodes_tree, 
           -1, 
-          trigger_page_fetch_cb, 
+          envSet("MODE","TRAVERSE") 
+          ? trigger_page_traverse_cb
+          : trigger_page_fetch_cb, 
           {
             tagstack    : tagstack, // Retains tag counts at depth d
             motifs      : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes

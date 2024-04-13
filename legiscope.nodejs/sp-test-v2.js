@@ -35,6 +35,7 @@ let cycle_date;
 let mark_steps = 0;
 let rootnode_n;
 let postprocessing = 0;
+let exception_abort = false;
 
 let triggerable = -1;
 
@@ -506,7 +507,7 @@ async function monitor() {
         nm.nodeName == '#text' && 
         nm.isLeaf && 
         !(nm.content instanceof Map) &&
-        nm.content == 'Close'
+        nm.content == '×' // 'Close'
       ) {
         p.closer_node = node_id;
         console.log(
@@ -570,6 +571,9 @@ async function monitor() {
     // Return value : nm
 
     let nr;
+
+    if ( exception_abort )
+      return Promise.resolve(nm);
 
     if ( !p.tagstack.has(d) )
       p.tagstack.set(d, new Map);
@@ -644,10 +648,6 @@ async function monitor() {
                 console.log("- %d", ck);
                 await setup_dom_fetch( ck, append_buffer_to_rr_map );
               }
-              console.log("Dialog container %d",
-                append_buffer_to_rr_map,
-                inspect(dp,{showHidden: false, depth: null, colors: true}),
-              );
               // Decompose the dialog container to get at 
               // the good bits: The Close button and link text.
               let dialog_motif = new Array;
@@ -659,6 +659,10 @@ async function monitor() {
                 -1,
                 flatten_dialog_container,
                 p
+              );
+              if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
+                append_buffer_to_rr_map,
+                inspect(dp,{showHidden: false, depth: null, colors: true}),
               );
             }
             else {
@@ -677,7 +681,7 @@ async function monitor() {
             );
             await sleep(500);
             await reduce_nodes( nodes_seen );
-            console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
+            if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
 
             if ( p.closer_node > 0 ) {
               await clickon_node( p.closer_node, nm );
@@ -705,6 +709,7 @@ async function monitor() {
             e && e.response !== undefined ? e.response : e, 
             inspect(nm, {showHidden: false, depth: null, colors: true})
           );
+          exception_abort = true;
         }
       }
     }
@@ -721,7 +726,9 @@ async function monitor() {
     //
     // Return value:
     // - An abbreviated node
-    if ( nm === undefined || !nm ) {
+    if ( exception_abort ) {
+    }
+    else if ( nm === undefined || !nm ) {
       if (envSet("INORDER_TRAVERSAL","1")) console.log( "@empty node[%d]", d, nodeId, nm );
     }
     else if ( nm instanceof Map ) {
@@ -738,6 +745,7 @@ async function monitor() {
         if ( nm.has( k ) ) {
           nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k));
         }
+        if ( exception_abort ) break;
       }
     }
     else if ( nm.content !== undefined ) {
@@ -765,6 +773,7 @@ async function monitor() {
           else {
             nm.content.set(k,rv);
           }
+          if ( exception_abort ) break;
         }
       }
       if ( cb !== undefined ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
@@ -986,6 +995,8 @@ async function monitor() {
       nodes_tree.clear();
       lookup_tree.clear();
       cycle_date = null;
+
+      if ( exception_abort ) process.exit(1);
     }
     else {
       // Trigger requestChildNodes

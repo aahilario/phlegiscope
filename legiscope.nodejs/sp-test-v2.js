@@ -604,6 +604,28 @@ async function monitor() {
         }
       }
     }
+
+    // Reverse order of child node Map elements
+    if ( !nm.isLeaf && nm.content instanceof Map && nm.content.size > 10 ) {
+      let sr = new Array;
+      let revmap = new Map;
+      nm.content.forEach((v,k,m) => { 
+        let val = v;
+        sr.push(k); 
+        revmap.set(k,val);
+      });
+      sr.forEach((e) => { nm.content.delete(e); });
+      nm.content.clear();
+      sr.sort((a,b) => {return b - a;});
+      console.log( "Reversing %d-element container %d", sr.length, nodeId );
+      while ( sr.length > 0 ) {
+        let k = sr.shift();
+        let v = revmap.get(k);
+        nm.content.set( k, v );
+        revmap.delete(k);
+      }
+    }
+
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
 
@@ -845,7 +867,7 @@ async function monitor() {
 
       sp.branchpat.push(nm.nodeName);
 
-      //if ( cb !== undefined ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+      if ( cb !== undefined ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
       if ( nm.isLeaf || nm.content.size === undefined ) {
         if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Skipping leaf %d", nodeId );
       }
@@ -866,7 +888,7 @@ async function monitor() {
           if ( exception_abort ) break;
         }
       }
-      if ( cb !== undefined ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+      // if ( cb !== undefined ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
 
       sp.branchpat.pop();
 

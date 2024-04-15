@@ -21,7 +21,7 @@ const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 10; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 
-var mysql = require("mysql");
+var mysql = require("@mysql/xdevapi");
 
 let outstanding_rr = new Map;
 let latest_rr = 0;
@@ -201,21 +201,20 @@ async function monitor() {
     // If database host, user, and password are specified in environment,
     // attempt to connect, and do not proceed if connection fails.
     if ( db_host.length > 0 && db_user.length > 0 && db_pass.length > 0 ) {
-      db = mysql.createConnection({
+      const db_config = {
         host     : db_host,
         user     : db_user,
         password : db_pass,
-        database : db_name
-      });
-      db.connect(function(err) {
-        if ( err ) {
-          console.log("Database:", err.sqlMessage ? err.sqlMessage : err );
-          process.exit(1);
-        }
+        schema   : db_name,
+        port     : 33062
+      };
+      db = mysql.getSession(db_config).then((session) => {
+        console.log("Database:", inspect(session) );
       });
     }
   }
   catch(e) {
+    console.log("Database",inspect(e));
     process.exit(1);
   }
 

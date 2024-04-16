@@ -36,6 +36,7 @@ let mark_steps = 0;
 let rootnode_n;
 let postprocessing = 0;
 let exception_abort = false;
+let file_ts;
 
 let triggerable = -1;
 
@@ -139,14 +140,16 @@ function return_sorted_map( map_obj )
   return map_obj;
 }//}}}
 
-function write_to_file( fn, file_ts, content )
+function write_to_file( fn, file_ts, content, n )
 {//{{{
   let ts = file_ts === undefined ? datestring( cycle_date ) : file_ts; 
   let fn_parts = [ 
     fn.replace(/^(.*)\.([^.]{1,})$/i,'$1'), 
     fn.replace(/^(.*)\.([^.]{1,})$/i,'$2')
   ];
-  let fn_ts = [ [ fn_parts[0], '-',  ts ].join(''), (fn_parts[1].length > 0 && fn_parts[1] != fn_parts[0]) ? ['.', fn_parts[1]].join('') : '' ].join(''); 
+  let fn_p = [ fn_parts[0], ts ];
+  if ( n !== undefined ) fn_p.push( n.toString() );
+  let fn_ts = [ fn_p.join('-'), (fn_parts[1].length > 0 && fn_parts[1] != fn_parts[0]) ? ['.', fn_parts[1]].join('') : '' ].join(''); 
   let outfile = [output_path, fn_ts].join('/')
   try {
     // Plain name is used to create a symbolic link.
@@ -499,7 +502,7 @@ async function monitor() {
   }//}}}
 
   async function flatten_dialog_container( sp, nm, p, node_id, d )
-  {
+  {//{{{
     if ( !p.dialog_nodes.has( node_id ) ) {
       p.dialog_nodes.set( node_id, nm );
       if ( 
@@ -516,7 +519,7 @@ async function monitor() {
       }
     }
     return Promise.resolve(nm);
-  }
+  }//}}}
 
   async function traverse_to( node_id, nm )
   {
@@ -771,7 +774,15 @@ async function monitor() {
             );
             await sleep(500);
             await reduce_nodes( nodes_seen );
+
             if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
+
+            write_to_file( "trie.txt", 
+              file_ts,
+              inspect(nodes_seen, {showHidden: false, depth: null, colors: false}),
+              p.n
+            );
+            p.n++;
 
             if ( p.closer_node > 0 ) {
               await clickon_node( p.closer_node, nm );
@@ -972,7 +983,7 @@ async function monitor() {
   async function finalize_metadata( step )
   {//{{{
     // Chew up, digest, dump, and clear captured nodes.
-    let file_ts = datestring( cycle_date );
+    file_ts = datestring( cycle_date );
     if ( step == 0 ) {
 
       if ( nodes_seen.size > 0 ) {
@@ -1050,7 +1061,8 @@ async function monitor() {
             motifs      : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
             lookup_tree : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
             dialog_nodes : new Map,
-            closer_node : 0
+            closer_node : 0,
+            n : 0
           }
         );
          

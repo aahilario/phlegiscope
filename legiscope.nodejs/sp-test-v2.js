@@ -18,7 +18,7 @@ const db_host = process.env.LEGISCOPE_HOST || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
-const rr_timeout_s = 10; // Seconds of inactivity before flushing page metadata 
+const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 
 var mysql = require("@mysql/xdevapi");
@@ -163,20 +163,39 @@ function write_to_file( fn, file_ts, content, n )
   symlinkSync( fn_ts, [output_path,fn].join('/') );
 }//}}}
 
-function write_map_to_file( description, map_file, map_obj, file_ts )
+function write_map_to_file( description, map_file, map_obj, file_ts, n )
 {//{{{
   console.log( "Writing %s to %s", description, map_file );
-  write_to_file( map_file, file_ts,  JSON.stringify( map_obj, 
-    // Stringify an ES6 Map
-    // https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
-    function (key, value) {
-      if(value instanceof Map) {
-        return Object.fromEntries(value);
-      } else {
-        return value;
+
+  // Stringify an ES6 Map
+  // https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
+  function reviver(key, value) {
+    if(typeof value === 'object' && value !== null) {
+      if (value.dataType === 'Map') {
+        return new Map(Object.entries(value.value));
       }
-    }, 2 )
+    }
+    return value;
+  }
+
+  function recoverable(key, value) {
+    if(value instanceof Map) {
+      return {
+        dataType : 'Map',
+        value    : Object.fromEntries(value)
+      };
+    } else {
+      return value;
+    }
+  }
+
+  write_to_file( 
+    map_file,
+    file_ts,  
+    JSON.stringify( map_obj, recoverable, 2 ),
+    n
   );
+
 }//}}}
 
 function envSet( v, w )
@@ -501,6 +520,25 @@ async function monitor() {
     }
   }//}}}
 
+  async function flatten_container( sp, nm, p, node_id, d )
+  {//{{{
+    if ( !p.flattened.has( node_id ) ) {
+      p.flattened.set( node_id, nm );
+      if ( !nm.isLeaf && nm.content instanceof Map ) {
+        let lc = p.flattened.get( node_id );
+        let lca = new Array;
+        lc.content.forEach((v,k,m) => { lca.push(k); });
+        lc.content.clear();
+        while ( lca.length > 0 ) {
+          let lk = lca.shift();
+          lc.content.set( lk, null );
+        }
+        p.flattened.set( node_id, lc );
+      }
+    }
+    return Promise.resolve(nm);
+  }//}}}
+
   async function flatten_dialog_container( sp, nm, p, node_id, d )
   {//{{{
     if ( !p.dialog_nodes.has( node_id ) ) {
@@ -522,72 +560,194 @@ async function monitor() {
   }//}}}
 
   async function traverse_to( node_id, nm )
-  {
-    await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
-    let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
-    let cx = (content[0] + content[2])/2;
-    let cy = (content[1] + content[5])/2;
+  {//{{{
+    let result = true;
+    try {
+      await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
+      let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
+      let cx = (content[0] + content[2])/2;
+      let cy = (content[1] + content[5])/2;
+      // Move mouse pointer to object on page, send mouse click and release
+      if ( envSet("TRAVERSE_TO","1") ) console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
+    }
+    catch(e) {
+      console.log( "Non-traversable %d", node_id, inspect(nm, {showHidden: false, depth: null, colors: true}) );
+      result = false;
+    }
+    return Promise.resolve(result);
+  }//}}}
 
-    // Move mouse pointer to object on page, send mouse click and release
-    console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
-    return Promise.resolve(true);
-  }
+  async function congress_prune_panel_cb( sp, nm, p, node_id, d )
+  {//{{{
+    if ( nm.isLeaf ) {
+      try {
+        if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "- Removing %d", node_id );
+        DOM.removeNode({ nodeId: node_id });
+      }
+      catch (e) {
+        // No-op
+      }
+    }
+    rr_mark = hrtime.bigint();
+    return Promise.resolve(nm);
+  }//}}}
 
+  async function congress_extract_history_panel( sp, nm, p, node_id, d )
+  {//{{{
+    if ( p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ) ) {
+      let extracted_info = {
+        id       : null,
+        links    : new Map,
+        text     : new Map,
+        skipthis : new Map
+      };
+      // Extract information from branch and leaves
+      let local_sp = new Array;
+      if ( envSet("CONGRESS_BILLRES_CB","1") ) {
+        console.log( "---- MARK ----",
+          inspect(nm, {showHidden: false, depth: null, colors: true})
+        );
+      }
+      await inorder_traversal(
+        { branchpat : local_sp },
+        nm,
+        -1,
+        congress_billres_extract_cb,
+        extracted_info
+      );
+      // Clean up extracted key-value pairs
+      let ka = new Array;
+      extracted_info.text.forEach((v,k,m) => { ka.push(k); });
+      // Cannot use mapify_attributes owing to inconsistencies in formatting
+      while ( ka.length > 0 ) {
+        let k = ka.shift();
+        let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
+        let k_arr = k_str.split(':');
+        let v;
+        let v_str;
+        if ( k_arr.length == 2 ) {
+          k_str = k_arr[0];
+          v_str = k_arr[1];
+        }
+        else {
+          v = ka.shift();
+          v_str = extracted_info.text.get(v);
+          extracted_info.text.delete(v);
+        }
+        extracted_info.text.set( k_str, v_str );
+        extracted_info.text.delete(k);
+      }
+      extracted_info.text.forEach((v,k,m) => {
+        if ( !p.textkeys.has(k) )
+          p.textkeys.set(k,1);
+        else {
+          let tk = p.textkeys.get(k);
+          tk++;
+          p.textkeys.set(k,tk);
+        }
+      });
+      ka.sort((a,b) => {return a - b;});
+      // Remove branch and all leaves from frontend DOM
+      await inorder_traversal(
+        { branchpat : local_sp },
+        nm,
+        -1,
+        congress_prune_panel_cb,
+        extracted_info
+      );
+      extracted_info.links.delete('[History]');
+      let final_data = {
+        id      : extracted_info.id,
+        links   : extracted_info.links,
+        text    : extracted_info.text,
+        history : p.flattened
+      };
+      write_map_to_file(
+        extracted_info.id, 
+        "panels.json",//[ extracted_info.id.replace(/^\#/,''), 'json' ].join('.'),
+        final_data,
+        file_ts,
+        extracted_info.id.replace(/^\#/,'')
+      );
+      console.log(
+        inspect(final_data, {showHidden: false, depth: null, colors: true})
+      );
+      console.log( "---- MARK ----" );
+      p.child_hits = 0;
+      p.hit_depth = 0;
+      p.flattened.clear();
+    }
+
+  }//}}}
+
+  async function congress_billres_extract_cb( sp, nm, p, node_id, d )
+  {//{{{
+    if ( nm.nodeName == 'A' ) {
+      let link = nm.attributes.has('href') 
+        ? nm.attributes.get('href')
+        : null
+      ;
+      let linkid = nm.attributes.has('data-id')
+        ? nm.attributes.get('data-id')
+        : null
+      ;
+      if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "Extract A", inspect(nm) );
+      if ( nm.content instanceof Map && nm.content.size == 1 ) {
+        let eset = new Array;
+        nm.content.forEach((v,k,map) => {
+          eset.push(k);
+        });
+        while ( eset.length > 0 ) {
+          let e = eset.shift();
+          let child_node = nm.content.get(e);
+          if ( child_node.isLeaf && child_node.nodeName == '#text' ) {
+            let label = child_node.content.trim();
+            p.links.set( label, { url : link, data_id : linkid } /* link */ );
+            if ( linkid ) {
+              p.id = linkid;
+            }
+            if ( !p.text.has( e ) )
+              p.skipthis.set( e, label );
+            else
+              p.text.delete( e );
+            if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "extract[%d] %s: %s",
+              e,
+              child_node.content,
+              { url : link, id : linkid }
+            );
+          }
+        }
+      }
+    }
+    if ( nm.isLeaf ) {
+      if ( nm.nodeName == '#text' ) {
+        let content = nm.content.trim();
+        if ( content.length > 0 && !p.skipthis.has(node_id) ) {
+          p.text.set( node_id, content );
+        }
+      }
+    }
+    rr_mark = hrtime.bigint();
+    return Promise.resolve(nm);
+  }//}}}
 
   async function trigger_page_traverse_cb( sp, nm, p, node_id, d )
-  {
-    let nr;
-
+  {//{{{
     if ( exception_abort )
       return Promise.resolve(nm);
 
-    if ( !p.tagstack.has(d) )
-      p.tagstack.set(d, new Map);
-
-    nr = p.tagstack.get(d);
-
-    if ( !nr.has( nm.nodeName ) ) {
-      nr.set( nm.nodeName, -1 );
-    }
-
-    let nrn = nr.get( nm.nodeName ) + 1;
-    let altname = [ nm.nodeName,'[', nrn, ']', ].join('');
-
-    nr.set(nm.nodeName, nrn);
-
-    p.tagstack.set(d, nr);
-
-    // Update our branch motifs list:
-    // Update or store the HTML tag pattern leading to this node.
-    let branchpat = sp.branchpat.join('|');
-    let motif = {
-      n : 0
-    };
-    if ( p.motifs.has( branchpat ) ) {
-      motif = p.motifs.get( branchpat );
-    }
-    motif.n++;
-    p.motifs.set( branchpat, motif );
-
-    let attrinfo = '';
-    if ( nm.nodeName == 'A' ) {
-      if ( nm.attributes.has('href') )
-        attrinfo = nm.attributes.get('href');
-    }
-
-    if ( envSet('PAGE_FETCH_CB','1') ) console.log(
-      "%s[%d] %s", 
-      ' '.repeat(d * 2),
-      d,
-      altname,
-      nm.isLeaf 
-      ? nm.content.replace(/[\r\n]/g,' ').replace(/[ \t]{1,}/,' ')
-      : attrinfo 
-    );
+    trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
 
     if ( triggerable != 0 ) {
 
       if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
+
+        // Indicates that we've found a [History] trigger in
+        // a child node, so that the triggering tag and surrounding
+        // siblings can be captured post-traversal.
+        p.child_hits++;
+        p.hit_depth = d;
+
         try {
 
           triggerable--;
@@ -605,68 +765,58 @@ async function monitor() {
           exception_abort = true;
         }
       }
+      else if ( p.child_hits > 0 ) {
+        await congress_extract_history_panel( sp, nm, p, node_id, d );
+      }
     }
 
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
-
-  }
+  }//}}}
 
   async function clickon_node( node_id, nm )
   {//{{{
-    await DOM.scrollIntoViewIfNeeded({nodeId: node_id});
-    let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
-    let cx = (content[0] + content[2])/2;
-    let cy = (content[1] + content[5])/2;
 
-    // Move mouse pointer to object on page, send mouse click and release
-    console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
-    await Input.dispatchMouseEvent({
-      type: "mouseMoved",
-      x: parseFloat(cx),
-      y: parseFloat(cy)
-    });
-    await sleep(300);
+    let traversable = await traverse_to( node_id, nm );
+    
+    if ( traversable ) {
 
-    console.log( "Click at (%d,%d)", cx, cy );
-    await Input.dispatchMouseEvent({
-      type: "mousePressed",
-      x: parseFloat(cx),
-      y: parseFloat(cy),
-      button: "left",
-      clickCount: 1
-    });
-    await sleep(10);
+      let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
+      let cx = (content[0] + content[2])/2;
+      let cy = (content[1] + content[5])/2;
 
-    console.log( "Release (%d,%d)", cx, cy );
-    await Input.dispatchMouseEvent({
-      type: "mouseReleased",
-      x: parseFloat(cx),
-      y: parseFloat(cy),
-      button: "left"
-    });
-    return sleep(200);
+      await Input.dispatchMouseEvent({
+        type: "mouseMoved",
+        x: parseFloat(cx),
+        y: parseFloat(cy)
+      });
+      await sleep(300);
+
+      console.log( "Click at (%d,%d)", cx, cy );
+      await Input.dispatchMouseEvent({
+        type: "mousePressed",
+        x: parseFloat(cx),
+        y: parseFloat(cy),
+        button: "left",
+        clickCount: 1
+      });
+      await sleep(10);
+
+      console.log( "Release (%d,%d)", cx, cy );
+      await Input.dispatchMouseEvent({
+        type: "mouseReleased",
+        x: parseFloat(cx),
+        y: parseFloat(cy),
+        button: "left"
+      });
+      return sleep(200);
+    }
+    return sleep(10);
   }//}}}
 
-  async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
+  function trigger_page_fetch_common_cb( sp, nm, p, node_id, d )
   {//{{{
-    // This callback performs two functions:
-    // 1. It takes each node nm passed to it by inorder_traversal(cb)
-    //    and assembles these into a simplified DOM tree
-    // 2. It traverses the (presumably still-loaded page) DOM, moves
-    //    those text links into focus, and executes an Input mouse click on
-    //    those selected nodes.
-    //
-    // Parameters
-    // nm           : Abbreviated node
-    // node_id      : node_id for {nm}
-    // p            : Callback parameters passed to inorder_traversal
-    // Return value : nm
-
     let nr;
-
-    if ( exception_abort )
-      return Promise.resolve(nm);
 
     if ( !p.tagstack.has(d) )
       p.tagstack.set(d, new Map);
@@ -711,10 +861,38 @@ async function monitor() {
       ? nm.content.replace(/[\r\n]/g,' ').replace(/[ \t]{1,}/,' ')
       : attrinfo 
     );
+  }//}}}
 
-    if ( triggerable != 0 ) {
+  async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
+  {//{{{
+    // This callback performs two functions:
+    // 1. It takes each node nm passed to it by inorder_traversal(cb)
+    //    and assembles these into a simplified DOM tree
+    // 2. It traverses the (presumably still-loaded page) DOM, moves
+    //    those text links into focus, and executes an Input mouse click on
+    //    those selected nodes.
+    //
+    // Parameters
+    // nm           : Abbreviated node
+    // node_id      : node_id for {nm}
+    // p            : Callback parameters passed to inorder_traversal
+    // Return value : nm
 
-      if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
+    if ( exception_abort )
+      return Promise.resolve(nm);
+
+    trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
+
+    if ( triggerable != 0 ) {//{{{
+
+      if ( nm.nodeName == '#text' && nm.content == '[History]' ) {//{{{
+
+        // Indicates that we've found a [History] trigger in
+        // a child node, so that the triggering tag and surrounding
+        // siblings can be captured post-traversal.
+        p.child_hits++;
+        p.hit_depth = d;
+
         try {
 
           triggerable--;
@@ -727,6 +905,8 @@ async function monitor() {
             let markup;
             await setup_dom_fetch( append_buffer_to_rr_map );
             await sleep(1000);
+
+            // Climb the popup container tree
             if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {
               let dp = p.lookup_tree.get( append_buffer_to_rr_map );
               let cka = new Array;
@@ -777,18 +957,29 @@ async function monitor() {
 
             if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
 
-            write_to_file( "trie.txt", 
+            write_map_to_file( "Fragment", "trie.txt", 
+              nodes_seen,
               file_ts,
-              inspect(nodes_seen, {showHidden: false, depth: null, colors: false}),
               p.n
             );
             p.n++;
+
+            p.flattened.clear();
+            await inorder_traversal(
+              {
+                branchpat : new Array 
+              },
+              nodes_seen,
+              -1,
+              flatten_container,
+              p
+            );
+            p.flattened = return_sorted_map( p.flattened );
 
             if ( p.closer_node > 0 ) {
               await clickon_node( p.closer_node, nm );
             }
 
-            // TODO: Dispatch dialog close mousePressed Input HERE
             if ( rr_map.has( xhr_fetch_rr ) ) {
               let rr_entry = rr_map.get( xhr_fetch_rr );
               rr_entry.markup = nodes_seen;
@@ -812,8 +1003,13 @@ async function monitor() {
           );
           exception_abort = true;
         }
+        // if ( nm.nodeName == '#text' && nm.content == '[History]' )
+      }//}}}
+       else if ( p.child_hits > 0 ) {
+        await congress_extract_history_panel( sp, nm, p, node_id, d );
       }
-    }
+      // triggerable != 0
+    }//}}}
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
@@ -821,12 +1017,33 @@ async function monitor() {
   async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
   {//{{{
     // Depth-first inorder traversal of .content maps in each node.
-
     // Parameters:
-    // nm: Either a Map or an abbreviated node
+    // nm: Either an abbreviated node or a Map of such nodes
     //
     // Return value:
     // - An abbreviated node
+
+    function reverse_content( nm )
+    {//{{{
+      let ka = new Array;
+      let revmap = new Map;
+      nm.content.forEach((v,k,m) => { 
+        let val = v;
+        ka.push(k); 
+        revmap.set(k,val);
+      });
+      ka.forEach((e) => { nm.content.delete(e); });
+      nm.content.clear();
+      ka.sort((a,b) => {return b - a;});
+      console.log( "Reversing %d-element container %d", ka.length, nodeId );
+      while ( ka.length > 0 ) {
+        let k = ka.shift();
+        let v = revmap.get(k);
+        nm.content.set( k, v );
+        revmap.delete(k);
+      }
+    }//}}}
+    
     if ( exception_abort ) {
     }
     else if ( nm === undefined || !nm ) {
@@ -864,25 +1081,18 @@ async function monitor() {
         let ka = new Array;
         // Reverse order of child node Map elements
         if ( envSet("REVERSE_CONTENT") && !nm.isLeaf && nm.content instanceof Map && nm.content.size > parseInt(process.env.REVERSE_CONTENT) ) {
-          let revmap = new Map;
-          nm.content.forEach((v,k,m) => { 
-            let val = v;
-            ka.push(k); 
-            revmap.set(k,val);
-          });
-          ka.forEach((e) => { nm.content.delete(e); });
-          nm.content.clear();
-          ka.sort((a,b) => {return b - a;});
-          console.log( "Reversing %d-element container %d", ka.length, nodeId );
-          while ( ka.length > 0 ) {
-            let k = ka.shift();
-            let v = revmap.get(k);
-            nm.content.set( k, v );
-            revmap.delete(k);
-          }
+          reverse_content( nm );
         }
         nm.content.forEach((v,k,m)=>{ka.push(k);});
-        if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Traversing %d[%d]", nodeId, d, ka.length );
+
+        if (envSet("INORDER_TRAVERSAL","1")) 
+          console.log(
+            "- Traversing %d[%d]",
+            nodeId,
+            d,
+            ka.length
+          );
+
         while ( ka.length > 0 ) {
           let k = ka.shift();
           let n = nm.content.get(k);
@@ -895,11 +1105,10 @@ async function monitor() {
           }
           if ( exception_abort ) break;
         }
+
       }
       if ( cb !== undefined  && envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-
       sp.branchpat.pop();
-
     }
     return Promise.resolve(nm);
   }//}}}
@@ -1047,6 +1256,7 @@ async function monitor() {
           nodes_seen.delete( key );
         });
 
+        let textkeys = new Map;
         await inorder_traversal( 
           {
             branchpat   : tagmotif
@@ -1057,12 +1267,16 @@ async function monitor() {
           ? trigger_page_traverse_cb
           : trigger_page_fetch_cb, 
           {
-            tagstack    : tagstack, // Retains tag counts at depth d
-            motifs      : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
-            lookup_tree : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+            tagstack     : tagstack, // Retains tag counts at depth d
+            motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
+            lookup_tree  : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
             dialog_nodes : new Map,
-            closer_node : 0,
-            n : 0
+            closer_node  : 0,
+            child_hits   : 0, // Count of 'interesting' nodes in children
+            hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
+            flattened    : new Map, // Stores History markup tree
+            textkeys     : textkeys, // Stores bill history dictionary 
+            n            : 0
           }
         );
          
@@ -1083,6 +1297,11 @@ async function monitor() {
         write_to_file( "motifs.txt", file_ts, 
           inspect(motifs, {showHidden: false, depth: null, colors: true})
         );
+        write_map_to_file( "Panel key frequency", "panelkeys.txt",
+          textkeys,
+          file_ts
+        );
+
 
 
         console.log( "Everything", 
@@ -1235,7 +1454,8 @@ async function monitor() {
       }
     }
     else {
-      if ( envSet("VERBOSE","1") ) console.log( 'DOM::childNodeInserted', params );
+      if ( envSet("VERBOSE","1") ) {}
+      console.log( 'DOM::childNodeInserted', params );
     }
     return Promise.resolve(true);
   }//}}}
@@ -1248,19 +1468,19 @@ async function monitor() {
       if ( lookup_tree.has( nodeId ) ) {
         let n = lookup_tree.get( nodeId );
         lookup_tree.delete( nodeId );
-        console.log( 'DOM::childNodeRemoved[%d]',
+        if ( envSet("DOM","1") ) console.log( 'DOM::childNodeRemoved[%d]',
           nodeId,
           inspect(n,{showHidden: false, depth: null, colors: true}) 
         );
       }
       else {
-        console.log( 'DOM::childNodeRemoved[%d] not in tree', nodeId );
+        if ( envSet("DOM","1") ) console.log( 'DOM::childNodeRemoved[%d] not in tree', nodeId );
       }
       if ( lookup_tree.has( parentId ) ) {
         let pn = lookup_tree.get( parentId );
         if ( pn.content !== undefined && pn.content instanceof Map ) {
           if ( pn.content.has( nodeId ) ) {
-            console.log( 'DOM::childNodeRemoved[%d] from %d',
+            if ( envSet("DOM","1") ) console.log( 'DOM::childNodeRemoved[%d] from %d',
               nodeId, parentId
             );
             pn.content.delete( nodeId );
@@ -1277,23 +1497,24 @@ async function monitor() {
     Network.requestWillBeSent(networkRequestWillBeSent);
     Network.responseReceived(networkResponseReceived);
     Network.loadingFinished(networkLoadingFinished);
+
     DOM.setChildNodes(domSetChildNodes);
 
     await DOM.attributeModified(async (params) => {
-      if ( envSet("VERBOSE","1") ) console.log( 'DOM::attributeModified', params );
+      if ( envSet("DOM","1") ) console.log( 'DOM::attributeModified', params );
       await domAttributeModified(params);
     });
 
     await DOM.attributeRemoved(async (params) => {
-      if ( envSet("VERBOSE","1") ) console.log( 'DOM::attributeRemoved', params );
+      if ( envSet("DOM","1") ) console.log( 'DOM::attributeRemoved', params );
     });
 
     await DOM.characterDataModified(async (params) => {
-      if ( envSet("VERBOSE","1") ) console.log( 'DOM::characterDataModified', params );
+      if ( envSet("DOM","1") ) console.log( 'DOM::characterDataModified', params );
     });
 
     await DOM.childNodeCountUpdated(async (params) => {
-      if ( envSet("VERBOSE","1") ) console.log( 'DOM::childNodeCountUpdated', params );
+      if ( envSet("DOM","1") ) console.log( 'DOM::childNodeCountUpdated', params );
     });
 
     await DOM.childNodeInserted(async (params) => {
@@ -1301,7 +1522,7 @@ async function monitor() {
     });
 
     await DOM.childNodeRemoved(async (params) => {
-      if ( envSet("VERBOSE","1") ) console.log( 'DOM::childNodeRemoved', params );
+      if ( envSet("DOM","1") ) console.log( 'DOM::childNodeRemoved', params );
       await domChildNodeRemoved(params);
     });
 
@@ -1377,7 +1598,6 @@ async function monitor() {
 
     await Network.enable();
     await DOM.enable({ includeWhitespace: "none" });
-
     await Page.enable();
 
     nodes_seen.clear();

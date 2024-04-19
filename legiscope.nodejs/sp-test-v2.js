@@ -6,7 +6,7 @@ const { createHash } = require("node:crypto");
 const url = require("node:url");
 const http = require("node:http");
 const https = require("node:https");
-const { argv, pid, hrtime } = require("node:process");
+const { argv, env, pid, hrtime } = require("node:process");
 const { spawnSync } = require("child_process");
 const { inspect } = require("node:util");
 
@@ -18,27 +18,49 @@ const db_host = process.env.LEGISCOPE_HOST || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
-const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
+const rr_timeout_s = 5; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 
 var mysql = require("@mysql/xdevapi");
 
-let outstanding_rr = new Map;
-let latest_rr = 0;
-let xhr_fetch_rr = 0;
-let xhr_fetch_id = 0;
+let db;
+let outstanding_rr          = new Map;
+let rr_map                  = new Map;
+let nodes_seen              = new Map;
+let tag_stack               = new Array;
+let latest_rr               = 0;
+let xhr_fetch_rr            = 0;
+let xhr_fetch_id            = 0;
 let append_buffer_to_rr_map = 0;
-let rr_map = new Map;
-let rr_mark = 0; // hrtime.bigint(); 
-let rr_begin = 0;
+let rr_mark                 = 0; // hrtime.bigint();
+let rr_begin                = 0;
 let cycle_date;
-let mark_steps = 0;
+let mark_steps              = 0;
 let rootnode_n;
-let postprocessing = 0;
-let exception_abort = false;
+let postprocessing          = 0;
+let exception_abort         = false;
 let file_ts;
 
-let triggerable = -1;
+try {
+  // If database host, user, and password are specified in environment,
+  // attempt to connect, and do not proceed if connection fails.
+  if ( db_host.length > 0 && db_user.length > 0 && db_pass.length > 0 ) {
+    const db_config = {
+      host     : db_host,
+      user     : db_user,
+      password : db_pass,
+      schema   : db_name,
+      port     : 33062
+    };
+    db = mysql.getSession(db_config).then((session) => {
+      console.log("Database:", inspect(session) );
+    });
+  }
+}
+catch(e) {
+  console.log("Database",inspect(e));
+  process.exit(1);
+}
 
 function sleep( millis )
 {//{{{
@@ -163,12 +185,8 @@ function write_to_file( fn, file_ts, content, n )
   symlinkSync( fn_ts, [output_path,fn].join('/') );
 }//}}}
 
-function write_map_to_file( description, map_file, map_obj, file_ts, n )
+function read_map_from_file( map_file )
 {//{{{
-  console.log( "Writing %s to %s", description, map_file );
-
-  // Stringify an ES6 Map
-  // https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
   function reviver(key, value) {
     if(typeof value === 'object' && value !== null) {
       if (value.dataType === 'Map') {
@@ -177,7 +195,16 @@ function write_map_to_file( description, map_file, map_obj, file_ts, n )
     }
     return value;
   }
+  let f = readFileSync( map_file, { flags : "r" } ); 
+  return JSON.parse( f, reviver );
+}//}}}
 
+function write_map_to_file( description, map_file, map_obj, file_ts, n )
+{//{{{
+  console.log( "Writing %s to %s", description, map_file );
+
+  // Stringify an ES6 Map
+  // https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
   function recoverable(key, value) {
     if(value instanceof Map) {
       return {
@@ -205,45 +232,298 @@ function envSet( v, w )
   : ( process.env[v] !== undefined && process.env[v] === w );
 }//}}}
 
-async function monitor() {
+function mapify_attributes( ma )
+{//{{{
+  let attrset = ma ? ma : [];
+  let attrmap = new Map;
+  while ( attrset.length > 0 ) {
+    let attr = attrset.shift();
+    let attrval = attrset.shift();
+    attrmap.set( attr, attrval );
+  }
+  return attrmap;
+}//}}}
 
-  let client;
-  let nodes_seen  = new Map;
-  let nodes_tree  = new Map;
-  let lookup_tree = new Map;
-  let tag_stack   = new Array;
-  let parents_pending_children = new Array; 
-  let waiting_parent = 0;
-  let depth = 0;
-  let rootnode = 0;
-  let completed = false;
-  let db;
+function datestring( d, fmt )
+{//{{{
+  if ( d === undefined || !d ) d = new Date;
+  if ( fmt === undefined ) fmt = "%Y%M%D-%H%i%s-%u";
+  return fmt
+    .replace(/%Y/g, d.getUTCFullYear())
+    .replace(/%M/g, (d.getUTCMonth()+1).toString().padStart(2,'0'))
+    .replace(/%D/g, d.getUTCDate().toString().padStart(2,'0'))
+    .replace(/%H/g, d.getUTCHours().toString().padStart(2,'0'))
+    .replace(/%i/g, d.getUTCMinutes().toString().padStart(2,'0'))
+    .replace(/%s/g, d.getUTCSeconds().toString().padStart(2,'0'))
+    .replace(/%u/g, d.getUTCMilliseconds());
+}//}}}
 
-  try {
-    // If database host, user, and password are specified in environment,
-    // attempt to connect, and do not proceed if connection fails.
-    if ( db_host.length > 0 && db_user.length > 0 && db_pass.length > 0 ) {
-      const db_config = {
-        host     : db_host,
-        user     : db_user,
-        password : db_pass,
-        schema   : db_name,
-        port     : 33062
-      };
-      db = mysql.getSession(db_config).then((session) => {
-        console.log("Database:", inspect(session) );
-      });
+async function flatten_container( sp, nm, p, node_id, d )
+{//{{{
+  if ( !p.flattened.has( node_id ) ) {
+    p.flattened.set( node_id, nm );
+    if ( !nm.isLeaf && nm.content instanceof Map ) {
+      let lc = p.flattened.get( node_id );
+      let lca = new Array;
+      lc.content.forEach((v,k,m) => { lca.push(k); });
+      lc.content.clear();
+      while ( lca.length > 0 ) {
+        let lk = lca.shift();
+        lc.content.set( lk, null );
+      }
+      p.flattened.set( node_id, lc );
     }
   }
-  catch(e) {
-    console.log("Database",inspect(e));
-    process.exit(1);
+  return Promise.resolve(nm);
+}//}}}
+
+function rr_time_delta()
+{//{{{
+  let rr_now = hrtime.bigint();
+  if ( rr_begin == 0 ) rr_begin = hrtime.bigint();
+  let sec = Number.parseFloat(
+    Number((rr_now - rr_begin)/BigInt(1000 * 1000))/1000.0
+  );
+  let min = Number.parseInt(Number.parseInt(sec) / 60);
+  let s = Number.parseInt(sec) - (min*60);
+  return [ min, 'm ', s, 's', ' (', sec , 's)' ].join('');
+}//}}}
+
+async function graft( m, nodeId, depth, get_content_cb )
+{//{{{
+  // Recursive descent through all nodes to attach all leaves to parents.
+  tag_stack.push( m.nodeName );
+  if ( !m.isLeaf && m.content && m.content.size == 0 ) {
+    let sr = {
+      nodeName   : m.nodeName,
+      parentId   : m.parentId,
+      attributes : m.attributes,
+      isLeaf     : true,
+      content    : get_content_cb( m, nodeId )
+      // Originally: 
+      // content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
+    };
+    if ( envSet('GRAFT','1') ) console.log("Leafify %d",
+      depth,
+      nodeId,
+      m.content
+    );
+    m = sr;
   }
+  if ( m.isLeaf ) {
+    if (envSet("GRAFT","2")) process.stdout.write('g');
+    if ( envSet('GRAFT','1') ) console.log("   Leaf %d %d { %s }", 
+      depth, 
+      nodeId,
+      tag_stack.join(' '), 
+      m.content );
+  }
+  else if ( m.content && m.content.size && m.content.size > 0 ) {
+    let tstk = new Array;
+    let attrinfo;
+    if ( m.nodeName == 'A' ) {
+      let attrarr = new Array();
+      m.attributes.forEach((value, key, map) => {
+        attrarr.push( [key,'="',value,'"'].join('') );
+      });
+      attrarr.sort();
+      attrinfo = attrarr.join(' ');
+      while ( attrarr.length > 0 ) attrarr.shift();
+      attrarr = null;
+    }
+    if (envSet("GRAFT","2")) process.stdout.write('G');
+    if ( envSet('GRAFT','1') ) console.log("Grafted %d %d | %s >", 
+      depth,
+      nodeId,
+      tag_stack.join(' '),
+      attrinfo ? attrinfo : ''
+    );
+    m.content.forEach((value, key, map) => {
+      tstk.push( key );
+    });
+    tstk.sort((a,b) => {return a - b;});
+
+    while ( tstk.length > 0 ) {
+      let k = tstk.shift();
+      if ( nodes_seen.has(k) ) {
+        // Append newly-fetched nodes found in linear map
+        // onto this node
+        let b = await graft( nodes_seen.get(k), k, depth + 1, get_content_cb );
+        m.content.set( k, b );
+        nodes_seen.delete(k);
+      }
+    }
+  }
+  tag_stack.pop();
+  return Promise.resolve(m);
+}//}}}
+
+async function reduce_nodes( nodes, get_content_cb )
+{//{{{
+
+  let st = new Array;
+  let runs = 0;
+  if ( envSet("REDUCE_NODES","1") ) console.log( "Populating tree buffer with %d nodes", nodes.size );
+  nodes.forEach((value, key, map) => {
+    process.stdout.write("+");
+    st.push( key );
+  });
+  if ( envSet("REDUCE_NODES","1") ) console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
+
+  while ( nodes.size > 1 && runs < 10 ) {
+    console.log( "Run %d : %d", runs, nodes.size, rr_time_delta() );
+    while ( st.length > 0 ) {
+      let k = st.shift();
+      if ( nodes.has( k ) ) {
+        // Node[k] may have been relocated by graft(m,nodeId,depth)
+        b = nodes.get( k );
+        if ( b.parentId > 0 ) {
+          if ( envSet("REDUCE_NODES","1") ) console.log("Next %d, remaining %d", k, nodes.size);
+          nodes.set( k, await graft( b, k, 0, get_content_cb ) );
+
+          b = nodes.get( k );
+
+          if ( nodes.has( b.parentId ) ) {
+            let p = nodes.get( b.parentId );
+            p.content.set( k, b );
+            nodes.delete( b.parentId );
+            nodes.set( b.parentId, p );
+            nodes.delete( k );
+            process.stdout.write("\r\n");
+            if ( envSet("REDUCE_NODES","1") ) console.log("Remaining nodes", nodes.size);
+          }
+        } // b.parentId > 0
+      } // nodes.has( k )
+    } // st.length > 0
+    runs++;
+    if ( nodes.size > 1 ) {
+      nodes.forEach((value, key, map) => {
+        st.push( key );
+      });
+      st.sort((a,b) => {return b - a;});
+      if ( envSet("REDUCE_NODES","1") ) console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
+    }
+  }
+  if ( envSet("REDUCE_NODES","1") ) console.log( "Reduced node tree to %d root nodes", nodes.size ); 
+}//}}}
+
+async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
+{//{{{
+  // Depth-first inorder traversal of .content maps in each node.
+  // Parameters:
+  // nm: Either an abbreviated node or a Map of such nodes
+  //
+  // Return value:
+  // - An abbreviated node
+
+  function reverse_content( nm )
+  {//{{{
+    let ka = new Array;
+    let revmap = new Map;
+    nm.content.forEach((v,k,m) => { 
+      let val = v;
+      ka.push(k); 
+      revmap.set(k,val);
+    });
+    ka.forEach((e) => { nm.content.delete(e); });
+    nm.content.clear();
+    ka.sort((a,b) => {return b - a;});
+    console.log( "Reversing %d-element container %d", ka.length, nodeId );
+    while ( ka.length > 0 ) {
+      let k = ka.shift();
+      let v = revmap.get(k);
+      nm.content.set( k, v );
+      revmap.delete(k);
+    }
+  }//}}}
+
+  if ( exception_abort ) {
+  }
+  else if ( nm === undefined || !nm ) {
+    if (envSet("INORDER_TRAVERSAL","1")) console.log( "@empty node[%d]", d, nodeId, nm );
+  }
+  else if ( nm instanceof Map ) {
+    // We were passed a node tree - either the root or (possibly) 
+    // the nm.content Map of a non-root node.
+    // If nodeId is undefined, then we have received the root 
+    // node container; otherwise, nodeId identifies an instance
+    // containing Map nm as .content.
+    let ka = new Array;
+    nm.forEach((v, k, m) => {ka.push(k);});
+    while ( ka.length > 0 ) {
+      let k = ka.shift();
+      if (envSet("INORDER_TRAVERSAL","1")) console.log( "@root %d[%d]", k, d ); 
+      if ( nm.has( k ) ) {
+        nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k));
+      }
+      if ( exception_abort ) break;
+    }
+  }
+  else if ( nm.content !== undefined ) {
+    // nm is an abbreviated node, which should be the case
+    // whenever d > 0. We expect nodeId to be a DOM.nodeId type
+    // used as a search key for nm.
+
+    sp.branchpat.push(nm.nodeName);
+
+    if ( cb !== undefined && !envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+    if ( nm.isLeaf || nm.content.size === undefined ) {
+      if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Skipping leaf %d", nodeId );
+    }
+    else {
+      let ka = new Array;
+      // Reverse order of child node Map elements
+      if ( envSet("REVERSE_CONTENT") && !nm.isLeaf && nm.content instanceof Map && nm.content.size > parseInt(process.env.REVERSE_CONTENT) ) {
+        reverse_content( nm );
+      }
+      nm.content.forEach((v,k,m)=>{ka.push(k);});
+
+      if (envSet("INORDER_TRAVERSAL","1")) 
+        console.log(
+          "- Traversing %d[%d]",
+          nodeId,
+          d,
+          ka.length
+        );
+
+      while ( ka.length > 0 ) {
+        let k = ka.shift();
+        let n = nm.content.get(k);
+        let rv = await inorder_traversal(sp,n,d+1,cb,cb_param,k,nodeId);
+        if ( rv === undefined ) {
+          nm.content.delete(k);
+        }
+        else {
+          nm.content.set(k,rv);
+        }
+        if ( exception_abort ) break;
+      }
+
+    }
+    if ( cb !== undefined  && envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+    sp.branchpat.pop();
+  }
+  return Promise.resolve(nm);
+}//}}}
+
+async function monitor()
+{//{{{
+
+  let client;
+  let nodes_tree  = new Map;
+  let lookup_tree = new Map;
+  let parents_pending_children = new Array; 
+  let waiting_parent = 0;
+  let depth          = 0;
+  let rootnode       = 0;
+  let completed      = false;
+  let triggerable    = -1;
 
   client = await CDP();
 
   const { Network, Page, DOM, Input } = client;
 
+  
   async function watchdog(cb)
   {//{{{
     return new Promise((resolve) => {
@@ -275,18 +555,6 @@ async function monitor() {
     if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('?');
     if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log("ENQUEUE [%d]", nodeId);
     parents_pending_children.push( nodeId );
-  }//}}}
-
-  function mapify_attributes( ma )
-  {//{{{
-    let attrset = ma ? ma : [];
-    let attrmap = new Map;
-    while ( attrset.length > 0 ) {
-      let attr = attrset.shift();
-      let attrval = attrset.shift();
-      attrmap.set( attr, attrval );
-    }
-    return attrmap;
   }//}}}
 
   async function recursively_add_and_register( m, parent_nodeId, depth )
@@ -430,73 +698,6 @@ async function monitor() {
     return true;
   }//}}}
 
-  async function graft( m, nodeId, depth )
-  {//{{{
-    // Recursive descent through all nodes to attach all leaves to parents.
-    tag_stack.push( m.nodeName );
-    if ( !m.isLeaf && m.content && m.content.size == 0 ) {
-      let sr = {
-        nodeName   : m.nodeName,
-        parentId   : m.parentId,
-        attributes : m.attributes,
-        isLeaf     : true,
-        content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
-      };
-      if ( envSet('GRAFT','1') ) console.log("Leafify %d",
-        depth,
-        nodeId,
-        m.content
-      );
-      m = sr;
-    }
-    if ( m.isLeaf ) {
-      if (envSet("GRAFT","2")) process.stdout.write('g');
-      if ( envSet('GRAFT','1') ) console.log("   Leaf %d %d { %s }", 
-        depth, 
-        nodeId,
-        tag_stack.join(' '), 
-        m.content );
-    }
-    else if ( m.content && m.content.size && m.content.size > 0 ) {
-      let tstk = new Array;
-      let attrinfo;
-      if ( m.nodeName == 'A' ) {
-        let attrarr = new Array();
-        m.attributes.forEach((value, key, map) => {
-          attrarr.push( [key,'="',value,'"'].join('') );
-        });
-        attrarr.sort();
-        attrinfo = attrarr.join(' ');
-        while ( attrarr.length > 0 ) attrarr.shift();
-        attrarr = null;
-      }
-      if (envSet("GRAFT","2")) process.stdout.write('G');
-      if ( envSet('GRAFT','1') ) console.log("Grafted %d %d | %s >", 
-        depth,
-        nodeId,
-        tag_stack.join(' '),
-        attrinfo ? attrinfo : ''
-      );
-      m.content.forEach((value, key, map) => {
-        tstk.push( key );
-      });
-      tstk.sort((a,b) => {return a - b;});
-      
-      while ( tstk.length > 0 ) {
-        let k = tstk.shift();
-        if ( nodes_seen.has(k) ) {
-          // Append newly-fetched nodes found in linear map
-          // onto this node
-          let b = await graft( nodes_seen.get(k), k, depth + 1 );
-          m.content.set( k, b );
-          nodes_seen.delete(k);
-        }
-      }
-    }
-    tag_stack.pop();
-    return Promise.resolve(m);
-  }//}}}
-
   async function trigger_dom_fetch()
   {//{{{
     if ( parents_pending_children.length > 0 ) {
@@ -518,25 +719,6 @@ async function monitor() {
       }
       rr_mark = hrtime.bigint();
     }
-  }//}}}
-
-  async function flatten_container( sp, nm, p, node_id, d )
-  {//{{{
-    if ( !p.flattened.has( node_id ) ) {
-      p.flattened.set( node_id, nm );
-      if ( !nm.isLeaf && nm.content instanceof Map ) {
-        let lc = p.flattened.get( node_id );
-        let lca = new Array;
-        lc.content.forEach((v,k,m) => { lca.push(k); });
-        lc.content.clear();
-        while ( lca.length > 0 ) {
-          let lk = lca.shift();
-          lc.content.set( lk, null );
-        }
-        p.flattened.set( node_id, lc );
-      }
-    }
-    return Promise.resolve(nm);
   }//}}}
 
   async function flatten_dialog_container( sp, nm, p, node_id, d )
@@ -953,7 +1135,7 @@ async function monitor() {
               //inspect(nodes_seen,{showHidden: false, depth: null, colors: true}),
             );
             await sleep(500);
-            await reduce_nodes( nodes_seen );
+            await reduce_nodes( nodes_seen, get_outerhtml );
 
             if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
 
@@ -982,7 +1164,7 @@ async function monitor() {
 
             if ( rr_map.has( xhr_fetch_rr ) ) {
               let rr_entry = rr_map.get( xhr_fetch_rr );
-              rr_entry.markup = nodes_seen;
+              rr_entry.markup = p.flattened;
               rr_map.set( xhr_fetch_rr, rr_entry );
             }
 
@@ -1010,343 +1192,11 @@ async function monitor() {
       }
       // triggerable != 0
     }//}}}
+
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
   
-  async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
-  {//{{{
-    // Depth-first inorder traversal of .content maps in each node.
-    // Parameters:
-    // nm: Either an abbreviated node or a Map of such nodes
-    //
-    // Return value:
-    // - An abbreviated node
-
-    function reverse_content( nm )
-    {//{{{
-      let ka = new Array;
-      let revmap = new Map;
-      nm.content.forEach((v,k,m) => { 
-        let val = v;
-        ka.push(k); 
-        revmap.set(k,val);
-      });
-      ka.forEach((e) => { nm.content.delete(e); });
-      nm.content.clear();
-      ka.sort((a,b) => {return b - a;});
-      console.log( "Reversing %d-element container %d", ka.length, nodeId );
-      while ( ka.length > 0 ) {
-        let k = ka.shift();
-        let v = revmap.get(k);
-        nm.content.set( k, v );
-        revmap.delete(k);
-      }
-    }//}}}
-    
-    if ( exception_abort ) {
-    }
-    else if ( nm === undefined || !nm ) {
-      if (envSet("INORDER_TRAVERSAL","1")) console.log( "@empty node[%d]", d, nodeId, nm );
-    }
-    else if ( nm instanceof Map ) {
-      // We were passed a node tree - either the root or (possibly) 
-      // the nm.content Map of a non-root node.
-      // If nodeId is undefined, then we have received the root 
-      // node container; otherwise, nodeId identifies an instance
-      // containing Map nm as .content.
-      let ka = new Array;
-      nm.forEach((v, k, m) => {ka.push(k);});
-      while ( ka.length > 0 ) {
-        let k = ka.shift();
-        if (envSet("INORDER_TRAVERSAL","1")) console.log( "@root %d[%d]", k, d ); 
-        if ( nm.has( k ) ) {
-          nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k));
-        }
-        if ( exception_abort ) break;
-      }
-    }
-    else if ( nm.content !== undefined ) {
-      // nm is an abbreviated node, which should be the case
-      // whenever d > 0. We expect nodeId to be a DOM.nodeId type
-      // used as a search key for nm.
-
-      sp.branchpat.push(nm.nodeName);
-
-      if ( cb !== undefined && !envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-      if ( nm.isLeaf || nm.content.size === undefined ) {
-        if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Skipping leaf %d", nodeId );
-      }
-      else {
-        let ka = new Array;
-        // Reverse order of child node Map elements
-        if ( envSet("REVERSE_CONTENT") && !nm.isLeaf && nm.content instanceof Map && nm.content.size > parseInt(process.env.REVERSE_CONTENT) ) {
-          reverse_content( nm );
-        }
-        nm.content.forEach((v,k,m)=>{ka.push(k);});
-
-        if (envSet("INORDER_TRAVERSAL","1")) 
-          console.log(
-            "- Traversing %d[%d]",
-            nodeId,
-            d,
-            ka.length
-          );
-
-        while ( ka.length > 0 ) {
-          let k = ka.shift();
-          let n = nm.content.get(k);
-          let rv = await inorder_traversal(sp,n,d+1,cb,cb_param,k,nodeId);
-          if ( rv === undefined ) {
-            nm.content.delete(k);
-          }
-          else {
-            nm.content.set(k,rv);
-          }
-          if ( exception_abort ) break;
-        }
-
-      }
-      if ( cb !== undefined  && envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-      sp.branchpat.pop();
-    }
-    return Promise.resolve(nm);
-  }//}}}
-
-  function rr_time_delta()
-  {//{{{
-    let rr_now = hrtime.bigint();
-    if ( rr_begin == 0 ) rr_begin = hrtime.bigint();
-    let sec = Number.parseFloat(
-      Number((rr_now - rr_begin)/BigInt(1000 * 1000))/1000.0
-    );
-    let min = Number.parseInt(Number.parseInt(sec) / 60);
-    let s = Number.parseInt(sec) - (min*60);
-    return [ min, 'm ', s, 's', ' (', sec , 's)' ].join('');
-  }//}}}
-
-  function datestring( d, fmt )
-  {//{{{
-    if ( d === undefined || !d ) d = new Date;
-    if ( fmt === undefined ) fmt = "%Y%M%D-%H%i%s-%u";
-    return fmt
-      .replace(/%Y/g, d.getUTCFullYear())
-      .replace(/%M/g, (d.getUTCMonth()+1).toString().padStart(2,'0'))
-      .replace(/%D/g, d.getUTCDate().toString().padStart(2,'0'))
-      .replace(/%H/g, d.getUTCHours().toString().padStart(2,'0'))
-      .replace(/%i/g, d.getUTCMinutes().toString().padStart(2,'0'))
-      .replace(/%s/g, d.getUTCSeconds().toString().padStart(2,'0'))
-      .replace(/%u/g, d.getUTCMilliseconds());
-  }//}}}
-
-  async function reduce_nodes( nodes )
-  {//{{{
-
-    let st = new Array;
-    let runs = 0;
-
-    console.log( "Populating tree buffer with %d nodes", nodes.size );
-    nodes.forEach((value, key, map) => {
-      process.stdout.write("+");
-      st.push( key );
-    });
-    console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
-
-    while ( nodes.size > 1 && runs < 10 ) {
-      console.log( "Run %d : %d", runs, nodes.size, rr_time_delta() );
-      while ( st.length > 0 ) {
-        let k = st.shift();
-        if ( nodes.has( k ) ) {
-          // Node[k] may have been relocated by graft(m,nodeId,depth)
-          b = nodes.get( k );
-          if ( b.parentId > 0 ) {
-            console.log("Next %d, remaining %d", k, nodes.size);
-            nodes.set( k, await graft( b, k, 0 ) );
-
-            b = nodes.get( k );
-
-            if ( nodes.has( b.parentId ) ) {
-              let p = nodes.get( b.parentId );
-              p.content.set( k, b );
-              nodes.delete( b.parentId );
-              nodes.set( b.parentId, p );
-              nodes.delete( k );
-              process.stdout.write("\r\n");
-              console.log("Remaining nodes", nodes.size);
-            }
-          } // b.parentId > 0
-        } // nodes.has( k )
-      } // st.length > 0
-      runs++;
-      if ( nodes.size > 1 ) {
-        nodes.forEach((value, key, map) => {
-          st.push( key );
-        });
-        st.sort((a,b) => {return b - a;});
-        console.log( "Reduction of %d nodes", st.length, rr_time_delta() );
-      }
-    }
-    console.log( "Reduced node tree to %d root nodes", nodes.size ); 
-  }//}}}
-
-  async function finalize_metadata( step )
-  {//{{{
-    // Chew up, digest, dump, and clear captured nodes.
-    file_ts = datestring( cycle_date );
-    if ( step == 0 ) {
-
-      if ( nodes_seen.size > 0 ) {
-        // First, sort nodes - just because we can.
-        console.log( "TIME: finalize_metadata", rr_time_delta() );
-        nodes_seen = return_sorted_map( nodes_seen );
-        if ( envSet('FINALIZE_METADATA','1') ) console.log(
-          "Pre-update",
-          inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
-        );
-        write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, file_ts);
-
-        let markupfile = "index.html";
-        try {
-          console.log( "Writing markup %s [%d]", markupfile, rootnode );
-          write_to_file( markupfile, file_ts,  
-            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML
-          );
-        }
-        catch(e) {
-          console.log( "Unable to write markup file", markupfile );
-        }
-
-        console.log( "TIME: TRANSFORM", rr_time_delta() );
-
-        // Stash tree before post-processing, traversing
-        console.log( "Sorting %d nodes", nodes_seen.size );
-        nodes_seen = return_sorted_map( nodes_seen );
-        write_to_file( "pre-processed.json", file_ts, inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ));
-
-        // Copy into lookup_tree before reducing to tree
-        nodes_seen.forEach((v,key,map) => {
-          lookup_tree.set( key, {
-            nodeName : v.nodeName,
-            parentId : v.parentId,
-            content  : v.content,
-            isLeaf   : v.isLeaf
-          });
-        });
-
-        // Reduce nodes_seen to traversable tree
-        await reduce_nodes( nodes_seen );
-
-        rr_time = hrtime.bigint();
-        console.log( "\r\nDOM tree structure finalized with %d nodes", lookup_tree.size, rr_time_delta() );
-
-        // Inorder traversal of "clean" HTML
-        console.log( "Building %d nodes", nodes_seen.size );
-
-        let tagstack = new Map; // At each recursive step up the tree (from root node d = 0), we use this Map of array elements to track unique HTML tags found
-        let motifs   = new Map;
-        let tagmotif = new Array; // A simple array of all nodes reached at a point in tree traversal
-
-        postprocessing = 3;
-
-        // Transfer working tree to nodes_tree; nodes_seen is reused
-        // to refetch modal popups filled with XHR-fetched HTML fragments.
-        nodes_seen.forEach((value,key,map) => {
-          let v = value;
-          nodes_tree.set( key, v );
-          nodes_seen.delete( key );
-        });
-
-        let textkeys = new Map;
-        await inorder_traversal( 
-          {
-            branchpat   : tagmotif
-          },
-          nodes_tree, 
-          -1, 
-          envSet("MODE","TRAVERSE") 
-          ? trigger_page_traverse_cb
-          : trigger_page_fetch_cb, 
-          {
-            tagstack     : tagstack, // Retains tag counts at depth d
-            motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
-            lookup_tree  : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
-            dialog_nodes : new Map,
-            closer_node  : 0,
-            child_hits   : 0, // Count of 'interesting' nodes in children
-            hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
-            flattened    : new Map, // Stores History markup tree
-            textkeys     : textkeys, // Stores bill history dictionary 
-            n            : 0
-          }
-        );
-         
-        postprocessing = 0;
-
-        rr_time = hrtime.bigint();
-        console.log( "Built %d nodes", nodes_tree.size, rr_time_delta(),
-          (envSet("DUMP_PRODUCT","1")) 
-          ? inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
-          : nodes_tree.size 
-        );
-        write_to_file( "tagstack.txt", file_ts, 
-          inspect(tagstack, {showHidden: false, depth: null, colors: true})
-        );
-        write_to_file( "trie.txt", file_ts, 
-          inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
-        );
-        write_to_file( "motifs.txt", file_ts, 
-          inspect(motifs, {showHidden: false, depth: null, colors: true})
-        );
-        write_map_to_file( "Panel key frequency", "panelkeys.txt",
-          textkeys,
-          file_ts
-        );
-
-
-
-        console.log( "Everything", 
-          rr_time_delta(), 
-          (envSet("DUMP_PRODUCT","1"))
-          ? inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
-          : nodes_tree.size
-        );
-        // Clear metadata storage
-
-        rr_time = hrtime.bigint();
-        console.log( "DONE", rr_time_delta() );
-
-        write_map_to_file("Everything",
-          "everything.json",
-          nodes_tree,
-          file_ts 
-        );
-
-        console.log( "Currently", Date() );
-      }
-
-      if ( rr_map.size > 0 ) {
-        write_map_to_file( "Network exchanges",
-          "network.json",
-          rr_map, 
-          file_ts
-        );
-        rr_map.clear();
-      }
-
-      nodes_seen.clear();
-      nodes_tree.clear();
-      lookup_tree.clear();
-      cycle_date = null;
-
-      if ( exception_abort ) process.exit(1);
-    }
-    else {
-      // Trigger requestChildNodes
-      await trigger_dom_fetch();
-    }
-    return Promise.resolve(true);
-  }//}}}
-
   async function setup_dom_fetch( nodeId, parentId )
   {//{{{
     rootnode   = nodeId;
@@ -1492,6 +1342,169 @@ async function monitor() {
     return Promise.resolve(true);
   }//}}}
 
+  async function get_outerhtml( nm, nodeId )
+  {//{{{
+    return (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML;
+  }//}}}
+
+  async function finalize_metadata( step )
+  {//{{{
+    // Chew up, digest, dump, and clear captured nodes.
+    file_ts = datestring( cycle_date );
+    if ( step == 0 ) {
+
+      if ( nodes_seen.size > 0 ) {
+        // First, sort nodes - just because we can.
+        console.log( "TIME: finalize_metadata", rr_time_delta() );
+        nodes_seen = return_sorted_map( nodes_seen );
+        if ( envSet('FINALIZE_METADATA','1') ) console.log(
+          "Pre-update",
+          inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
+        );
+        write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, file_ts);
+
+        let markupfile = "index.html";
+        try {
+          console.log( "Writing markup %s [%d]", markupfile, rootnode );
+          write_to_file( markupfile, file_ts,  
+            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML
+          );
+        }
+        catch(e) {
+          console.log( "Unable to write markup file", markupfile );
+        }
+
+        console.log( "TIME: TRANSFORM", rr_time_delta() );
+
+        // Stash tree before post-processing, traversing
+        console.log( "Sorting %d nodes", nodes_seen.size );
+        nodes_seen = return_sorted_map( nodes_seen );
+        write_to_file( "pre-processed.json", file_ts, inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ));
+
+        // Copy into lookup_tree before reducing to tree
+        nodes_seen.forEach((v,key,map) => {
+          lookup_tree.set( key, {
+            nodeName : v.nodeName,
+            parentId : v.parentId,
+            content  : v.content,
+            isLeaf   : v.isLeaf
+          });
+        });
+
+        // Reduce nodes_seen to traversable tree
+        await reduce_nodes( nodes_seen, get_outerhtml );
+
+        rr_time = hrtime.bigint();
+        console.log( "\r\nDOM tree structure finalized with %d nodes", lookup_tree.size, rr_time_delta() );
+
+        // Inorder traversal of "clean" HTML
+        console.log( "Building %d nodes", nodes_seen.size );
+
+        let tagstack = new Map; // At each recursive step up the tree (from root node d = 0), we use this Map of array elements to track unique HTML tags found
+        let motifs   = new Map;
+        let tagmotif = new Array; // A simple array of all nodes reached at a point in tree traversal
+
+        postprocessing = 3;
+
+        // Transfer working tree to nodes_tree; nodes_seen is reused
+        // to refetch modal popups filled with XHR-fetched HTML fragments.
+        nodes_seen.forEach((value,key,map) => {
+          let v = value;
+          nodes_tree.set( key, v );
+          nodes_seen.delete( key );
+        });
+
+        let textkeys = new Map;
+        await inorder_traversal( 
+          {
+            branchpat   : tagmotif
+          },
+          nodes_tree, 
+          -1, 
+          envSet("MODE","TRAVERSE") 
+          ? trigger_page_traverse_cb
+          : trigger_page_fetch_cb, 
+          {
+            tagstack     : tagstack, // Retains tag counts at depth d
+            motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
+            lookup_tree  : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+            dialog_nodes : new Map,
+            closer_node  : 0,
+            child_hits   : 0, // Count of 'interesting' nodes in children
+            hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
+            flattened    : new Map, // Stores History markup tree
+            textkeys     : textkeys, // Stores bill history dictionary 
+            n            : 0
+          }
+        );
+         
+        postprocessing = 0;
+
+        rr_time = hrtime.bigint();
+        console.log( "Built %d nodes", nodes_tree.size, rr_time_delta(),
+          (envSet("DUMP_PRODUCT","1")) 
+          ? inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
+          : nodes_tree.size 
+        );
+        write_to_file( "tagstack.txt", file_ts, 
+          inspect(tagstack, {showHidden: false, depth: null, colors: true})
+        );
+        write_to_file( "trie.txt", file_ts, 
+          inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
+        );
+        write_to_file( "motifs.txt", file_ts, 
+          inspect(motifs, {showHidden: false, depth: null, colors: true})
+        );
+        write_map_to_file( "Panel key frequency", "panelkeys.txt",
+          textkeys,
+          file_ts
+        );
+
+
+
+        console.log( "Everything", 
+          rr_time_delta(), 
+          (envSet("DUMP_PRODUCT","1"))
+          ? inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
+          : nodes_tree.size
+        );
+        // Clear metadata storage
+
+        rr_time = hrtime.bigint();
+        console.log( "DONE", rr_time_delta() );
+
+        write_map_to_file("Everything",
+          "everything.json",
+          nodes_tree,
+          file_ts 
+        );
+
+        console.log( "Currently", Date() );
+      }
+
+      if ( rr_map.size > 0 ) {
+        write_map_to_file( "Network exchanges",
+          "network.json",
+          rr_map, 
+          file_ts
+        );
+        rr_map.clear();
+      }
+
+      nodes_seen.clear();
+      nodes_tree.clear();
+      lookup_tree.clear();
+      cycle_date = null;
+
+      if ( exception_abort ) process.exit(1);
+    }
+    else {
+      // Trigger requestChildNodes
+      await trigger_dom_fetch();
+    }
+    return Promise.resolve(true);
+  }//}}}
+
   try {
 
     Network.requestWillBeSent(networkRequestWillBeSent);
@@ -1620,6 +1633,49 @@ async function monitor() {
     }
   }
   return Promise.resolve(true);
+}//}}}
+
+async function ingest()
+{
+  let fn = env['TARGETURL'];
+
+  if ( !existsSync( fn ) ) {
+    console.log( "Unable to see %s", fn );
+    process.exit(1);
+  }
+
+  let j = read_map_from_file( fn );
+
+  async function reduce_cb( nm, nodeId )
+  {//{{{
+    if ( j.history.has( nodeId ) )
+      return Promise.resolve(j.history.get( nodeId ));
+    console.log( "Missing %d", nodeId );
+    return Promise.resolve(null);
+  }//}}}
+
+  console.log( 
+    "Metadata",
+    fn,
+    inspect(j, {showHidden: false, depth: null, colors: true})
+  );
+  
+  j.history.forEach((v,k,m) => {
+    nodes_seen.set(k,v);
+  });
+
+  await reduce_nodes( nodes_seen, reduce_cb );
+
+  console.log(
+    "Reduced",
+    j.history
+  );
 }
 
-monitor();
+if ( envSet("ACTIVE_MONITOR","1") ) {
+  monitor();
+}
+
+if ( envSet("PARSE","1") ) {
+  ingest();
+}

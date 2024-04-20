@@ -40,6 +40,12 @@ let rootnode_n;
 let postprocessing          = 0;
 let exception_abort         = false;
 let file_ts;
+let inorder_traversal_previsit = false;
+let inorder_traversal_postvisit = false;
+let current_url = null;
+
+if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
+if ( envSet("CB_PREPROCESS","1") ) inorder_traversal_postvisit = true;
 
 try {
   // If database host, user, and password are specified in environment,
@@ -299,7 +305,7 @@ async function graft( m, nodeId, depth, get_content_cb )
       parentId   : m.parentId,
       attributes : m.attributes,
       isLeaf     : true,
-      content    : get_content_cb( m, nodeId )
+      content    : await get_content_cb( m, nodeId )
       // Originally: 
       // content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
     };
@@ -428,7 +434,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     ka.forEach((e) => { nm.content.delete(e); });
     nm.content.clear();
     ka.sort((a,b) => {return b - a;});
-    console.log( "Reversing %d-element container %d", ka.length, nodeId );
+    if (envSet("REVERSE_CONTENT_DEBUG","1")) console.log( "Reversing %d-element container %d", ka.length, nodeId );
     while ( ka.length > 0 ) {
       let k = ka.shift();
       let v = revmap.get(k);
@@ -466,9 +472,11 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
 
     sp.branchpat.push(nm.nodeName);
 
-    if ( cb !== undefined && !envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-    if ( nm.isLeaf || nm.content.size === undefined ) {
-      if (envSet("INORDER_TRAVERSAL","1")) console.log( "- Skipping leaf %d", nodeId );
+    if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+    if ( nm === undefined ) {
+    }
+    else if ( nm.isLeaf || nm.content.size === undefined ) {
+      if (envSet("INORDER_TRAVERSAL","1")) console.log( "%sSkipping leaf %d",' '.repeat((d >= 0 ? d : 0) * 2), nodeId );
     }
     else {
       let ka = new Array;
@@ -480,7 +488,8 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
 
       if (envSet("INORDER_TRAVERSAL","1")) 
         console.log(
-          "- Traversing %d[%d]",
+          "%sTraversing %d[%d]",
+          ' '.repeat((d >= 0 ? d : 0) * 2),
           nodeId,
           d,
           ka.length
@@ -500,7 +509,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       }
 
     }
-    if ( cb !== undefined  && envSet("CB_PREPROCESS") ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+    if ( cb !== undefined && inorder_traversal_postvisit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
     sp.branchpat.pop();
   }
   return Promise.resolve(nm);
@@ -839,9 +848,11 @@ async function monitor()
       );
       extracted_info.links.delete('[History]');
       let final_data = {
+        url     : current_url,
         id      : extracted_info.id,
         links   : extracted_info.links,
         text    : extracted_info.text,
+        network : rr_map,
         history : p.flattened
       };
       write_map_to_file(
@@ -858,6 +869,7 @@ async function monitor()
       p.child_hits = 0;
       p.hit_depth = 0;
       p.flattened.clear();
+      rr_map.clear();
     }
 
   }//}}}
@@ -1549,14 +1561,17 @@ async function monitor()
 
       await setup_dom_fetch( nodeId );
 
+      current_url = entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
+        ? entries[currentIndex].url 
+        : '---';
+
       console.log("LOAD EVENT root[%d]", 
         nodeId, 
         ts,
         datestring( cycle_date ),
-        entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
-        ? entries[currentIndex].url 
-        : '---'
+        current_url
       );
+
     });
 
     await Page.windowOpen(async (wo) => {
@@ -1638,6 +1653,9 @@ async function monitor()
 async function ingest()
 {
   let fn = env['TARGETURL'];
+  let nodes_tree = new Map;
+  let branchpat = new Array;
+  let node_ids = new Array;
 
   if ( !existsSync( fn ) ) {
     console.log( "Unable to see %s", fn );
@@ -1646,29 +1664,137 @@ async function ingest()
 
   let j = read_map_from_file( fn );
 
-  async function reduce_cb( nm, nodeId )
-  {//{{{
-    if ( j.history.has( nodeId ) )
-      return Promise.resolve(j.history.get( nodeId ));
-    console.log( "Missing %d", nodeId );
-    return Promise.resolve(null);
-  }//}}}
-
-  console.log( 
+  if (0) console.log( 
     "Metadata",
     fn,
     inspect(j, {showHidden: false, depth: null, colors: true})
   );
   
-  j.history.forEach((v,k,m) => {
-    nodes_seen.set(k,v);
-  });
+  j.history = return_sorted_map( j.history );
 
-  await reduce_nodes( nodes_seen, reduce_cb );
+  // Move one node into target nodes_tree
+  let rootnode_id;
+  let rootnode;
+  j.history.forEach((v,k,m) => {
+    node_ids.push(k);
+  });
+  node_ids.sort((a,b) => { return a - b; });
+  rootnode_id = node_ids.shift();
+  rootnode = j.history.get(rootnode_id);
+  j.history.delete(rootnode_id);
+  nodes_tree.set(rootnode_id, rootnode);
+
+  async function treeify_cb( sp, nm, p, node_id, d )
+  {//{{{
+    // Callback expected to be invoked before traversing .content
+    let undefined_res;
+    if ( nm.isLeaf ) {
+      if ( nm.content instanceof Object ) nm.content = null;
+    }
+    else if (nm.nodeName === 'div.modal-dialog') {
+      nm.content.clear();
+      nm.isLeaf = true;
+      nm.content = null;
+    }
+    else {
+      let cl = new Array;
+      nm.content.forEach((v,k,m) => { cl.push(k); });
+      while ( cl.length > 0 ) {
+        let k = cl.shift();
+        let n = nm.content.get(k);
+        if ( p.source_map.has(k) ) {
+          let r = p.source_map.get(k);
+          p.source_map.delete(k);
+          if ( !n ) nm.content.set(k,r);
+        }
+        else if ( !n ) {
+          nm.content.delete(k);
+        }
+      }
+      if ( nm.content.size == 0 ) {
+        nm.isLeaf = true;
+        nm.content = null;
+        return Promise.resolve(undefined_res);
+      }
+    }
+    return Promise.resolve(nm);
+  }//}}}
+
+  async function prune_cb( sp, nm, p, node_id, d )
+  {//{{{
+    let undefined_res;
+
+    if ( !(nm.content instanceof Map) ) {
+    }
+    else if ( nm.content.size == 0 ) {
+      if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[1] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+      nm.isLeaf = true;
+      nm.content = null;
+      return Promise.resolve(undefined_res);
+    }
+    else {
+      let ks = new Array;
+
+      if ( envSet("PRUNE_CB","1") ) console.log( "%sCheck map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+      nm.content.forEach((v,k,m) => { ks.push(k); });
+      while ( ks.length > 0 ) {
+        let k = ks.shift();
+        let n = nm.content.get(k);
+        if ( n.content instanceof Map && n.content.size == 0 ) {
+          if ( envSet("PRUNE_CB","1") ) console.log( "%s- Prune[3] %d at %d",' '.repeat(d * 2), k, d );
+          nm.content.delete(k);
+        }
+        else {
+          if ( envSet("PRUNE_CB","1") ) console.log( "%s- Keep (%s)%d ",
+            ' '.repeat(d * 2),
+            typeof n.content,
+            k, //, inspect(n.content, {showHidden: false, depth: null, colors: true}) //, inspect(n, {showHidden: false, depth: null, colors: true})
+          );
+        }
+      }
+      if ( nm.content.size == 0 ) {
+        nm.isLeaf = true;
+        nm.content = null;
+        if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[2] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+        return Promise.resolve(undefined_res);
+      }
+    }
+
+    if ( nm.isLeaf && !nm.content ) {
+      if ( envSet("PRUNE_CB","1") ) console.log( "%sPrune[1] %d at %d",' '.repeat(d * 2), node_id, d );
+      return Promise.resolve(undefined_res);
+    }
+
+
+    return Promise.resolve(nm);
+  }//}}}
+
+  console.log( "Treeify" );
+  await inorder_traversal(
+    { branchpat : branchpat },
+    nodes_tree, -1,
+    treeify_cb,
+    { source_map: j.history }
+  );
+
+  console.log( "Prune" );
+  inorder_traversal_previsit = false;
+  inorder_traversal_postvisit = true;
+  await inorder_traversal(
+    { branchpat : branchpat },
+    nodes_tree, -1,
+    prune_cb,
+    { source_map: j.history }
+  );
+
+  j.history.clear();
+  nodes_tree.forEach((v,k,m) => {
+    j.history.set(k,v);
+  });
 
   console.log(
     "Reduced",
-    j.history
+    inspect(j, {showHidden: false, depth: null, colors: true})
   );
 }
 

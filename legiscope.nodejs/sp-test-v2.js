@@ -295,7 +295,7 @@ function rr_time_delta()
   return [ min, 'm ', s, 's', ' (', sec , 's)' ].join('');
 }//}}}
 
-async function graft( m, nodeId, depth, get_content_cb )
+async function graft( sourcetree, m, nodeId, depth, get_content_cb )
 {//{{{
   // Recursive descent through all nodes to attach all leaves to parents.
   tag_stack.push( m.nodeName );
@@ -351,12 +351,12 @@ async function graft( m, nodeId, depth, get_content_cb )
 
     while ( tstk.length > 0 ) {
       let k = tstk.shift();
-      if ( nodes_seen.has(k) ) {
+      if ( sourcetree.has(k) ) {
         // Append newly-fetched nodes found in linear map
         // onto this node
-        let b = await graft( nodes_seen.get(k), k, depth + 1, get_content_cb );
+        let b = await graft( sourcetree.get(k), k, depth + 1, get_content_cb );
         m.content.set( k, b );
-        nodes_seen.delete(k);
+        sourcetree.delete(k);
       }
     }
   }
@@ -364,7 +364,7 @@ async function graft( m, nodeId, depth, get_content_cb )
   return Promise.resolve(m);
 }//}}}
 
-async function reduce_nodes( nodes, get_content_cb )
+async function reduce_nodes( sourcetree, nodes, get_content_cb )
 {//{{{
 
   let st = new Array;
@@ -385,7 +385,7 @@ async function reduce_nodes( nodes, get_content_cb )
         b = nodes.get( k );
         if ( b.parentId > 0 ) {
           if ( envSet("REDUCE_NODES","1") ) console.log("Next %d, remaining %d", k, nodes.size);
-          nodes.set( k, await graft( b, k, 0, get_content_cb ) );
+          nodes.set( k, await graft( sourcetree, b, k, 0, get_content_cb ) );
 
           b = nodes.get( k );
 
@@ -513,6 +513,149 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     sp.branchpat.pop();
   }
   return Promise.resolve(nm);
+}//}}}
+
+async function treeify( t )
+{//{{{
+  let tempmap = new Map;
+  let branchpat = new Array;
+  let node_ids = new Array;
+  
+  t = return_sorted_map( t );
+
+  // Move one node into target tempmap
+  let rootnode_id;
+  let rootnode;
+  t.forEach((v,k,m) => {
+    node_ids.push(k);
+  });
+  node_ids.sort((a,b) => { return a - b; });
+  rootnode_id = node_ids.shift();
+  rootnode = t.get(rootnode_id);
+  t.delete(rootnode_id);
+  tempmap.set(rootnode_id, rootnode);
+
+  async function treeify_cb( sp, nm, p, node_id, d )
+  {//{{{
+    // Callback expected to be invoked before traversing .content
+    let undefined_res;
+    if ( nm.isLeaf ) {
+      if ( nm.content instanceof Object ) nm.content = null;
+    }
+    else if (nm.nodeName === 'div.modal-dialog') {
+      nm.content.clear();
+      nm.isLeaf = true;
+      nm.content = null;
+    }
+    else {
+      let cl = new Array;
+      nm.content.forEach((v,k,m) => { cl.push(k); });
+      while ( cl.length > 0 ) {
+        let k = cl.shift();
+        let n = nm.content.get(k);
+        if ( p.source_map.has(k) ) {
+          let r = p.source_map.get(k);
+          p.source_map.delete(k);
+          if ( !n ) nm.content.set(k,r);
+        }
+        else if ( !n ) {
+          nm.content.delete(k);
+        }
+      }
+      if ( nm.content.size == 0 ) {
+        nm.isLeaf = true;
+        nm.content = null;
+        return Promise.resolve(undefined_res);
+      }
+    }
+    return Promise.resolve(nm);
+  }//}}}
+
+  async function prune_cb( sp, nm, p, node_id, d )
+  {//{{{
+    let undefined_res;
+
+    if ( !(nm.content instanceof Map) ) {
+    }
+    else if ( nm.content.size == 0 ) {
+      if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[1] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+      nm.isLeaf = true;
+      nm.content = null;
+      return Promise.resolve(undefined_res);
+    }
+    else {
+      let ks = new Array;
+
+      if ( envSet("PRUNE_CB","1") ) console.log( "%sCheck map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+      nm.content.forEach((v,k,m) => { ks.push(k); });
+      while ( ks.length > 0 ) {
+        let k = ks.shift();
+        let n = nm.content.get(k);
+        if ( n.content instanceof Map && n.content.size == 0 ) {
+          if ( envSet("PRUNE_CB","1") ) console.log( "%s- Prune[3] %d at %d",' '.repeat(d * 2), k, d );
+          nm.content.delete(k);
+        }
+        else {
+          if ( envSet("PRUNE_CB","1") ) console.log( "%s- Keep (%s)%d ",
+            ' '.repeat(d * 2),
+            typeof n.content,
+            k, //, inspect(n.content, {showHidden: false, depth: null, colors: true}) //, inspect(n, {showHidden: false, depth: null, colors: true})
+          );
+        }
+      }
+      if ( nm.content.size == 0 ) {
+        nm.isLeaf = true;
+        nm.content = null;
+        if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[2] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+        return Promise.resolve(undefined_res);
+      }
+    }
+
+    if ( nm.isLeaf && !nm.content ) {
+      if ( envSet("PRUNE_CB","1") ) console.log( "%sPrune[1] %d at %d",' '.repeat(d * 2), node_id, d );
+      return Promise.resolve(undefined_res);
+    }
+
+
+    return Promise.resolve(nm);
+  }//}}}
+
+  console.log( "Treeify" );
+  await inorder_traversal(
+    { branchpat : branchpat },
+    tempmap, -1,
+    treeify_cb,
+    { source_map: t }
+  );
+
+  console.log( "Prune" );
+  inorder_traversal_previsit = false;
+  inorder_traversal_postvisit = true;
+  await inorder_traversal(
+    { branchpat : branchpat },
+    tempmap, -1,
+    prune_cb,
+    { source_map: t }
+  );
+
+  while ( node_ids.length > 0 ) { node_ids.shift(); }
+
+  t.clear();
+
+  tempmap.forEach((v,k,m) => {
+    node_ids.push(k);
+  });
+
+  while ( node_ids.length > 0 ) {
+    let k = node_ids.shift();
+    let v = tempmap.get(k);
+    t.set(k,v);
+    tempmap.delete(k);
+  }
+
+  while ( branchpat.length > 0 ) { branchpat.shift(); }
+
+  return Promise.resolve(t);
 }//}}}
 
 async function monitor()
@@ -1147,7 +1290,7 @@ async function monitor()
               //inspect(nodes_seen,{showHidden: false, depth: null, colors: true}),
             );
             await sleep(500);
-            await reduce_nodes( nodes_seen, get_outerhtml );
+            await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
 
             if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
 
@@ -1404,7 +1547,7 @@ async function monitor()
         });
 
         // Reduce nodes_seen to traversable tree
-        await reduce_nodes( nodes_seen, get_outerhtml );
+        await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
 
         rr_time = hrtime.bigint();
         console.log( "\r\nDOM tree structure finalized with %d nodes", lookup_tree.size, rr_time_delta() );
@@ -1653,9 +1796,6 @@ async function monitor()
 async function ingest()
 {
   let fn = env['TARGETURL'];
-  let nodes_tree = new Map;
-  let branchpat = new Array;
-  let node_ids = new Array;
 
   if ( !existsSync( fn ) ) {
     console.log( "Unable to see %s", fn );
@@ -1670,127 +1810,7 @@ async function ingest()
     inspect(j, {showHidden: false, depth: null, colors: true})
   );
   
-  j.history = return_sorted_map( j.history );
-
-  // Move one node into target nodes_tree
-  let rootnode_id;
-  let rootnode;
-  j.history.forEach((v,k,m) => {
-    node_ids.push(k);
-  });
-  node_ids.sort((a,b) => { return a - b; });
-  rootnode_id = node_ids.shift();
-  rootnode = j.history.get(rootnode_id);
-  j.history.delete(rootnode_id);
-  nodes_tree.set(rootnode_id, rootnode);
-
-  async function treeify_cb( sp, nm, p, node_id, d )
-  {//{{{
-    // Callback expected to be invoked before traversing .content
-    let undefined_res;
-    if ( nm.isLeaf ) {
-      if ( nm.content instanceof Object ) nm.content = null;
-    }
-    else if (nm.nodeName === 'div.modal-dialog') {
-      nm.content.clear();
-      nm.isLeaf = true;
-      nm.content = null;
-    }
-    else {
-      let cl = new Array;
-      nm.content.forEach((v,k,m) => { cl.push(k); });
-      while ( cl.length > 0 ) {
-        let k = cl.shift();
-        let n = nm.content.get(k);
-        if ( p.source_map.has(k) ) {
-          let r = p.source_map.get(k);
-          p.source_map.delete(k);
-          if ( !n ) nm.content.set(k,r);
-        }
-        else if ( !n ) {
-          nm.content.delete(k);
-        }
-      }
-      if ( nm.content.size == 0 ) {
-        nm.isLeaf = true;
-        nm.content = null;
-        return Promise.resolve(undefined_res);
-      }
-    }
-    return Promise.resolve(nm);
-  }//}}}
-
-  async function prune_cb( sp, nm, p, node_id, d )
-  {//{{{
-    let undefined_res;
-
-    if ( !(nm.content instanceof Map) ) {
-    }
-    else if ( nm.content.size == 0 ) {
-      if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[1] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
-      nm.isLeaf = true;
-      nm.content = null;
-      return Promise.resolve(undefined_res);
-    }
-    else {
-      let ks = new Array;
-
-      if ( envSet("PRUNE_CB","1") ) console.log( "%sCheck map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
-      nm.content.forEach((v,k,m) => { ks.push(k); });
-      while ( ks.length > 0 ) {
-        let k = ks.shift();
-        let n = nm.content.get(k);
-        if ( n.content instanceof Map && n.content.size == 0 ) {
-          if ( envSet("PRUNE_CB","1") ) console.log( "%s- Prune[3] %d at %d",' '.repeat(d * 2), k, d );
-          nm.content.delete(k);
-        }
-        else {
-          if ( envSet("PRUNE_CB","1") ) console.log( "%s- Keep (%s)%d ",
-            ' '.repeat(d * 2),
-            typeof n.content,
-            k, //, inspect(n.content, {showHidden: false, depth: null, colors: true}) //, inspect(n, {showHidden: false, depth: null, colors: true})
-          );
-        }
-      }
-      if ( nm.content.size == 0 ) {
-        nm.isLeaf = true;
-        nm.content = null;
-        if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[2] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
-        return Promise.resolve(undefined_res);
-      }
-    }
-
-    if ( nm.isLeaf && !nm.content ) {
-      if ( envSet("PRUNE_CB","1") ) console.log( "%sPrune[1] %d at %d",' '.repeat(d * 2), node_id, d );
-      return Promise.resolve(undefined_res);
-    }
-
-
-    return Promise.resolve(nm);
-  }//}}}
-
-  console.log( "Treeify" );
-  await inorder_traversal(
-    { branchpat : branchpat },
-    nodes_tree, -1,
-    treeify_cb,
-    { source_map: j.history }
-  );
-
-  console.log( "Prune" );
-  inorder_traversal_previsit = false;
-  inorder_traversal_postvisit = true;
-  await inorder_traversal(
-    { branchpat : branchpat },
-    nodes_tree, -1,
-    prune_cb,
-    { source_map: j.history }
-  );
-
-  j.history.clear();
-  nodes_tree.forEach((v,k,m) => {
-    j.history.set(k,v);
-  });
+  await treeify( j.history );
 
   console.log(
     "Reduced",

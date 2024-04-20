@@ -18,7 +18,7 @@ const db_host = process.env.LEGISCOPE_HOST || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
-const rr_timeout_s = 5; // Seconds of inactivity before flushing page metadata 
+const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 
 var mysql = require("@mysql/xdevapi");
@@ -354,7 +354,13 @@ async function graft( sourcetree, m, nodeId, depth, get_content_cb )
       if ( sourcetree.has(k) ) {
         // Append newly-fetched nodes found in linear map
         // onto this node
-        let b = await graft( sourcetree.get(k), k, depth + 1, get_content_cb );
+        let b = await graft( 
+          sourcetree, 
+          sourcetree.get(k), 
+          k, 
+          depth + 1, 
+          get_content_cb
+        );
         m.content.set( k, b );
         sourcetree.delete(k);
       }
@@ -377,7 +383,7 @@ async function reduce_nodes( sourcetree, nodes, get_content_cb )
   if ( envSet("REDUCE_NODES","1") ) console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
 
   while ( nodes.size > 1 && runs < 10 ) {
-    console.log( "Run %d : %d", runs, nodes.size, rr_time_delta() );
+    if ( envSet("REDUCE_NODES","1") ) console.log( "Run %d : %d", runs, nodes.size, rr_time_delta() );
     while ( st.length > 0 ) {
       let k = st.shift();
       if ( nodes.has( k ) ) {
@@ -998,12 +1004,13 @@ async function monitor()
         network : rr_map,
         history : p.flattened
       };
+      let document_id = extracted_info.id.replace(/^\#/,'');
       write_map_to_file(
         extracted_info.id, 
         "panels.json",//[ extracted_info.id.replace(/^\#/,''), 'json' ].join('.'),
         final_data,
         file_ts,
-        extracted_info.id.replace(/^\#/,'')
+        document_id
       );
       console.log(
         inspect(final_data, {showHidden: false, depth: null, colors: true})
@@ -1066,6 +1073,55 @@ async function monitor()
     }
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
+  }//}}}
+
+  function trigger_page_fetch_common_cb( sp, nm, p, node_id, d )
+  {//{{{
+    let nr;
+
+    if ( !p.tagstack.has(d) )
+      p.tagstack.set(d, new Map);
+
+    nr = p.tagstack.get(d);
+
+    if ( !nr.has( nm.nodeName ) ) {
+      nr.set( nm.nodeName, -1 );
+    }
+
+    let nrn = nr.get( nm.nodeName ) + 1;
+    let altname = [ nm.nodeName,'[', nrn, ']', ].join('');
+
+    nr.set(nm.nodeName, nrn);
+
+    p.tagstack.set(d, nr);
+
+    // Update our branch motifs list:
+    // Update or store the HTML tag pattern leading to this node.
+    let branchpat = sp.branchpat.join('|');
+    let motif = {
+      n : 0
+    };
+    if ( p.motifs.has( branchpat ) ) {
+      motif = p.motifs.get( branchpat );
+    }
+    motif.n++;
+    p.motifs.set( branchpat, motif );
+
+    let attrinfo = '';
+    if ( nm.nodeName == 'A' ) {
+      if ( nm.attributes.has('href') )
+        attrinfo = nm.attributes.get('href');
+    }
+
+    if ( envSet('PAGE_FETCH_CB','1') ) console.log(
+      "%s[%d] %s", 
+      ' '.repeat(d * 2),
+      d,
+      altname,
+      nm.isLeaf 
+      ? nm.content.replace(/[\r\n]/g,' ').replace(/[ \t]{1,}/,' ')
+      : attrinfo 
+    );
   }//}}}
 
   async function trigger_page_traverse_cb( sp, nm, p, node_id, d )
@@ -1149,55 +1205,6 @@ async function monitor()
       return sleep(200);
     }
     return sleep(10);
-  }//}}}
-
-  function trigger_page_fetch_common_cb( sp, nm, p, node_id, d )
-  {//{{{
-    let nr;
-
-    if ( !p.tagstack.has(d) )
-      p.tagstack.set(d, new Map);
-
-    nr = p.tagstack.get(d);
-
-    if ( !nr.has( nm.nodeName ) ) {
-      nr.set( nm.nodeName, -1 );
-    }
-
-    let nrn = nr.get( nm.nodeName ) + 1;
-    let altname = [ nm.nodeName,'[', nrn, ']', ].join('');
-
-    nr.set(nm.nodeName, nrn);
-
-    p.tagstack.set(d, nr);
-
-    // Update our branch motifs list:
-    // Update or store the HTML tag pattern leading to this node.
-    let branchpat = sp.branchpat.join('|');
-    let motif = {
-      n : 0
-    };
-    if ( p.motifs.has( branchpat ) ) {
-      motif = p.motifs.get( branchpat );
-    }
-    motif.n++;
-    p.motifs.set( branchpat, motif );
-
-    let attrinfo = '';
-    if ( nm.nodeName == 'A' ) {
-      if ( nm.attributes.has('href') )
-        attrinfo = nm.attributes.get('href');
-    }
-
-    if ( envSet('PAGE_FETCH_CB','1') ) console.log(
-      "%s[%d] %s", 
-      ' '.repeat(d * 2),
-      d,
-      altname,
-      nm.isLeaf 
-      ? nm.content.replace(/[\r\n]/g,' ').replace(/[ \t]{1,}/,' ')
-      : attrinfo 
-    );
   }//}}}
 
   async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
@@ -1614,8 +1621,6 @@ async function monitor()
           textkeys,
           file_ts
         );
-
-
 
         console.log( "Everything", 
           rr_time_delta(), 

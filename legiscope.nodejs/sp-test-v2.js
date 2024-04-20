@@ -156,15 +156,18 @@ function return_sorted_map( map_obj )
   sorter.forEach((e) => {
     sorted.set( e, map_obj.get(e) );
     map_obj.delete(e);
+    rr_mark = hrtime.bigint();
   });
   sorter.forEach((e) => {
     map_obj.set( e, sorted.get(e) );
     sorted.delete(e);
+    rr_mark = hrtime.bigint();
   });
   while ( sorter.length > 0 ) { sorter.pop(); }
   sorted.clear();
   sorted = null
   sorter = null;
+  rr_mark = hrtime.bigint();
   return map_obj;
 }//}}}
 
@@ -451,6 +454,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
   }//}}}
 
   if ( exception_abort ) {
+    console.log( "Process Abort" );
   }
   else if ( nm === undefined || !nm ) {
     if (envSet("INORDER_TRAVERSAL","1")) console.log( "@empty node[%d]", d, nodeId, nm );
@@ -1321,6 +1325,7 @@ async function monitor()
             p.flattened = return_sorted_map( p.flattened );
 
             if ( p.closer_node > 0 ) {
+              console.log( "Closing modal using event on %d", p.closer_node );
               await clickon_node( p.closer_node, nm );
             }
 
@@ -1397,8 +1402,8 @@ async function monitor()
         console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
           append_buffer_to_rr_map,
           latest_rr,
-          markup,
-          inspect(R,{showHidden: false, depth: null, colors: true}),
+          envSet("VERBOSE","1") ? markup : '',
+          envSet("VERBOSE","1") ? inspect(R,{showHidden: false, depth: null, colors: true}) : ''
         ); 
         xhr_fetch_rr = latest_rr;
         latest_rr = 0;
@@ -1655,7 +1660,10 @@ async function monitor()
       lookup_tree.clear();
       cycle_date = null;
 
-      if ( exception_abort ) process.exit(1);
+      if ( exception_abort ) {
+        console.log( "Process Abort" );
+        process.exit(1);
+      }
     }
     else {
       // Trigger requestChildNodes

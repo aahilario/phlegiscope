@@ -380,6 +380,7 @@ async function reduce_nodes( sourcetree, nodes, get_content_cb )
     process.stdout.write("+");
     st.push( key );
   });
+  console.log("<");
   if ( envSet("REDUCE_NODES","1") ) console.log( "\r\nTIME: Obtained key array of length", st.length, rr_time_delta() );
 
   while ( nodes.size > 1 && runs < 10 ) {
@@ -1012,7 +1013,7 @@ async function monitor()
         file_ts,
         document_id
       );
-      console.log(
+      if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
         inspect(final_data, {showHidden: false, depth: null, colors: true})
       );
       console.log( "---- MARK ----" );
@@ -1254,7 +1255,7 @@ async function monitor()
             if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {
               let dp = p.lookup_tree.get( append_buffer_to_rr_map );
               let cka = new Array;
-              console.log("Populating container %d",
+              if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
                 append_buffer_to_rr_map
               );
               dp.content.forEach((v,ck,map) => {
@@ -1262,7 +1263,7 @@ async function monitor()
               });
               while ( cka.length > 0 ) {
                 let ck = cka.shift();
-                console.log("- %d", ck);
+                if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
                 await setup_dom_fetch( ck, append_buffer_to_rr_map );
               }
               // Decompose the dialog container to get at 
@@ -1291,10 +1292,9 @@ async function monitor()
               xhr_fetch_rr,
               p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
               append_buffer_to_rr_map,
-              markup,
-              inspect(R,{showHidden: false, depth: null, colors: true}),
+              envSet("VERBOSE","1") ? markup : '',
+              envSet("VERBOSE","1") ? inspect(R,{showHidden: false, depth: null, colors: true}) : '',
               nodes_seen.size
-              //inspect(nodes_seen,{showHidden: false, depth: null, colors: true}),
             );
             await sleep(500);
             await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
@@ -1374,7 +1374,7 @@ async function monitor()
       isLeaf     : false,
       content    : new Map
     });
-    console.log("setup_dom_fetch( %d )", 
+    if (envSet("SETUP_DOM_FETCH","1")) console.log("setup_dom_fetch( %d )", 
       nodeId, 
       inspect(rootnode_n,{showHidden: false, depth: null, colors: true})
     );
@@ -1426,19 +1426,19 @@ async function monitor()
         if ( lookup_tree.has( parentId ) ) {
           let pn = lookup_tree.get( parentId );
           if ( !pn.content instanceof Map ) {
-            console.log( "DOM::childNodeInserted: Replacing .content %s with Map", pn.content );
+            if ( envSet("DOM","1") ) console.log( "DOM::childNodeInserted: Replacing .content %s with Map", pn.content );
             pn.content = new Map;
           }
           if ( pn.content !== undefined  && pn.content instanceof Map ) {
             if ( pn.content.has( nodeId ) ) {
-              console.log( "DOM::childNodeInserted: Preexisting child %d in %d",
+              if ( envSet("DOM","1") ) console.log( "DOM::childNodeInserted: Preexisting child %d in %d",
                 nodeId,
                 parentId
               );
             }
             else {
               pn.content.set( nodeId, null );
-              console.log( "DOM::childNodeInserted: Adding child %d to %d", nodeId, parentId );
+              if ( envSet("DOM","1") ) console.log( "DOM::childNodeInserted: Adding child %d to %d", nodeId, parentId );
             }
           }
           lookup_tree.set( parentId, pn );
@@ -1459,15 +1459,14 @@ async function monitor()
       }
       else {
         lookup_tree.set( nodeId, n );
-        console.log(
+        if ( envSet("DOM","1") ) console.log(
           "DOM::childNodeInserted: Added node %d to tree",
           nodeId
         );
       }
     }
     else {
-      if ( envSet("VERBOSE","1") ) {}
-      console.log( 'DOM::childNodeInserted', params );
+      if ( envSet("DOM","1") ) console.log( 'DOM::childNodeInserted', params );
     }
     return Promise.resolve(true);
   }//}}}

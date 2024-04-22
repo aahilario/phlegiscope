@@ -647,7 +647,7 @@ async function treeify( t )
       while ( ks.length > 0 ) {
         let k = ks.shift();
         let n = nm.content.get(k);
-        if ( n.content instanceof Map && n.content.size == 0 ) {
+        if ( !n || ( n.content !== undefined && n.content instanceof Map && n.content.size == 0 ) ) {
           if ( envSet("PRUNE_CB","1") ) console.log( "%s- Prune[3] %d at %d",' '.repeat(d * 2), k, d );
           nm.content.delete(k);
         }
@@ -1587,11 +1587,6 @@ async function monitor()
 
         console.log( "TIME: TRANSFORM", rr_time_delta() );
 
-        // Stash tree before post-processing, traversing
-        console.log( "Sorting %d nodes", nodes_seen.size );
-        nodes_seen = return_sorted_map( nodes_seen );
-        write_to_file( "pre-processed.json", file_ts, inspect( nodes_seen, { showHidden: true, depth: null, colors: false } ));
-
         // Copy into lookup_tree before reducing to tree
         nodes_seen.forEach((v,key,map) => {
           lookup_tree.set( key, {
@@ -1638,7 +1633,7 @@ async function monitor()
           {
             tagstack     : tagstack, // Retains tag counts at depth d
             motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
-            lookup_tree  : lookup_tree, // Target tree containing nodes { "HTMLTAG" => Map(n) { "HTMLTAG" => ... { "HTMLTAG" => "<leaf node content>" } ... } }
+            lookup_tree  : lookup_tree, // Flat Map of document nodes 
             dialog_nodes : new Map,
             closer_node  : 0,
             child_hits   : 0, // Count of 'interesting' nodes in children

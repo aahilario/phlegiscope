@@ -15,15 +15,16 @@ const CDP = require('chrome-remote-interface');
 const db_user = process.env.LEGISCOPE_USER || '';
 const db_pass = process.env.LEGISCOPE_PASS || '';
 const db_host = process.env.LEGISCOPE_HOST || '';
+const db_port = process.env.LEGISCOPE_PORT || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 
-var mysql = require("@mysql/xdevapi");
+const mysqlx = require("@mysql/xdevapi");
 
-let db;
+let db_session;
 let outstanding_rr          = new Map;
 let rr_map                  = new Map;
 let nodes_seen              = new Map;
@@ -47,25 +48,69 @@ let current_url = null;
 if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
 if ( envSet("CB_PREPROCESS","1") ) inorder_traversal_postvisit = true;
 
-try {
-  // If database host, user, and password are specified in environment,
-  // attempt to connect, and do not proceed if connection fails.
-  if ( db_host.length > 0 && db_user.length > 0 && db_pass.length > 0 ) {
-    const db_config = {
-      host     : db_host,
-      user     : db_user,
-      password : db_pass,
-      schema   : db_name,
-      port     : 33062
-    };
-    db = mysql.getSession(db_config).then((session) => {
-      console.log("Database:", inspect(session) );
-    });
+async function setup_db()
+{
+  let s;
+  try {
+    // If database host, user, and password are specified in environment,
+    // attempt to connect, and do not proceed if connection fails.
+    if ( db_host.length > 0 && db_user.length > 0 && db_pass.length > 0 ) {
+      let url_model;
+      let db_config = {
+        password : db_pass,
+        user     : db_user,
+        host     : db_host,
+        port     : parseInt(db_port), 
+        schema   : db_name
+      };
+      console.log( "DB", inspect( db_config, {showHidden: false, depth: null, colors: true} ) );
+      s = mysqlx.getSession(db_config)
+        .then(async (s) => {
+          let ses = await s.getSchemas();
+          db_session = s;
+          ses.forEach(async (schema) => {
+            let schemaname = await schema.getName();
+            let tables;
+            switch ( schemaname ) {
+              case 'performance_schema':
+              case 'information_schema':
+                break;
+              default:
+                console.log("-", schemaname );
+                tables = await schema.getTables();
+                await tables.forEach(async (t) => {
+                  console.log("  -", await t.getName() );
+                });
+                break;
+            }
+          });
+          return s;
+        })
+        .then((s) => {
+          url_model = s.getSchema(db_name).getTable('url_model');
+          return url_model;
+        })
+        .then( function(u) {
+          url_model = u;
+          return u.select(['url','last_modified','last_fetch','hits'])
+            .where('id = 2')
+            .execute();
+        })
+        .then( async function( resultset ) {
+          //console.log( "Result", inspect(resultset.fetchAll(), {showHidden: false, depth: null, colors: true}) );
+          return resultset.fetchAll();
+        })
+        ;
+    }
+    else {
+      console.log("No database");
+    }
   }
-}
-catch(e) {
-  console.log("Database",inspect(e));
-  process.exit(1);
+  catch(e) {
+    console.log("Database",inspect(e));
+    process.exit(1);
+  }
+  return s;
 }
 
 function sleep( millis )
@@ -305,7 +350,7 @@ async function graft( sourcetree, m, nodeId, depth, get_content_cb )
   if ( !m.isLeaf && m.content && m.content.size == 0 ) {
     let sr = {
       nodeName   : m.nodeName,
-      parentId   : m.parentId,
+      parentId   : parseInt(m.parentId),
       attributes : m.attributes,
       isLeaf     : true,
       content    : await get_content_cb( m, nodeId )
@@ -438,7 +483,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     let revmap = new Map;
     nm.content.forEach((v,k,m) => { 
       let val = v;
-      ka.push(k); 
+      ka.push(parseInt(k)); 
       revmap.set(k,val);
     });
     ka.forEach((e) => { nm.content.delete(e); });
@@ -446,7 +491,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     ka.sort((a,b) => {return b - a;});
     if (envSet("REVERSE_CONTENT_DEBUG","1")) console.log( "Reversing %d-element container %d", ka.length, nodeId );
     while ( ka.length > 0 ) {
-      let k = ka.shift();
+      let k = parseInt( ka.shift() );
       let v = revmap.get(k);
       nm.content.set( k, v );
       revmap.delete(k);
@@ -717,7 +762,7 @@ async function monitor()
     // if node.childNodeCount > 0 AND node.children === undefined
     if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('?');
     if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log("ENQUEUE [%d]", nodeId);
-    parents_pending_children.push( nodeId );
+    parents_pending_children.push( parseInt(nodeId) );
   }//}}}
 
   async function recursively_add_and_register( m, parent_nodeId, depth )
@@ -731,15 +776,15 @@ async function monitor()
     // m: CDP DOM.Node
     // parentNode: Abbreviated node record ID
     // depth: Current recursive call nesting depth
-    let parentNode = nodes_seen.get( parent_nodeId ); 
+    let parentNode = nodes_seen.get( parseInt(parent_nodeId) ); 
     let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
     let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
-    if ( !nodes_seen.has(m.nodeId) ) {
+    if ( !nodes_seen.has(parseInt(m.nodeId)) ) {
       let attrmap = mapify_attributes( m.attributes );
       let isLeaf = !((m.childNodeCount && m.childNodeCount > 0) || has_child_array); 
-      nodes_seen.set( m.nodeId, {
+      nodes_seen.set( parseInt(m.nodeId), {
         nodeName   : m.nodeName ? m.nodeName : '---',
-        parentId   : parent_nodeId,
+        parentId   : parseInt(parent_nodeId),
         attributes : attrmap.size > 0 ? attrmap : null,
         isLeaf     : isLeaf,
         content    : /*new Map */ isLeaf
@@ -751,7 +796,7 @@ async function monitor()
     }
 
     // Create placeholder flat Map node entry
-    parentNode.content.set(m.nodeId, null);
+    parentNode.content.set(parseInt(m.nodeId), null);
     nodes_seen.set( parent_nodeId, parentNode );
 
     if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
@@ -821,9 +866,9 @@ async function monitor()
         let attrval = attrset.shift();
         attrmap.set( attr, attrval );
       }
-      nodes_seen.set( parentId, {
+      nodes_seen.set( parseInt(parentId), {
         nodeName   : R.nodeName,
-        parentId   : waiting_parent,
+        parentId   : parseInt(waiting_parent),
         attributes : attrmap,
         isLeaf     : !(R.childNodeCount && R.childNodeCount > 0),
         content    : R.childNodeCount && R.childNodeCount > 0
@@ -836,7 +881,7 @@ async function monitor()
       let modified = 0;
       nodes.forEach((n,nn,node) => {
         if ( n.nodeId != parentId && !parent_node.content.has( n.nodeId ) ) {
-          parent_node.content.set( n.nodeId, null );
+          parent_node.content.set( parseInt(n.nodeId), null );
           modified++;
         }
       });
@@ -849,7 +894,7 @@ async function monitor()
       }
       if ( modified > 0 ) {
         parent_node.isLeaf = false;
-        nodes_seen.set( parentId, parent_node );
+        nodes_seen.set( parseInt(parentId), parent_node );
       }
     }
 
@@ -1331,7 +1376,7 @@ async function monitor()
 
             if ( rr_map.has( xhr_fetch_rr ) ) {
               let rr_entry = rr_map.get( xhr_fetch_rr );
-              rr_entry.markup = p.flattened;
+              rr_entry.markup = treeify(p.flattened);
               rr_map.set( xhr_fetch_rr, rr_entry );
             }
 
@@ -1354,7 +1399,7 @@ async function monitor()
         }
         // if ( nm.nodeName == '#text' && nm.content == '[History]' )
       }//}}}
-       else if ( p.child_hits > 0 ) {
+      else if ( p.child_hits > 0 ) {
         await congress_extract_history_panel( sp, nm, p, node_id, d );
       }
       // triggerable != 0
@@ -1374,7 +1419,7 @@ async function monitor()
     waiting_parent = nodeId;
     nodes_seen.set( waiting_parent, {
       nodeName   : rootnode_n.object.description,
-      parentId   : parentId !== undefined ? parentId : 0,
+      parentId   : parentId !== undefined ? parseInt(parentId) : 0,
       attributes : new Map,
       isLeaf     : false,
       content    : new Map
@@ -1421,7 +1466,7 @@ async function monitor()
       let parentId = params.parentNodeId;
       let n = {
         nodeName   : params.node.nodeName,
-        parentId   : parentId,
+        parentId   : parseInt(parentId),
         attributes : mapify_attributes( params.node.attributes ),
         isLeaf     : params.node.childNodeCount == 0,
         content    : new Map
@@ -1551,7 +1596,7 @@ async function monitor()
         nodes_seen.forEach((v,key,map) => {
           lookup_tree.set( key, {
             nodeName : v.nodeName,
-            parentId : v.parentId,
+            parentId : parseInt(v.parentId),
             content  : v.content,
             isLeaf   : v.isLeaf
           });
@@ -1809,6 +1854,10 @@ async function ingest()
 {
   let fn = env['TARGETURL'];
 
+  let s = await setup_db();
+
+  console.log( "Check", typeof s , inspect(s, {showHidden: false, depth: null, colors: true}) );
+
   if ( !existsSync( fn ) ) {
     console.log( "Unable to see %s", fn );
     process.exit(1);
@@ -1824,10 +1873,46 @@ async function ingest()
   
   await treeify( j.history );
 
-  console.log(
+  if (0) console.log(
     "Reduced",
     inspect(j, {showHidden: false, depth: null, colors: true})
   );
+
+  let branchpat = new Array;
+  let markup_a = new Map;
+
+  async function stack_markup( sp, nm, p, node_id, d )
+  {
+    if ( nm.isLeaf ) {
+      let $ = cheerio.load( nm.content, null, false );
+      if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
+      if (0) $('td').children().each(function (i,e) {
+        console.log("- %d", i, $(this).text, $(this).text() );
+      });
+      p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
+    }
+  }
+
+  await inorder_traversal(
+    { branchpat : branchpat },
+    j.history, -1,
+    stack_markup,
+    { markup_a : markup_a }
+  );
+
+  console.log(
+    "Markup",
+    inspect({
+      url     : j.url,
+      id      : j.id,
+      links   : j.links,
+      text    : j.text,
+      history : markup_a
+    }, {showHidden: false, depth: null, colors: true})
+  );
+
+  await sleep(1000);
+  process.exit(0);
 }
 
 if ( envSet("ACTIVE_MONITOR","1") ) {

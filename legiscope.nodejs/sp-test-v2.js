@@ -1376,7 +1376,7 @@ async function monitor()
 
             if ( rr_map.has( xhr_fetch_rr ) ) {
               let rr_entry = rr_map.get( xhr_fetch_rr );
-              rr_entry.markup = treeify(p.flattened);
+              rr_entry.markup = p.flattened;
               rr_map.set( xhr_fetch_rr, rr_entry );
             }
 
@@ -1860,7 +1860,7 @@ async function ingest()
 
   let j = read_map_from_file( fn );
 
-  if (0) console.log( 
+  if (1) console.log( 
     "Metadata",
     fn,
     inspect(j, {showHidden: false, depth: null, colors: true})

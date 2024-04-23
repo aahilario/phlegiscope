@@ -1860,53 +1860,55 @@ async function ingest()
 
   let j = read_map_from_file( fn );
 
-  if (1) console.log( 
-    "Metadata",
-    fn,
-    inspect(j, {showHidden: false, depth: null, colors: true})
-  );
-  
-  await treeify( j.history );
+  if ( j.history !== undefined ) {
+    if (1) console.log( 
+      "Metadata",
+      fn,
+      inspect(j, {showHidden: false, depth: null, colors: true})
+    );
 
-  if (0) console.log(
-    "Reduced",
-    inspect(j, {showHidden: false, depth: null, colors: true})
-  );
+    await treeify( j.history );
 
-  let branchpat = new Array;
-  let markup_a = new Map;
+    if (0) console.log(
+      "Reduced",
+      inspect(j, {showHidden: false, depth: null, colors: true})
+    );
 
-  async function stack_markup( sp, nm, p, node_id, d )
-  {
-    if ( nm.isLeaf ) {
-      let $ = cheerio.load( nm.content, null, false );
-      if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
-      if (0) $('td').children().each(function (i,e) {
-        console.log("- %d", i, $(this).text, $(this).text() );
-      });
-      p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
+    let branchpat = new Array;
+    let markup_a = new Map;
+
+    async function stack_markup( sp, nm, p, node_id, d )
+    {
+      if ( nm.isLeaf ) {
+        let $ = cheerio.load( nm.content, null, false );
+        if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
+        if (0) $('td').children().each(function (i,e) {
+          console.log("- %d", i, $(this).text, $(this).text() );
+        });
+        p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
+      }
     }
+
+    await inorder_traversal(
+      { branchpat : branchpat },
+      j.history, -1,
+      stack_markup,
+      { markup_a : markup_a }
+    );
+
+    console.log(
+      "Markup",
+      inspect({
+        url     : j.url,
+        id      : j.id,
+        links   : j.links,
+        text    : j.text,
+        history : markup_a
+      }, {showHidden: false, depth: null, colors: true})
+    );
+
+    await sleep(1000);
   }
-
-  await inorder_traversal(
-    { branchpat : branchpat },
-    j.history, -1,
-    stack_markup,
-    { markup_a : markup_a }
-  );
-
-  console.log(
-    "Markup",
-    inspect({
-      url     : j.url,
-      id      : j.id,
-      links   : j.links,
-      text    : j.text,
-      history : markup_a
-    }, {showHidden: false, depth: null, colors: true})
-  );
-
-  await sleep(1000);
   process.exit(0);
 }
 

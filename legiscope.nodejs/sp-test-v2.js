@@ -1,4 +1,4 @@
-const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync, linkSync, unlinkSync, symlinkSync } = require('node:fs');
+const { readFileSync, writeFile, writeFileSync, mkdirSync, existsSync, statSync, linkSync, unlinkSync, symlinkSync, readdirSync } = require('node:fs');
 const assert = require("assert");
 const System = require("systemjs");
 const cheerio = require("cheerio");
@@ -216,27 +216,37 @@ function return_sorted_map( map_obj )
   return map_obj;
 }//}}}
 
-function write_to_file( fn, file_ts, content, n )
+function write_to_file( fn, content, file_ts, n )
 {//{{{
-  let ts = file_ts === undefined ? datestring( cycle_date ) : file_ts; 
-  let fn_parts = [ 
-    fn.replace(/^(.*)\.([^.]{1,})$/i,'$1'), 
-    fn.replace(/^(.*)\.([^.]{1,})$/i,'$2')
-  ];
-  let fn_p = [ fn_parts[0], ts ];
-  if ( n !== undefined ) fn_p.push( n.toString() );
-  let fn_ts = [ fn_p.join('-'), (fn_parts[1].length > 0 && fn_parts[1] != fn_parts[0]) ? ['.', fn_parts[1]].join('') : '' ].join(''); 
-  let outfile = [output_path, fn_ts].join('/')
-  try {
-    // Plain name is used to create a symbolic link.
-    // Unlink that if it is present.
-    unlinkSync( [output_path,fn].join('/') );
-  } catch (e) {} 
+  let outfile;
+  if ( file_ts !== undefined ) {
+    let ts = file_ts === undefined ? datestring( cycle_date ) : file_ts; 
+    let fn_parts = [ 
+      fn.replace(/^(.*)\.([^.]{1,})$/i,'$1'), 
+      fn.replace(/^(.*)\.([^.]{1,})$/i,'$2')
+    ];
+    let fn_p = [ fn_parts[0], ts ];
+    if ( n !== undefined ) fn_p.push( n.toString() );
+    let fn_ts = [ fn_p.join('-'), (fn_parts[1].length > 0 && fn_parts[1] != fn_parts[0]) ? ['.', fn_parts[1]].join('') : '' ].join(''); 
+
+    outfile = [output_path, fn_ts].join('/')
+
+    try {
+      // Plain name is used to create a symbolic link.
+      // Unlink that if it is present.
+      unlinkSync( [output_path,fn].join('/') );
+    } catch (e) {} 
+  }
+  else {
+    outfile = fn;
+  }
   writeFileSync( outfile, content, {
     flag : "w+",
     flush: true
   });
-  symlinkSync( fn_ts, [output_path,fn].join('/') );
+  if ( file_ts !== undefined ) {
+    symlinkSync( fn_ts, [output_path,fn].join('/') );
+  }
 }//}}}
 
 function read_map_from_file( map_file )
@@ -272,8 +282,8 @@ function write_map_to_file( description, map_file, map_obj, file_ts, n )
 
   write_to_file( 
     map_file,
-    file_ts,  
     JSON.stringify( map_obj, recoverable, 2 ),
+    file_ts,  
     n
   );
 
@@ -676,15 +686,17 @@ async function treeify( t )
     return Promise.resolve(nm);
   }//}}}
 
-  console.log( "Treeify" );
-  await inorder_traversal(
+  if (envSet("TREEIFY","1")) console.log( "Treeify" );
+  inorder_traversal_previsit = true;
+  inorder_traversal_postvisit = false;
+   await inorder_traversal(
     { branchpat : branchpat },
     tempmap, -1,
     treeify_cb,
     { source_map: t }
   );
 
-  console.log( "Prune" );
+  if (envSet("TREEIFY","1")) console.log( "Prune" );
   inorder_traversal_previsit = false;
   inorder_traversal_postvisit = true;
   await inorder_traversal(
@@ -1577,8 +1589,9 @@ async function monitor()
         let markupfile = "index.html";
         try {
           console.log( "Writing markup %s [%d]", markupfile, rootnode );
-          write_to_file( markupfile, file_ts,  
-            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML
+          write_to_file( markupfile,  
+            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML, 
+            file_ts
           );
         }
         catch(e) {
@@ -1652,14 +1665,17 @@ async function monitor()
           ? inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
           : nodes_tree.size 
         );
-        write_to_file( "tagstack.txt", file_ts, 
-          inspect(tagstack, {showHidden: false, depth: null, colors: true})
+        write_to_file( "tagstack.txt", 
+          inspect(tagstack, {showHidden: false, depth: null, colors: true}),
+          file_ts
         );
-        write_to_file( "trie.txt", file_ts, 
-          inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
+        write_to_file( "trie.txt", 
+          inspect(lookup_tree, {showHidden: false, depth: null, colors: true}),
+          file_ts
         );
-        write_to_file( "motifs.txt", file_ts, 
-          inspect(motifs, {showHidden: false, depth: null, colors: true})
+        write_to_file( "motifs.txt", 
+          inspect(motifs, {showHidden: false, depth: null, colors: true}),
+          file_ts
         );
         write_map_to_file( "Panel key frequency", "panelkeys.txt",
           textkeys,
@@ -1845,13 +1861,30 @@ async function monitor()
   return Promise.resolve(true);
 }//}}}
 
-async function ingest()
+async function stack_markup( sp, nm, p, node_id, d )
 {
-  let fn = env['TARGETURL'];
+  // Requires:
+  // inorder_traversal_previsit = false;
+  // inorder_traversal_postvisit = true;
+ 
+  if ( nm.isLeaf ) {
+    let $ = cheerio.load( nm.content, null, false );
+    if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
+    if (0) $('td').children().each(function (i,e) {
+      console.log("- %d", i, $(this).text, $(this).text() );
+    });
+    p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
+  }
+}
 
-  let s = await setup_db();
+async function ingest( f )
+{
+  let fn = f || env['TARGETURL'];
+  let panel_id;
 
-  console.log( "Check", typeof s , inspect(s, {showHidden: false, depth: null, colors: true}) );
+  // let s = await setup_db();
+
+  // console.log( "Check", typeof s , inspect(s, {showHidden: false, depth: null, colors: true}) );
 
   if ( !existsSync( fn ) ) {
     console.log( "Unable to see %s", fn );
@@ -1861,55 +1894,242 @@ async function ingest()
   let j = read_map_from_file( fn );
 
   if ( j.history !== undefined ) {
-    if (1) console.log( 
+
+    let j_history = new Map;
+
+    if (0) console.log( 
       "Metadata",
       fn,
-      inspect(j, {showHidden: false, depth: null, colors: true})
+      inspect(j.history, {showHidden: false, depth: null, colors: true})
     );
 
-    await treeify( j.history );
+    j.history.forEach((v,k) => {
+      j_history.set( k, v );
+    });
+
+    if ( j_history.size > 1 )
+    j_history = await treeify( j_history );
 
     if (0) console.log(
       "Reduced",
-      inspect(j, {showHidden: false, depth: null, colors: true})
+      inspect(j_history, {showHidden: false, depth: null, colors: true})
     );
 
     let branchpat = new Array;
     let markup_a = new Map;
 
-    async function stack_markup( sp, nm, p, node_id, d )
-    {
-      if ( nm.isLeaf ) {
-        let $ = cheerio.load( nm.content, null, false );
-        if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
-        if (0) $('td').children().each(function (i,e) {
-          console.log("- %d", i, $(this).text, $(this).text() );
-        });
-        p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
-      }
-    }
-
+    inorder_traversal_previsit = false;
+    inorder_traversal_postvisit = true;
     await inorder_traversal(
       { branchpat : branchpat },
-      j.history, -1,
+      j_history, -1,
       stack_markup,
       { markup_a : markup_a }
     );
 
-    console.log(
-      "Markup",
-      inspect({
-        url     : j.url,
-        id      : j.id,
-        links   : j.links,
-        text    : j.text,
-        history : markup_a
-      }, {showHidden: false, depth: null, colors: true})
+    // Fixup to extract history markup from network-fetched data
+    if ( markup_a.size > 0 ) {
+      console.log( "Extracted history markup %s", j.id );
+    }
+    else {
+      console.log("Failed extraction of markup",
+        inspect(j, {showHidden: false, depth: null, colors: true})
+      );
+      if ( j.network !== undefined && j.network instanceof Map ) {
+        let extractor = new Array;
+        j.network.forEach((v,k) => { extractor.push(k); });
+        while ( extractor.length > 0 ) {
+          let network_id = extractor.shift();
+          let history_xhr = j.network.get(network_id);
+          if ( history_xhr.markup !== undefined && history_xhr.markup instanceof Map && history_xhr.markup.size > 1 ) {
+
+            history_xhr.markup = await treeify( history_xhr.markup );
+
+            j_history.clear();
+            console.log("Copying from network[%s].markup", network_id);
+            history_xhr.markup.forEach((v,k) => {
+              console.log("-",k);
+              j_history.set( k, v );
+            });
+            console.log( "Treeifying %s", fn, network_id,
+              inspect(j_history, {showHidden: false, depth: null, colors: true})
+            );
+
+            markup_a.clear();
+
+            inorder_traversal_previsit = false;
+            inorder_traversal_postvisit = true;
+            await inorder_traversal(
+              { branchpat : branchpat },
+              j_history, -1,
+              stack_markup,
+              { markup_a : markup_a }
+            );
+
+
+          }
+        }
+      }
+    }
+
+    if ( markup_a instanceof Map && markup_a.size > 0 ) {
+      panel_id = {
+          url     : j.url,
+          id      : j.id,
+          links   : j.links,
+          text    : j.text,
+          history : markup_a
+        };
+      if (0) console.log(
+        "Markup",
+        inspect( panel_id, {showHidden: false, depth: null, colors: true} )
+      );
+    }
+    else {
+      if (1) console.log( "No history in %s", fn, 
+        inspect(j, {showHidden: false, depth: null, colors: true})
+      );
+    }
+    // await sleep(1000);
+  }
+  // process.exit(0);
+  return Promise.resolve(panel_id);
+}
+
+async function preload( f )
+{
+  try {
+    let t = read_map_from_file( f );
+
+    let branchpat = new Array;
+    let markup_a = new Map;
+
+    await inorder_traversal(
+      { branchpat : branchpat },
+      t, -1,
+      stack_markup,
+      { markup_a : markup_a }
+    );
+    console.log( 
+      f, 
+      inspect( markup_a, {showHidden: false, depth: null, colors: true})
+    );
+  }
+  catch(e) {
+    console.log( "Problem loading %s", f );
+    unlinkSync(f);
+  }
+}
+
+async function traverse()
+{
+  let fn = env['TARGETURL'];
+  let ss = statSync( fn, { throwIfNoEntry: false } );
+  let panel_ids = new Map;
+  let uniques = new Array;
+
+  if ( ss === undefined ) {
+    console.log( "No such file or directory '%s'", fn );
+    process.exit(1);
+  }
+
+  if ( ss.isFile() ) {
+    console.log( "Parse file '%s'", fn );
+    await ingest( fn );
+  }
+
+  if ( ss.isDirectory() ) {
+    let dh = readdirSync( fn, { withFileTypes: true, recursive: true } ); 
+    console.log( "Locate %d files in '%s'", dh.length, fn );
+    while ( dh.length > 0 ) {
+      let dirent = dh.shift();
+      if ( !dirent.isFile() )
+        continue;
+      if ( /^EXTRACTED/.test( dirent.parentPath ) )
+        continue;
+      let f = [ dirent.parentPath, dirent.name ].join('/');
+      if ( /panels-(.*)\.json/.test( dirent.name ) ) {
+        let panel_info;
+        panel_info = await ingest( f );
+        if ( panel_info !== undefined ) {
+          let panel_id = panel_info.id.replace(/^#/,'');
+          let panel_filename;
+          let suffix;
+          if ( !panel_ids.has( panel_id ) )
+            panel_ids.set( panel_id, [ f ] );
+          else {
+            let panel_files = panel_ids.get( panel_id );
+            panel_files.push( f );
+            panel_ids.set( panel_id, panel_files );
+            console.log( "DUPLICATE PANEL: %d for %s", 
+              panel_files.length, 
+              panel_id
+            );
+            suffix = panel_files.length;
+          }
+          panel_filename = [ panel_id ];
+          if ( suffix !== undefined ) panel_filename.push( suffix );
+          panel_filename = [ panel_filename.join('-'), 'json' ].join('.');
+          console.log( "Parsed file '%s' into %s", f, panel_filename );
+          write_map_to_file( 
+            panel_filename, 
+            ['EXTRACTED', panel_filename ].join('/'),
+            panel_info
+          );
+        }
+        else {
+          console.log( "Unable to parse %s", f );
+        }
+        console.log('-----------');
+      }
+      if ( /trie-(.*)\./.test( dirent.name ) ) {
+        console.log( "Parse file '%s'", f );
+        await preload( f );
+        console.log('-----------');
+      }
+    }
+
+    // Collect non-duplicated panel sources for removal
+    panel_ids.forEach((v,k) => {
+      if ( v.length == 1 ) {
+        uniques.push(k)
+      };
+    });
+
+    while ( uniques.length > 0 ) {
+      let unique_e = uniques.shift();
+      let entries = panel_ids.get(unique_e);
+      entries.forEach((f) => {
+        try {
+          if ( existsSync( f ) )
+            unlinkSync( f );
+          console.log("x", f);
+        }
+        catch (e) {}
+      });
+      panel_ids.delete(unique_e);
+    }
+
+    panel_ids.forEach((v,k) => {
+      v.forEach((f) => {
+        try {
+          if ( existsSync( f ) )
+            unlinkSync( f );
+          console.log("*", f);
+        }
+        catch (e) {}
+      });
+    });
+
+    // Retain registry of duplicate sources
+    write_map_to_file( 
+      "Panel IDs", 
+      "EXTRACTED/panels.json", 
+      panel_ids
     );
 
-    await sleep(1000);
+
   }
-  process.exit(0);
 }
 
 if ( envSet("ACTIVE_MONITOR","1") ) {
@@ -1917,5 +2137,6 @@ if ( envSet("ACTIVE_MONITOR","1") ) {
 }
 
 if ( envSet("PARSE","1") ) {
-  ingest();
+  //ingest();
+  traverse();
 }

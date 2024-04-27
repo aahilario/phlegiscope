@@ -21,6 +21,7 @@ const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
+const default_insp = {showHidden: false, depth: null, colors: true};
 
 const mysqlx = require("@mysql/xdevapi");
 
@@ -63,7 +64,7 @@ async function setup_db()
         port     : parseInt(db_port), 
         schema   : db_name
       };
-      console.log( "DB", inspect( db_config, {showHidden: false, depth: null, colors: true} ) );
+      console.log( "DB", inspect( db_config, default_insp ) );
       s = mysqlx.getSession(db_config)
         .then(async (s) => {
           let ses = await s.getSchemas();
@@ -97,7 +98,7 @@ async function setup_db()
             .execute();
         })
         .then( async function( resultset ) {
-          //console.log( "Result", inspect(resultset.fetchAll(), {showHidden: false, depth: null, colors: true}) );
+          //console.log( "Result", inspect(resultset.fetchAll(), default_insp) );
           return resultset.fetchAll();
         })
         ;
@@ -190,6 +191,32 @@ function networkLoadingFinished(params)
   rr_mark = hrtime.bigint();
 }//}}}
 
+function return_sorted_map_ordinalkeys( map_obj )
+{//{{{
+  let sorter = new Array;
+  let sorted = new Map;
+  map_obj.forEach((value, key, map) => {
+    sorter.push(key);
+  });
+  sorter.sort((a,b) => {return parseInt(a) - parseInt(b);});
+  sorter.forEach((e) => {
+    sorted.set( parseInt(e), map_obj.get(e) );
+    map_obj.delete(e);
+    rr_mark = hrtime.bigint();
+  });
+  sorter.forEach((e) => {
+    map_obj.set( parseInt(e), sorted.get(parseInt(e)) );
+    sorted.delete(parseInt(e));
+    rr_mark = hrtime.bigint();
+  });
+  while ( sorter.length > 0 ) { sorter.pop(); }
+  sorted.clear();
+  sorted = null
+  sorter = null;
+  rr_mark = hrtime.bigint();
+  return map_obj;
+}//}}}
+
 function return_sorted_map( map_obj )
 {//{{{
   let sorter = new Array;
@@ -219,6 +246,7 @@ function return_sorted_map( map_obj )
 function write_to_file( fn, content, file_ts, n )
 {//{{{
   let outfile;
+  let fn_ts;
   if ( file_ts !== undefined ) {
     let ts = file_ts === undefined ? datestring( cycle_date ) : file_ts; 
     let fn_parts = [ 
@@ -244,7 +272,7 @@ function write_to_file( fn, content, file_ts, n )
     flag : "w+",
     flush: true
   });
-  if ( file_ts !== undefined ) {
+  if ( file_ts !== undefined && fn_ts !== undefined ) {
     symlinkSync( fn_ts, [output_path,fn].join('/') );
   }
 }//}}}
@@ -587,19 +615,19 @@ async function treeify( t )
   let branchpat = new Array;
   let node_ids = new Array;
   
-  t = return_sorted_map( t );
+  t = return_sorted_map_ordinalkeys( t );
 
   // Move one node into target tempmap
   let rootnode_id;
   let rootnode;
-  t.forEach((v,k,m) => {
+  t.forEach((v,k) => {
     node_ids.push(k);
   });
   node_ids.sort((a,b) => { return a - b; });
   rootnode_id = node_ids.shift();
   rootnode = t.get(rootnode_id);
   t.delete(rootnode_id);
-  tempmap.set(rootnode_id, rootnode);
+  tempmap.set(parseInt(rootnode_id), rootnode);
 
   async function treeify_cb( sp, nm, p, node_id, d )
   {//{{{
@@ -608,24 +636,31 @@ async function treeify( t )
     if ( nm.isLeaf ) {
       if ( nm.content instanceof Object ) nm.content = null;
     }
-    else if (nm.nodeName === 'div.modal-dialog') {
-      nm.content.clear();
-      nm.isLeaf = true;
-      nm.content = null;
-    }
+    //else if (nm.nodeName === 'div.modal-dialog') {
+    //  nm.content.clear();
+    //  nm.isLeaf = true;
+    //  nm.content = null;
+    //}
     else {
       let cl = new Array;
-      nm.content.forEach((v,k,m) => { cl.push(k); });
+      nm.content = return_sorted_map_ordinalkeys( nm.content );
+      nm.content.forEach((v,k) => { cl.push(k); });
       while ( cl.length > 0 ) {
         let k = cl.shift();
         let n = nm.content.get(k);
-        if ( p.source_map.has(k) ) {
-          let r = p.source_map.get(k);
-          p.source_map.delete(k);
-          if ( !n ) nm.content.set(k,r);
+        if ( p.source_map.has(k) || p.source_map.has(parseInt(k)) ) {
+          let r = p.source_map.get(k) || p.source_map.get(parseInt(k));
+          if ( p.source_map.has(parseInt(k)) )
+            p.source_map.delete(parseInt(k));
+          if ( p.source_map.has(k) )
+            p.source_map.delete(k);
+          if ( !n ) nm.content.set(parseInt(k),r);
         }
         else if ( !n ) {
-          nm.content.delete(k);
+          if ( nm.content.has(k) )
+            nm.content.delete(k);
+          if ( nm.content.has(parseInt(k)) )
+            nm.content.delete(parseInt(k));
         }
       }
       if ( nm.content.size == 0 ) {
@@ -644,7 +679,13 @@ async function treeify( t )
     if ( !(nm.content instanceof Map) ) {
     }
     else if ( nm.content.size == 0 ) {
-      if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[1] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+      if ( envSet("PRUNE_CB","1") ) console.log(
+        "%sDrop[1] map[%d] %d at %d",
+        ' '.repeat(d * 2),
+        nm.content.size,
+        node_id,
+        d
+      );
       nm.isLeaf = true;
       nm.content = null;
       return Promise.resolve(undefined_res);
@@ -653,7 +694,7 @@ async function treeify( t )
       let ks = new Array;
 
       if ( envSet("PRUNE_CB","1") ) console.log( "%sCheck map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
-      nm.content.forEach((v,k,m) => { ks.push(k); });
+      nm.content.forEach((v,k) => { ks.push(k); });
       while ( ks.length > 0 ) {
         let k = ks.shift();
         let n = nm.content.get(k);
@@ -664,15 +705,20 @@ async function treeify( t )
         else {
           if ( envSet("PRUNE_CB","1") ) console.log( "%s- Keep (%s)%d ",
             ' '.repeat(d * 2),
-            typeof n.content,
-            k, //, inspect(n.content, {showHidden: false, depth: null, colors: true}) //, inspect(n, {showHidden: false, depth: null, colors: true})
+            n.content instanceof Map ? "Map" : typeof n.content,
+            k, //, inspect(n.content, default_insp) //, inspect(n, default_insp)
           );
         }
       }
       if ( nm.content.size == 0 ) {
         nm.isLeaf = true;
         nm.content = null;
-        if ( envSet("PRUNE_CB","1") ) console.log( "%sDrop[2] map[%d] %d at %d",' '.repeat(d * 2), nm.content.size, node_id, d );
+        if ( envSet("PRUNE_CB","1") ) console.log(
+          "%sDrop[2] map %d at %d",
+          ' '.repeat(d * 2),
+          node_id,
+          d
+        );
         return Promise.resolve(undefined_res);
       }
     }
@@ -696,7 +742,7 @@ async function treeify( t )
     { source_map: t }
   );
 
-  if (envSet("TREEIFY","1")) console.log( "Prune" );
+  if (envSet("TREEIFY","1")) console.log( "Prune", inspect(tempmap, default_insp) );
   inorder_traversal_previsit = false;
   inorder_traversal_postvisit = true;
   await inorder_traversal(
@@ -710,7 +756,7 @@ async function treeify( t )
 
   t.clear();
 
-  tempmap.forEach((v,k,m) => {
+  tempmap.forEach((v,k) => {
     node_ids.push(k);
   });
 
@@ -724,6 +770,29 @@ async function treeify( t )
   while ( branchpat.length > 0 ) { branchpat.shift(); }
 
   return Promise.resolve(t);
+}//}}}
+
+function normalize_j_history( j )
+{//{{{
+  let undef_return;
+  if ( j !== undefined && j.history !== undefined && j.history instanceof Map ) {
+    let ka = new Array;
+    let hm = new Map;
+    let n = 0;
+    j.history.forEach((v,k) => { ka.push(k); });
+    ka.sort((a,b) => { return a - b; });
+    while ( ka.length > 0 ) {
+      let k = ka.shift();
+      hm.set( n, j.history.get(k) );
+      j.history.delete(k);
+      n++;
+    }
+    hm.forEach((v,k) => {
+      j.history.set(k,v);
+    });
+    return j;
+  }
+  return undef_return;
 }//}}}
 
 async function monitor()
@@ -821,8 +890,8 @@ async function monitor()
       //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
       //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
       //,m
-      //,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, {showHidden: false, depth: null, colors: true})
-      //,inspect(m.children ? m.children : [], {showHidden: false, depth: null, colors: true})
+      //,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, default_insp)
+      //,inspect(m.children ? m.children : [], default_insp)
     );
 
     // Only enqueue requestChildNodes for parents missing .children array
@@ -973,7 +1042,7 @@ async function monitor()
       if ( envSet("TRAVERSE_TO","1") ) console.log( "Box['%s'] (%d,%d)", nm.content, cx, cy, content );
     }
     catch(e) {
-      console.log( "Non-traversable %d", node_id, inspect(nm, {showHidden: false, depth: null, colors: true}) );
+      console.log( "Non-traversable %d", node_id, inspect(nm, default_insp) );
       result = false;
     }
     return Promise.resolve(result);
@@ -1007,7 +1076,7 @@ async function monitor()
       let local_sp = new Array;
       if ( envSet("CONGRESS_BILLRES_CB","1") ) {
         console.log( "---- MARK ----",
-          inspect(nm, {showHidden: false, depth: null, colors: true})
+          inspect(nm, default_insp)
         );
       }
       await inorder_traversal(
@@ -1057,15 +1126,41 @@ async function monitor()
         congress_prune_panel_cb,
         extracted_info
       );
-      extracted_info.links.delete('[History]');
-      let final_data = {
+      let final_data_raw = {
         url     : current_url,
         id      : extracted_info.id,
         links   : extracted_info.links,
         text    : extracted_info.text,
         network : rr_map,
-        history : p.flattened
+        history : null 
       };
+      if ( p.flattened instanceof Map && p.flattened.size > 0 ) {
+        let previsit = inorder_traversal_previsit;
+        let postvisit = inorder_traversal_postvisit;
+        let history_p = return_sorted_map_ordinalkeys( p.flattened );
+
+        let branchpat = new Array;
+        let markup_a = new Map;
+
+        history_p = await treeify( history_p );
+
+        inorder_traversal_previsit = false;
+        inorder_traversal_postvisit = true;
+        await inorder_traversal(
+          { branchpat : branchpat },
+          history_p, -1,
+          stack_markup,
+          { markup_a : markup_a }
+        );
+        final_data_raw.history = markup_a;
+        inorder_traversal_previsit = previsit;
+        inorder_traversal_postvisit = postvisit;
+      }
+      else {
+        final_data_raw.history = p.flattened;
+      }
+      extracted_info.links.delete('[History]');
+      let final_data = normalize_j_history( final_data_raw );
       let document_id = extracted_info.id.replace(/^\#/,'');
       write_map_to_file(
         extracted_info.id, 
@@ -1075,7 +1170,7 @@ async function monitor()
         document_id
       );
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
-        inspect(final_data, {showHidden: false, depth: null, colors: true})
+        inspect(final_data, default_insp)
       );
       console.log( "---- MARK ----" );
       p.child_hits = 0;
@@ -1215,7 +1310,7 @@ async function monitor()
             nm.nodeName, 
             e && e.request !== undefined ? e.request : e, 
             e && e.response !== undefined ? e.response : e, 
-            inspect(nm, {showHidden: false, depth: null, colors: true})
+            inspect(nm, default_insp)
           );
           exception_abort = true;
         }
@@ -1341,7 +1436,7 @@ async function monitor()
               );
               if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
                 append_buffer_to_rr_map,
-                inspect(dp,{showHidden: false, depth: null, colors: true}),
+                inspect(dp,default_insp),
               );
             }
             else {
@@ -1354,15 +1449,15 @@ async function monitor()
               p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
               append_buffer_to_rr_map,
               envSet("VERBOSE","1") ? markup : '',
-              envSet("VERBOSE","1") ? inspect(R,{showHidden: false, depth: null, colors: true}) : '',
+              envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
               nodes_seen.size
             );
             await sleep(500);
             await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
 
-            if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,{showHidden: false, depth: null, colors: true}) );
+            if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
 
-            write_map_to_file( "Fragment", "trie.txt", 
+            if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file( "Fragment", "trie.txt", 
               nodes_seen,
               file_ts,
               p.n
@@ -1405,7 +1500,7 @@ async function monitor()
             nm.nodeName, 
             e && e.request !== undefined ? e.request : e, 
             e && e.response !== undefined ? e.response : e, 
-            inspect(nm, {showHidden: false, depth: null, colors: true})
+            inspect(nm, default_insp)
           );
           exception_abort = true;
         }
@@ -1438,7 +1533,7 @@ async function monitor()
     });
     if (envSet("SETUP_DOM_FETCH","1")) console.log("setup_dom_fetch( %d )", 
       nodeId, 
-      inspect(rootnode_n,{showHidden: false, depth: null, colors: true})
+      inspect(rootnode_n,default_insp)
     );
     parents_pending_children.unshift( nodeId );
     await trigger_dom_fetch();
@@ -1460,7 +1555,7 @@ async function monitor()
           append_buffer_to_rr_map,
           latest_rr,
           envSet("VERBOSE","1") ? markup : '',
-          envSet("VERBOSE","1") ? inspect(R,{showHidden: false, depth: null, colors: true}) : ''
+          envSet("VERBOSE","1") ? inspect(R,default_insp) : ''
         ); 
         xhr_fetch_rr = latest_rr;
         latest_rr = 0;
@@ -1543,7 +1638,7 @@ async function monitor()
         lookup_tree.delete( nodeId );
         if ( envSet("DOM","1") ) console.log( 'DOM::childNodeRemoved[%d]',
           nodeId,
-          inspect(n,{showHidden: false, depth: null, colors: true}) 
+          inspect(n,default_insp) 
         );
       }
       else {
@@ -1582,7 +1677,7 @@ async function monitor()
         nodes_seen = return_sorted_map( nodes_seen );
         if ( envSet('FINALIZE_METADATA','1') ) console.log(
           "Pre-update",
-          inspect(nodes_seen, {showHidden: false, depth: null, colors: true})
+          inspect(nodes_seen, default_insp)
         );
         write_map_to_file("Pre-transform", "pre-transform.json", nodes_seen, file_ts);
 
@@ -1662,19 +1757,22 @@ async function monitor()
         rr_time = hrtime.bigint();
         console.log( "Built %d nodes", nodes_tree.size, rr_time_delta(),
           (envSet("DUMP_PRODUCT","1")) 
-          ? inspect(lookup_tree, {showHidden: false, depth: null, colors: true})
+          ? inspect(lookup_tree, default_insp)
           : nodes_tree.size 
         );
-        write_to_file( "tagstack.txt", 
-          inspect(tagstack, {showHidden: false, depth: null, colors: true}),
+        write_map_to_file( "Tag stack",
+          "tagstack.txt", 
+          tagstack,
           file_ts
         );
-        write_to_file( "trie.txt", 
-          inspect(lookup_tree, {showHidden: false, depth: null, colors: true}),
+        if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file( "Lookup tree",
+          "trie.txt", 
+          lookup_tree,
           file_ts
         );
-        write_to_file( "motifs.txt", 
-          inspect(motifs, {showHidden: false, depth: null, colors: true}),
+        write_map_to_file( "Tag motifs",
+          "motifs.txt", 
+          motifs,
           file_ts
         );
         write_map_to_file( "Panel key frequency", "panelkeys.txt",
@@ -1685,7 +1783,7 @@ async function monitor()
         console.log( "Everything", 
           rr_time_delta(), 
           (envSet("DUMP_PRODUCT","1"))
-          ? inspect(nodes_tree, {showHidden: false, depth: null, colors: true})
+          ? inspect(nodes_tree, default_insp)
           : nodes_tree.size
         );
         // Clear metadata storage
@@ -1862,29 +1960,29 @@ async function monitor()
 }//}}}
 
 async function stack_markup( sp, nm, p, node_id, d )
-{
+{//{{{
   // Requires:
   // inorder_traversal_previsit = false;
   // inorder_traversal_postvisit = true;
  
   if ( nm.isLeaf ) {
-    let $ = cheerio.load( nm.content, null, false );
+    let $ = await cheerio.load( nm.content, null, false );
     if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
     if (0) $('td').children().each(function (i,e) {
       console.log("- %d", i, $(this).text, $(this).text() );
     });
     p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
   }
-}
+}//}}}
 
 async function ingest( f )
-{
+{//{{{
   let fn = f || env['TARGETURL'];
   let panel_id;
 
   // let s = await setup_db();
 
-  // console.log( "Check", typeof s , inspect(s, {showHidden: false, depth: null, colors: true}) );
+  // console.log( "Check", typeof s , inspect(s, default_insp) );
 
   if ( !existsSync( fn ) ) {
     console.log( "Unable to see %s", fn );
@@ -1897,22 +1995,26 @@ async function ingest( f )
 
     let j_history = new Map;
 
+    j.history = return_sorted_map_ordinalkeys( j.history );
+
     if (0) console.log( 
       "Metadata",
       fn,
-      inspect(j.history, {showHidden: false, depth: null, colors: true})
+      inspect(j.history, default_insp)
     );
 
     j.history.forEach((v,k) => {
       j_history.set( k, v );
     });
 
+    // j_history = await treeify( j_history );
+
     if ( j_history.size > 1 )
-    j_history = await treeify( j_history );
+      j_history = await treeify( j_history );
 
     if (0) console.log(
       "Reduced",
-      inspect(j_history, {showHidden: false, depth: null, colors: true})
+      inspect(j_history, default_insp)
     );
 
     let branchpat = new Array;
@@ -1927,14 +2029,14 @@ async function ingest( f )
       { markup_a : markup_a }
     );
 
-    // Fixup to extract history markup from network-fetched data
     if ( markup_a.size > 0 ) {
-      console.log( "Extracted history markup %s", j.id );
+      if (0) console.log( "Extracted history markup %s", j.id,
+        inspect( markup_a, default_insp )
+      );
+      j.history = markup_a;
     }
     else {
-      console.log("Failed extraction of markup",
-        inspect(j, {showHidden: false, depth: null, colors: true})
-      );
+      // Fixup to extract history markup from network-fetched data
       if ( j.network !== undefined && j.network instanceof Map ) {
         let extractor = new Array;
         j.network.forEach((v,k) => { extractor.push(k); });
@@ -1943,16 +2045,26 @@ async function ingest( f )
           let history_xhr = j.network.get(network_id);
           if ( history_xhr.markup !== undefined && history_xhr.markup instanceof Map && history_xhr.markup.size > 1 ) {
 
-            history_xhr.markup = await treeify( history_xhr.markup );
+            let fixup = return_sorted_map_ordinalkeys( history_xhr.markup ); 
+            // history_xhr.markup = await treeify( fixup );
+            history_xhr.markup = fixup;
+            j.network.set(network_id, history_xhr);
 
             j_history.clear();
-            console.log("Copying from network[%s].markup", network_id);
+            console.log("Copying from network[%s].markup", 
+              network_id,
+              inspect( history_xhr, default_insp )
+            );
             history_xhr.markup.forEach((v,k) => {
               console.log("-",k);
               j_history.set( k, v );
             });
-            console.log( "Treeifying %s", fn, network_id,
-              inspect(j_history, {showHidden: false, depth: null, colors: true})
+            await treeify( j_history );
+            console.log( 
+              "Treeifying %s",
+              fn,
+              network_id,
+              inspect(j_history, default_insp)
             );
 
             markup_a.clear();
@@ -1966,10 +2078,14 @@ async function ingest( f )
               { markup_a : markup_a }
             );
 
+            j.history = markup_a;
 
           }
         }
       }
+      console.log("Failed extraction of markup",
+        inspect(j, default_insp)
+      );
     }
 
     if ( markup_a instanceof Map && markup_a.size > 0 ) {
@@ -1982,22 +2098,29 @@ async function ingest( f )
         };
       if (0) console.log(
         "Markup",
-        inspect( panel_id, {showHidden: false, depth: null, colors: true} )
+        inspect( panel_id, default_insp )
       );
     }
     else {
-      if (1) console.log( "No history in %s", fn, 
-        inspect(j, {showHidden: false, depth: null, colors: true})
-      );
+      if (envSet("PERMIT_UNLINK","1")) {
+        try {
+          if ( existsSync( fn ) )
+            unlinkSync( fn );
+          console.log( "No history in %s, unlinking", fn, 
+            inspect(j, default_insp)
+          );
+        }
+        catch (e) {}
+      }
     }
     // await sleep(1000);
   }
   // process.exit(0);
   return Promise.resolve(panel_id);
-}
+}//}}}
 
 async function preload( f )
-{
+{//{{{
   try {
     let t = read_map_from_file( f );
 
@@ -2012,17 +2135,27 @@ async function preload( f )
     );
     console.log( 
       f, 
-      inspect( markup_a, {showHidden: false, depth: null, colors: true})
+      inspect( t, default_insp)
     );
   }
   catch(e) {
     console.log( "Problem loading %s", f );
     unlinkSync(f);
   }
+}//}}}
+
+async function normalize( f )
+{
+  let j = read_map_from_file( f );
+  let r = normalize_j_history( j );
+  if ( r !== undefined ) {
+    write_map_to_file( f, f, r );
+  }
+  return Promise.resolve(true);
 }
 
 async function traverse()
-{
+{//{{{
   let fn = env['TARGETURL'];
   let ss = statSync( fn, { throwIfNoEntry: false } );
   let panel_ids = new Map;
@@ -2035,7 +2168,9 @@ async function traverse()
 
   if ( ss.isFile() ) {
     console.log( "Parse file '%s'", fn );
-    await ingest( fn );
+    let panel_raw = await ingest( fn );
+    let panel = normalize_j_history( panel_raw );
+    console.log( "Finalized panel", inspect( panel, default_insp ));
   }
 
   if ( ss.isDirectory() ) {
@@ -2047,10 +2182,12 @@ async function traverse()
         continue;
       if ( /^EXTRACTED/.test( dirent.parentPath ) )
         continue;
+      if ( /^NORMALIZE/.test( dirent.parentPath ) )
+        continue;
       let f = [ dirent.parentPath, dirent.name ].join('/');
-      if ( /panels-(.*)\.json/.test( dirent.name ) ) {
-        let panel_info;
-        panel_info = await ingest( f );
+      if ( /panels-(.*)\.json/.test( dirent.name ) ) {//{{{
+        let panel_raw  = await ingest( f );
+        let panel_info = normalize_j_history( panel_raw );
         if ( panel_info !== undefined ) {
           let panel_id = panel_info.id.replace(/^#/,'');
           let panel_filename;
@@ -2077,15 +2214,28 @@ async function traverse()
             panel_info
           );
         }
+        else if ( existsSync(f) ) {
+          let rawjson;
+          rawjson = read_map_from_file( f ); 
+          console.log( "Unable to parse %s", f,
+            inspect( rawjson, default_insp)
+          );
+        }
         else {
-          console.log( "Unable to parse %s", f );
+          console.log( "File '%s' no longer available", f );
         }
         console.log('-----------');
+      }//}}}
+      else if ( /trie-(.*)\./.test( dirent.name ) ) {
+        if (envSet("TRIE","1")) {
+          console.log( "Parse file '%s'", f );
+          await preload( f );
+          console.log('-----------');
+        }
       }
-      if ( /trie-(.*)\./.test( dirent.name ) ) {
-        console.log( "Parse file '%s'", f );
-        await preload( f );
-        console.log('-----------');
+      else if ( /([^-]{1,})-([0-9-]{1,}).json/.test( dirent.name ) ) {
+        if (envSet("NORMALIZE","1"))
+          await normalize( f );
       }
     }
 
@@ -2096,7 +2246,7 @@ async function traverse()
       };
     });
 
-    while ( uniques.length > 0 ) {
+    if (envSet("PERMIT_UNLINK","1")) while ( uniques.length > 0 ) {
       let unique_e = uniques.shift();
       let entries = panel_ids.get(unique_e);
       entries.forEach((f) => {
@@ -2110,7 +2260,7 @@ async function traverse()
       panel_ids.delete(unique_e);
     }
 
-    panel_ids.forEach((v,k) => {
+    if (envSet("PERMIT_UNLINK","1")) panel_ids.forEach((v,k) => {
       v.forEach((f) => {
         try {
           if ( existsSync( f ) )
@@ -2130,7 +2280,7 @@ async function traverse()
 
 
   }
-}
+}//}}}
 
 if ( envSet("ACTIVE_MONITOR","1") ) {
   monitor();

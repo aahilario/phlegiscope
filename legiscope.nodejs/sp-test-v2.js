@@ -51,7 +51,6 @@ if ( envSet("CB_PREPROCESS","1") ) inorder_traversal_postvisit = true;
 
 async function setup_db()
 {
-  let s;
   try {
     // If database host, user, and password are specified in environment,
     // attempt to connect, and do not proceed if connection fails.
@@ -64,44 +63,34 @@ async function setup_db()
         port     : parseInt(db_port), 
         schema   : db_name
       };
-      console.log( "DB", inspect( db_config, default_insp ) );
-      s = mysqlx.getSession(db_config)
-        .then(async (s) => {
-          let ses = await s.getSchemas();
-          db_session = s;
-          ses.forEach(async (schema) => {
-            let schemaname = await schema.getName();
-            let tables;
-            switch ( schemaname ) {
-              case 'performance_schema':
-              case 'information_schema':
-                break;
-              default:
-                console.log("-", schemaname );
-                tables = await schema.getTables();
-                await tables.forEach(async (t) => {
-                  console.log("  -", await t.getName() );
-                });
-                break;
-            }
-          });
-          return s;
-        })
-        .then((s) => {
-          url_model = s.getSchema(db_name).getTable('url_model');
-          return url_model;
-        })
-        .then( function(u) {
-          url_model = u;
-          return u.select(['url','last_modified','last_fetch','hits'])
-            .where('id = 2')
-            .execute();
-        })
-        .then( async function( resultset ) {
-          //console.log( "Result", inspect(resultset.fetchAll(), default_insp) );
-          return resultset.fetchAll();
-        })
-        ;
+      db_session = await mysqlx.getSession(db_config);
+      let ses = await db_session.getSchemas();
+      await ses.forEach(async (schema) => {
+        let schemaname = await schema.getName();
+        let tables, resultset, result;
+        switch ( schemaname ) {
+          case 'performance_schema':
+          case 'information_schema':
+            console.log("-", schemaname );
+            break;
+          default:
+            console.log("-", schemaname );
+            tables = await schema.getTables();
+            await tables.forEach(async (t) => {
+              console.log("  -", await t.getName() );
+            });
+            break;
+        }
+      });
+      url_model = await db_session
+        .getSchema(db_name)
+        .getTable('url_model');
+
+      resultset = await url_model.select(['url','last_modified','last_fetch','hits'])
+        .where('id = 2')
+        .execute();
+      result = resultset.fetchAll();
+      console.log( "Result", inspect(result, default_insp) );
     }
     else {
       console.log("No database");
@@ -111,7 +100,7 @@ async function setup_db()
     console.log("Database",inspect(e));
     process.exit(1);
   }
-  return s;
+  return Promise.resolve(db_session);
 }
 
 function sleep( millis )
@@ -1088,8 +1077,17 @@ async function monitor()
       );
       // Clean up extracted key-value pairs
       let ka = new Array;
+      let document_id = extracted_info.id.replace(/^\#/,'');
       extracted_info.text.forEach((v,k,m) => { ka.push(k); });
       // Cannot use mapify_attributes owing to inconsistencies in formatting
+      write_map_to_file(
+        extracted_info.id, 
+        "paneltexts.json",
+        extracted_info.text,
+        file_ts,
+        document_id
+      );
+
       while ( ka.length > 0 ) {
         let k = ka.shift();
         let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
@@ -1161,10 +1159,9 @@ async function monitor()
       }
       extracted_info.links.delete('[History]');
       let final_data = normalize_j_history( final_data_raw );
-      let document_id = extracted_info.id.replace(/^\#/,'');
       write_map_to_file(
         extracted_info.id, 
-        "panels.json",//[ extracted_info.id.replace(/^\#/,''), 'json' ].join('.'),
+        "panels.json",
         final_data,
         file_ts,
         document_id
@@ -1975,14 +1972,10 @@ async function stack_markup( sp, nm, p, node_id, d )
   }
 }//}}}
 
-async function ingest( f )
+async function ingest_panels( f )
 {//{{{
   let fn = f || env['TARGETURL'];
   let panel_id;
-
-  // let s = await setup_db();
-
-  // console.log( "Check", typeof s , inspect(s, default_insp) );
 
   if ( !existsSync( fn ) ) {
     console.log( "Unable to see %s", fn );
@@ -1993,129 +1986,30 @@ async function ingest( f )
 
   if ( j.history !== undefined ) {
 
-    let j_history = new Map;
-
     j.history = return_sorted_map_ordinalkeys( j.history );
 
-    if (0) console.log( 
-      "Metadata",
-      fn,
-      inspect(j.history, default_insp)
-    );
-
-    j.history.forEach((v,k) => {
-      j_history.set( k, v );
-    });
-
-    // j_history = await treeify( j_history );
-
-    if ( j_history.size > 1 )
-      j_history = await treeify( j_history );
-
+    panel_id = {
+      url     : j.url,
+      id      : j.id,
+      links   : j.links,
+      text    : j.text,
+      history : j.history 
+    };
     if (0) console.log(
-      "Reduced",
-      inspect(j_history, default_insp)
+      "Markup",
+      inspect( panel_id, default_insp )
     );
-
-    let branchpat = new Array;
-    let markup_a = new Map;
-
-    inorder_traversal_previsit = false;
-    inorder_traversal_postvisit = true;
-    await inorder_traversal(
-      { branchpat : branchpat },
-      j_history, -1,
-      stack_markup,
-      { markup_a : markup_a }
-    );
-
-    if ( markup_a.size > 0 ) {
-      if (0) console.log( "Extracted history markup %s", j.id,
-        inspect( markup_a, default_insp )
-      );
-      j.history = markup_a;
-    }
-    else {
-      // Fixup to extract history markup from network-fetched data
-      if ( j.network !== undefined && j.network instanceof Map ) {
-        let extractor = new Array;
-        j.network.forEach((v,k) => { extractor.push(k); });
-        while ( extractor.length > 0 ) {
-          let network_id = extractor.shift();
-          let history_xhr = j.network.get(network_id);
-          if ( history_xhr.markup !== undefined && history_xhr.markup instanceof Map && history_xhr.markup.size > 1 ) {
-
-            let fixup = return_sorted_map_ordinalkeys( history_xhr.markup ); 
-            // history_xhr.markup = await treeify( fixup );
-            history_xhr.markup = fixup;
-            j.network.set(network_id, history_xhr);
-
-            j_history.clear();
-            console.log("Copying from network[%s].markup", 
-              network_id,
-              inspect( history_xhr, default_insp )
-            );
-            history_xhr.markup.forEach((v,k) => {
-              console.log("-",k);
-              j_history.set( k, v );
-            });
-            await treeify( j_history );
-            console.log( 
-              "Treeifying %s",
-              fn,
-              network_id,
-              inspect(j_history, default_insp)
-            );
-
-            markup_a.clear();
-
-            inorder_traversal_previsit = false;
-            inorder_traversal_postvisit = true;
-            await inorder_traversal(
-              { branchpat : branchpat },
-              j_history, -1,
-              stack_markup,
-              { markup_a : markup_a }
-            );
-
-            j.history = markup_a;
-
-          }
-        }
+    if (envSet("PERMIT_UNLINK","Y")) {
+      try {
+        if ( existsSync( fn ) )
+          unlinkSync( fn );
+        console.log( "No history in %s, unlinking", fn, 
+          inspect(j, default_insp)
+        );
       }
-      console.log("Failed extraction of markup",
-        inspect(j, default_insp)
-      );
+      catch (e) {}
     }
-
-    if ( markup_a instanceof Map && markup_a.size > 0 ) {
-      panel_id = {
-          url     : j.url,
-          id      : j.id,
-          links   : j.links,
-          text    : j.text,
-          history : markup_a
-        };
-      if (0) console.log(
-        "Markup",
-        inspect( panel_id, default_insp )
-      );
-    }
-    else {
-      if (envSet("PERMIT_UNLINK","1")) {
-        try {
-          if ( existsSync( fn ) )
-            unlinkSync( fn );
-          console.log( "No history in %s, unlinking", fn, 
-            inspect(j, default_insp)
-          );
-        }
-        catch (e) {}
-      }
-    }
-    // await sleep(1000);
   }
-  // process.exit(0);
   return Promise.resolve(panel_id);
 }//}}}
 
@@ -2154,27 +2048,165 @@ async function normalize( f )
   return Promise.resolve(true);
 }
 
+function congress_panel_text_hdrfix( panel_info_text, text_headers )
+{//{{{
+  console.log( "Fixing headers in this", inspect( panel_info_text ) );
+  // Fix keys in .text collected using naive token pairing.
+  // Serialize elements, and then tokenize + restructure.
+  let tokens = new Array;
+  let revised = new Map;
+  let pairkey, pairval, e_undef;
+  panel_info_text.forEach((v,k) => {
+    tokens.push(k);
+    tokens.push(v);
+  });
+  while ( tokens.length > 0 ) {
+    let t = (tokens.shift() || '').replace(/[: ]$/g,'');
+    if ( text_headers.has( t ) ) { 
+      pairkey = t;
+      t = (tokens.shift() || '').replace(/[: ]$/g,'') || '';
+      if ( text_headers.has( t ) ) {
+        revised.set( pairkey, '' );
+        pairkey = t;
+        pairval = e_undef;
+      }
+      else {
+        pairval = t;
+      }
+    }
+    else {
+      pairval = t;
+    }
+    if ( pairkey.length > 0 && pairval !== undefined ) {
+      revised.set( pairkey, pairval );
+      pairkey = '';
+      pairval = e_undef;
+    }
+    else { 
+      console.log( "Floof", inspect( { r: tokens.length, k : pairkey, v: pairval, t : t}, default_insp ) );
+      if ( tokens.length == 0 && t.length > 0 ) {
+        let kv = t.split(":");
+        let k = (kv[0] || '').trim();
+        let v = (kv[1] || '').trim();
+        if ( text_headers.has(k) ) {
+          revised.set(k,v);
+        }
+      }
+    }
+  }
+  if ( revised.size > 0 ) {
+    panel_info_text.clear();
+    text_headers.forEach((v,k) => {
+      if ( revised.has(k) )
+        panel_info_text.set( k, revised.get(k) );
+    });
+  }
+  console.log( "Repaired as", inspect( revised, default_insp ) );
+}//}}}
+
+async function congress_record_fe_panelinfo( f, p )
+{
+  let pm = read_map_from_file( f );
+  let parse_error = false;
+  try {
+    let congress_basedoc_id = pm.id.replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2');
+    let congress_basedoc = await p.congress_basedoc
+      .select(['id','create_time','congress_n','sn','title_full'])
+      .where("sn = :sn")
+      .bind("sn",congress_basedoc_id)
+      .execute();
+    let r = await congress_basedoc.fetchAll();
+
+    // Create missing document record
+    if ( r.length == 0 ) {
+      let title_full = pm.text.get('Full Title, As Filed') || '';
+      if ( title_full.length > 0 ) {
+        let congress_n = parseInt(congress_basedoc_id.replace(/^([^-]{1,})-([0-9]*)/,"$2") || 0);
+        r = await p.congress_basedoc
+          .insert(['congress_n','sn','title_full'])
+          .values([congress_n, congress_basedoc_id, title_full])
+          .execute()
+          .then(() => {
+            return p.congress_basedoc
+              .select(['id','create_time','congress_n','sn','title_full'])
+              .where("sn = :sn")
+              .bind("sn",congress_basedoc_id)
+              .execute()
+          });
+        r = r.fetchAll();
+        if ( r.length > 0 ) {
+          r.forEach((b) => {
+            console.log( "Res %s", congress_basedoc_id, inspect(b, default_insp) );
+          });
+        }
+      }
+    }
+    else {
+      if (0) r.forEach((e) => {
+        console.log( "Already have %s", congress_basedoc_id, inspect(e[0], default_insp) );
+      });
+    }
+  }
+  catch (e) {
+    console.log( "Unparseable %s", 
+      f,
+      e.info ? e.info.msg : e,
+      inspect({ title_full : pm.text.get('Full Title, As Filed') }, default_insp)
+    );
+    parse_error = true;
+  }
+
+  if ( parse_error ) {
+    let tb = new Buffer(pm.text.get('Full Title, As Filed'),'latin1');
+    console.log("Transcoded", tb.toString('utf8'));
+  }
+  return Promise.resolve(pm);
+}
+
+async function check_enye()
+{
+}
+
 async function traverse()
 {//{{{
   let fn = env['TARGETURL'];
   let ss = statSync( fn, { throwIfNoEntry: false } );
   let panel_ids = new Map;
   let uniques = new Array;
+  let text_headers = new Map;
+  let text_headers_master = false;
+  let history_headers = new Map;
 
   if ( ss === undefined ) {
     console.log( "No such file or directory '%s'", fn );
     process.exit(1);
   }
 
+  if ( existsSync( "textsections.json" ) ) {
+    text_headers_master = true;
+    text_headers = read_map_from_file( "textsections.json" );
+    text_headers.forEach((v,k) => { v = 0; });
+    console.log( "Loaded text sections master", inspect( text_headers, default_insp ) );
+  }
+
   if ( ss.isFile() ) {
     console.log( "Parse file '%s'", fn );
-    let panel_raw = await ingest( fn );
+    let panel_raw = await ingest_panels( fn );
     let panel = normalize_j_history( panel_raw );
     console.log( "Finalized panel", inspect( panel, default_insp ));
   }
 
   if ( ss.isDirectory() ) {
     let dh = readdirSync( fn, { withFileTypes: true, recursive: true } ); 
+    let s = await setup_db();
+    let ingest_paramset = {
+      text_headers     : text_headers,
+      db               : s,
+      congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
+      url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
+      joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
+    }
+    console.log( "Check", typeof ingest_paramset, inspect(ingest_paramset, default_insp) );
     console.log( "Locate %d files in '%s'", dh.length, fn );
     while ( dh.length > 0 ) {
       let dirent = dh.shift();
@@ -2184,14 +2216,26 @@ async function traverse()
         continue;
       if ( /^NORMALIZE/.test( dirent.parentPath ) )
         continue;
+
       let f = [ dirent.parentPath, dirent.name ].join('/');
-      if ( /panels-(.*)\.json/.test( dirent.name ) ) {//{{{
-        let panel_raw  = await ingest( f );
-        let panel_info = normalize_j_history( panel_raw );
+
+      if ( /^INGEST/.test( dirent.parentPath ) && /\.json$/.test( dirent.name ) ) {
+        try { 
+          let ingest_record = await congress_record_fe_panelinfo( f, ingest_paramset );
+          // console.log( "Record %s from %s", ingest_record.id, f );
+        }
+        catch (e) {
+          console.log( "Skip %s", f, e );
+        }
+      }
+      else if ( /panels-(.*)\.json/.test( dirent.name ) ) {//{{{
+        let panel_info = await ingest_panels( f );
         if ( panel_info !== undefined ) {
           let panel_id = panel_info.id.replace(/^#/,'');
           let panel_filename;
           let suffix;
+
+          // Check for duplicates in this batch
           if ( !panel_ids.has( panel_id ) )
             panel_ids.set( panel_id, [ f ] );
           else {
@@ -2204,15 +2248,52 @@ async function traverse()
             );
             suffix = panel_files.length;
           }
+
+          if ( panel_info.text !== undefined ) {
+            // Keep unique document .text map keys
+            let broken_headers = false;
+            panel_info.text.forEach((v,k) => {
+              let th;
+              if ( !text_headers.has( k ) ) {
+                if ( text_headers_master ) {
+                  broken_headers = true;
+                }
+                else {
+                  text_headers.set( k, 0 );
+                }
+              }
+              if ( !text_headers_master ) {
+                th = text_headers.get( k );
+                th++;
+                text_headers.set( k, th );
+              }
+            });
+
+            if ( broken_headers ) {
+              congress_panel_text_hdrfix( panel_info.text, text_headers )
+            }
+          }
+
+          // Write to EXTRACTED/
           panel_filename = [ panel_id ];
           if ( suffix !== undefined ) panel_filename.push( suffix );
           panel_filename = [ panel_filename.join('-'), 'json' ].join('.');
-          console.log( "Parsed file '%s' into %s", f, panel_filename );
-          write_map_to_file( 
-            panel_filename, 
-            ['EXTRACTED', panel_filename ].join('/'),
-            panel_info
+          console.log(
+            "Parsed file '%s' into %s", f, panel_filename,
+            inspect(panel_info, default_insp)
           );
+
+          if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
+            envSet("INGEST_OVERWRITE","1") ) {
+            write_map_to_file( 
+              panel_filename, 
+              ['EXTRACTED', panel_filename ].join('/'),
+              panel_info
+            );
+          }
+          else {
+            console.log("Not writing %s", panel_filename);
+          }
         }
         else if ( existsSync(f) ) {
           let rawjson;
@@ -2238,6 +2319,25 @@ async function traverse()
           await normalize( f );
       }
     }
+
+    // Clean up text headers
+    let th_a = new Array;
+    text_headers.forEach((v,k) => { th_a.push(k); });
+    while ( th_a.length > 0 ) {
+      let th = th_a.shift();
+      let n = text_headers.get(th);
+      // Prune panel text headers used less than x times.
+      if ( n < 10 ) text_headers.delete(th);
+    }
+
+    console.log( "%d Text headers found", text_headers.size,
+      inspect( text_headers, default_insp )
+    );
+
+    write_map_to_file( "Text section headers", 
+      "EXTRACTED/textsections.json",
+      text_headers
+    );
 
     // Collect non-duplicated panel sources for removal
     panel_ids.forEach((v,k) => {
@@ -2278,6 +2378,7 @@ async function traverse()
       panel_ids
     );
 
+    process.exit(0);
 
   }
 }//}}}
@@ -2287,6 +2388,7 @@ if ( envSet("ACTIVE_MONITOR","1") ) {
 }
 
 if ( envSet("PARSE","1") ) {
-  //ingest();
+  //ingest_panels();
   traverse();
+  //check_enye();
 }

@@ -9,6 +9,7 @@ const https = require("node:https");
 const { argv, env, pid, hrtime } = require("node:process");
 const { spawnSync } = require("child_process");
 const { inspect } = require("node:util");
+const { Buffer } = require("node:buffer");
 
 const CDP = require('chrome-remote-interface');
 
@@ -50,7 +51,7 @@ if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
 if ( envSet("CB_PREPROCESS","1") ) inorder_traversal_postvisit = true;
 
 async function setup_db()
-{
+{//{{{
   try {
     // If database host, user, and password are specified in environment,
     // attempt to connect, and do not proceed if connection fails.
@@ -64,33 +65,34 @@ async function setup_db()
         schema   : db_name
       };
       db_session = await mysqlx.getSession(db_config);
-      let ses = await db_session.getSchemas();
-      await ses.forEach(async (schema) => {
-        let schemaname = await schema.getName();
-        let tables, resultset, result;
-        switch ( schemaname ) {
-          case 'performance_schema':
-          case 'information_schema':
-            console.log("-", schemaname );
-            break;
-          default:
-            console.log("-", schemaname );
-            tables = await schema.getTables();
-            await tables.forEach(async (t) => {
-              console.log("  -", await t.getName() );
-            });
-            break;
-        }
-      });
-      url_model = await db_session
-        .getSchema(db_name)
-        .getTable('url_model');
-
-      resultset = await url_model.select(['url','last_modified','last_fetch','hits'])
-        .where('id = 2')
-        .execute();
-      result = resultset.fetchAll();
-      console.log( "Result", inspect(result, default_insp) );
+      if (envSet("DEBUG_DB","1")) {
+        let ses = await db_session.getSchemas();
+        await ses.forEach(async (schema) => {
+          let schemaname = await schema.getName();
+          let tables, resultset, result;
+          switch ( schemaname ) {
+            case 'performance_schema':
+            case 'information_schema':
+              console.log("-", schemaname );
+              break;
+            default:
+              console.log("-", schemaname );
+              tables = await schema.getTables();
+              await tables.forEach(async (t) => {
+                console.log("  -", await t.getName() );
+              });
+              break;
+          }
+        });
+        url_model = await db_session
+          .getSchema(db_name)
+          .getTable('url_model');
+        resultset = await url_model.select(['url','last_modified','last_fetch','hits'])
+          .where('id = 2')
+          .execute();
+        result = resultset.fetchAll();
+        console.log( "Result", inspect(result, default_insp) );
+      }
     }
     else {
       console.log("No database");
@@ -101,7 +103,7 @@ async function setup_db()
     process.exit(1);
   }
   return Promise.resolve(db_session);
-}
+}//}}}
 
 function sleep( millis )
 {//{{{
@@ -800,7 +802,6 @@ async function monitor()
   client = await CDP();
 
   const { Network, Page, DOM, Input } = client;
-
   
   async function watchdog(cb)
   {//{{{
@@ -2039,23 +2040,25 @@ async function preload( f )
 }//}}}
 
 async function normalize( f )
-{
+{//{{{
   let j = read_map_from_file( f );
   let r = normalize_j_history( j );
   if ( r !== undefined ) {
     write_map_to_file( f, f, r );
   }
   return Promise.resolve(true);
-}
+}//}}}
 
 function congress_panel_text_hdrfix( panel_info_text, text_headers )
 {//{{{
-  console.log( "Fixing headers in this", inspect( panel_info_text ) );
   // Fix keys in .text collected using naive token pairing.
   // Serialize elements, and then tokenize + restructure.
   let tokens = new Array;
   let revised = new Map;
   let pairkey, pairval, e_undef;
+
+  if (0) console.log( "Fixing headers in this", inspect( panel_info_text ) );
+
   panel_info_text.forEach((v,k) => {
     tokens.push(k);
     tokens.push(v);
@@ -2083,7 +2086,7 @@ function congress_panel_text_hdrfix( panel_info_text, text_headers )
       pairval = e_undef;
     }
     else { 
-      console.log( "Floof", inspect( { r: tokens.length, k : pairkey, v: pairval, t : t}, default_insp ) );
+      if (0) console.log( "Floof", inspect( { r: tokens.length, k : pairkey, v: pairval, t : t}, default_insp ) );
       if ( tokens.length == 0 && t.length > 0 ) {
         let kv = t.split(":");
         let k = (kv[0] || '').trim();
@@ -2101,13 +2104,44 @@ function congress_panel_text_hdrfix( panel_info_text, text_headers )
         panel_info_text.set( k, revised.get(k) );
     });
   }
-  console.log( "Repaired as", inspect( revised, default_insp ) );
+  if (0) console.log( "Repaired as", inspect( revised, default_insp ) );
+}//}}}
+
+function panel_info_text_check( panel_info, text_headers, text_headers_master )
+{//{{{
+  if ( panel_info.text !== undefined ) {
+    // Keep unique document .text map keys
+    let broken_headers = false;
+    panel_info.text.forEach((v,k) => {
+      let th;
+      if ( !text_headers.has( k ) ) {
+        if ( text_headers_master ) {
+          broken_headers = true;
+        }
+        else {
+          text_headers.set( k, 0 );
+        }
+      }
+      if ( !text_headers_master ) {
+        th = text_headers.get( k );
+        th++;
+        text_headers.set( k, th );
+      }
+    });
+
+    if ( broken_headers ) {
+      congress_panel_text_hdrfix( panel_info.text, text_headers )
+    }
+  }
 }//}}}
 
 async function congress_record_fe_panelinfo( f, p )
 {
   let pm = read_map_from_file( f );
   let parse_error = false;
+
+  panel_info_text_check( pm, p.text_headers, true );
+
   try {
     let congress_basedoc_id = pm.id.replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2');
     let congress_basedoc = await p.congress_basedoc
@@ -2119,7 +2153,22 @@ async function congress_record_fe_panelinfo( f, p )
 
     // Create missing document record
     if ( r.length == 0 ) {
-      let title_full = pm.text.get('Full Title, As Filed') || '';
+      let title_full_raw = Buffer.from(pm.text.get('Full Title, As Filed') || '', 'utf8');
+      let title_full_hex = title_full_raw.toString('hex').replace(/([a-f0-9]{2})/g,"$1 ");
+      let title_full_buf = Buffer.from(title_full_hex
+        .replace(/e2 82 b1/g,'50') // Philippine peso
+        .replace(/ea 9e 8c/g,'27') // apostrophe
+        .replace(/c4 94/g,'c389') // EACCENT in ATTACH[E]
+        .replace(/c5 87/g,'c391') // NTILDE
+        .replace(/c5 83/g,'c391') // NTILDE
+        .replace(/c8 98/,'c59e') // S with cedilla
+        .replace(/\\n/g,' ')
+        .replace(/ */g,'')
+        //.replace(/efbfbd/g,'c391') // NTILDE
+        ,
+        'hex'
+      );
+      let title_full = title_full_buf.toString('utf8');
       if ( title_full.length > 0 ) {
         let congress_n = parseInt(congress_basedoc_id.replace(/^([^-]{1,})-([0-9]*)/,"$2") || 0);
         r = await p.congress_basedoc
@@ -2140,6 +2189,13 @@ async function congress_record_fe_panelinfo( f, p )
           });
         }
       }
+      else {
+        console.log( 
+          "Empty full title for %s",
+          congress_basedoc_id,
+          inspect(pm, default_insp)
+        );
+      }
     }
     else {
       if (0) r.forEach((e) => {
@@ -2148,17 +2204,32 @@ async function congress_record_fe_panelinfo( f, p )
     }
   }
   catch (e) {
+    console.log( "------------" );
     console.log( "Unparseable %s", 
       f,
       e.info ? e.info.msg : e,
-      inspect({ title_full : pm.text.get('Full Title, As Filed') }, default_insp)
+      inspect(
+        { title_full : pm.text.get('Full Title, As Filed') },
+        default_insp
+      )
     );
     parse_error = true;
   }
 
   if ( parse_error ) {
-    let tb = new Buffer(pm.text.get('Full Title, As Filed'),'latin1');
-    console.log("Transcoded", tb.toString('utf8'));
+    let tb = Buffer.from(pm.text.get('Full Title, As Filed'),'utf8');
+    let tc = Buffer.from( tb.toString('hex')
+        .replace(/e282b1/g,'50') // Philippine peso
+        .replace(/ea9e8c/g,'27') // apostrophe
+        .replace(/c494/g,'c389') // EACCENT in ATTACH[E]
+        .replace(/c587/g,'c391') // NTILDE
+        .replace(/c583/g,'c391') // NTILDE
+        .replace(/\\n/g,' ')
+        //.replace(/efbfbd/g,'c391') // NTILDE
+      ,
+      'hex'
+    );
+    console.log("Transcoded", tc.toString('utf8') );
   }
   return Promise.resolve(pm);
 }
@@ -2206,7 +2277,7 @@ async function traverse()
       url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
       joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
     }
-    console.log( "Check", typeof ingest_paramset, inspect(ingest_paramset, default_insp) );
+    if (0) console.log( "Check", typeof ingest_paramset, inspect(ingest_paramset, default_insp) );
     console.log( "Locate %d files in '%s'", dh.length, fn );
     while ( dh.length > 0 ) {
       let dirent = dh.shift();
@@ -2249,30 +2320,7 @@ async function traverse()
             suffix = panel_files.length;
           }
 
-          if ( panel_info.text !== undefined ) {
-            // Keep unique document .text map keys
-            let broken_headers = false;
-            panel_info.text.forEach((v,k) => {
-              let th;
-              if ( !text_headers.has( k ) ) {
-                if ( text_headers_master ) {
-                  broken_headers = true;
-                }
-                else {
-                  text_headers.set( k, 0 );
-                }
-              }
-              if ( !text_headers_master ) {
-                th = text_headers.get( k );
-                th++;
-                text_headers.set( k, th );
-              }
-            });
-
-            if ( broken_headers ) {
-              congress_panel_text_hdrfix( panel_info.text, text_headers )
-            }
-          }
+          panel_info_text_check( panel_info, text_headers, text_headers_master );
 
           // Write to EXTRACTED/
           panel_filename = [ panel_id ];

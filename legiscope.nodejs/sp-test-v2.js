@@ -537,7 +537,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     // We were passed a node tree - either the root or (possibly) 
     // the nm.content Map of a non-root node.
     // If nodeId is undefined, then we have received the root 
-    // node container; otherwise, nodeId identifies an instance
+    // node container; otherwise, nodeId identifies an abbreviated node instance
     // containing Map nm as .content.
     let ka = new Array;
     nm.forEach((v, k, m) => {ka.push(k);});
@@ -545,7 +545,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       let k = ka.shift();
       if (envSet("INORDER_TRAVERSAL","1")) console.log( "@root %d[%d]", k, d ); 
       if ( nm.has( k ) ) {
-        nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k));
+        nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k,parentId));
       }
       if ( exception_abort ) break;
     }
@@ -583,7 +583,10 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       while ( ka.length > 0 ) {
         let k = ka.shift();
         let n = nm.content.get(k);
+        let traversal_parent = sp.traversal_parent;
+        sp.traversal_parent = nm;
         let rv = await inorder_traversal(sp,n,d+1,cb,cb_param,k,nodeId);
+        sp.traversal_parent = traversal_parent;
         if ( rv === undefined ) {
           nm.content.delete(k);
         }
@@ -727,7 +730,7 @@ async function treeify( t )
   inorder_traversal_previsit = true;
   inorder_traversal_postvisit = false;
    await inorder_traversal(
-    { branchpat : branchpat },
+    { branchpat : branchpat, traversal_parent : null },
     tempmap, -1,
     treeify_cb,
     { source_map: t }
@@ -737,7 +740,7 @@ async function treeify( t )
   inorder_traversal_previsit = false;
   inorder_traversal_postvisit = true;
   await inorder_traversal(
-    { branchpat : branchpat },
+    { branchpat : branchpat, traversal_parent : null },
     tempmap, -1,
     prune_cb,
     { source_map: t }
@@ -797,7 +800,6 @@ async function monitor()
   let depth          = 0;
   let rootnode       = 0;
   let completed      = false;
-  let triggerable    = -1;
 
   client = await CDP();
 
@@ -1040,6 +1042,8 @@ async function monitor()
 
   async function congress_prune_panel_cb( sp, nm, p, node_id, d )
   {//{{{
+    // Invoked by: 
+    // - congress_extract_history_panel
     if ( nm.isLeaf ) {
       try {
         if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "- Removing %d", node_id );
@@ -1055,7 +1059,10 @@ async function monitor()
 
   async function congress_extract_history_panel( sp, nm, p, node_id, d )
   {//{{{
+    // Extract bill information from markup AFTER returning 'up' the
+    // DOM tree, and after finding a child node that contains [History] links.
     if ( p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ) ) {
+
       let extracted_info = {
         id       : null,
         links    : new Map,
@@ -1070,7 +1077,7 @@ async function monitor()
         );
       }
       await inorder_traversal(
-        { branchpat : local_sp },
+        { branchpat : local_sp, traversal_parent : null },
         nm,
         -1,
         congress_billres_extract_cb,
@@ -1080,15 +1087,19 @@ async function monitor()
       let ka = new Array;
       let document_id = extracted_info.id.replace(/^\#/,'');
       extracted_info.text.forEach((v,k,m) => { ka.push(k); });
-      // Cannot use mapify_attributes owing to inconsistencies in formatting
-      write_map_to_file(
-        extracted_info.id, 
-        "paneltexts.json",
-        extracted_info.text,
-        file_ts,
-        document_id
-      );
 
+      if (envSet("CONGRESS_BILLRES_SAVE_PANELTEXTS","1")) {
+        // Cannot use mapify_attributes owing to inconsistencies in formatting
+        write_map_to_file(
+          extracted_info.id, 
+          "paneltexts.json",
+          extracted_info.text,
+          file_ts,
+          document_id
+        );
+      }
+
+      // Construct .text section of bill panel markup data
       while ( ka.length > 0 ) {
         let k = ka.shift();
         let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
@@ -1107,6 +1118,10 @@ async function monitor()
         extracted_info.text.set( k_str, v_str );
         extracted_info.text.delete(k);
       }
+      if ( p.text_headers !== undefined && p.text_headers.size > 1 ) {
+        congress_panel_text_hdrfix( extracted_info.text, p.text_headers );
+      }
+
       extracted_info.text.forEach((v,k,m) => {
         if ( !p.textkeys.has(k) )
           p.textkeys.set(k,1);
@@ -1117,9 +1132,10 @@ async function monitor()
         }
       });
       ka.sort((a,b) => {return a - b;});
+
       // Remove branch and all leaves from frontend DOM
       await inorder_traversal(
-        { branchpat : local_sp },
+        { branchpat : local_sp, traversal_parent : null },
         nm,
         -1,
         congress_prune_panel_cb,
@@ -1146,7 +1162,7 @@ async function monitor()
         inorder_traversal_previsit = false;
         inorder_traversal_postvisit = true;
         await inorder_traversal(
-          { branchpat : branchpat },
+          { branchpat : branchpat, traversal_parent : null },
           history_p, -1,
           stack_markup,
           { markup_a : markup_a }
@@ -1159,14 +1175,21 @@ async function monitor()
         final_data_raw.history = p.flattened;
       }
       extracted_info.links.delete('[History]');
-      let final_data = normalize_j_history( final_data_raw );
-      write_map_to_file(
-        extracted_info.id, 
-        "panels.json",
-        final_data,
-        file_ts,
-        document_id
-      );
+      if ( p.skip_live_fetch ) {
+        console.log( "Omitting panels.json write for %s", p.found_data_id );
+        p.found_data_id = null;
+        p.skip_live_fetch = null;
+      }
+      else {
+        let final_data = normalize_j_history( final_data_raw );
+        write_map_to_file(
+          extracted_info.id, 
+          "panels.json",
+          final_data,
+          file_ts,
+          document_id
+        );
+      }
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
         inspect(final_data, default_insp)
       );
@@ -1176,11 +1199,12 @@ async function monitor()
       p.flattened.clear();
       rr_map.clear();
     }
-
   }//}}}
 
   async function congress_billres_extract_cb( sp, nm, p, node_id, d )
   {//{{{
+    // Invoked by:
+    // - inorder_traversal: congress_extract_history_panel 
     if ( nm.nodeName == 'A' ) {
       let link = nm.attributes.has('href') 
         ? nm.attributes.get('href')
@@ -1203,6 +1227,7 @@ async function monitor()
             let label = child_node.content.trim();
             p.links.set( label, { url : link, data_id : linkid } /* link */ );
             if ( linkid ) {
+              // Check whether this non-empty ID is found in the database
               p.id = linkid;
             }
             if ( !p.text.has( e ) )
@@ -1286,7 +1311,7 @@ async function monitor()
 
     trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
 
-    if ( triggerable != 0 ) {
+    if ( p.triggerable != 0 ) {
 
       if ( nm.nodeName == '#text' && nm.content == '[History]' ) {
 
@@ -1298,7 +1323,7 @@ async function monitor()
 
         try {
 
-          triggerable--;
+          p.triggerable--;
           await traverse_to( node_id, nm );
 
         }
@@ -1382,132 +1407,171 @@ async function monitor()
 
     trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
 
-    if ( triggerable != 0 ) {//{{{
+    if ( p.triggerable != 0 ) {//{{{
+
+      if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) {
+        let href = nm.attributes.get('href') || '';
+        if ( href == '#HistoryModal' ) {
+          let linkid = nm.attributes.has('data-id')
+            ? (nm.attributes.get('data-id') || '')
+            .replace(/[^A-Z0-9#-]/g,'')
+            .replace(/([A-Z0-9#-]{1,32})/,'$1')
+            .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
+            .trim()
+            : null
+          ;
+          if ( linkid ) {
+            console.log( "Storing link %s", linkid );
+            p.found_data_id = linkid;
+          }
+        }
+      }
 
       if ( nm.nodeName == '#text' && nm.content == '[History]' ) {//{{{
 
         // Indicates that we've found a [History] trigger in
         // a child node, so that the triggering tag and surrounding
         // siblings can be captured post-traversal.
+
+        // FIXME:  Perform database lookup HERE, before 
+        // an XHR for document history markup is triggered
+        // Referencing p.id works where this #text node is a 
+        // DOM child of the anchor tag.
+
+        let linkid = p.found_data_id;
+        let congress_basedoc = await p.congress_basedoc
+          .select(['id','create_time','congress_n','sn','title_full'])
+          .where("sn = :sn")
+          .bind("sn",linkid)
+          .execute();
+        let r = await congress_basedoc.fetchAll();
+
+        // Method congress_extract_history_panel uses p.hit_depth to
+        // 'gate' further markup processing (including deletion of DOM nodes) 
         p.child_hits++;
         p.hit_depth = d;
 
-        try {
+        if ( r.length > 0 ) {
+          console.log( "Skipping live fetch of %s", linkid, inspect(r, default_insp) );
+          p.skip_live_fetch = p.found_data_id;
+        }
+        else {
 
-          triggerable--;
-          append_buffer_to_rr_map = 0;
+          console.log( 'Live fetch %s', p.found_data_id, inspect(r, default_insp) );
 
-          await clickon_node( node_id, nm );
+          try {
 
-          if ( append_buffer_to_rr_map > 0 ) {
-            let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
-            let markup;
-            await setup_dom_fetch( append_buffer_to_rr_map );
-            await sleep(1000);
+            p.triggerable--;
+            append_buffer_to_rr_map = 0;
 
-            // Climb the popup container tree
-            if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {
-              let dp = p.lookup_tree.get( append_buffer_to_rr_map );
-              let cka = new Array;
-              if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
-                append_buffer_to_rr_map
-              );
-              dp.content.forEach((v,ck,map) => {
-                cka.push(ck);
-              });
-              while ( cka.length > 0 ) {
-                let ck = cka.shift();
-                if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
-                await setup_dom_fetch( ck, append_buffer_to_rr_map );
+            await clickon_node( node_id, nm );
+
+            if ( append_buffer_to_rr_map > 0 ) {
+              let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
+              let markup;
+              await setup_dom_fetch( append_buffer_to_rr_map );
+              await sleep(1000);
+
+              // Climb the popup container tree
+              if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
+                let dp = p.lookup_tree.get( append_buffer_to_rr_map );
+                let cka = new Array;
+                if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
+                  append_buffer_to_rr_map
+                );
+                dp.content.forEach((v,ck,map) => {
+                  cka.push(ck);
+                });
+                while ( cka.length > 0 ) {
+                  let ck = cka.shift();
+                  if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
+                  await setup_dom_fetch( ck, append_buffer_to_rr_map );
+                }
+                // Decompose the dialog container to get at 
+                // the good bits: The Close button and link text.
+                let dialog_motif = new Array;
+                await inorder_traversal(
+                  { branchpat  : dialog_motif, traversal_parent : null },
+                  dp,
+                  -1,
+                  flatten_dialog_container,
+                  p
+                );
+                if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
+                  append_buffer_to_rr_map,
+                  inspect(dp,default_insp),
+                );
+              }//}}}
+              else {
+                console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
               }
-              // Decompose the dialog container to get at 
-              // the good bits: The Close button and link text.
-              let dialog_motif = new Array;
+              await sleep(500);
+              markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
+              console.log( "TRIGGERED FETCH %s INTO %s %d", 
+                xhr_fetch_rr,
+                p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
+                append_buffer_to_rr_map,
+                envSet("VERBOSE","1") ? markup : '',
+                envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
+                nodes_seen.size
+              );
+              await sleep(500);
+              await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
+
+              if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
+
+              if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file( "Fragment", "trie.txt", 
+                nodes_seen,
+                file_ts,
+                p.n
+              );
+              p.n++;
+
+              p.flattened.clear();
               await inorder_traversal(
-                {
-                  branchpat : dialog_motif 
-                },
-                dp,
+                { branchpat : new Array, traversal_parent : nm },
+                nodes_seen,
                 -1,
-                flatten_dialog_container,
+                flatten_container,
                 p
               );
-              if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
-                append_buffer_to_rr_map,
-                inspect(dp,default_insp),
-              );
+              p.flattened = return_sorted_map( p.flattened );
+
+              if ( p.closer_node > 0 ) {
+                console.log( "Closing modal using event on %d", p.closer_node );
+                await clickon_node( p.closer_node, nm );
+              }
+
+              if ( rr_map.has( xhr_fetch_rr ) ) {
+                let rr_entry = rr_map.get( xhr_fetch_rr );
+                rr_entry.markup = p.flattened;
+                rr_map.set( xhr_fetch_rr, rr_entry );
+              }
+
+              if ( p.closer_node == 0 ) {
+                console.log( "Input needed: Close dialog in 10s" );
+              }
+              await sleep(5000);
             }
-            else {
-              console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
-            }
-            await sleep(500);
-            markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
-            console.log( "TRIGGERED FETCH %s INTO %s %d", 
-              xhr_fetch_rr,
-              p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
-              append_buffer_to_rr_map,
-              envSet("VERBOSE","1") ? markup : '',
-              envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
-              nodes_seen.size
-            );
-            await sleep(500);
-            await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
-
-            if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
-
-            if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file( "Fragment", "trie.txt", 
-              nodes_seen,
-              file_ts,
-              p.n
-            );
-            p.n++;
-
-            p.flattened.clear();
-            await inorder_traversal(
-              {
-                branchpat : new Array 
-              },
-              nodes_seen,
-              -1,
-              flatten_container,
-              p
-            );
-            p.flattened = return_sorted_map( p.flattened );
-
-            if ( p.closer_node > 0 ) {
-              console.log( "Closing modal using event on %d", p.closer_node );
-              await clickon_node( p.closer_node, nm );
-            }
-
-            if ( rr_map.has( xhr_fetch_rr ) ) {
-              let rr_entry = rr_map.get( xhr_fetch_rr );
-              rr_entry.markup = p.flattened;
-              rr_map.set( xhr_fetch_rr, rr_entry );
-            }
-
-            if ( p.closer_node == 0 ) {
-              console.log( "Input needed: Close dialog in 10s" );
-            }
-            await sleep(5000);
+            nodes_seen.clear();
           }
-          nodes_seen.clear();
-        }
-        catch(e) {
-          console.log("Exception at depth %d", 
-            d, 
-            nm.nodeName, 
-            e && e.request !== undefined ? e.request : e, 
-            e && e.response !== undefined ? e.response : e, 
-            inspect(nm, default_insp)
-          );
-          exception_abort = true;
+          catch(e) {
+            console.log("Exception at depth %d", 
+              d, 
+              nm.nodeName, 
+              e && e.request !== undefined ? e.request : e, 
+              e && e.response !== undefined ? e.response : e, 
+              inspect(nm, default_insp)
+            );
+            exception_abort = true;
+          }
         }
         // if ( nm.nodeName == '#text' && nm.content == '[History]' )
       }//}}}
       else if ( p.child_hits > 0 ) {
         await congress_extract_history_panel( sp, nm, p, node_id, d );
       }
-      // triggerable != 0
+      // p.triggerable != 0
     }//}}}
 
     rr_mark = hrtime.bigint();
@@ -1667,6 +1731,7 @@ async function monitor()
   {//{{{
     // Chew up, digest, dump, and clear captured nodes.
     file_ts = datestring( cycle_date );
+    let text_headers;
     if ( step == 0 ) {
 
       if ( nodes_seen.size > 0 ) {
@@ -1692,6 +1757,14 @@ async function monitor()
         }
 
         console.log( "TIME: TRANSFORM", rr_time_delta() );
+
+        // Load any existing text section table headers
+        if ( existsSync( "textsections.json" ) ) {
+          text_headers = read_map_from_file( "textsections.json" );
+          text_headers.forEach((v,k) => { v = 0; });
+          console.log( "Loaded text sections master", inspect( text_headers, default_insp ) );
+        }
+
 
         // Copy into lookup_tree before reducing to tree
         nodes_seen.forEach((v,key,map) => {
@@ -1727,27 +1800,36 @@ async function monitor()
         });
 
         let textkeys = new Map;
+        let s = await setup_db();
+        let traversal_paramset = { // 'p' traversal data passed to inorder_traversal callback
+          tagstack     : tagstack, // Retains tag counts at depth d
+          motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
+          lookup_tree  : lookup_tree, // Flat Map of document nodes 
+          dialog_nodes : new Map,
+          closer_node  : 0, // nodeId
+          child_hits   : 0, // Count of 'interesting' nodes in children
+          hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
+          triggerable  : -1, // DEBUG: Limit number of elements traversed
+          flattened    : new Map, // Stores History markup tree
+          textkeys     : textkeys, // Stores bill history dictionary 
+          text_headers : text_headers, // .text map lookup table, if available
+          n            : 0,
+          // Database lookup
+          found_data_id    : null,
+          skip_live_fetch  : null,
+          congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
+          url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
+          joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
+        };
+
         await inorder_traversal( 
-          {
-            branchpat   : tagmotif
-          },
+          { branchpat  : tagmotif, traversal_parent : null },
           nodes_tree, 
           -1, 
           envSet("MODE","TRAVERSE") 
           ? trigger_page_traverse_cb
           : trigger_page_fetch_cb, 
-          {
-            tagstack     : tagstack, // Retains tag counts at depth d
-            motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
-            lookup_tree  : lookup_tree, // Flat Map of document nodes 
-            dialog_nodes : new Map,
-            closer_node  : 0,
-            child_hits   : 0, // Count of 'interesting' nodes in children
-            hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
-            flattened    : new Map, // Stores History markup tree
-            textkeys     : textkeys, // Stores bill history dictionary 
-            n            : 0
-          }
+          traversal_paramset 
         );
          
         postprocessing = 0;
@@ -2023,7 +2105,7 @@ async function preload( f )
     let markup_a = new Map;
 
     await inorder_traversal(
-      { branchpat : branchpat },
+      { branchpat : branchpat, traversal_parent : null },
       t, -1,
       stack_markup,
       { markup_a : markup_a }
@@ -2136,14 +2218,19 @@ function panel_info_text_check( panel_info, text_headers, text_headers_master )
 }//}}}
 
 async function congress_record_fe_panelinfo( f, p )
-{
+{//{{{
   let pm = read_map_from_file( f );
   let parse_error = false;
 
   panel_info_text_check( pm, p.text_headers, true );
 
   try {
-    let congress_basedoc_id = pm.id.replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2');
+    // REVIEW: Sanitize page inputs, there are human-encoded entries which contain unexpected, non-alphanumerics.
+    let congress_basedoc_id = pm.id
+      .replace(/[^A-Z0-9#-]/g,'')
+      .replace(/([A-Z0-9#-]{1,32})/,'$1')
+      .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
+      .trim();
     let congress_basedoc = await p.congress_basedoc
       .select(['id','create_time','congress_n','sn','title_full'])
       .where("sn = :sn")
@@ -2161,10 +2248,12 @@ async function congress_record_fe_panelinfo( f, p )
         .replace(/c4 94/g,'c389') // EACCENT in ATTACH[E]
         .replace(/c5 87/g,'c391') // NTILDE
         .replace(/c5 83/g,'c391') // NTILDE
+        .replace(/ef bf bd/g,'c391') // NTILDE
         .replace(/c8 98/,'c59e') // S with cedilla
+        .replace(/e2 80 b3/,'22')
+        .replace(/e2 80 9c/,'22')
         .replace(/\\n/g,' ')
         .replace(/ */g,'')
-        //.replace(/efbfbd/g,'c391') // NTILDE
         ,
         'hex'
       );
@@ -2196,6 +2285,7 @@ async function congress_record_fe_panelinfo( f, p )
           inspect(pm, default_insp)
         );
       }
+      await sleep(1);
     }
     else {
       if (0) r.forEach((e) => {
@@ -2224,19 +2314,17 @@ async function congress_record_fe_panelinfo( f, p )
         .replace(/c494/g,'c389') // EACCENT in ATTACH[E]
         .replace(/c587/g,'c391') // NTILDE
         .replace(/c583/g,'c391') // NTILDE
+        .replace(/ef bf bd/g,'c391') // NTILDE
+        .replace(/e2 80 b3/,'22')
+        .replace(/e2 80 9c/,'22')
         .replace(/\\n/g,' ')
-        //.replace(/efbfbd/g,'c391') // NTILDE
       ,
       'hex'
     );
     console.log("Transcoded", tc.toString('utf8') );
   }
   return Promise.resolve(pm);
-}
-
-async function check_enye()
-{
-}
+}//}}}
 
 async function traverse()
 {//{{{
@@ -2247,6 +2335,7 @@ async function traverse()
   let text_headers = new Map;
   let text_headers_master = false;
   let history_headers = new Map;
+  let files_processed = 0;
 
   if ( ss === undefined ) {
     console.log( "No such file or directory '%s'", fn );
@@ -2290,10 +2379,9 @@ async function traverse()
 
       let f = [ dirent.parentPath, dirent.name ].join('/');
 
-      if ( /^INGEST/.test( dirent.parentPath ) && /\.json$/.test( dirent.name ) ) {
+      if ( ( /^INGEST/.test( dirent.parentPath ) || /^HOLDING/.test( dirent.parentPath )) && /\.json$/.test( dirent.name ) ) {
         try { 
           let ingest_record = await congress_record_fe_panelinfo( f, ingest_paramset );
-          // console.log( "Record %s from %s", ingest_record.id, f );
         }
         catch (e) {
           console.log( "Skip %s", f, e );
@@ -2438,5 +2526,4 @@ if ( envSet("ACTIVE_MONITOR","1") ) {
 if ( envSet("PARSE","1") ) {
   //ingest_panels();
   traverse();
-  //check_enye();
 }

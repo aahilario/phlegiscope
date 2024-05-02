@@ -1175,10 +1175,8 @@ async function monitor()
         final_data_raw.history = p.flattened;
       }
       extracted_info.links.delete('[History]');
-      if ( p.skip_live_fetch ) {
+      if ( p.found_data_id ) {
         console.log( "Omitting panels.json write for %s", p.found_data_id );
-        p.found_data_id = null;
-        p.skip_live_fetch = null;
       }
       else {
         let final_data = normalize_j_history( final_data_raw );
@@ -1190,6 +1188,7 @@ async function monitor()
           document_id
         );
       }
+
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
         inspect(final_data, default_insp)
       );
@@ -1410,6 +1409,13 @@ async function monitor()
     if ( p.triggerable != 0 ) {//{{{
 
       if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) {
+
+        // Perform database lookup done here, before 
+        // an XHR for document history markup is triggered.
+        // Referencing p.id works where, as in the case of 
+        // The Philippines Congress, this #text node is a 
+        // DOM child of the anchor tag.
+
         let href = nm.attributes.get('href') || '';
         if ( href == '#HistoryModal' ) {
           let linkid = nm.attributes.has('data-id')
@@ -1420,9 +1426,19 @@ async function monitor()
             .trim()
             : null
           ;
+          p.found_data_id = null;
           if ( linkid ) {
-            console.log( "Storing link %s", linkid );
-            p.found_data_id = linkid;
+            let congress_basedoc = await p.congress_basedoc
+              .select(['id','create_time','congress_n','sn','title_full'])
+              .where("sn = :sn")
+              .bind("sn",linkid)
+              .execute();
+            let r = await congress_basedoc.fetchAll();
+            if ( r.length > 0 ) {
+              console.log( "Found stored %s", linkid );
+              p.found_data_id = linkid;
+            }
+            await sleep(10);
           }
         }
       }
@@ -1433,31 +1449,18 @@ async function monitor()
         // a child node, so that the triggering tag and surrounding
         // siblings can be captured post-traversal.
 
-        // FIXME:  Perform database lookup HERE, before 
-        // an XHR for document history markup is triggered
-        // Referencing p.id works where this #text node is a 
-        // DOM child of the anchor tag.
-
-        let linkid = p.found_data_id;
-        let congress_basedoc = await p.congress_basedoc
-          .select(['id','create_time','congress_n','sn','title_full'])
-          .where("sn = :sn")
-          .bind("sn",linkid)
-          .execute();
-        let r = await congress_basedoc.fetchAll();
-
         // Method congress_extract_history_panel uses p.hit_depth to
         // 'gate' further markup processing (including deletion of DOM nodes) 
+
         p.child_hits++;
         p.hit_depth = d;
 
-        if ( r.length > 0 ) {
-          console.log( "Skipping live fetch of %s", linkid, inspect(r, default_insp) );
-          p.skip_live_fetch = p.found_data_id;
+        if ( p.found_data_id ) {
+          console.log( "Skipping live fetch of %s", p.found_data_id );
         }
         else {
 
-          console.log( 'Live fetch %s', p.found_data_id, inspect(r, default_insp) );
+          console.log( 'Live fetch %s', p.found_data_id );
 
           try {
 
@@ -1816,7 +1819,6 @@ async function monitor()
           n            : 0,
           // Database lookup
           found_data_id    : null,
-          skip_live_fetch  : null,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
           joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
@@ -2258,6 +2260,10 @@ async function congress_record_fe_panelinfo( f, p )
         'hex'
       );
       let title_full = title_full_buf.toString('utf8');
+
+      if ( title_full.length == 0 )
+        title_full = congress_basedoc_id;
+
       if ( title_full.length > 0 ) {
         let congress_n = parseInt(congress_basedoc_id.replace(/^([^-]{1,})-([0-9]*)/,"$2") || 0);
         r = await p.congress_basedoc

@@ -475,7 +475,7 @@ async function extract_hosts_from_urlarray( target_url, result )
   {//{{{
     // URLFIX
     // let g = normalizeUrl(result.shift()); // result.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
-    let g = result.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
+    let g = result.shift().replace(/\/\.\.\//g,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
 
     if ( process.env.PERMIT_HTTP === undefined ) {
       let h = g.replace(/^http:/,'https:');
@@ -497,7 +497,7 @@ async function extract_hosts_from_urlarray( target_url, result )
       "Accept-Language"           : "en-US,en;q=0.5",
       "Accept-Encoding"           : "gzip, deflate, br",
       "Connection"                : "keep-alive",
-      "Referer"                   : target_url.replace(/\/\.\.\//,'/').replace(/\/$/,''),
+      "Referer"                   : target_url.replace(/\/\.\.\//g,'/').replace(/\/$/,''),
       "Cookie"                    : stringified_cookies( cookies ), 
       "Upgrade-Insecure-Requests" : 1,
       "Sec-Fetch-Dest"            : "document",
@@ -724,7 +724,7 @@ function recompute_filepaths_from_url(target)
     .replace(/[\/]{1,}/gi,'/') // Replace multiple forward-slashes to '/'
     .replace(/[\/]{1,}$/,'')   // Trim multiple trailing slashes
     .replace(/^[\/]{1,}/,'')   // Trim multile leading slashes
-    .replace(/\/\.\.\//,'/')   // Remove intervening double-dot components
+    .replace(/\/\.\.\//g,'/')   // Remove intervening double-dot components
     .replace(/[\/.]$/,'')      // Remove trailing slash-dot
     .split('/');
 
@@ -1212,7 +1212,7 @@ async function fetch_and_extract( initial_target, depth )
 
     while ( targets.length > 0 && depth_iterations < 10 ) {
 
-      let target = targets.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
+      let target = targets.shift().replace(/\/\.\.\//g,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
       let page_assets = new Map;
       let have_extracted_urls = false;
       let iteration_subjects;
@@ -1395,7 +1395,7 @@ async function fetch_and_extract( initial_target, depth )
           // Append all page asset URLs to the array of DOM-embedded URLs.
           page_assets.forEach( (headers, urlraw, map) => {
             // URLFIX
-            let url = urlraw.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
+            let url = urlraw.replace(/\/\.\.\//g,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,''); 
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d Adding %s", extractedUrls.length, urlraw );
             if ( (process.env['SILENT_PARSE'] === undefined) ) console.log("%d     as %s", extractedUrls.length, url );
             extractedUrls.push(url);
@@ -1438,7 +1438,7 @@ async function fetch_and_extract( initial_target, depth )
           step_targets = iteration_subjects.paths.size;
           iteration_subjects.paths.forEach((value, urlhere, map) => {
             // URLFIX
-            let key = urlhere.replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
+            let key = urlhere.replace(/\/\.\.\//g,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
             let content_type = value['headinfo']['content-type'] || 'text/html';
             if ( (!visited_pages.has( key ) || resweep) && /^text\/html.*/.test( content_type ) ) {
               console.log( "%s page scan to %s", recursive ? "Extending" : "Deferring", key );

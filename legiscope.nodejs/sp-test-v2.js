@@ -1427,6 +1427,7 @@ async function monitor()
             : null
           ;
           p.found_data_id = null;
+          p.missing_data_id = null;
           if ( linkid ) {
             let congress_basedoc = await p.congress_basedoc
               .select(['id','create_time','congress_n','sn','title_full'])
@@ -1437,6 +1438,9 @@ async function monitor()
             if ( r.length > 0 ) {
               console.log( "Found stored %s", linkid );
               p.found_data_id = linkid;
+            }
+            else {
+              p.missing_data_id = linkid;
             }
             await sleep(10);
           }
@@ -1460,7 +1464,7 @@ async function monitor()
         }
         else {
 
-          console.log( 'Live fetch %s', p.found_data_id );
+          console.log( 'Live fetch %s', p.missing_data_id );
 
           try {
 
@@ -1818,6 +1822,7 @@ async function monitor()
           text_headers : text_headers, // .text map lookup table, if available
           n            : 0,
           // Database lookup
+          missing_data_id  : null,
           found_data_id    : null,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
@@ -2219,10 +2224,32 @@ function panel_info_text_check( panel_info, text_headers, text_headers_master )
   }
 }//}}}
 
+function full_title_map_filter( m, f )
+{//{{{
+  let title_full_raw = Buffer.from(m.get(f) || '', 'utf8');
+  let title_full_hex = title_full_raw.toString('hex').replace(/([a-f0-9]{2})/g,"$1 ");
+  let title_full_buf = Buffer.from(title_full_hex
+    .replace(/e2 82 b1/g,'50') // Philippine peso
+    .replace(/ea 9e 8c/g,'27') // apostrophe
+    .replace(/c4 94/g,'c389') // EACCENT in ATTACH[E]
+    .replace(/c5 87/g,'c391') // NTILDE
+    .replace(/c5 83/g,'c391') // NTILDE
+    .replace(/cc 83/g,'c391') // NTILDE
+    .replace(/ef bf bd/g,'c391') // NTILDE
+    .replace(/c8 98/,'c59e') // S with cedilla
+    .replace(/e2 80 b3/,'22')
+    .replace(/e2 80 9c/,'22')
+    .replace(/\\n/g,' ')
+    .replace(/ */g,'')
+    ,
+    'hex'
+  );
+  return title_full_buf.toString('utf8');
+}//}}}
+
 async function congress_record_fe_panelinfo( f, p )
 {//{{{
   let pm = read_map_from_file( f );
-  let parse_error = false;
 
   panel_info_text_check( pm, p.text_headers, true );
 
@@ -2239,27 +2266,10 @@ async function congress_record_fe_panelinfo( f, p )
       .bind("sn",congress_basedoc_id)
       .execute();
     let r = await congress_basedoc.fetchAll();
+    let title_full = full_title_map_filter( pm.text, 'Full Title, As Filed' );
 
     // Create missing document record
     if ( r.length == 0 ) {
-      let title_full_raw = Buffer.from(pm.text.get('Full Title, As Filed') || '', 'utf8');
-      let title_full_hex = title_full_raw.toString('hex').replace(/([a-f0-9]{2})/g,"$1 ");
-      let title_full_buf = Buffer.from(title_full_hex
-        .replace(/e2 82 b1/g,'50') // Philippine peso
-        .replace(/ea 9e 8c/g,'27') // apostrophe
-        .replace(/c4 94/g,'c389') // EACCENT in ATTACH[E]
-        .replace(/c5 87/g,'c391') // NTILDE
-        .replace(/c5 83/g,'c391') // NTILDE
-        .replace(/ef bf bd/g,'c391') // NTILDE
-        .replace(/c8 98/,'c59e') // S with cedilla
-        .replace(/e2 80 b3/,'22')
-        .replace(/e2 80 9c/,'22')
-        .replace(/\\n/g,' ')
-        .replace(/ */g,'')
-        ,
-        'hex'
-      );
-      let title_full = title_full_buf.toString('utf8');
 
       if ( title_full.length == 0 )
         title_full = congress_basedoc_id;
@@ -2305,29 +2315,13 @@ async function congress_record_fe_panelinfo( f, p )
       f,
       e.info ? e.info.msg : e,
       inspect(
-        { title_full : pm.text.get('Full Title, As Filed') },
+        {
+          title_raw  : pm.text.get('Full Title, As Filed'),
+          title_full : title_full
+        },
         default_insp
       )
     );
-    parse_error = true;
-  }
-
-  if ( parse_error ) {
-    let tb = Buffer.from(pm.text.get('Full Title, As Filed'),'utf8');
-    let tc = Buffer.from( tb.toString('hex')
-        .replace(/e282b1/g,'50') // Philippine peso
-        .replace(/ea9e8c/g,'27') // apostrophe
-        .replace(/c494/g,'c389') // EACCENT in ATTACH[E]
-        .replace(/c587/g,'c391') // NTILDE
-        .replace(/c583/g,'c391') // NTILDE
-        .replace(/ef bf bd/g,'c391') // NTILDE
-        .replace(/e2 80 b3/,'22')
-        .replace(/e2 80 9c/,'22')
-        .replace(/\\n/g,' ')
-      ,
-      'hex'
-    );
-    console.log("Transcoded", tc.toString('utf8') );
   }
   return Promise.resolve(pm);
 }//}}}

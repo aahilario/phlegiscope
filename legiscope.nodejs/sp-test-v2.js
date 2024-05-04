@@ -979,6 +979,7 @@ function full_title_map_filter( m, f )
     .replace(/c5 83/g,'c391') // NTILDE
     .replace(/cc 83/g,'c391') // NTILDE
     .replace(/ef bf bd/g,'c391') // NTILDE
+    .replace(/e2 80 b2 e2 80 b2/g,'22') // Two apostrophes to double quote 
     .replace(/c8 98/,'c59e') // S with cedilla
     .replace(/e2 80 b3/,'22')
     .replace(/e2 80 9c/,'22')
@@ -993,6 +994,7 @@ function full_title_map_filter( m, f )
 async function congress_record_panelinfo( panel_info, p )
 {//{{{
   let undefined_res;
+  let title_full;
   panel_info_text_check( panel_info, p.text_headers, true );
 
   try {
@@ -1008,7 +1010,7 @@ async function congress_record_panelinfo( panel_info, p )
       .bind("sn",congress_basedoc_id)
       .execute();
     let r = await congress_basedoc.fetchAll();
-    let title_full = full_title_map_filter( panel_info.text, 'Full Title, As Filed' );
+    title_full = full_title_map_filter( panel_info.text, 'Full Title, As Filed' );
 
     // Create missing document record
     if ( r.length == 0 ) {
@@ -1054,7 +1056,7 @@ async function congress_record_panelinfo( panel_info, p )
   catch (e) {
     console.log( "------------" );
     console.log( "Unparseable %s", 
-      f,
+      panel_info.id,
       e.info ? e.info.msg : e,
       inspect(
         {
@@ -1868,7 +1870,7 @@ async function monitor()
               if ( p.closer_node == 0 ) {
                 console.log( "Input needed: Close dialog in 10s" );
               }
-              await sleep(5000);
+              await sleep(2500);
             }
             nodes_seen.clear();
           }
@@ -2420,7 +2422,7 @@ async function traverse()
       else if ( /panels-(.*)\.json/.test( dirent.name ) ) {//{{{
         // Live DOM page traversal will dump these panels-*.json files
         // if the database is not accessible, or when an error occurs
-        // (e.g. database connection timeout, or first database 
+        // (e.g. database connection timeout, or [TODO] first database 
         // INSERT error).
         let panel_info = await ingest_panels( f );
         if ( panel_info !== undefined ) {
@@ -2444,7 +2446,7 @@ async function traverse()
 
           panel_info_text_check( panel_info, text_headers, text_headers_master );
 
-          // Write to EXTRACTED/
+          // Write to EXTRACTED/ and INGEST/ directories
           panel_filename = [ panel_id ];
           if ( suffix !== undefined ) panel_filename.push( suffix );
           panel_filename = [ panel_filename.join('-'), 'json' ].join('.');
@@ -2453,7 +2455,7 @@ async function traverse()
             inspect(panel_info, default_insp)
           );
 
-          if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
+          if (0) if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
             envSet("INGEST_OVERWRITE","1") ) {
             write_map_to_file( 
               panel_filename, 
@@ -2464,6 +2466,21 @@ async function traverse()
           else {
             console.log("Not writing %s", panel_filename);
           }
+
+          if (1) if ( existsSync('INGEST') ) {
+            if ( !existsSync(['INGEST', panel_filename ].join('/')) || 
+              envSet("INGEST_OVERWRITE","1") ) {
+              write_map_to_file( 
+                panel_filename, 
+                ['INGEST', panel_filename ].join('/'),
+                panel_info
+              );
+            }
+            else {
+              console.log("Not writing %s", panel_filename);
+            }
+          }
+
         }
         else if ( existsSync(f) ) {
           let rawjson;
@@ -2504,7 +2521,7 @@ async function traverse()
       inspect( text_headers, default_insp )
     );
 
-    write_map_to_file( "Text section headers", 
+    if ( envSet("CONGRESS_RETAIN_RAWHDR","1") ) write_map_to_file( "Text section headers", 
       "EXTRACTED/textsections.json",
       text_headers
     );
@@ -2542,7 +2559,7 @@ async function traverse()
     });
 
     // Retain registry of duplicate sources
-    write_map_to_file( 
+    if ( envSet("CONGRESS_RETAIN_DUPLIST","1") ) write_map_to_file( 
       "Panel IDs", 
       "EXTRACTED/panels.json", 
       panel_ids

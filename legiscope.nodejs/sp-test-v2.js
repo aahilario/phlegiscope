@@ -105,6 +105,41 @@ async function setup_db()
   return Promise.resolve(db_session);
 }//}}}
 
+async function sqlexec_resultset( db, sql, bind_params )
+{//{{{
+  let resultset = new Array;
+  let resultmap = new Map;
+  let r = await db.sql( sql )
+    .bind( bind_params )
+    .execute(
+      (rowcursor) => {
+        // Providing this method consumes all result rows
+        resultmap.forEach((v,k) => {
+          let nv = rowcursor.shift();
+          resultmap.set( k, nv );
+        });
+        if (0) console.log( 
+          "rowcursor:", 
+          inspect(rowcursor, default_insp),
+          inspect(resultmap, default_insp)
+        );
+        resultset.push( resultmap );
+      },
+      (metadata) => {
+        metadata.forEach((c) => {
+          if (0) console.log( "metadata:",
+            c.getColumnName(), 
+            c.getColumnLabel(), 
+            inspect(c, default_insp),
+            inspect(resultmap, default_insp)
+          );
+          resultmap.set( c.getColumnLabel(), null );
+        });
+      }
+    );
+  return Promise.resolve(resultset);
+}//}}}
+
 function sleep( millis )
 {//{{{
   return new Promise((resolve) => {
@@ -1118,35 +1153,43 @@ async function congress_record_check_hist( f, p )
         .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
         .trim();
 
-      let sql = [ "SELECT" ,
-"d.id," ,
-"d.create_time d_ct," ,
-"d.congress_n," ,
-"d.sn," ,
-"d.title_full," ,
-"j.id dju," ,
-"j.create_time dju_ct," ,
-"j.update_time dju_ut," ,
-"j.url_raw," ,
-"u.id url_id," ,
-"u.create_time u_ct," ,
-"u.url," ,
-"u.urltext," ,
-"u.urlhash" ,
-"FROM congress_basedoc d" ,
-"LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc" ,
-"LEFT JOIN url_raw u ON j.url_raw = u.id" ,
-"WHERE d.sn = ?" ].join(' '); 
+      let sql = [
+        "SELECT",
+        "d.id,",
+        "d.create_time d_ct,",
+        "d.congress_n,",
+        "d.sn,",
+        "d.title_full,",
+        "j.id dju,",
+        "j.create_time dju_ct,",
+        "j.update_time dju_ut,",
+        "j.url_raw,",
+        "u.id url_id,",
+        "u.create_time u_ct,",
+        "u.url,",
+        "u.urltext,",
+        "u.urlhash",
+        "FROM congress_basedoc d",
+        "LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc",
+        "LEFT JOIN url_raw u ON j.url_raw = u.id",
+        "WHERE d.sn = ?" 
+      ].join(' '); 
 
-      console.log( "getSchema", inspect(p.db, default_insp) );
-      let r = await p.db.sql( sql )
-        .bind( congress_basedoc_id )
-        .execute();
+      let resultset = await sqlexec_resultset( p.db, sql, congress_basedoc_id );
 
-      let rr;
-      while ( rr = await r.fetchOne() ) {
-        console.log( "Res %s", congress_basedoc_id, inspect(rr, default_insp) );
-      }
+      //let rr;
+      console.log("Results[%d]",
+        resultset.length,
+        inspect(resultset, default_insp)
+      );
+      //while ( rr = await r.fetchOne() ) {
+      //  console.log( "Res %s", 
+      //    congress_basedoc_id, 
+      //    inspect(rr, default_insp),
+      //    inspect(resultmap, default_insp)
+      //  );
+      //}
+      console.log("Results Done");
 
       await congress_record_panelinfo( j, p );
     }

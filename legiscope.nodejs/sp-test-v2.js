@@ -1013,7 +1013,7 @@ async function congress_record_panelinfo( panel_info, p )
     title_full = full_title_map_filter( panel_info.text, 'Full Title, As Filed' );
 
     // Create missing document record
-    if ( r.length == 0 ) {
+    if ( r.length == 0 ) {//{{{
 
       if ( title_full.length == 0 )
         title_full = congress_basedoc_id;
@@ -1046,12 +1046,14 @@ async function congress_record_panelinfo( panel_info, p )
         );
       }
       await sleep(1);
-    }
+    }//}}}
     else {
-      if (0) r.forEach((e) => {
-        console.log( "Already have %s", congress_basedoc_id, inspect(e[0], default_insp) );
+      if (1) r.forEach((e) => {
+        console.log( "Already have %s", congress_basedoc_id, inspect(e, default_insp) );
       });
     }
+
+    // 
   }
   catch (e) {
     console.log( "------------" );
@@ -1097,6 +1099,60 @@ async function congress_record_fe_panelinfo( f, p )
 
   return Promise.resolve(panel_info);
 }//}}}
+
+async function congress_record_check_hist( f, p )
+{
+  let panel_info;
+  let j = read_map_from_file( f );
+  if ( j.history instanceof Map ) {
+    if ( j.history.size == 0 ) {
+      console.log( "Removable %s", j.id ? j.id : f, inspect(j.links, default_insp) );
+    }
+    else {
+      console.log( "Keep %s %s", j.id ? j.id : f, f, inspect(j.links, default_insp) );
+      panel_info = j; 
+
+      let congress_basedoc_id = panel_info.id
+        .replace(/[^A-Z0-9#-]/g,'')
+        .replace(/([A-Z0-9#-]{1,32})/,'$1')
+        .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
+        .trim();
+
+      let sql = [ "SELECT" ,
+"d.id," ,
+"d.create_time d_ct," ,
+"d.congress_n," ,
+"d.sn," ,
+"d.title_full," ,
+"j.id dju," ,
+"j.create_time dju_ct," ,
+"j.update_time dju_ut," ,
+"j.url_raw," ,
+"u.id url_id," ,
+"u.create_time u_ct," ,
+"u.url," ,
+"u.urltext," ,
+"u.urlhash" ,
+"FROM congress_basedoc d" ,
+"LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc" ,
+"LEFT JOIN url_raw u ON j.url_raw = u.id" ,
+"WHERE d.sn = ?" ].join(' '); 
+
+      console.log( "getSchema", inspect(p.db, default_insp) );
+      let r = await p.db.sql( sql )
+        .bind( congress_basedoc_id )
+        .execute();
+
+      let rr;
+      while ( rr = await r.fetchOne() ) {
+        console.log( "Res %s", congress_basedoc_id, inspect(rr, default_insp) );
+      }
+
+      await congress_record_panelinfo( j, p );
+    }
+  }
+  return panel_info;
+}
 
 async function monitor()
 {//{{{
@@ -1504,7 +1560,7 @@ async function monitor()
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
         inspect(final_data, default_insp)
       );
-      console.log( "---- MARK ----" );
+      console.log( "---- CYCLE DONE ----" );
       p.child_hits = 0;
       p.hit_depth = 0;
       p.flattened.clear();
@@ -2136,6 +2192,8 @@ async function monitor()
           // Database lookup
           missing_data_id  : null,
           found_data_id    : null,
+
+          db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
           joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
@@ -2381,23 +2439,26 @@ async function traverse()
     console.log( "Loaded text sections master", inspect( text_headers, default_insp ) );
   }
 
+  let s = await setup_db();
+  let ingest_paramset = {
+    text_headers     : text_headers,
+    db               : s,
+    congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
+    url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
+    joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
+  }
+
   if ( ss.isFile() ) {
     console.log( "Parse file '%s'", fn );
-    let panel_raw = await ingest_panels( fn );
-    let panel = normalize_j_history( panel_raw );
-    console.log( "Finalized panel", inspect( panel, default_insp ));
+    //let panel_raw = await ingest_panels( fn );
+    //let panel = normalize_j_history( panel_raw );
+    //console.log( "Finalized panel", inspect( panel, default_insp ));
+
+    result = await congress_record_check_hist( fn, ingest_paramset );
   }
 
   if ( ss.isDirectory() ) {
     let dh = readdirSync( fn, { withFileTypes: true, recursive: true } ); 
-    let s = await setup_db();
-    let ingest_paramset = {
-      text_headers     : text_headers,
-      db               : s,
-      congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
-      url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
-      joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
-    }
     if (0) console.log( "Check", typeof ingest_paramset, inspect(ingest_paramset, default_insp) );
     console.log( "Locate %d files in '%s'", dh.length, fn );
     while ( dh.length > 0 ) {
@@ -2412,8 +2473,22 @@ async function traverse()
       let f = [ dirent.parentPath, dirent.name ].join('/');
 
       if ( ( /^INGEST/.test( dirent.parentPath ) || /^HOLDING/.test( dirent.parentPath )) && /\.json$/.test( dirent.name ) ) {
+        let result;
         try { 
-          let ingest_record = await congress_record_fe_panelinfo( f, ingest_paramset );
+          switch ( process.env['PARSEMODE'] || '' ) { 
+            case "ingest":
+              result = await congress_record_fe_panelinfo( f, ingest_paramset );
+              if ( result !== undefined )
+                files_processed++;
+              break;
+            case "examine_history":
+              result = await congress_record_check_hist( f, ingest_paramset );
+              if ( result === undefined )
+                files_processed++;
+              break;
+            default:
+              break;
+          }
         }
         catch (e) {
           console.log( "Skip %s", f, e );
@@ -2429,6 +2504,8 @@ async function traverse()
           let panel_id = panel_info.id.replace(/^#/,'');
           let panel_filename;
           let suffix;
+
+          files_processed++;
 
           // Check for duplicates in this batch
           if ( !panel_ids.has( panel_id ) )
@@ -2499,11 +2576,13 @@ async function traverse()
           console.log( "Parse file '%s'", f );
           await preload( f );
           console.log('-----------');
+          files_processed++;
         }
       }
       else if ( /([^-]{1,})-([0-9-]{1,}).json/.test( dirent.name ) ) {
         if (envSet("NORMALIZE","1"))
           await normalize( f );
+          files_processed++;
       }
     }
 
@@ -2565,9 +2644,9 @@ async function traverse()
       panel_ids
     );
 
-    process.exit(0);
-
+    console.log( "Processed %d", files_processed );
   }
+  process.exit(0);
 }//}}}
 
 if ( envSet("ACTIVE_MONITOR","1") ) {
@@ -2575,6 +2654,5 @@ if ( envSet("ACTIVE_MONITOR","1") ) {
 }
 
 if ( envSet("PARSE","1") ) {
-  //ingest_panels();
   traverse();
 }

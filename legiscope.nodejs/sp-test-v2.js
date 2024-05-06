@@ -22,7 +22,7 @@ const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
-const default_insp = {showHidden: false, depth: null, colors: true};
+const default_insp = { showHidden: false, depth: null, colors: false };
 
 const mysqlx = require("@mysql/xdevapi");
 
@@ -113,17 +113,18 @@ async function sqlexec_resultset( db, sql, bind_params )
     .bind( bind_params )
     .execute(
       (rowcursor) => {
+        let lr = new Map;
         // Providing this method consumes all result rows
         resultmap.forEach((v,k) => {
           let nv = rowcursor.shift();
-          resultmap.set( k, nv );
+          lr.set( k, nv );
         });
         if (0) console.log( 
           "rowcursor:", 
           inspect(rowcursor, default_insp),
           inspect(resultmap, default_insp)
         );
-        resultset.push( resultmap );
+        resultset.push( lr );
       },
       (metadata) => {
         metadata.forEach((c) => {
@@ -1083,12 +1084,131 @@ async function congress_record_panelinfo( panel_info, p )
       await sleep(1);
     }//}}}
     else {
-      if (1) r.forEach((e) => {
+      if (0) r.forEach((e) => {
         console.log( "Already have %s", congress_basedoc_id, inspect(e, default_insp) );
       });
     }
 
-    // 
+    // Select full base document + url joins + urls 
+    let sql = [
+      "SELECT",
+      "d.id,",
+      "d.create_time d_ct,",
+      "d.congress_n,",
+      "d.sn,",
+      "d.title_full,",
+      "j.id dju,",
+      "j.create_time dju_ct,",
+      "j.update_time dju_ut,",
+      "j.url_raw,",
+      "u.id url_id,",
+      "u.create_time u_ct,",
+      "u.url,",
+      "u.urltext,",
+      "u.urlhash",
+      "FROM congress_basedoc d",
+      "LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc",
+      "LEFT JOIN url_raw u ON j.url_raw = u.id",
+      "WHERE d.sn = ?" 
+    ].join(' '); 
+
+    let resultset = await sqlexec_resultset( p.db, sql, congress_basedoc_id );
+
+    if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log("Results [%d]",
+      resultset.length,
+      inspect(panel_info, default_insp),
+      inspect(resultset, default_insp)
+    );
+
+    let urls_db = new Map;
+    let urls = new Map;
+
+    if ( panel_info.links !== undefined && panel_info.links.size > 0 ) {
+      panel_info.links.forEach((v,k,m) => {
+        urls.set( v.url, {
+          text: k,
+          id: null
+        });
+      });
+      if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Iter",  inspect(urls, default_insp) );
+    }
+
+    if ( resultset.length > 0 && urls.size > 0 ) {
+      // Find and match URLs returned from database.
+      // Check, update, and remove URLs from {urls} already stored in DB
+      let congress_basedoc_db_id;
+      resultset.forEach((r) => {
+        let db_url = r.get('url');
+        if ( congress_basedoc_db_id === undefined ) {
+          congress_basedoc_db_id = r.get('id');
+        }
+
+        if ( urls.has( db_url ) ) {
+          if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "- Already have URL %s", db_url );
+          urls.delete( db_url );
+        }
+        else {
+          if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "- Record %s", db_url ); 
+        }
+      });
+
+      if ( urls.size > 0 ) {
+
+        let urls_a = new Array;
+        urls.forEach(async (v,k) => { urls_a.push(k); }); 
+
+        while ( urls_a.length > 0 ) 
+        {
+          let k = urls_a.shift();
+          let v = urls.get( k );
+          let url_insert_result;
+          let hash = createHash('sha256');
+
+          hash.update(k);
+          try {
+            url_insert_result = await p.url_raw
+              .insert(['url', 'urltext', 'urlhash'])
+              .values([k    , v.text   , hash.digest('hex')])
+              .execute();
+            v.id = await url_insert_result.getAutoIncrementValue();
+            urls.set( k, v );
+            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Result of insert[%d]",
+              v.id,
+              await url_insert_result.getWarnings()
+            );
+          }
+          catch(e) {
+            console.log( "URL record insert error", inspect(e, default_insp) );
+          }
+
+          try {
+            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserting", inspect( join, default_insp ) );
+            let join_insert_result = await p.joins
+              .insert(['url_raw','congress_basedoc','edgeinfo'])
+              .values([v.id,congress_basedoc_db_id,'-'])
+              .execute();
+            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserted join #%d", await join_insert_result.getAutoIncrementValue() );
+          }
+          catch(e) {
+            console.log( "Join record insert error", inspect(e, default_insp) );
+          }
+        }
+        console.log("URLs to record: ", urls.size, inspect(urls, default_insp) );
+      }
+    }
+
+    // Iterate through the resultset, to determine which records need to be inserted
+    //let rr;
+    //while ( rr = await r.fetchOne() ) {
+    //  console.log( "Res %s", 
+    //    congress_basedoc_id, 
+    //    inspect(rr, default_insp),
+    //    inspect(resultmap, default_insp)
+    //  );
+    //}
+    //console.log("Results Done");
+
+
   }
   catch (e) {
     console.log( "------------" );
@@ -1140,58 +1260,13 @@ async function congress_record_check_hist( f, p )
   let panel_info;
   let j = read_map_from_file( f );
   if ( j.history instanceof Map ) {
-    if ( j.history.size == 0 ) {
-      console.log( "Removable %s", j.id ? j.id : f, inspect(j.links, default_insp) );
+    if ( j.history.size == 0 && j.links.size == 0 ) {
+      console.log( "Removable %s", j.id ? j.id : f );
     }
-    else {
-      console.log( "Keep %s %s", j.id ? j.id : f, f, inspect(j.links, default_insp) );
+    else if (1) {
       panel_info = j; 
-
-      let congress_basedoc_id = panel_info.id
-        .replace(/[^A-Z0-9#-]/g,'')
-        .replace(/([A-Z0-9#-]{1,32})/,'$1')
-        .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
-        .trim();
-
-      let sql = [
-        "SELECT",
-        "d.id,",
-        "d.create_time d_ct,",
-        "d.congress_n,",
-        "d.sn,",
-        "d.title_full,",
-        "j.id dju,",
-        "j.create_time dju_ct,",
-        "j.update_time dju_ut,",
-        "j.url_raw,",
-        "u.id url_id,",
-        "u.create_time u_ct,",
-        "u.url,",
-        "u.urltext,",
-        "u.urlhash",
-        "FROM congress_basedoc d",
-        "LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc",
-        "LEFT JOIN url_raw u ON j.url_raw = u.id",
-        "WHERE d.sn = ?" 
-      ].join(' '); 
-
-      let resultset = await sqlexec_resultset( p.db, sql, congress_basedoc_id );
-
-      //let rr;
-      console.log("Results[%d]",
-        resultset.length,
-        inspect(resultset, default_insp)
-      );
-      //while ( rr = await r.fetchOne() ) {
-      //  console.log( "Res %s", 
-      //    congress_basedoc_id, 
-      //    inspect(rr, default_insp),
-      //    inspect(resultmap, default_insp)
-      //  );
-      //}
-      console.log("Results Done");
-
-      await congress_record_panelinfo( j, p );
+      console.log( "Keep %s %s", panel_info.id ? panel_info.id : f, f );
+      await congress_record_panelinfo( panel_info, p );
     }
   }
   return panel_info;

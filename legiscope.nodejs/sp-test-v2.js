@@ -1256,7 +1256,7 @@ async function congress_record_fe_panelinfo( f, p )
 }//}}}
 
 async function congress_record_check_hist( f, p )
-{
+{//{{{
   let panel_info;
   let j = read_map_from_file( f );
   if ( j.history instanceof Map ) {
@@ -1270,7 +1270,7 @@ async function congress_record_check_hist( f, p )
     }
   }
   return panel_info;
-}
+}//}}}
 
 async function monitor()
 {//{{{
@@ -1468,18 +1468,23 @@ async function monitor()
       waiting_parent = parents_pending_children.shift();
       // The DOM.requestChildNodes call should result in
       // invocation of domSetChildNodes(p) within milliseconds.
-      let rq_result = await DOM.requestChildNodes({
-        nodeId : waiting_parent,
-        depth  : node_request_depth,
-        pierce : true
-      });
-      if ( envSet('TRIGGER_DOM_FETCH','1') || postprocessing == 1 ) {
-        console.log("requestChildNodes %d", 
-          waiting_parent, 
-          nodes_seen.has(waiting_parent), 
-          parents_pending_children.length,
-          rq_result
-        ); 
+      try {
+        let rq_result = await DOM.requestChildNodes({
+          nodeId : waiting_parent,
+          depth  : node_request_depth,
+          pierce : true
+        });
+        if ( envSet('TRIGGER_DOM_FETCH','1') || postprocessing == 1 ) {
+          console.log("requestChildNodes %d", 
+            waiting_parent, 
+            nodes_seen.has(waiting_parent), 
+            parents_pending_children.length,
+            rq_result
+          ); 
+        }
+      }
+      catch (e) {
+        console.log( "trigger_dom_fetch", inspect(e, default_insp) );
       }
       rr_mark = hrtime.bigint();
     }
@@ -1835,41 +1840,50 @@ async function monitor()
   async function clickon_node( node_id, nm )
   {//{{{
 
+    let result = false;
     let traversable = await traverse_to( node_id, nm );
     
     if ( traversable ) {
 
-      let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
-      let cx = (content[0] + content[2])/2;
-      let cy = (content[1] + content[5])/2;
+      try {
+        let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
+        let cx = (content[0] + content[2])/2;
+        let cy = (content[1] + content[5])/2;
 
-      await Input.dispatchMouseEvent({
-        type: "mouseMoved",
-        x: parseFloat(cx),
-        y: parseFloat(cy)
-      });
-      await sleep(300);
+        await Input.dispatchMouseEvent({
+          type: "mouseMoved",
+          x: parseFloat(cx),
+          y: parseFloat(cy)
+        });
+        await sleep(300);
 
-      console.log( "Click at (%d,%d)", cx, cy );
-      await Input.dispatchMouseEvent({
-        type: "mousePressed",
-        x: parseFloat(cx),
-        y: parseFloat(cy),
-        button: "left",
-        clickCount: 1
-      });
-      await sleep(10);
+        console.log( "Click at (%d,%d)", cx, cy );
+        await Input.dispatchMouseEvent({
+          type: "mousePressed",
+          x: parseFloat(cx),
+          y: parseFloat(cy),
+          button: "left",
+          clickCount: 1
+        });
+        await sleep(10);
 
-      console.log( "Release (%d,%d)", cx, cy );
-      await Input.dispatchMouseEvent({
-        type: "mouseReleased",
-        x: parseFloat(cx),
-        y: parseFloat(cy),
-        button: "left"
-      });
+        console.log( "Release (%d,%d)", cx, cy );
+        await Input.dispatchMouseEvent({
+          type: "mouseReleased",
+          x: parseFloat(cx),
+          y: parseFloat(cy),
+          button: "left"
+        });
+        result = true;
+      }
+      catch (e) {
+        console.log( "clickon_node", e );
+        result = false;
+      }
       return sleep(200);
     }
-    return sleep(10);
+    await sleep(10);
+    return Promise.resolve(result);
   }//}}}
 
   async function trigger_page_fetch_cb( sp, nm, p, node_id, d )

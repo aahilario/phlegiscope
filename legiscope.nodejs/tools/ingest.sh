@@ -4,6 +4,7 @@ YMDPATH=$(date +"%Y-%m-%d").d
 rm -f ${YMDPATH}/output.log
 rm -f ${YMDPATH}/pre-transform.json
 rm -f ${YMDPATH}/everything.json
+[ -d ${YMDPATH} ] || mkdir -p ${YMDPATH}
 OUTPUT_LOG=${YMDPATH}/${LOGFILE}-$(date +"%Y-%m-%d-%H%M%S").log
 export ACTIVE_MONITOR=0
 export CB_PREPROCESS=0
@@ -11,6 +12,7 @@ export DEBUG_OUTPUT_PATH=$YMDPATH
 export DOM=0
 export DOMSETCHILDNODES=0
 export DUMP_PRODUCT=0
+export FETCH_URL_HTTP_HEAD=0
 export FINALIZE_METADATA=0
 export GRAFT=2
 export INORDER_TRAVERSAL=0
@@ -32,13 +34,14 @@ export TRIGGER_DOM_FETCH=0
 export TREEIFY=0
 export VERBOSE=0
 export WATCHDOG=0
-[ -d ${YMDPATH} ] || mkdir -p ${YMDPATH}
 
+rm -f ${YMDPATH}/${LOGFILE}*.log
 touch ${OUTPUT_LOG}
 ln -sf $(basename ${OUTPUT_LOG}) ${YMDPATH}/${LOGFILE}.log
 
 export TARGETURL=$1
 shift
+clear
 node \
   --max-old-space-size=8192 \
   --max-heap-size=8192 \

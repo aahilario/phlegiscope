@@ -22,7 +22,7 @@ const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
-const default_insp = { showHidden: false, depth: null, colors: false };
+const default_insp = { showHidden: false, depth: null, colors: true };
 
 const mysqlx = require("@mysql/xdevapi");
 
@@ -46,6 +46,7 @@ let file_ts;
 let inorder_traversal_previsit = false;
 let inorder_traversal_postvisit = false;
 let current_url = null;
+let user_agent = null;
 
 if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
 if ( envSet("CB_PREPROCESS","1") ) inorder_traversal_postvisit = true;
@@ -185,6 +186,7 @@ function networkRequestWillBeSent(params)
     requestId : params.requestId,
     url       : params.request.url,
     method    : params.request.method,
+    headers   : params.request.headers,
     timestamp : params.timestamp,
     wallTime  : params.wallTime,
     initiator : params.initiator
@@ -917,6 +919,83 @@ async function normalize( f )
   return Promise.resolve(true);
 }//}}}
 
+async function fetch_url_http_head( g )
+{
+  const head_standoff = 2000;
+  let u = url.parse( g );
+  let unique_entry = g;
+
+  let result;
+  let head_info;
+  let client_request;
+  let hr_mark, hr_now;
+  let done = false;
+  let head_options = {
+    method: "HEAD",
+    timeout: head_standoff,
+    headers: {
+      "User-Agent" : user_agent && user_agent !== undefined && user_agent.length > 0 ? user_agent : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+  }
+
+  try {
+    client_request = await (/https:/i.test(u.protocol) ? https : http).request( g, head_options );
+    hr_mark = hrtime.bigint();
+    client_request
+      .on('error', (e) => {
+        done = true;
+        console.log("Error", g, inspect(e, default_insp) );
+      })
+      .on('response', (m) => {
+        head_info = new Map(m.headers !== undefined ? Object.entries(m.headers) : {});
+        if ( envSet("FETCH_URL_HTTP_HEAD","1") ) console.log('Headers from', g, inspect(head_info, default_insp) );
+        done = true;
+      }).on('timeout', () => {
+        done = true;
+        console.log("Timeout", g );
+      }).on('data', (d) => {
+        if ( envSet("FETCH_URL_HTTP_HEAD","1") ) console.log('Data B from', g, inspect(d, default_insp) );
+      }).end();
+
+    if ( !done ) do {
+      hr_now = hrtime.bigint();
+      if ( Number.parseInt( Number.parseFloat(Number( (hr_now - hr_mark)/BigInt(1000 * 1000) )/1.0) ) > head_standoff ) {
+        console.log( "Timeout" );
+        break;
+      }
+      if ( done ) {
+        console.log( "Completed" );
+        break;
+      }
+      await sleep(1);
+    } while ( !done && head_standoff > 0 );
+
+    if ( head_info instanceof Map && head_info.size > 0 ) {
+      let h = new Map;
+      head_info.forEach((v,k,m) => {
+        let lc_k = k.toLowerCase();
+        if ( /^(date|last-modified)$/.test( lc_k ) ) {
+          let dateval = new Date( v ).valueOf();
+          h.set( lc_k, isNaN(dateval) ? null : dateval / 1000 );
+        }
+        else
+        h.set( lc_k, v );
+        m.delete(k);
+      });
+      head_info = h;
+    }
+    else {
+      head_info = new Map;
+    }
+
+  } catch (e) {
+    console.log("fetch_url_http_head", g, inspect(e, default_insp) );
+  }
+
+  return Promise.resolve(head_info)
+  ;
+}
+
 function congress_panel_text_hdrfix( panel_info_text, text_headers )
 {//{{{
   // Fix keys in .text collected using naive token pairing.
@@ -1016,9 +1095,10 @@ function full_title_map_filter( m, f )
     .replace(/cc 83/g,'c391') // NTILDE
     .replace(/ef bf bd/g,'c391') // NTILDE
     .replace(/e2 80 b2 e2 80 b2/g,'22') // Two apostrophes to double quote 
-    .replace(/c8 98/,'c59e') // S with cedilla
     .replace(/e2 80 b3/,'22')
     .replace(/e2 80 9c/,'22')
+    .replace(/e2 88 92/g,'2d') // em dash to hyphen 
+    .replace(/c8 98/,'c59e') // S with cedilla
     .replace(/\\n/g,' ')
     .replace(/ */g,'')
     ,
@@ -1027,19 +1107,52 @@ function full_title_map_filter( m, f )
   return title_full_buf.toString('utf8');
 }//}}}
 
+function sanitize_congress_billres_sn( sn )
+{//{{{
+  return sn.replace(/[^A-Z0-9#-]/g,'')
+    .replace(/([A-Z0-9#-]{1,32})/,'$1')
+    .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
+    .trim();
+}//}}}
+
+async function select_congress_basedoc_url( db, congress_basedoc_id )
+{//{{{
+  // Select full base document + url joins + urls 
+  let sql = [
+    "SELECT",
+    "d.id,",
+    "d.create_time d_ct,",
+    "d.congress_n,",
+    "d.sn,",
+    "d.title_full,",
+    "j.id dju,",
+    "j.create_time dju_ct,",
+    "j.update_time dju_ut,",
+    "j.url_raw,",
+    "u.id url_id,",
+    "u.create_time u_ct,",
+    "u.last_modified u_lm,",
+    "u.url,",
+    "u.urltext,",
+    "u.urlhash",
+    "FROM congress_basedoc d",
+    "LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc",
+    "LEFT JOIN url_raw u ON j.url_raw = u.id",
+    "WHERE d.sn = ?" 
+  ].join(' '); 
+  return sqlexec_resultset( db, sql, congress_basedoc_id );
+}//}}}
+
 async function congress_record_panelinfo( panel_info, p )
 {//{{{
   let undefined_res;
   let title_full;
+
   panel_info_text_check( panel_info, p.text_headers, true );
 
   try {
     // REVIEW: Sanitize page inputs, there are human-encoded entries which contain unexpected, non-alphanumerics.
-    let congress_basedoc_id = panel_info.id
-      .replace(/[^A-Z0-9#-]/g,'')
-      .replace(/([A-Z0-9#-]{1,32})/,'$1')
-      .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
-      .trim();
+    let congress_basedoc_id = sanitize_congress_billres_sn( panel_info.id );
     let congress_basedoc = await p.congress_basedoc
       .select(['id','create_time','congress_n','sn','title_full'])
       .where("sn = :sn")
@@ -1089,30 +1202,7 @@ async function congress_record_panelinfo( panel_info, p )
       });
     }
 
-    // Select full base document + url joins + urls 
-    let sql = [
-      "SELECT",
-      "d.id,",
-      "d.create_time d_ct,",
-      "d.congress_n,",
-      "d.sn,",
-      "d.title_full,",
-      "j.id dju,",
-      "j.create_time dju_ct,",
-      "j.update_time dju_ut,",
-      "j.url_raw,",
-      "u.id url_id,",
-      "u.create_time u_ct,",
-      "u.url,",
-      "u.urltext,",
-      "u.urlhash",
-      "FROM congress_basedoc d",
-      "LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc",
-      "LEFT JOIN url_raw u ON j.url_raw = u.id",
-      "WHERE d.sn = ?" 
-    ].join(' '); 
-
-    let resultset = await sqlexec_resultset( p.db, sql, congress_basedoc_id );
+    let resultset = await select_congress_basedoc_url( p.db, congress_basedoc_id );
 
     if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log("Results [%d]",
       resultset.length,
@@ -1163,26 +1253,38 @@ async function congress_record_panelinfo( panel_info, p )
           let v = urls.get( k );
           let url_insert_result;
           let hash = createHash('sha256');
+          let modified = (await fetch_url_http_head( k )).get('last-modified') || null;
+          let inserted_u;
 
           hash.update(k);
           try {
-            url_insert_result = await p.url_raw
-              .insert(['url', 'urltext', 'urlhash'])
-              .values([k    , v.text   , hash.digest('hex')])
+            url_insert_sql = [
+              'INSERT INTO url_raw ( last_modified, url, urltext, urlhash )',
+              'VALUES ( FROM_UNIXTIME(?), ?, ?, ? )'
+            ].join(' ');
+            url_insert_result = await p.db
+              .sql( url_insert_sql )
+              .bind([modified, k, v.text, hash.digest('hex')])
               .execute();
+
             v.id = await url_insert_result.getAutoIncrementValue();
             urls.set( k, v );
-            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Result of insert[%d]",
+            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") )
+            console.log( "Result of insert[%d]",
               v.id,
               await url_insert_result.getWarnings()
             );
           }
           catch(e) {
-            console.log( "URL record insert error", inspect(e, default_insp) );
+            console.log( "URL record insert error",
+              inspect(e, default_insp),
+              inspect(url_insert_result, default_insp)
+            );
+            process.exit(0);
           }
 
+
           try {
-            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserting", inspect( join, default_insp ) );
             let join_insert_result = await p.joins
               .insert(['url_raw','congress_basedoc','edgeinfo'])
               .values([v.id,congress_basedoc_db_id,'-'])
@@ -1193,7 +1295,7 @@ async function congress_record_panelinfo( panel_info, p )
             console.log( "Join record insert error", inspect(e, default_insp) );
           }
         }
-        console.log("URLs to record: ", urls.size, inspect(urls, default_insp) );
+        console.log("URLs recorded (%d): ", urls.size, inspect(urls, default_insp) );
       }
     }
 
@@ -1238,6 +1340,7 @@ async function congress_bills_panel_to_db( j, p )
       url     : j.url,
       id      : j.id,
       links   : j.links,
+      network : j.network || false,
       text    : j.text,
       history : j.history 
     };
@@ -1260,17 +1363,69 @@ async function congress_record_check_hist( f, p )
   let panel_info;
   let j = read_map_from_file( f );
   if ( j.history instanceof Map ) {
+    let congress_basedoc_id = sanitize_congress_billres_sn( j.id );
     if ( j.history.size == 0 && j.links.size == 0 ) {
-      console.log( "Removable %s", j.id ? j.id : f );
+      let rs = await select_congress_basedoc_url( p.db, congress_basedoc_id );
+      if ( rs.length == 1 ) {
+        let result;
+        rs = rs.shift();
+        if ( rs.has('dju') && !rs.get('dju') ) {
+          result = await p.congress_basedoc
+            .delete()
+            .where('`id` = :id')
+            .bind('id', rs.get('id'))
+            .execute();
+          await sleep(1);
+        }
+        console.log( "Removable %s", 
+          congress_basedoc_id,
+          inspect( rs, default_insp ),
+          inspect( result, default_insp )
+        );
+      }
     }
-    else if (1) {
+    else {
       panel_info = j; 
-      console.log( "Keep %s %s", panel_info.id ? panel_info.id : f, f );
-      await congress_record_panelinfo( panel_info, p );
+      if (0) { 
+        console.log( "Keep %s %s", panel_info.id ? panel_info.id : f, f );
+        await congress_record_panelinfo( panel_info, p );
+      }
     }
   }
   return panel_info;
 }//}}}
+
+async function congress_record_head_request_h( f, p )
+{
+  let panel_info = read_map_from_file( f );
+ 
+  if ( panel_info.links.size > 0 ) {
+    let congress_basedoc_id = sanitize_congress_billres_sn( panel_info.id );
+    let resultset = await select_congress_basedoc_url( p.db, congress_basedoc_id );
+    
+    if ( resultset !== undefined && resultset.length > 0 ) {
+      console.log(
+        "Resultset (%d)",
+        resultset.length//, 
+        //inspect( panel_info, default_insp )//,
+        //inspect( resultset, default_insp )
+      );
+      console.log(" ");
+      while ( resultset.length > 0 ) {
+        let entry = resultset.shift();
+        let url = entry.get('url');
+        let urltext = entry.get('urltext');
+        let head_info = await fetch_url_http_head( url );
+        console.log( "URL %s %s",
+          urltext,
+          url,
+          inspect( head_info, default_insp )
+        );
+        console.log(" ");
+      }
+    }
+  }
+}
 
 async function monitor()
 {//{{{
@@ -1717,7 +1872,6 @@ async function monitor()
             let label = child_node.content.trim();
             p.links.set( label, { url : link, data_id : linkid } /* link */ );
             if ( linkid ) {
-              // Check whether this non-empty ID is found in the database
               p.id = linkid;
             }
             if ( !p.text.has( e ) )
@@ -2053,6 +2207,18 @@ async function monitor()
                 let rr_entry = rr_map.get( xhr_fetch_rr );
                 rr_entry.markup = p.flattened;
                 rr_map.set( xhr_fetch_rr, rr_entry );
+                if ( !user_agent ) {
+                  let ua = rr_entry.request !== undefined 
+                    && rr_entry.request.headers !== undefined 
+                    && rr_entry.request.headers['User-Agent'] !== undefined 
+                    ? rr_entry.request.headers['User-Agent']
+                    : null
+                  ;
+                  if ( ua && ua.length > 0 ) {
+                    user_agent = ua;
+                    console.log( "UA: %s", user_agent );
+                  }
+                }
               }
 
               if ( p.closer_node == 0 ) {
@@ -2087,26 +2253,35 @@ async function monitor()
   
   async function setup_dom_fetch( nodeId, parentId )
   {//{{{
+    let setup_result = false;
     rootnode   = nodeId;
     rr_mark    = hrtime.bigint();
     cycle_date = new Date();
     rr_begin   = rr_mark;
-    rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
     waiting_parent = nodeId;
-    nodes_seen.set( waiting_parent, {
-      nodeName   : rootnode_n.object.description,
-      parentId   : parentId !== undefined ? parseInt(parentId) : 0,
-      attributes : new Map,
-      isLeaf     : false,
-      content    : new Map
-    });
-    if (envSet("SETUP_DOM_FETCH","1")) console.log("setup_dom_fetch( %d )", 
+    try {
+      rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
+      nodes_seen.set( waiting_parent, {
+        nodeName   : rootnode_n.object.description,
+        parentId   : parentId !== undefined ? parseInt(parentId) : 0,
+        attributes : new Map,
+        isLeaf     : false,
+        content    : new Map
+      });
+      setup_result = true;
+    }
+    catch(e) {
+      console.log( "setup_dom_fetch", inspect( e, default_insp ) );
+    }
+    if (envSet("SETUP_DOM_FETCH","1") || !setup_result ) console.log("setup_dom_fetch( %d )", 
       nodeId, 
       inspect(rootnode_n,default_insp)
     );
-    parents_pending_children.unshift( nodeId );
-    await trigger_dom_fetch();
-    return Promise.resolve(true);
+    if ( setup_result ) {
+      parents_pending_children.unshift( nodeId );
+      await trigger_dom_fetch();
+    }
+    return Promise.resolve(setup_result);
   }//}}}
   
   async function domAttributeModified(params)
@@ -2454,21 +2629,33 @@ async function monitor()
     });
 
     await Page.loadEventFired(async (ts) => {
-      const { currentIndex, entries } = await Page.getNavigationHistory();
-      const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
 
-      await setup_dom_fetch( nodeId );
+      try {
+        const { currentIndex, entries } = await Page.getNavigationHistory();
+        const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
 
-      current_url = entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
-        ? entries[currentIndex].url 
-        : '---';
+        await setup_dom_fetch( nodeId );
 
-      console.log("LOAD EVENT root[%d]", 
-        nodeId, 
-        ts,
-        datestring( cycle_date ),
-        current_url
-      );
+        current_url = entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
+          ? entries[currentIndex].url 
+          : '---';
+
+        console.log("LOAD EVENT root[%d]", 
+          nodeId, 
+          ts,
+          datestring( cycle_date ),
+          current_url
+        );
+      }
+      catch(e) {
+        console.log("LOAD EVENT root[%d]",
+          nodeId,
+          ts,
+          datestring( cycle_date ),
+          current_url,
+          inspect(e, default_insp)
+        );
+      }
 
     });
 
@@ -2489,7 +2676,7 @@ async function monitor()
     await Page.setInterceptFileChooserDialog({enabled : true});
     
     await Page.fileChooserOpened(async (p) => {
-      console.log("Page::fileChooseOpened", p);
+      console.log("Page::fileChooserOpened", p);
     });
 
     await Page.frameAttached(async (p) => {
@@ -2538,7 +2725,7 @@ async function monitor()
     }
 
   } catch (err) {
-    console.error(err);
+    console.error("Main exception", inspect(err, default_insp));
   } finally {
     if (client) {
       console.log( "Close opportunity ended" );
@@ -2585,8 +2772,8 @@ async function traverse()
     //let panel_raw = await ingest_panels( fn );
     //let panel = normalize_j_history( panel_raw );
     //console.log( "Finalized panel", inspect( panel, default_insp ));
-
-    result = await congress_record_check_hist( fn, ingest_paramset );
+    //result = await congress_record_check_hist( fn, ingest_paramset );
+    result = await congress_record_head_request_h( fn, ingest_paramset );
   }
 
   if ( ss.isDirectory() ) {
@@ -2604,7 +2791,7 @@ async function traverse()
 
       let f = [ dirent.parentPath, dirent.name ].join('/');
 
-      if ( ( /^INGEST/.test( dirent.parentPath ) || /^HOLDING/.test( dirent.parentPath )) && /\.json$/.test( dirent.name ) ) {
+      if ( ( /^INGEST/.test( dirent.parentPath ) || /^HOLDING/.test( dirent.parentPath )) && /\.json$/.test( dirent.name ) ) {//{{{
         let result;
         try { 
           switch ( process.env['PARSEMODE'] || '' ) { 
@@ -2625,7 +2812,7 @@ async function traverse()
         catch (e) {
           console.log( "Skip %s", f, e );
         }
-      }
+      }//}}}
       else if ( /panels-(.*)\.json/.test( dirent.name ) ) {//{{{
         // Live DOM page traversal will dump these panels-*.json files
         // if the database is not accessible, or when an error occurs
@@ -2703,19 +2890,19 @@ async function traverse()
         }
         console.log('-----------');
       }//}}}
-      else if ( /trie-(.*)\./.test( dirent.name ) ) {
+      else if ( /trie-(.*)\./.test( dirent.name ) ) {//{{{
         if (envSet("TRIE","1")) {
           console.log( "Parse file '%s'", f );
           await preload( f );
           console.log('-----------');
           files_processed++;
         }
-      }
-      else if ( /([^-]{1,})-([0-9-]{1,}).json/.test( dirent.name ) ) {
+      }//}}}
+      else if ( /([^-]{1,})-([0-9-]{1,}).json/.test( dirent.name ) ) {//{{{
         if (envSet("NORMALIZE","1"))
           await normalize( f );
           files_processed++;
-      }
+      }//}}}
     }
 
     // Clean up text headers

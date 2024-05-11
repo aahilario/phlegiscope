@@ -870,16 +870,6 @@ async function ingest_panels( f )
       "Markup",
       inspect( panel_info, default_insp )
     );
-    if (envSet("PERMIT_UNLINK","Y")) {
-      try {
-        if ( existsSync( fn ) )
-          unlinkSync( fn );
-        console.log( "No history in %s, unlinking", fn, 
-          inspect(j, default_insp)
-        );
-      }
-      catch (e) {}
-    }
   }
   return Promise.resolve(panel_info);
 }//}}}
@@ -1154,8 +1144,9 @@ async function congress_record_panelinfo( panel_info, p )
   try {
     // REVIEW: Sanitize page inputs, there are human-encoded entries which contain unexpected, non-alphanumerics.
     let congress_basedoc_id = sanitize_congress_billres_sn( panel_info.id );
+    let history_present_flag = panel_info.history.size > 1 ? 1 : 0;
     let congress_basedoc = await p.congress_basedoc
-      .select(['id','create_time','congress_n','sn','title_full'])
+      .select(['id','create_time','update_time','history','mark','congress_n','sn','title_full'])
       .where("sn = :sn")
       .bind("sn",congress_basedoc_id)
       .execute();
@@ -1171,12 +1162,12 @@ async function congress_record_panelinfo( panel_info, p )
       if ( title_full.length > 0 ) {
         let congress_n = parseInt(congress_basedoc_id.replace(/^([^-]{1,})-([0-9]*)/,"$2") || 0);
         r = await p.congress_basedoc
-          .insert(['congress_n','sn','title_full'])
-          .values([congress_n, congress_basedoc_id, title_full])
+          .insert(['history', 'congress_n','sn','title_full'])
+          .values([history_present_flag, congress_n, congress_basedoc_id, title_full])
           .execute()
           .then(() => {
             return p.congress_basedoc
-              .select(['id','create_time','congress_n','sn','title_full'])
+              .select(['id','create_time','update_time','history','mark','congress_n','sn','title_full'])
               .where("sn = :sn")
               .bind("sn",congress_basedoc_id)
               .execute()
@@ -1201,6 +1192,17 @@ async function congress_record_panelinfo( panel_info, p )
       if (0) r.forEach((e) => {
         console.log( "Already have %s", congress_basedoc_id, inspect(e, default_insp) );
       });
+      let update_history_mark = [
+        'UPDATE congress_basedoc SET',
+        'update_time = CURRENT_TIMESTAMP,',
+        'history = ?',
+        'WHERE sn = ?'
+      ].join(' ');
+      let congress_basedoc_update_result = await p.db
+        .sql( update_history_mark )
+        .bind([history_present_flag, congress_basedoc_id])
+        .execute();
+      await sleep(1);
     }
 
     let resultset = await select_congress_basedoc_url( p.db, congress_basedoc_id );
@@ -2905,6 +2907,9 @@ async function traverse()
             inspect(panel_info, default_insp)
           );
 
+          // 
+          if ( panel_info.links.size > 0 &&
+
           if (0) if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
             envSet("INGEST_OVERWRITE","1") ) {
             write_map_to_file( 
@@ -2936,7 +2941,7 @@ async function traverse()
           let rawjson;
           rawjson = read_map_from_file( f ); 
           console.log( "Unable to parse %s", f,
-            inspect( rawjson, default_insp)
+            inspect( rawjson, default_insp )
           );
         }
         else {

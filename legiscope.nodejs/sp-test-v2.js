@@ -1097,7 +1097,8 @@ function full_title_map_filter( m, f )
     .replace(/e2 80 b2 e2 80 b2/g,'22') // Two apostrophes to double quote 
     .replace(/e2 80 b3/,'22')
     .replace(/e2 80 9c/,'22')
-    .replace(/e2 88 92/g,'2d') // em dash to hyphen 
+    .replace(/e2 88 92/g,'2d') // en dash to hyphen 
+    .replace(/e2 80 92/g,'2d') // em dash to hyphen 
     .replace(/c8 98/,'c59e') // S with cedilla
     .replace(/\\n/g,' ')
     .replace(/ */g,'')
@@ -1223,7 +1224,8 @@ async function congress_record_panelinfo( panel_info, p )
       if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Iter",  inspect(urls, default_insp) );
     }
 
-    if ( resultset.length > 0 && urls.size > 0 ) {
+    // Create raw URL records and through table rows linking each to {congress_basedoc}
+    if ( resultset.length > 0 && urls.size > 0 ) {//{{{
       // Find and match URLs returned from database.
       // Check, update, and remove URLs from {urls} already stored in DB
       let congress_basedoc_db_id;
@@ -1253,63 +1255,98 @@ async function congress_record_panelinfo( panel_info, p )
           let v = urls.get( k );
           let url_insert_result;
           let hash = createHash('sha256');
+          let hashval;
           let modified = (await fetch_url_http_head( k )).get('last-modified') || null;
           let inserted_u;
 
           hash.update(k);
-          try {
-            url_insert_sql = [
-              'INSERT INTO url_raw ( last_modified, url, urltext, urlhash )',
-              'VALUES ( FROM_UNIXTIME(?), ?, ?, ? )'
-            ].join(' ');
-            url_insert_result = await p.db
-              .sql( url_insert_sql )
-              .bind([modified, k, v.text, hash.digest('hex')])
-              .execute();
+          hashval = hash.digest('hex');
 
-            v.id = await url_insert_result.getAutoIncrementValue();
-            urls.set( k, v );
-            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") )
-            console.log( "Result of insert[%d]",
-              v.id,
-              await url_insert_result.getWarnings()
-            );
-          }
+          // Create raw URL records
+          try {//{{{
+
+            let url_raw_select = [
+              'SELECT id, UNIX_TIMESTAMP(last_modified) AS last_modified, url',
+              'FROM url_raw',
+              'WHERE urlhash = ?'
+            ].join(' ');
+            let extant_urls = await sqlexec_resultset( p.db, url_raw_select, hashval );
+
+            if ( extant_urls !== undefined && extant_urls.length > 0 ) {
+              v.id = 0;
+              while ( extant_urls.length > 0 ) {
+                let extant_url = extant_urls.shift();
+                // Update the {url_raw} record if the Last-Modified header value has changed
+                if ( v.id > 0 ) {
+                  console.log( "WARNING: Multiple records found for %s",
+                    k
+                  );
+                }
+                else if ( extant_url.get('last_modified') !== modified ) {
+                  let url_raw_update_sql = [
+                    'UPDATE url_raw SET',
+                    'update_time = CURRENT_TIMESTAMP,',
+                    'prev_modified = last_modified,',
+                    'last_modified = FROM_UNIXTIME(?),',
+                    'WHERE urlhash = ?'
+                  ].join(' ');
+                  let url_update_result = p.db
+                    .sql( url_raw_update_sql )
+                    .bind([ modified, hashval ])
+                    .execute();
+                  v.id = extant_url.get('id');
+                }
+                extant_url.clear();
+              }
+            }
+            else {
+              url_insert_sql = [
+                'INSERT INTO url_raw ( last_modified, url, urltext, urlhash )',
+                'VALUES ( FROM_UNIXTIME(?), ?, ?, ? )'
+              ].join(' ');
+              url_insert_result = await p.db
+                .sql( url_insert_sql )
+                .bind([modified, k, v.text, hashval])
+                .execute();
+
+              v.id = await url_insert_result.getAutoIncrementValue();
+              urls.set( k, v );
+              if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") )
+                console.log( "Result of insert[%d]",
+                  v.id,
+                  await url_insert_result.getWarnings()
+                );
+            }
+          }//}}}
           catch(e) {
-            console.log( "URL record insert error",
-              inspect(e, default_insp),
+            console.log( "URL record %s insert error",
+              k,
+              inspect(e.info ? e.info : e, default_insp),
               inspect(url_insert_result, default_insp)
             );
             process.exit(0);
           }
 
-
-          try {
+          // Create through table join record
+          try {//{{{
             let join_insert_result = await p.joins
               .insert(['url_raw','congress_basedoc','edgeinfo'])
               .values([v.id,congress_basedoc_db_id,'-'])
               .execute();
             if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserted join #%d", await join_insert_result.getAutoIncrementValue() );
-          }
+          }//}}}
           catch(e) {
-            console.log( "Join record insert error", inspect(e, default_insp) );
+            // TODO: Transaction per {url_raw} record
+            console.log( "Join record for %s insert error", 
+              k,
+              inspect(e.info ? e.info : e, default_insp)
+            );
+            process.exit(0);
           }
         }
-        console.log("URLs recorded (%d): ", urls.size, inspect(urls, default_insp) );
       }
-    }
-
-    // Iterate through the resultset, to determine which records need to be inserted
-    //let rr;
-    //while ( rr = await r.fetchOne() ) {
-    //  console.log( "Res %s", 
-    //    congress_basedoc_id, 
-    //    inspect(rr, default_insp),
-    //    inspect(resultmap, default_insp)
-    //  );
-    //}
-    //console.log("Results Done");
-
+      console.log("URLs recorded (%d): ", urls.size, inspect(urls, default_insp) );
+    }//}}}
 
   }
   catch (e) {
@@ -1340,7 +1377,7 @@ async function congress_bills_panel_to_db( j, p )
       url     : j.url,
       id      : j.id,
       links   : j.links,
-      network : j.network || false,
+      //network : j.network || false,
       text    : j.text,
       history : j.history 
     };
@@ -1358,41 +1395,55 @@ async function congress_record_fe_panelinfo( f, p )
   return Promise.resolve(panel_info);
 }//}}}
 
-async function congress_record_check_hist( f, p )
+async function examine_ingest_json( f, p )
 {//{{{
-  let panel_info;
+  // let panel_info;
   let j = read_map_from_file( f );
-  if ( j.history instanceof Map ) {
+  let hashval;
+  if ( j.history instanceof Map && j.history.size > 0 ) {
     let congress_basedoc_id = sanitize_congress_billres_sn( j.id );
-    if ( j.history.size == 0 && j.links.size == 0 ) {
-      let rs = await select_congress_basedoc_url( p.db, congress_basedoc_id );
-      if ( rs.length == 1 ) {
-        let result;
-        rs = rs.shift();
-        if ( rs.has('dju') && !rs.get('dju') ) {
-          result = await p.congress_basedoc
-            .delete()
-            .where('`id` = :id')
-            .bind('id', rs.get('id'))
-            .execute();
-          await sleep(1);
-        }
-        console.log( "Removable %s", 
-          congress_basedoc_id,
-          inspect( rs, default_insp ),
-          inspect( result, default_insp )
-        );
-      }
-    }
-    else {
-      panel_info = j; 
-      if (0) { 
-        console.log( "Keep %s %s", panel_info.id ? panel_info.id : f, f );
-        await congress_record_panelinfo( panel_info, p );
-      }
-    }
+    let c = congress_basedoc_id.replace(/^([^-]*)-([0-9]{1,}).*/g,"$2");
+    let h_map = new Array;
+    let hash = createHash('sha256');
+    
+    j.history.forEach((v,k) => { h_map.push( [k,v].join('|') ); });
+    hash.update(h_map.join(';'));
+    hashval = hash.digest('hex');
+
+    if ( p.work.has( hashval ) )
+      p.work.set( hashval, p.work.get( hashval ) + 1 );
+    else
+      p.work.set( hashval, 1 );
+
+    //if ( j.history.size == 0 && j.links.size == 0 ) {
+    //  let rs = await select_congress_basedoc_url( p.db, congress_basedoc_id );
+    //  if ( rs.length == 1 ) {
+    //    let result;
+    //    rs = rs.shift();
+    //    if ( rs.has('dju') && !rs.get('dju') ) {
+    //      result = await p.congress_basedoc
+    //        .delete()
+    //        .where('`id` = :id')
+    //        .bind('id', rs.get('id'))
+    //        .execute();
+    //      await sleep(1);
+    //    }
+    //    console.log( "Removable %s", 
+    //      congress_basedoc_id,
+    //      inspect( rs, default_insp ),
+    //      inspect( result, default_insp )
+    //    );
+    //  }
+    //}
+    //else {
+    //  panel_info = j; 
+    //  if (0) { 
+    //    console.log( "Keep %s %s", panel_info.id ? panel_info.id : f, f );
+    //    await congress_record_panelinfo( panel_info, p );
+    //  }
+    //}
   }
-  return panel_info;
+  return Promise.resolve(hashval);
 }//}}}
 
 async function congress_record_head_request_h( f, p )
@@ -2034,7 +2085,7 @@ async function monitor()
         console.log( "clickon_node", e );
         result = false;
       }
-      return sleep(200);
+      return sleep(500);
     }
     await sleep(10);
     return Promise.resolve(result);
@@ -2131,7 +2182,7 @@ async function monitor()
               let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
               let markup;
               await setup_dom_fetch( append_buffer_to_rr_map );
-              await sleep(1000);
+              await sleep(1500);
 
               // Climb the popup container tree
               if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
@@ -2764,7 +2815,8 @@ async function traverse()
     db               : s,
     congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
     url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
-    joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
+    joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join'),
+    work             : new Map
   }
 
   if ( ss.isFile() ) {
@@ -2772,8 +2824,8 @@ async function traverse()
     //let panel_raw = await ingest_panels( fn );
     //let panel = normalize_j_history( panel_raw );
     //console.log( "Finalized panel", inspect( panel, default_insp ));
-    //result = await congress_record_check_hist( fn, ingest_paramset );
-    result = await congress_record_head_request_h( fn, ingest_paramset );
+    //result = await examine_ingest_json( fn, ingest_paramset );
+    //result = await congress_record_head_request_h( fn, ingest_paramset );
   }
 
   if ( ss.isDirectory() ) {
@@ -2801,9 +2853,11 @@ async function traverse()
                 files_processed++;
               break;
             case "examine_history":
-              result = await congress_record_check_hist( f, ingest_paramset );
-              if ( result === undefined )
+              result = await examine_ingest_json( f, ingest_paramset );
+              if ( result !== undefined ) {
+                console.log( "%s|%s", result, f );
                 files_processed++;
+              }
               break;
             default:
               break;
@@ -2903,6 +2957,7 @@ async function traverse()
           await normalize( f );
           files_processed++;
       }//}}}
+      await sleep(20);
     }
 
     // Clean up text headers
@@ -2924,46 +2979,61 @@ async function traverse()
       text_headers
     );
 
-    // Collect non-duplicated panel sources for removal
-    panel_ids.forEach((v,k) => {
-      if ( v.length == 1 ) {
-        uniques.push(k)
-      };
-    });
-
-    if (envSet("PERMIT_UNLINK","1")) while ( uniques.length > 0 ) {
-      let unique_e = uniques.shift();
-      let entries = panel_ids.get(unique_e);
-      entries.forEach((f) => {
-        try {
-          if ( existsSync( f ) )
-            unlinkSync( f );
-          console.log("x", f);
-        }
-        catch (e) {}
+    if ( panel_ids.size > 0 ) {
+      // Collect non-duplicated panel sources for removal
+      panel_ids.forEach((v,k) => {
+        if ( v.length == 1 ) {
+          uniques.push(k)
+        };
       });
-      panel_ids.delete(unique_e);
+
+      if (envSet("PERMIT_UNLINK","1")) while ( uniques.length > 0 ) {
+        let unique_e = uniques.shift();
+        let entries = panel_ids.get(unique_e);
+        entries.forEach((f) => {
+          try {
+            if ( existsSync( f ) )
+              unlinkSync( f );
+            console.log("x", f);
+          }
+          catch (e) {}
+        });
+        panel_ids.delete(unique_e);
+      }
+
+      if (envSet("PERMIT_UNLINK","1")) panel_ids.forEach((v,k) => {
+        v.forEach((f) => {
+          try {
+            if ( existsSync( f ) )
+              unlinkSync( f );
+            console.log("*", f);
+          }
+          catch (e) {}
+        });
+      });
+
+      // Retain registry of duplicate sources
+      if ( envSet("CONGRESS_RETAIN_DUPLIST","1") ) write_map_to_file( 
+        "Panel IDs", 
+        "EXTRACTED/panels.json", 
+        panel_ids
+      );
+    }
+    else {
+      console.log( "Skipping file removals" );
     }
 
-    if (envSet("PERMIT_UNLINK","1")) panel_ids.forEach((v,k) => {
-      v.forEach((f) => {
-        try {
-          if ( existsSync( f ) )
-            unlinkSync( f );
-          console.log("*", f);
-        }
-        catch (e) {}
-      });
+    console.log( "Processed %d", files_processed );
+
+    ingest_paramset.work.forEach((v,k,m) => {
+      if ( v <= 1 ) m.delete(k);
     });
 
-    // Retain registry of duplicate sources
-    if ( envSet("CONGRESS_RETAIN_DUPLIST","1") ) write_map_to_file( 
-      "Panel IDs", 
-      "EXTRACTED/panels.json", 
-      panel_ids
+    write_map_to_file(
+      "History hashes",
+      "history.sha256.json",  
+      ingest_paramset.work
     );
-
-    console.log( "Processed %d", files_processed );
   }
   process.exit(0);
 }//}}}

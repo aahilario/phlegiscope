@@ -20,7 +20,7 @@ const db_port = process.env.LEGISCOPE_PORT || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
-const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
+const rr_timeout_s = 30; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
 const default_insp = { showHidden: false, depth: null, colors: true };
 
@@ -1494,6 +1494,7 @@ async function monitor()
     nodes_seen.clear();
     nodes_tree.clear();
     lookup_tree.clear();
+    outstanding_rr.clear();
     cycle_date = null;
     rr_map.clear();
 
@@ -1507,6 +1508,8 @@ async function monitor()
 
     while ( parents_pending_children.length > 0 )
       parents_pending_children.shift();
+    while ( tag_stack.length > 0 )
+      tag_stack.shift();
   }//}}}
 
   async function watchdog(cb)
@@ -2144,7 +2147,7 @@ async function monitor()
     //   until data is returned, or response status indicates
     //   processing must halt.
     //
-    const rq_dur_ms = 20000;
+    const rq_dur_ms = 30000;
     let traversal_request_id;
     let traversal_rq_start_tm;
     let traversal_rq_aborted = false;
@@ -2243,6 +2246,7 @@ async function monitor()
           break;
         }
         await sleep(10);
+        rr_mark = hrtime.bigint();
       }
       return Promise.resolve(success_result);
     }//}}}

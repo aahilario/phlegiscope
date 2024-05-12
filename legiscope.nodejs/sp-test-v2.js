@@ -37,11 +37,13 @@ let xhr_fetch_id            = 0;
 let append_buffer_to_rr_map = 0;
 let rr_mark                 = 0; // hrtime.bigint();
 let rr_begin                = 0;
+let rr_callback             = null;
 let cycle_date;
 let mark_steps              = 0;
 let rootnode_n;
 let postprocessing          = 0;
 let exception_abort         = false;
+let traversal_abort         = false;
 let file_ts;
 let inorder_traversal_previsit = false;
 let inorder_traversal_postvisit = false;
@@ -151,6 +153,14 @@ function sleep( millis )
   });
 }//}}}
 
+function rr_callback_default( data, requestId, phase )
+{
+  // Template for callbacks assigned to rr_callback, used by
+  // - Network.networkResponseReceived
+  // - Network.requestWillBeSent
+  // - Network.loadingFinished
+}
+
 function networkResponseReceived(params)
 {//{{{
   let response = {
@@ -173,11 +183,14 @@ function networkResponseReceived(params)
       response.mimeType
     );
     rr_map.set( params.requestId, m );
+    rr_mark = hrtime.bigint();
+    if ( rr_callback ) rr_callback( response, params.requestId, 'A' ); 
   }
   else {
     if (envSet('QA','1')) console.log("B[%s]", params.requestId, response );
+    rr_mark = hrtime.bigint();
+    if ( rr_callback ) rr_callback( response, params.requestId, 'B' ); 
   }
-  rr_mark = hrtime.bigint();
 }//}}}
 
 function networkRequestWillBeSent(params)
@@ -208,16 +221,18 @@ function networkRequestWillBeSent(params)
     markdata.url
   );
   rr_mark = hrtime.bigint();
+  if ( rr_callback ) rr_callback( markdata, params.requestId, 'Q' ); 
 }//}}}
 
 function networkLoadingFinished(params)
 {//{{{
   if ( outstanding_rr.has( params.requestId ) ) {
-    latest_rr = params.requestId; // Potentially usable for tracking XMLHTTPRequest markup fetches
+    latest_rr = params.requestId; // FIXME: Assignments to latest_rr superseded by callback-mediated control flow
     outstanding_rr.delete( params.requestId );
   }
   if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
   rr_mark = hrtime.bigint();
+  if ( rr_callback ) rr_callback( params.requestId, params.requestId, 'L' ); 
 }//}}}
 
 function return_sorted_map_ordinalkeys( map_obj )
@@ -565,7 +580,10 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     }
   }//}}}
 
-  if ( exception_abort ) {
+  if ( traversal_abort ) {
+    console.log( "Traversal halted" );
+  }
+  else if ( exception_abort ) {
     console.log( "Process Abort" );
   }
   else if ( nm === undefined || !nm ) {
@@ -585,7 +603,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       if ( nm.has( k ) ) {
         nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k,parentId));
       }
-      if ( exception_abort ) break;
+      if ( traversal_abort || exception_abort ) break;
     }
   }
   else if ( nm.content !== undefined ) {
@@ -596,7 +614,9 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     sp.branchpat.push(nm.nodeName);
 
     if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-    if ( nm === undefined ) {
+    if ( traversal_abort || exception_abort ) {
+    }
+    else if ( nm === undefined ) {
     }
     else if ( nm.isLeaf || nm.content.size === undefined ) {
       if (envSet("INORDER_TRAVERSAL","1")) console.log( "%sSkipping leaf %d",' '.repeat((d >= 0 ? d : 0) * 2), nodeId );
@@ -631,9 +651,8 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
         else {
           nm.content.set(k,rv);
         }
-        if ( exception_abort ) break;
+        if ( traversal_abort || exception_abort ) break;
       }
-
     }
     if ( cb !== undefined && inorder_traversal_postvisit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
     sp.branchpat.pop();
@@ -910,7 +929,7 @@ async function normalize( f )
 }//}}}
 
 async function fetch_url_http_head( g )
-{
+{//{{{
   const head_standoff = 2000;
   let u = url.parse( g );
   let unique_entry = g;
@@ -984,7 +1003,7 @@ async function fetch_url_http_head( g )
 
   return Promise.resolve(head_info)
   ;
-}
+}//}}}
 
 function congress_panel_text_hdrfix( panel_info_text, text_headers )
 {//{{{
@@ -1289,7 +1308,7 @@ async function congress_record_panelinfo( panel_info, p )
                     'UPDATE url_raw SET',
                     'update_time = CURRENT_TIMESTAMP,',
                     'prev_modified = last_modified,',
-                    'last_modified = FROM_UNIXTIME(?),',
+                    'last_modified = FROM_UNIXTIME(?)',
                     'WHERE urlhash = ?'
                   ].join(' ');
                   let url_update_result = p.db
@@ -1346,8 +1365,11 @@ async function congress_record_panelinfo( panel_info, p )
             process.exit(0);
           }
         }
+        console.log("URLs recorded (%d): ", urls.size, inspect(urls, default_insp) );
       }
-      console.log("URLs recorded (%d): ", urls.size, inspect(urls, default_insp) );
+      else {
+        console.log("No new URLs to record out of %d", resultset.length );
+      }
     }//}}}
 
   }
@@ -1448,38 +1470,6 @@ async function examine_ingest_json( f, p )
   return Promise.resolve(hashval);
 }//}}}
 
-async function congress_record_head_request_h( f, p )
-{
-  let panel_info = read_map_from_file( f );
- 
-  if ( panel_info.links.size > 0 ) {
-    let congress_basedoc_id = sanitize_congress_billres_sn( panel_info.id );
-    let resultset = await select_congress_basedoc_url( p.db, congress_basedoc_id );
-    
-    if ( resultset !== undefined && resultset.length > 0 ) {
-      console.log(
-        "Resultset (%d)",
-        resultset.length//, 
-        //inspect( panel_info, default_insp )//,
-        //inspect( resultset, default_insp )
-      );
-      console.log(" ");
-      while ( resultset.length > 0 ) {
-        let entry = resultset.shift();
-        let url = entry.get('url');
-        let urltext = entry.get('urltext');
-        let head_info = await fetch_url_http_head( url );
-        console.log( "URL %s %s",
-          urltext,
-          url,
-          inspect( head_info, default_insp )
-        );
-        console.log(" ");
-      }
-    }
-  }
-}
-
 async function monitor()
 {//{{{
 
@@ -1492,10 +1482,30 @@ async function monitor()
   let rootnode       = 0;
   let completed      = false;
 
+  rr_callback = rr_callback_default;
+
   client = await CDP();
 
   const { Network, Page, DOM, Input } = client;
   
+  function document_reset()
+  {//{{{
+    console.log( "RESET" )
+    nodes_seen.clear();
+    nodes_tree.clear();
+    lookup_tree.clear();
+    cycle_date = null;
+    rr_map.clear();
+
+    waiting_parent = 0;
+    depth          = 0;
+    rootnode       = 0;
+    completed      = false;
+
+    while ( parents_pending_children.length > 0 )
+      parents_pending_children.shift();
+  }//}}}
+
   async function watchdog(cb)
   {//{{{
     return new Promise((resolve) => {
@@ -1540,6 +1550,11 @@ async function monitor()
     // m: CDP DOM.Node
     // parentNode: Abbreviated node record ID
     // depth: Current recursive call nesting depth
+    if ( !nodes_seen.has( parseInt(parent_nodeId) ) ) {
+      console.log( "MISSING PARENT %d for node", parent_nodeId, inspect( m, default_insp ) );
+      return Promise.resolve(true);
+    }
+
     let parentNode = nodes_seen.get( parseInt(parent_nodeId) ); 
     let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
     let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
@@ -1560,7 +1575,11 @@ async function monitor()
     }
 
     // Create placeholder flat Map node entry
-    parentNode.content.set(parseInt(m.nodeId), null);
+    if ( parentNode.content === undefined || !(parentNode.content instanceof Map ) ) {
+      console.log( "Overriding parent node .content, originally", inspect( parentNode, default_insp ) );
+      parentNode.content = new Map;
+    }
+    parentNode.content.set( parseInt(m.nodeId), null );
     nodes_seen.set( parent_nodeId, parentNode );
 
     if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
@@ -2003,7 +2022,7 @@ async function monitor()
 
   async function trigger_page_traverse_cb( sp, nm, p, node_id, d )
   {//{{{
-    if ( exception_abort )
+    if ( traversal_abort || exception_abort )
       return Promise.resolve(nm);
 
     trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
@@ -2044,7 +2063,7 @@ async function monitor()
     return Promise.resolve(nm);
   }//}}}
 
-  async function clickon_node( node_id, nm )
+  async function clickon_node( node_id, nm, cb )
   {//{{{
 
     let result = false;
@@ -2064,7 +2083,7 @@ async function monitor()
         });
         await sleep(300);
 
-        console.log( "Click at (%d,%d)", cx, cy );
+        console.log( "Click on %d at (%d,%d)", node_id, cx, cy );
         await Input.dispatchMouseEvent({
           type: "mousePressed",
           x: parseFloat(cx),
@@ -2081,13 +2100,14 @@ async function monitor()
           y: parseFloat(cy),
           button: "left"
         });
-        result = true;
+        result = cb === undefined
+        ? true
+        : await cb( node_id, nm );
       }
       catch (e) {
         console.log( "clickon_node", e );
         result = false;
       }
-      return sleep(500);
     }
     await sleep(10);
     return Promise.resolve(result);
@@ -2108,6 +2128,125 @@ async function monitor()
     // p            : Callback parameters passed to inorder_traversal
     // Return value : nm
 
+    // Two callbacks are in effect:
+    // - xhr_response_callback provides request/response state to this
+    //   application.  A failed POST XHR must cause end of traversal.
+    // - clickon_callback defers return from the XHR trigger click action
+    //   until the matching networkLoadingFinished event occurs, signaling
+    //   the browser has received renderable content.
+    // 
+    // Fetch state is maintained in this scope.  
+    // - xhr_response_callback provides state;
+    // - clickon_callback consumes this state, and holds execution
+    //   until data is returned, or response status indicates
+    //   processing must halt.
+    //
+    const rq_dur_ms = 20000;
+    let traversal_request_id;
+    let traversal_rq_start_tm;
+    let traversal_rq_aborted = false;
+    let traversal_rq_success = false;
+
+    function xhr_response_callback( data, requestId, phase )
+    {//{{{
+      switch ( phase ) {
+        case 'Q':
+          // Request about to be sent.  Register the requestId only if
+          // it is a POST request to the Congress server backend, directed at
+          // the URL https://congress.gov.ph/members/fetch_history.php
+          if ( data.method === 'POST' && /fetch_history.php$/ig.test( data.url ) ) {
+            traversal_request_id = data.requestId;
+            traversal_rq_start_tm = hrtime.bigint();
+            console.log( "XHR [%s] Mark, duration %dms", requestId, rq_dur_ms );
+          }
+          break;
+        case 'A':
+          // Response received.  We expect Content-Type text/html 
+          // and HTTP response code 200
+          // ANY OTHER http response code (including a 3xx redirect)
+          // is handled as a traversal abort condition.
+          // In the event of response.status !== 200, set traversal_abort = true
+          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
+            if ( traversal_request_id == requestId && /text\/html$/ig.test( data.mimeType ) ) {
+              let rq_status = parseInt(data.status);
+              if ( rq_status == 200 ) {
+                // Successful request
+                console.log( "XHR [%s] OK", requestId );
+              }
+              else {
+                // Unconditional traversal abort
+                console.log( "Traveral aborted on XHR fetch error", inspect( data, default_insp ) );
+                traversal_rq_aborted = true;
+              }
+              traversal_rq_start_tm = hrtime.bigint();
+            }
+          }
+          break;
+        case 'B':
+          // Untracked response with unexpected responseId
+          break;
+        case 'L':
+          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
+            if ( traversal_request_id == requestId ) {
+              // Set flag indicating we should proceed, and terminate
+              // our wait loop.
+              traversal_rq_success = true;
+              console.log( "XHR [%s] Done", requestId );
+              rr_callback = rr_callback_default;
+            }
+          }
+          // Request loading finished
+          break;
+      }
+    }//}}}
+
+    async function clickon_callback( node_id, nm )
+    {//{{{
+      // Invoked AFTER a sequence of Input events { mouseMoved, mousePressed, mouseReleased }
+      // has been executed. Here we simply wait for network events (or
+      // timeout) to occur.
+      //
+      // In the event of timeout, set traversal_abort = true.
+      //
+      let success_result = false;
+      let traversal_wait_mark = hrtime.bigint();
+      while ( true ) {
+        if ( traversal_rq_start_tm !== undefined ) {
+          let traversal_dur_ms = Number.parseFloat(
+            Number((hrtime.bigint() - traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
+          );
+          if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+            console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+            traversal_abort = true;
+            break;
+          }
+        }
+        else {
+          let traversal_wait_dur = Number.parseFloat(
+            Number((hrtime.bigint() - traversal_wait_mark)/BigInt(1000 * 1000))/1.0
+          );
+          if ( Number.parseInt(traversal_wait_dur) > Number.parseInt(rq_dur_ms) ) {
+            console.log( "Timeout exceeded for XHR setup", traversal_wait_dur );
+            traversal_abort = true;
+            break;
+          }
+        }
+        if ( traversal_rq_aborted ) {
+          traversal_abort = true;
+          break;
+        }
+        if ( traversal_rq_success ) {
+          success_result = true;
+          break;
+        }
+        await sleep(10);
+      }
+      return Promise.resolve(success_result);
+    }//}}}
+
+    if ( traversal_abort )
+      return Promise.resolve(nm);
+
     if ( exception_abort )
       return Promise.resolve(nm);
 
@@ -2115,8 +2254,8 @@ async function monitor()
 
     if ( p.triggerable != 0 ) {//{{{
 
-      if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) {
-
+      if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
+      {//{{{
         // Perform database lookup done here, before 
         // an XHR for document history markup is triggered.
         // Referencing p.id works where, as in the case of 
@@ -2152,9 +2291,10 @@ async function monitor()
             await sleep(10);
           }
         }
-      }
+      }//}}}
 
-      if ( nm.nodeName == '#text' && nm.content == '[History]' ) {//{{{
+      if ( nm.nodeName == '#text' && nm.content == '[History]' )
+      {//{{{
 
         // Indicates that we've found a [History] trigger in
         // a child node, so that the triggering tag and surrounding
@@ -2167,7 +2307,9 @@ async function monitor()
         p.hit_depth = d;
 
         if ( p.found_data_id ) {
+
           console.log( "Skipping live fetch of %s", p.found_data_id );
+
         }
         else {
 
@@ -2178,7 +2320,9 @@ async function monitor()
             p.triggerable--;
             append_buffer_to_rr_map = 0;
 
-            await clickon_node( node_id, nm );
+            // Set up network callback, 
+            rr_callback = xhr_response_callback;
+            await clickon_node( node_id, nm, clickon_callback );
 
             if ( append_buffer_to_rr_map > 0 ) {
               let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
@@ -2299,7 +2443,6 @@ async function monitor()
       }
       // p.triggerable != 0
     }//}}}
-
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
@@ -2316,7 +2459,7 @@ async function monitor()
       rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
       nodes_seen.set( waiting_parent, {
         nodeName   : rootnode_n.object.description,
-        parentId   : parentId !== undefined ? parseInt(parentId) : 0,
+        parentId   : parentId === undefined ? 0 : parseInt(parentId),
         attributes : new Map,
         isLeaf     : false,
         content    : new Map
@@ -2465,9 +2608,10 @@ async function monitor()
   async function finalize_metadata( step )
   {//{{{
     // Chew up, digest, dump, and clear captured nodes.
-    file_ts = datestring( cycle_date );
-    let text_headers;
     if ( step == 0 ) {
+
+      file_ts = datestring( cycle_date );
+      let text_headers;
 
       if ( nodes_seen.size > 0 ) {
         // First, sort nodes - just because we can.
@@ -2499,7 +2643,6 @@ async function monitor()
           text_headers.forEach((v,k) => { v = 0; });
           console.log( "Loaded text sections master", inspect( text_headers, default_insp ) );
         }
-
 
         // Copy into lookup_tree before reducing to tree
         nodes_seen.forEach((v,key,map) => {
@@ -2549,10 +2692,9 @@ async function monitor()
           textkeys     : textkeys, // Stores bill history dictionary 
           text_headers : text_headers, // .text map lookup table, if available
           n            : 0,
-          // Database lookup
+
           missing_data_id  : null,
           found_data_id    : null,
-
           db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
@@ -2623,13 +2765,9 @@ async function monitor()
           rr_map, 
           file_ts
         );
-        rr_map.clear();
       }
 
-      nodes_seen.clear();
-      nodes_tree.clear();
-      lookup_tree.clear();
-      cycle_date = null;
+      document_reset();
 
       if ( exception_abort ) {
         console.log( "Process Abort" );
@@ -2643,7 +2781,8 @@ async function monitor()
     return Promise.resolve(true);
   }//}}}
 
-  try {
+  try
+  {//{{{
 
     Network.requestWillBeSent(networkRequestWillBeSent);
     Network.responseReceived(networkResponseReceived);
@@ -2679,6 +2818,7 @@ async function monitor()
 
     await DOM.documentUpdated(async (params) => {
       console.log( 'DOM::documentUpdated', params );
+      document_reset();
     });
 
     await Page.loadEventFired(async (ts) => {
@@ -2687,13 +2827,13 @@ async function monitor()
         const { currentIndex, entries } = await Page.getNavigationHistory();
         const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
 
-        await setup_dom_fetch( nodeId );
-
         current_url = entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
           ? entries[currentIndex].url 
           : '---';
 
-        console.log("LOAD EVENT root[%d]", 
+        await setup_dom_fetch( nodeId );
+
+        console.log("LOAD EVENT OK root[%d]", 
           nodeId, 
           ts,
           datestring( cycle_date ),
@@ -2701,12 +2841,12 @@ async function monitor()
         );
       }
       catch(e) {
-        console.log("LOAD EVENT root[%d]",
+        console.log("LOAD EVENT EXCEPTION root[%d]",
           nodeId,
           ts,
           datestring( cycle_date ),
           current_url,
-          inspect(e, default_insp)
+          inspect( e, default_insp )
         );
       }
 
@@ -2777,15 +2917,20 @@ async function monitor()
       await watchdog( finalize_metadata );
     }
 
-  } catch (err) {
+  }//}}}
+  catch (err)
+  {//{{{
     console.error("Main exception", inspect(err, default_insp));
-  } finally {
+  }//}}}
+  finally
+  {//{{{
     if (client) {
       console.log( "Close opportunity ended" );
       // client.close();
     }
-  }
+  }//}}}
   return Promise.resolve(true);
+
 }//}}}
 
 async function traverse()
@@ -2827,7 +2972,6 @@ async function traverse()
     //let panel = normalize_j_history( panel_raw );
     //console.log( "Finalized panel", inspect( panel, default_insp ));
     //result = await examine_ingest_json( fn, ingest_paramset );
-    //result = await congress_record_head_request_h( fn, ingest_paramset );
   }
 
   if ( ss.isDirectory() ) {
@@ -2907,8 +3051,10 @@ async function traverse()
             inspect(panel_info, default_insp)
           );
 
-          // 
-          if ( panel_info.links.size > 0 &&
+          // Insert newly-fetched document information 
+          if ( panel_info.links.size > 0 || panel_info.history.size > 0 ) {
+            await congress_record_panelinfo( panel_info, ingest_paramset );
+          }
 
           if (0) if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
             envSet("INGEST_OVERWRITE","1") ) {
@@ -2962,6 +3108,7 @@ async function traverse()
           await normalize( f );
           files_processed++;
       }//}}}
+
       await sleep(20);
     }
 

@@ -1501,6 +1501,9 @@ async function monitor()
     depth          = 0;
     rootnode       = 0;
     completed      = false;
+    traversal_abort = false;
+    exception_abort = false;
+    rr_callback = rr_callback_default;
 
     while ( parents_pending_children.length > 0 )
       parents_pending_children.shift();
@@ -2773,6 +2776,7 @@ async function monitor()
         console.log( "Process Abort" );
         process.exit(1);
       }
+
     }
     else {
       // Trigger requestChildNodes

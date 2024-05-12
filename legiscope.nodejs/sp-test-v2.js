@@ -1350,11 +1350,33 @@ async function congress_record_panelinfo( panel_info, p )
 
           // Create through table join record
           try {//{{{
-            let join_insert_result = await p.joins
-              .insert(['url_raw','congress_basedoc','edgeinfo'])
-              .values([v.id,congress_basedoc_db_id,'-'])
-              .execute();
-            if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserted join #%d", await join_insert_result.getAutoIncrementValue() );
+            let join_select = [
+              'SELECT id, url_raw, congress_basedoc',
+              'FROM congress_basedoc_url_raw_join',
+              'WHERE url_raw = ? AND congress_basedoc = ?'
+            ].join(' ');
+            let extant_joins = await sqlexec_resultset( 
+              p.db, join_select, 
+              [ v.id, congress_basedoc_db_id ]
+            );
+
+            if ( extant_joins !== undefined && extant_joins.length > 0 ) {
+              console.log( "Found %d extant join records for URL %s",
+                extant_joins.length,
+                k
+              );
+              while ( extant_joins.length > 0 ) {
+                let extant_join = extant_joins.shift();
+                console.log( "- %d", extant_join.get('id') );
+              }
+            }
+            else {
+              let join_insert_result = await p.joins
+                .insert(['url_raw','congress_basedoc','edgeinfo'])
+                .values([v.id,congress_basedoc_db_id,'-'])
+                .execute();
+              if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserted join #%d", await join_insert_result.getAutoIncrementValue() );
+            }
           }//}}}
           catch(e) {
             // TODO: Transaction per {url_raw} record

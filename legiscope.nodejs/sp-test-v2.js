@@ -1508,11 +1508,11 @@ async function monitor()
 
   client = await CDP();
 
-  const { Network, Page, DOM, Input } = client;
+  const { Browser, Network, Page, DOM, Input } = client;
   
   function document_reset()
   {//{{{
-    console.log( "RESET" )
+    console.log( "RESET" );
     nodes_seen.clear();
     nodes_tree.clear();
     lookup_tree.clear();
@@ -2094,10 +2094,10 @@ async function monitor()
   async function clickon_node( node_id, nm, cb )
   {//{{{
 
-    let result = false;
+    let result;
     let traversable = await traverse_to( node_id, nm );
     
-    if ( traversable ) {
+    if ( traversable ) while ( result === undefined ) {
 
       try {
         let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
@@ -2170,8 +2170,10 @@ async function monitor()
     //   processing must halt.
     //
     const rq_dur_ms = 30000;
+    const rq_retry_max = 3;
     let traversal_request_id;
     let traversal_rq_start_tm;
+    let traversal_rq_retry = 0;
     let traversal_rq_aborted = false;
     let traversal_rq_success = false;
 
@@ -2203,8 +2205,8 @@ async function monitor()
               }
               else {
                 // Unconditional traversal abort
-                console.log( "Traveral aborted on XHR fetch error", inspect( data, default_insp ) );
                 traversal_rq_aborted = true;
+                console.log( "Traversal aborted on XHR fetch error", inspect( data, default_insp ) );
               }
               traversal_rq_start_tm = hrtime.bigint();
             }
@@ -2238,7 +2240,7 @@ async function monitor()
       //
       let success_result = false;
       let traversal_wait_mark = hrtime.bigint();
-      while ( true ) {
+      while ( success_result !== undefined ) {
         if ( traversal_rq_start_tm !== undefined ) {
           let traversal_dur_ms = Number.parseFloat(
             Number((hrtime.bigint() - traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
@@ -2254,8 +2256,16 @@ async function monitor()
             Number((hrtime.bigint() - traversal_wait_mark)/BigInt(1000 * 1000))/1.0
           );
           if ( Number.parseInt(traversal_wait_dur) > Number.parseInt(rq_dur_ms) ) {
-            console.log( "Timeout exceeded for XHR setup", traversal_wait_dur );
-            traversal_abort = true;
+            traversal_rq_retry++;
+            if ( traversal_rq_retry < rq_retry_max ) {
+              console.log( "Retry %d/%d XHR setup", traversal_rq_retry, rq_retry_max, traversal_wait_dur );
+              traversal_wait_mark = hrtime.bigint();
+              success_result = undefined;
+            }
+            else {
+              console.log( "Timeout exceeded for XHR setup", traversal_wait_dur );
+              traversal_abort = true;
+            }
             break;
           }
         }
@@ -2302,7 +2312,7 @@ async function monitor()
             : null
           ;
           p.found_data_id = null;
-          p.missing_data_id = null;
+          p.unfetched_data_id = null;
           if ( linkid ) {
             let congress_basedoc = await p.congress_basedoc
               .select(['id','create_time','congress_n','sn','title_full'])
@@ -2315,7 +2325,8 @@ async function monitor()
               p.found_data_id = linkid;
             }
             else {
-              p.missing_data_id = linkid;
+              console.log( "Pending retrieval of %s", linkid );
+              p.unfetched_data_id = linkid;
             }
             await sleep(10);
           }
@@ -2342,7 +2353,7 @@ async function monitor()
         }
         else {
 
-          console.log( 'Live fetch %s', p.missing_data_id );
+          console.log( 'Live fetch %s', p.unfetched_data_id );
 
           try {
 
@@ -2392,9 +2403,9 @@ async function monitor()
               else {
                 console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
               }
-              await sleep(500);
+              await sleep(500); // Delay to allow browser to populate XHR container modal
               markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
-              console.log( "TRIGGERED FETCH %s INTO %s %d", 
+              console.log( "FETCHED %s INTO %s %d", 
                 xhr_fetch_rr,
                 p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
                 append_buffer_to_rr_map,
@@ -2722,7 +2733,7 @@ async function monitor()
           text_headers : text_headers, // .text map lookup table, if available
           n            : 0,
 
-          missing_data_id  : null,
+          unfetched_data_id: null,
           found_data_id    : null,
           db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
@@ -2796,12 +2807,13 @@ async function monitor()
         );
       }
 
-      document_reset();
-
-      if ( exception_abort ) {
+      if ( exception_abort || traversal_abort ) {
         console.log( "Process Abort" );
+        if ( envSet("ABORT_CLOSES_BROWSER","1") ) await Browser.close();
         process.exit(1);
       }
+
+      document_reset();
 
     }
     else {
@@ -2936,7 +2948,7 @@ async function monitor()
     await DOM.enable({ includeWhitespace: "none" });
     await Page.enable();
 
-    nodes_seen.clear();
+    document_reset();
 
     // Trigger a page fetch, else stand by for browser interaction or timeout
     if ( targetUrl.length > 0 ) {

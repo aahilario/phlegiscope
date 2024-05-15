@@ -27,6 +27,7 @@ const default_insp = { showHidden: false, depth: null, colors: true };
 const mysqlx = require("@mysql/xdevapi");
 
 let db_session;
+let frame_id;
 let outstanding_rr          = new Map;
 let rr_map                  = new Map;
 let nodes_seen              = new Map;
@@ -48,6 +49,7 @@ let file_ts;
 let inorder_traversal_previsit = false;
 let inorder_traversal_postvisit = false;
 let current_url = null;
+let resume_url = null;
 let user_agent = null;
 
 if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
@@ -436,8 +438,6 @@ async function graft( sourcetree, m, nodeId, depth, get_content_cb )
       attributes : m.attributes,
       isLeaf     : true,
       content    : await get_content_cb( m, nodeId )
-      // Originally: 
-      // content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
     };
     if ( envSet('GRAFT','1') ) console.log("Leafify %d",
       depth,
@@ -1510,7 +1510,7 @@ async function monitor()
 
   const { Browser, Network, Page, DOM, Input } = client;
   
-  function document_reset()
+  function document_reset( clear_traversal_flags )
   {//{{{
     console.log( "RESET" );
     nodes_seen.clear();
@@ -1524,8 +1524,10 @@ async function monitor()
     depth          = 0;
     rootnode       = 0;
     completed      = false;
-    traversal_abort = false;
-    exception_abort = false;
+    if ( clear_traversal_flags === true ) {
+      traversal_abort = false;
+      exception_abort = false;
+    }
     rr_callback = rr_callback_default;
 
     while ( parents_pending_children.length > 0 )
@@ -1617,11 +1619,6 @@ async function monitor()
       m.nodeId,
       parent_nodeId,
       m.childNodeCount ? m.childNodeCount : 0
-      //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
-      //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
-      //,m
-      //,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, default_insp)
-      //,inspect(m.children ? m.children : [], default_insp)
     );
 
     // Only enqueue requestChildNodes for parents missing .children array
@@ -2206,7 +2203,13 @@ async function monitor()
               else {
                 // Unconditional traversal abort
                 traversal_rq_aborted = true;
-                console.log( "Traversal aborted on XHR fetch error", inspect( data, default_insp ) );
+                console.log(
+                  "Traversal aborted on %s XHR fetch[%s] error", 
+                  current_url,
+                  rr_map.has( traversal_request_id ) ? traversal_request_id : 'untracked',
+                  inspect( data, default_insp ),
+                );
+                resume_url = current_url;
               }
               traversal_rq_start_tm = hrtime.bigint();
             }
@@ -2346,25 +2349,68 @@ async function monitor()
         p.child_hits++;
         p.hit_depth = d;
 
-        if ( p.found_data_id ) {
+        if ( traversal_abort || exception_abort ) {
+
+          console.log( 'Aborting fetch of %s', p.unfetched_data_id );
+
+        }
+        else if ( p.found_data_id ) {
 
           console.log( "Skipping live fetch of %s", p.found_data_id );
 
         }
         else {
-
+      
           console.log( 'Live fetch %s', p.unfetched_data_id );
 
           try {
 
+            let click_result;
             p.triggerable--;
             append_buffer_to_rr_map = 0;
 
             // Set up network callback, 
             rr_callback = xhr_response_callback;
-            await clickon_node( node_id, nm, clickon_callback );
+            click_result = await clickon_node( node_id, nm, clickon_callback );
 
-            if ( append_buffer_to_rr_map > 0 ) {
+            if ( !(click_result === true) && !isNaN(parseInt(traversal_request_id)) ) {
+              let trav_response_body = await Network.getResponseBody( { requestId: traversal_request_id } );
+              console.log( "Terminating message [%s]",
+                traversal_request_id,
+                inspect( trav_response_body, default_insp )
+              );
+              if ( rr_map.has( traversal_request_id ) ) {
+                // Update network R/R entry, inserting terminating message as .markup attribute
+                let rr_term = rr_map.get( traversal_request_id );
+                let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
+                let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
+                rr_term.markup = trav_response_body;
+                rr_map.set( traversal_request_id, rr_term );
+                write_map_to_file( "XHR interruption",
+                  "xhr-intercept.json",
+                  rr_term,
+                  file_ts
+                );
+                if ( true || (is_text_html && is_cf_mitigated) ) {
+                  // Attempt to override displayed page contents
+                  try {
+                    console.log( "Loading CF mitigation challenge to target frame %s", inspect({
+                      frame_id: frame_id
+                    }, default_insp) );
+                    await Page.setDocumentContent({
+                      frameId: frame_id,
+                      html: trav_response_body.body 
+                    });
+                  }
+                  catch (e) {
+                    console.log( "Aborted XHR override error",
+                      inspect(e , default_insp)
+                    );
+                  }
+                }
+              }
+            }
+            else if ( append_buffer_to_rr_map > 0 ) {
               let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
               let markup;
               await setup_dom_fetch( append_buffer_to_rr_map );
@@ -2404,7 +2450,7 @@ async function monitor()
                 console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
               }
               await sleep(500); // Delay to allow browser to populate XHR container modal
-              markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
+              markup = get_outerhtml( undefined, append_buffer_to_rr_map );
               console.log( "FETCHED %s INTO %s %d", 
                 xhr_fetch_rr,
                 p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
@@ -2418,7 +2464,9 @@ async function monitor()
 
               if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
 
-              if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file( "Fragment", "trie.txt", 
+              if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file(
+                "Fragment",
+                "trie.txt", 
                 nodes_seen,
                 file_ts,
                 p.n
@@ -2479,6 +2527,10 @@ async function monitor()
         // if ( nm.nodeName == '#text' && nm.content == '[History]' )
       }//}}}
       else if ( p.child_hits > 0 ) {
+        if ( traversal_abort || exception_abort ) {
+          console.log( "Skipping further DOM node processing" );
+        }
+        else
         await congress_extract_history_panel( sp, nm, p, node_id, d );
       }
       // p.triggerable != 0
@@ -2525,7 +2577,7 @@ async function monitor()
     // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
     if ( params.value == 'modal fade in' ) {
       append_buffer_to_rr_map = params.nodeId;
-      let markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
+      let markup = get_outerhtml( undefined, append_buffer_to_rr_map );
       let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
       if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
         let rr_entry = rr_map.get( latest_rr );
@@ -2642,7 +2694,25 @@ async function monitor()
 
   async function get_outerhtml( nm, nodeId )
   {//{{{
-    return (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML;
+    let outerhtml;
+    try {
+      outerhtml = await DOM.getOuterHTML({ nodeId : nodeId });
+      if ( outerhtml !== undefined && outerhtml.outerHTML !== undefined ) 
+        outerhtml = outerhtml.outerHTML;
+      else {
+        console.log( "No node[%d].outerHTML, returning null", nodeId,
+          inspect( outerhtml, default_insp )
+        );
+        outerhtml = null;
+      }
+    }
+    catch (e) {
+      console.log( "No outerHTML for node[%d], returning null", nodeId,
+        inspect( e, default_insp )
+      );
+      outerhtml = null;
+    }
+    return outerhtml; 
   }//}}}
 
   async function finalize_metadata( step )
@@ -2667,7 +2737,7 @@ async function monitor()
         try {
           console.log( "Writing markup %s [%d]", markupfile, rootnode );
           write_to_file( markupfile,  
-            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML, 
+            get_outerhtml( undefined, rootnode ), 
             file_ts
           );
         }
@@ -2807,14 +2877,13 @@ async function monitor()
         );
       }
 
-      if ( exception_abort || traversal_abort ) {
+      if ( exception_abort ) {
         console.log( "Process Abort" );
         if ( envSet("ABORT_CLOSES_BROWSER","1") ) await Browser.close();
         process.exit(1);
       }
 
-      document_reset();
-
+      document_reset( true );
     }
     else {
       // Trigger requestChildNodes
@@ -2860,7 +2929,7 @@ async function monitor()
 
     await DOM.documentUpdated(async (params) => {
       console.log( 'DOM::documentUpdated', params );
-      document_reset();
+      document_reset( false );
     });
 
     await Page.loadEventFired(async (ts) => {
@@ -2873,14 +2942,27 @@ async function monitor()
           ? entries[currentIndex].url 
           : '---';
 
-        await setup_dom_fetch( nodeId );
-
-        console.log("LOAD EVENT OK root[%d]", 
-          nodeId, 
-          ts,
-          datestring( cycle_date ),
-          current_url
-        );
+        if ( resume_url !== null ) {
+          console.log( "Redirecting browser to %s from %s",
+            resume_url,
+            current_url
+          );
+          current_url = resume_url;
+          resume_url = null;
+          setTimeout(async () => { 
+            console.log( "Async load of %s", current_url );
+            await Page.navigate({ url: current_url });
+          },1000);
+        }
+        else {
+          await setup_dom_fetch( nodeId );
+          console.log("LOAD EVENT OK root[%d]", 
+            nodeId, 
+            ts,
+            datestring( cycle_date ),
+            current_url
+          );
+        }
       }
       catch(e) {
         console.log("LOAD EVENT EXCEPTION root[%d]",
@@ -2915,7 +2997,7 @@ async function monitor()
     });
 
     await Page.frameAttached(async (p) => {
-      console.log("Page::frameAttached",p);
+      console.log("Page::frameAttached",inspect(p, default_insp));
     });
 
     await Page.frameDetached(async (p) => {
@@ -2924,6 +3006,7 @@ async function monitor()
     
     await Page.frameNavigated(async (p) => {
       console.log("Page::frameNavigated",p);
+      frame_id = p.frame.id || null;
     });
     
     await Page.interstitialHidden(async (p) => {
@@ -2948,7 +3031,7 @@ async function monitor()
     await DOM.enable({ includeWhitespace: "none" });
     await Page.enable();
 
-    document_reset();
+    document_reset( true );
 
     // Trigger a page fetch, else stand by for browser interaction or timeout
     if ( targetUrl.length > 0 ) {

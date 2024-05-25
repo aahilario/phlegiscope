@@ -50,6 +50,7 @@ let inorder_traversal_previsit = false;
 let inorder_traversal_postvisit = false;
 let current_url = null;
 let resume_url = null;
+let mitigation_intercept_url = null;
 let user_agent = null;
 
 if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
@@ -1461,33 +1462,6 @@ async function examine_ingest_json( f, p )
     else
       p.work.set( hashval, 1 );
 
-    //if ( j.history.size == 0 && j.links.size == 0 ) {
-    //  let rs = await select_congress_basedoc_url( p.db, congress_basedoc_id );
-    //  if ( rs.length == 1 ) {
-    //    let result;
-    //    rs = rs.shift();
-    //    if ( rs.has('dju') && !rs.get('dju') ) {
-    //      result = await p.congress_basedoc
-    //        .delete()
-    //        .where('`id` = :id')
-    //        .bind('id', rs.get('id'))
-    //        .execute();
-    //      await sleep(1);
-    //    }
-    //    console.log( "Removable %s", 
-    //      congress_basedoc_id,
-    //      inspect( rs, default_insp ),
-    //      inspect( result, default_insp )
-    //    );
-    //  }
-    //}
-    //else {
-    //  panel_info = j; 
-    //  if (0) { 
-    //    console.log( "Keep %s %s", panel_info.id ? panel_info.id : f, f );
-    //    await congress_record_panelinfo( panel_info, p );
-    //  }
-    //}
   }
   return Promise.resolve(hashval);
 }//}}}
@@ -1512,7 +1486,7 @@ async function monitor()
   
   function document_reset( clear_traversal_flags )
   {//{{{
-    console.log( "RESET" );
+    console.log( clear_traversal_flags ? "HARD RESET" : "RESET" );
     nodes_seen.clear();
     nodes_tree.clear();
     lookup_tree.clear();
@@ -1546,12 +1520,14 @@ async function monitor()
           if ( delta > 1000 * rr_timeout_s ) { 
             rr_mark = 0;
             mark_steps = 0;
+            resume_url = null;
             console.log("\r\n--CLEAR--\r\n");
             if ( cb ) await cb( mark_steps );
           }
           else {
             mark_steps++;
             if ( envSet('WATCHDOG','1') ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
+            if ( !(mark_steps % 10) ) process.stdout.write('.');
             if ( cb ) await cb( mark_steps );
           }
         }
@@ -1916,7 +1892,7 @@ async function monitor()
       }
       extracted_info.links.delete('[History]');
       if ( p.found_data_id ) {
-        console.log( "Omitting panels.json write for %s", p.found_data_id );
+        if ( !envSet("QUIET") ) console.log( "Omitting panels.json write for %s", p.found_data_id );
       }
       else {
         let final_data = normalize_j_history( final_data_raw );
@@ -1935,7 +1911,7 @@ async function monitor()
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
         inspect(final_data, default_insp)
       );
-      console.log( "---- CYCLE DONE ----" );
+      if ( !envSet("QUIET") ) console.log( "---- CYCLE DONE ----" );
       p.child_hits = 0;
       p.hit_depth = 0;
       p.flattened.clear();
@@ -2202,12 +2178,24 @@ async function monitor()
               }
               else {
                 // Unconditional traversal abort
+                let rr_mitig_target;
+                if ( rr_map.has( traversal_request_id ) ) {
+                  rr_mitig_target = rr_map.get( traversal_request_id );
+                  // After the CF intercept frame code runs, they [should]
+                  // redirect the browser to the original POST target,
+                  // mitigation_intercept_url.  We wait for Page.loadEventFired
+                  // to be triggered, whence we redirect to the bills and resolutions
+                  // page.
+                  mitigation_intercept_url = rr_mitig_target.url; 
+                }
+
                 traversal_rq_aborted = true;
                 console.log(
-                  "Traversal aborted on %s XHR fetch[%s] error", 
+                  "Traversal aborted on %s XHR fetch[%s] from %s error", 
                   current_url,
-                  rr_map.has( traversal_request_id ) ? traversal_request_id : 'untracked',
-                  inspect( data, default_insp ),
+                  rr_mitig_target === undefined ? 'untracked' : traversal_request_id,
+                  rr_mitig_target === undefined ? '{nowhere}' : rr_mitig_target.url,
+                  inspect( data, default_insp )
                 );
                 resume_url = current_url;
               }
@@ -2324,7 +2312,7 @@ async function monitor()
               .execute();
             let r = await congress_basedoc.fetchAll();
             if ( r.length > 0 ) {
-              console.log( "Found stored %s", linkid );
+              if ( !envSet("QUIET") ) console.log( "Found stored %s", linkid );
               p.found_data_id = linkid;
             }
             else {
@@ -2356,7 +2344,7 @@ async function monitor()
         }
         else if ( p.found_data_id ) {
 
-          console.log( "Skipping live fetch of %s", p.found_data_id );
+          if ( !envSet("QUIET") ) console.log( "Skipping live fetch of %s", p.found_data_id );
 
         }
         else {
@@ -2374,12 +2362,30 @@ async function monitor()
             click_result = await clickon_node( node_id, nm, clickon_callback );
 
             if ( !(click_result === true) && !isNaN(parseInt(traversal_request_id)) ) {
-              let trav_response_body = await Network.getResponseBody( { requestId: traversal_request_id } );
+              let trav_response_body;
+              if ( !traversal_rq_success ) {
+                let traversal_rq_success_mark = hrtime.bigint();
+                while ( !traversal_rq_success ) {
+                  await sleep(500);
+                  let traversal_dur_ms = Number.parseFloat(
+                    Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
+                  );
+                  console.log( "Activation wait %d/%d", traversal_dur_ms, rq_dur_ms );
+                  if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+                    console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+                    break;
+                  }
+                }
+              }
+              trav_response_body = traversal_rq_success 
+                ? await Network.getResponseBody( { requestId: traversal_request_id } )
+                : { body: '', base64Encoded: false } 
+                ;
               console.log( "Terminating message [%s]",
                 traversal_request_id,
                 inspect( trav_response_body, default_insp )
               );
-              if ( rr_map.has( traversal_request_id ) ) {
+              if ( rr_map.has( traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
                 // Update network R/R entry, inserting terminating message as .markup attribute
                 let rr_term = rr_map.get( traversal_request_id );
                 let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
@@ -2450,7 +2456,7 @@ async function monitor()
                 console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
               }
               await sleep(500); // Delay to allow browser to populate XHR container modal
-              markup = get_outerhtml( undefined, append_buffer_to_rr_map );
+              markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
               console.log( "FETCHED %s INTO %s %d", 
                 xhr_fetch_rr,
                 p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
@@ -2577,7 +2583,7 @@ async function monitor()
     // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
     if ( params.value == 'modal fade in' ) {
       append_buffer_to_rr_map = params.nodeId;
-      let markup = get_outerhtml( undefined, append_buffer_to_rr_map );
+      let markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
       let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
       if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
         let rr_entry = rr_map.get( latest_rr );
@@ -2715,8 +2721,8 @@ async function monitor()
     return outerhtml; 
   }//}}}
 
-  async function finalize_metadata( step )
-  {//{{{
+  async function finalize_metadata_congress_gov_ph( step )
+  {
     // Chew up, digest, dump, and clear captured nodes.
     if ( step == 0 ) {
 
@@ -2735,14 +2741,16 @@ async function monitor()
 
         let markupfile = "index.html";
         try {
-          console.log( "Writing markup %s [%d]", markupfile, rootnode );
+          console.log( "Writing markup %s [node %d]", markupfile, rootnode );
           write_to_file( markupfile,  
-            get_outerhtml( undefined, rootnode ), 
+            await get_outerhtml( undefined, rootnode ), 
             file_ts
           );
         }
         catch(e) {
-          console.log( "Unable to write markup file", markupfile );
+          console.log( "Unable to write markup file", markupfile,
+            inspect(e, default_insp)
+          );
         }
 
         console.log( "TIME: TRANSFORM", rr_time_delta() );
@@ -2890,6 +2898,11 @@ async function monitor()
       await trigger_dom_fetch();
     }
     return Promise.resolve(true);
+  }
+
+  async function finalize_metadata( step )
+  {//{{{
+    return finalize_metadata_congress_gov_ph( step );
   }//}}}
 
   try
@@ -2942,13 +2955,14 @@ async function monitor()
           ? entries[currentIndex].url 
           : '---';
 
-        if ( resume_url !== null ) {
+        if ( mitigation_intercept_url !== null && current_url === mitigation_intercept_url && resume_url !== null ) {
           console.log( "Redirecting browser to %s from %s",
             resume_url,
             current_url
           );
           current_url = resume_url;
           resume_url = null;
+          mitigation_intercept_url = null;
           setTimeout(async () => { 
             console.log( "Async load of %s", current_url );
             await Page.navigate({ url: current_url });
@@ -2986,6 +3000,11 @@ async function monitor()
 
     await Page.lifecycleEvent(async (p) => {
       console.log("Lifecycle", p);
+      if ( frame_id === undefined || !frame_id ) {
+        if ( p.frameId !== undefined && p.frameId.length > 0 ) {
+          frame_id = p.frameId;
+        }
+      }
     });
 
     await Page.setLifecycleEventsEnabled({enabled: true});

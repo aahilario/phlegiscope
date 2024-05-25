@@ -21,6 +21,7 @@ export PAGE_FETCH_CB=0
 export PARSE=0
 export PRUNE_CB=0
 export QA=1
+export QUIET=1
 export REVERSE_CONTENT=10
 export SETUP_DOM_FETCH=0
 export SN_INORDER_TRAVERSAL=2

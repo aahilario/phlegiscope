@@ -20,13 +20,14 @@ const db_port = process.env.LEGISCOPE_PORT || '';
 const db_name = process.env.LEGISCOPE_DB   || '';
 const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
-const rr_timeout_s = 15; // Seconds of inactivity before flushing page metadata 
+const rr_timeout_s = 30; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
-const default_insp = {showHidden: false, depth: null, colors: true};
+const default_insp = { showHidden: false, depth: null, colors: true };
 
 const mysqlx = require("@mysql/xdevapi");
 
 let db_session;
+let frame_id;
 let outstanding_rr          = new Map;
 let rr_map                  = new Map;
 let nodes_seen              = new Map;
@@ -37,15 +38,20 @@ let xhr_fetch_id            = 0;
 let append_buffer_to_rr_map = 0;
 let rr_mark                 = 0; // hrtime.bigint();
 let rr_begin                = 0;
+let rr_callback             = null;
 let cycle_date;
 let mark_steps              = 0;
 let rootnode_n;
 let postprocessing          = 0;
 let exception_abort         = false;
+let traversal_abort         = false;
 let file_ts;
 let inorder_traversal_previsit = false;
 let inorder_traversal_postvisit = false;
 let current_url = null;
+let resume_url = null;
+let mitigation_intercept_url = null;
+let user_agent = null;
 
 if ( envSet("CB_PREPROCESS","0") ) inorder_traversal_previsit = true;
 if ( envSet("CB_PREPROCESS","1") ) inorder_traversal_postvisit = true;
@@ -105,6 +111,42 @@ async function setup_db()
   return Promise.resolve(db_session);
 }//}}}
 
+async function sqlexec_resultset( db, sql, bind_params )
+{//{{{
+  let resultset = new Array;
+  let resultmap = new Map;
+  let r = await db.sql( sql )
+    .bind( bind_params )
+    .execute(
+      (rowcursor) => {
+        let lr = new Map;
+        // Providing this method consumes all result rows
+        resultmap.forEach((v,k) => {
+          let nv = rowcursor.shift();
+          lr.set( k, nv );
+        });
+        if (0) console.log( 
+          "rowcursor:", 
+          inspect(rowcursor, default_insp),
+          inspect(resultmap, default_insp)
+        );
+        resultset.push( lr );
+      },
+      (metadata) => {
+        metadata.forEach((c) => {
+          if (0) console.log( "metadata:",
+            c.getColumnName(), 
+            c.getColumnLabel(), 
+            inspect(c, default_insp),
+            inspect(resultmap, default_insp)
+          );
+          resultmap.set( c.getColumnLabel(), null );
+        });
+      }
+    );
+  return Promise.resolve(resultset);
+}//}}}
+
 function sleep( millis )
 {//{{{
   return new Promise((resolve) => {
@@ -113,6 +155,14 @@ function sleep( millis )
     },millis);
   });
 }//}}}
+
+function rr_callback_default( data, requestId, phase )
+{
+  // Template for callbacks assigned to rr_callback, used by
+  // - Network.networkResponseReceived
+  // - Network.requestWillBeSent
+  // - Network.loadingFinished
+}
 
 function networkResponseReceived(params)
 {//{{{
@@ -136,11 +186,14 @@ function networkResponseReceived(params)
       response.mimeType
     );
     rr_map.set( params.requestId, m );
+    rr_mark = hrtime.bigint();
+    if ( rr_callback ) rr_callback( response, params.requestId, 'A' ); 
   }
   else {
     if (envSet('QA','1')) console.log("B[%s]", params.requestId, response );
+    rr_mark = hrtime.bigint();
+    if ( rr_callback ) rr_callback( response, params.requestId, 'B' ); 
   }
-  rr_mark = hrtime.bigint();
 }//}}}
 
 function networkRequestWillBeSent(params)
@@ -149,6 +202,7 @@ function networkRequestWillBeSent(params)
     requestId : params.requestId,
     url       : params.request.url,
     method    : params.request.method,
+    headers   : params.request.headers,
     timestamp : params.timestamp,
     wallTime  : params.wallTime,
     initiator : params.initiator
@@ -170,16 +224,18 @@ function networkRequestWillBeSent(params)
     markdata.url
   );
   rr_mark = hrtime.bigint();
+  if ( rr_callback ) rr_callback( markdata, params.requestId, 'Q' ); 
 }//}}}
 
 function networkLoadingFinished(params)
 {//{{{
   if ( outstanding_rr.has( params.requestId ) ) {
-    latest_rr = params.requestId; // Potentially usable for tracking XMLHTTPRequest markup fetches
+    latest_rr = params.requestId; // FIXME: Assignments to latest_rr superseded by callback-mediated control flow
     outstanding_rr.delete( params.requestId );
   }
   if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
   rr_mark = hrtime.bigint();
+  if ( rr_callback ) rr_callback( params.requestId, params.requestId, 'L' ); 
 }//}}}
 
 function return_sorted_map_ordinalkeys( map_obj )
@@ -383,8 +439,6 @@ async function graft( sourcetree, m, nodeId, depth, get_content_cb )
       attributes : m.attributes,
       isLeaf     : true,
       content    : await get_content_cb( m, nodeId )
-      // Originally: 
-      // content    : (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML
     };
     if ( envSet('GRAFT','1') ) console.log("Leafify %d",
       depth,
@@ -527,7 +581,10 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     }
   }//}}}
 
-  if ( exception_abort ) {
+  if ( traversal_abort ) {
+    console.log( "Traversal halted" );
+  }
+  else if ( exception_abort ) {
     console.log( "Process Abort" );
   }
   else if ( nm === undefined || !nm ) {
@@ -547,7 +604,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       if ( nm.has( k ) ) {
         nm.set(k,await inorder_traversal(sp,nm.get(k),d,cb,cb_param,k,parentId));
       }
-      if ( exception_abort ) break;
+      if ( traversal_abort || exception_abort ) break;
     }
   }
   else if ( nm.content !== undefined ) {
@@ -558,7 +615,9 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     sp.branchpat.push(nm.nodeName);
 
     if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-    if ( nm === undefined ) {
+    if ( traversal_abort || exception_abort ) {
+    }
+    else if ( nm === undefined ) {
     }
     else if ( nm.isLeaf || nm.content.size === undefined ) {
       if (envSet("INORDER_TRAVERSAL","1")) console.log( "%sSkipping leaf %d",' '.repeat((d >= 0 ? d : 0) * 2), nodeId );
@@ -593,9 +652,8 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
         else {
           nm.content.set(k,rv);
         }
-        if ( exception_abort ) break;
+        if ( traversal_abort || exception_abort ) break;
       }
-
     }
     if ( cb !== undefined && inorder_traversal_postvisit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
     sp.branchpat.pop();
@@ -789,6 +847,625 @@ function normalize_j_history( j )
   return undef_return;
 }//}}}
 
+async function stack_markup( sp, nm, p, node_id, d )
+{//{{{
+  // Requires:
+  // inorder_traversal_previsit = false;
+  // inorder_traversal_postvisit = true;
+ 
+  if ( nm.isLeaf ) {
+    let $ = await cheerio.load( nm.content, null, false );
+    if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
+    if (0) $('td').children().each(function (i,e) {
+      console.log("- %d", i, $(this).text, $(this).text() );
+    });
+    p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
+  }
+}//}}}
+
+async function ingest_panels( f )
+{//{{{
+  let fn = f || env['TARGETURL'];
+  let panel_info;
+
+  if ( !existsSync( fn ) ) {
+    console.log( "Unable to see %s", fn );
+    process.exit(1);
+  }
+
+  let j = read_map_from_file( fn );
+
+  if ( j.history !== undefined ) {
+
+    j.history = return_sorted_map_ordinalkeys( j.history );
+
+    panel_info = {
+      url     : j.url,
+      id      : j.id,
+      links   : j.links,
+      text    : j.text,
+      history : j.history 
+    };
+    if (0) console.log(
+      "Markup",
+      inspect( panel_info, default_insp )
+    );
+  }
+  return Promise.resolve(panel_info);
+}//}}}
+
+async function preload( f )
+{//{{{
+  try {
+    let t = read_map_from_file( f );
+
+    let branchpat = new Array;
+    let markup_a = new Map;
+
+    await inorder_traversal(
+      { branchpat : branchpat, traversal_parent : null },
+      t, -1,
+      stack_markup,
+      { markup_a : markup_a }
+    );
+    console.log( 
+      f, 
+      inspect( t, default_insp)
+    );
+  }
+  catch(e) {
+    console.log( "Problem loading %s", f );
+    unlinkSync(f);
+  }
+}//}}}
+
+async function normalize( f )
+{//{{{
+  let j = read_map_from_file( f );
+  let r = normalize_j_history( j );
+  if ( r !== undefined ) {
+    write_map_to_file( f, f, r );
+  }
+  return Promise.resolve(true);
+}//}}}
+
+async function fetch_url_http_head( g )
+{//{{{
+  const head_standoff = 2000;
+  let u = url.parse( g );
+  let unique_entry = g;
+
+  let result;
+  let head_info;
+  let client_request;
+  let hr_mark, hr_now;
+  let done = false;
+  let head_options = {
+    method: "HEAD",
+    timeout: head_standoff,
+    headers: {
+      "User-Agent" : user_agent && user_agent !== undefined && user_agent.length > 0 ? user_agent : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+  }
+
+  try {
+    client_request = await (/https:/i.test(u.protocol) ? https : http).request( g, head_options );
+    hr_mark = hrtime.bigint();
+    client_request
+      .on('error', (e) => {
+        done = true;
+        console.log("Error", g, inspect(e, default_insp) );
+      })
+      .on('response', (m) => {
+        head_info = new Map(m.headers !== undefined ? Object.entries(m.headers) : {});
+        if ( envSet("FETCH_URL_HTTP_HEAD","1") ) console.log('Headers from', g, inspect(head_info, default_insp) );
+        done = true;
+      }).on('timeout', () => {
+        done = true;
+        console.log("Timeout", g );
+      }).on('data', (d) => {
+        if ( envSet("FETCH_URL_HTTP_HEAD","1") ) console.log('Data B from', g, inspect(d, default_insp) );
+      }).end();
+
+    if ( !done ) do {
+      hr_now = hrtime.bigint();
+      if ( Number.parseInt( Number.parseFloat(Number( (hr_now - hr_mark)/BigInt(1000 * 1000) )/1.0) ) > head_standoff ) {
+        console.log( "Timeout" );
+        break;
+      }
+      if ( done ) {
+        console.log( "Completed" );
+        break;
+      }
+      await sleep(1);
+    } while ( !done && head_standoff > 0 );
+
+    if ( head_info instanceof Map && head_info.size > 0 ) {
+      let h = new Map;
+      head_info.forEach((v,k,m) => {
+        let lc_k = k.toLowerCase();
+        if ( /^(date|last-modified)$/.test( lc_k ) ) {
+          let dateval = new Date( v ).valueOf();
+          h.set( lc_k, isNaN(dateval) ? null : dateval / 1000 );
+        }
+        else
+        h.set( lc_k, v );
+        m.delete(k);
+      });
+      head_info = h;
+    }
+    else {
+      head_info = new Map;
+    }
+
+  } catch (e) {
+    console.log("fetch_url_http_head", g, inspect(e, default_insp) );
+  }
+
+  return Promise.resolve(head_info)
+  ;
+}//}}}
+
+function congress_panel_text_hdrfix( panel_info_text, text_headers )
+{//{{{
+  // Fix keys in .text collected using naive token pairing.
+  // Serialize elements, and then tokenize + restructure.
+  let tokens = new Array;
+  let revised = new Map;
+  let pairkey, pairval, e_undef;
+
+  if (0) console.log( "Fixing headers in this", inspect( panel_info_text ) );
+
+  panel_info_text.forEach((v,k) => {
+    tokens.push(k);
+    tokens.push(v);
+  });
+  while ( tokens.length > 0 ) {
+    let t = (tokens.shift() || '').replace(/[: ]$/g,'');
+    if ( text_headers.has( t ) ) { 
+      pairkey = t;
+      t = (tokens.shift() || '').replace(/[: ]$/g,'') || '';
+      if ( text_headers.has( t ) ) {
+        revised.set( pairkey, '' );
+        pairkey = t;
+        pairval = e_undef;
+      }
+      else {
+        pairval = t;
+      }
+    }
+    else {
+      pairval = t;
+    }
+    if ( pairkey.length > 0 && pairval !== undefined ) {
+      revised.set( pairkey, pairval );
+      pairkey = '';
+      pairval = e_undef;
+    }
+    else { 
+      if (0) console.log( "Floof", inspect( { r: tokens.length, k : pairkey, v: pairval, t : t}, default_insp ) );
+      if ( tokens.length == 0 && t.length > 0 ) {
+        let kv = t.split(":");
+        let k = (kv[0] || '').trim();
+        let v = (kv[1] || '').trim();
+        if ( text_headers.has(k) ) {
+          revised.set(k,v);
+        }
+      }
+    }
+  }
+  if ( revised.size > 0 ) {
+    panel_info_text.clear();
+    text_headers.forEach((v,k) => {
+      if ( revised.has(k) )
+        panel_info_text.set( k, revised.get(k) );
+    });
+  }
+  if (0) console.log( "Repaired as", inspect( revised, default_insp ) );
+}//}}}
+
+function panel_info_text_check( panel_info, text_headers, text_headers_master )
+{//{{{
+  if ( panel_info.text !== undefined ) {
+    // Keep unique document .text map keys
+    let broken_headers = false;
+    panel_info.text.forEach((v,k) => {
+      let th;
+      if ( !text_headers.has( k ) ) {
+        if ( text_headers_master ) {
+          broken_headers = true;
+        }
+        else {
+          text_headers.set( k, 0 );
+        }
+      }
+      if ( !text_headers_master ) {
+        th = text_headers.get( k );
+        th++;
+        text_headers.set( k, th );
+      }
+    });
+
+    if ( broken_headers ) {
+      congress_panel_text_hdrfix( panel_info.text, text_headers )
+    }
+  }
+}//}}}
+
+function full_title_map_filter( m, f )
+{//{{{
+  let title_full_raw = Buffer.from(m.get(f) || '', 'utf8');
+  let title_full_hex = title_full_raw.toString('hex').replace(/([a-f0-9]{2})/g,"$1 ");
+  let title_full_buf = Buffer.from(title_full_hex
+    .replace(/e2 82 b1/g,'50') // Philippine peso
+    .replace(/ea 9e 8c/g,'27') // apostrophe
+    .replace(/c4 94/g,'c389') // EACCENT in ATTACH[E]
+    .replace(/c5 87/g,'c391') // NTILDE
+    .replace(/c5 83/g,'c391') // NTILDE
+    .replace(/cc 83/g,'c391') // NTILDE
+    .replace(/ef bf bd/g,'c391') // NTILDE
+    .replace(/e2 80 b2 e2 80 b2/g,'22') // Two apostrophes to double quote 
+    .replace(/e2 80 b3/,'22')
+    .replace(/e2 80 9c/,'22')
+    .replace(/e2 88 92/g,'2d') // en dash to hyphen 
+    .replace(/e2 80 92/g,'2d') // em dash to hyphen 
+    .replace(/c8 98/,'c59e') // S with cedilla
+    .replace(/\\n/g,' ')
+    .replace(/ */g,'')
+    ,
+    'hex'
+  );
+  return title_full_buf.toString('utf8');
+}//}}}
+
+function sanitize_congress_billres_sn( sn )
+{//{{{
+  return sn.replace(/[^A-Z0-9#-]/g,'')
+    .replace(/([A-Z0-9#-]{1,32})/,'$1')
+    .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
+    .trim();
+}//}}}
+
+async function select_congress_basedoc_url( db, congress_basedoc_id )
+{//{{{
+  // Select full base document + url joins + urls 
+  let sql = [
+    "SELECT",
+    "d.id,",
+    "d.create_time d_ct,",
+    "d.congress_n,",
+    "d.sn,",
+    "d.title_full,",
+    "j.id dju,",
+    "j.create_time dju_ct,",
+    "j.update_time dju_ut,",
+    "j.url_raw,",
+    "u.id url_id,",
+    "u.create_time u_ct,",
+    "u.last_modified u_lm,",
+    "u.url,",
+    "u.urltext,",
+    "u.urlhash",
+    "FROM congress_basedoc d",
+    "LEFT JOIN congress_basedoc_url_raw_join j ON d.id = j.congress_basedoc",
+    "LEFT JOIN url_raw u ON j.url_raw = u.id",
+    "WHERE d.sn = ?" 
+  ].join(' '); 
+  return sqlexec_resultset( db, sql, congress_basedoc_id );
+}//}}}
+
+async function congress_record_panelinfo( panel_info, p )
+{//{{{
+  let undefined_res;
+  let title_full;
+
+  panel_info_text_check( panel_info, p.text_headers, true );
+
+  try {
+    // REVIEW: Sanitize page inputs, there are human-encoded entries which contain unexpected, non-alphanumerics.
+    let congress_basedoc_id = sanitize_congress_billres_sn( panel_info.id );
+    let history_present_flag = panel_info.history.size > 1 ? 1 : 0;
+    let congress_basedoc = await p.congress_basedoc
+      .select(['id','create_time','update_time','history','mark','congress_n','sn','title_full'])
+      .where("sn = :sn")
+      .bind("sn",congress_basedoc_id)
+      .execute();
+    let r = await congress_basedoc.fetchAll();
+    title_full = full_title_map_filter( panel_info.text, 'Full Title, As Filed' );
+
+    // Create missing document record
+    if ( r.length == 0 ) {//{{{
+
+      if ( title_full.length == 0 )
+        title_full = congress_basedoc_id;
+
+      if ( title_full.length > 0 ) {
+        let congress_n = parseInt(congress_basedoc_id.replace(/^([^-]{1,})-([0-9]*)/,"$2") || 0);
+        r = await p.congress_basedoc
+          .insert(['history', 'congress_n','sn','title_full'])
+          .values([history_present_flag, congress_n, congress_basedoc_id, title_full])
+          .execute()
+          .then(() => {
+            return p.congress_basedoc
+              .select(['id','create_time','update_time','history','mark','congress_n','sn','title_full'])
+              .where("sn = :sn")
+              .bind("sn",congress_basedoc_id)
+              .execute()
+          });
+        r = r.fetchAll();
+        if ( r.length > 0 ) {
+          r.forEach((b) => {
+            console.log( "Res %s", congress_basedoc_id, inspect(b, default_insp) );
+          });
+        }
+      }
+      else {
+        console.log( 
+          "Empty full title for %s",
+          congress_basedoc_id,
+          inspect(panel_info, default_insp)
+        );
+      }
+      await sleep(1);
+    }//}}}
+    else {
+      if (0) r.forEach((e) => {
+        console.log( "Already have %s", congress_basedoc_id, inspect(e, default_insp) );
+      });
+      let update_history_mark = [
+        'UPDATE congress_basedoc SET',
+        'update_time = CURRENT_TIMESTAMP,',
+        'history = ?',
+        'WHERE sn = ?'
+      ].join(' ');
+      let congress_basedoc_update_result = await p.db
+        .sql( update_history_mark )
+        .bind([history_present_flag, congress_basedoc_id])
+        .execute();
+      await sleep(1);
+    }
+
+    let resultset = await select_congress_basedoc_url( p.db, congress_basedoc_id );
+
+    if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log("Results [%d]",
+      resultset.length,
+      inspect(panel_info, default_insp),
+      inspect(resultset, default_insp)
+    );
+
+    let urls_db = new Map;
+    let urls = new Map;
+
+    if ( panel_info.links !== undefined && panel_info.links.size > 0 ) {
+      panel_info.links.forEach((v,k,m) => {
+        urls.set( v.url, {
+          text: k,
+          id: null
+        });
+      });
+      if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Iter",  inspect(urls, default_insp) );
+    }
+
+    // Create raw URL records and through table rows linking each to {congress_basedoc}
+    if ( resultset.length > 0 && urls.size > 0 ) {//{{{
+      // Find and match URLs returned from database.
+      // Check, update, and remove URLs from {urls} already stored in DB
+      let congress_basedoc_db_id;
+      resultset.forEach((r) => {
+        let db_url = r.get('url');
+        if ( congress_basedoc_db_id === undefined ) {
+          congress_basedoc_db_id = r.get('id');
+        }
+
+        if ( urls.has( db_url ) ) {
+          if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "- Already have URL %s", db_url );
+          urls.delete( db_url );
+        }
+        else {
+          if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "- Record %s", db_url ); 
+        }
+      });
+
+      if ( urls.size > 0 ) {
+
+        let urls_a = new Array;
+        urls.forEach(async (v,k) => { urls_a.push(k); }); 
+
+        while ( urls_a.length > 0 ) 
+        {
+          let k = urls_a.shift();
+          let v = urls.get( k );
+          let url_insert_result;
+          let hash = createHash('sha256');
+          let hashval;
+          let modified = (await fetch_url_http_head( k )).get('last-modified') || null;
+          let inserted_u;
+
+          hash.update(k);
+          hashval = hash.digest('hex');
+
+          // Create raw URL records
+          try {//{{{
+
+            let url_raw_select = [
+              'SELECT id, UNIX_TIMESTAMP(last_modified) AS last_modified, url',
+              'FROM url_raw',
+              'WHERE urlhash = ?'
+            ].join(' ');
+            let extant_urls = await sqlexec_resultset( p.db, url_raw_select, hashval );
+
+            if ( extant_urls !== undefined && extant_urls.length > 0 ) {
+              v.id = 0;
+              while ( extant_urls.length > 0 ) {
+                let extant_url = extant_urls.shift();
+                // Update the {url_raw} record if the Last-Modified header value has changed
+                if ( v.id > 0 ) {
+                  console.log( "WARNING: Multiple records found for %s",
+                    k
+                  );
+                }
+                else if ( extant_url.get('last_modified') !== modified ) {
+                  let url_raw_update_sql = [
+                    'UPDATE url_raw SET',
+                    'update_time = CURRENT_TIMESTAMP,',
+                    'prev_modified = last_modified,',
+                    'last_modified = FROM_UNIXTIME(?)',
+                    'WHERE urlhash = ?'
+                  ].join(' ');
+                  let url_update_result = p.db
+                    .sql( url_raw_update_sql )
+                    .bind([ modified, hashval ])
+                    .execute();
+                  v.id = extant_url.get('id');
+                }
+                extant_url.clear();
+              }
+            }
+            else {
+              url_insert_sql = [
+                'INSERT INTO url_raw ( last_modified, url, urltext, urlhash )',
+                'VALUES ( FROM_UNIXTIME(?), ?, ?, ? )'
+              ].join(' ');
+              url_insert_result = await p.db
+                .sql( url_insert_sql )
+                .bind([modified, k, v.text, hashval])
+                .execute();
+
+              v.id = await url_insert_result.getAutoIncrementValue();
+              urls.set( k, v );
+              if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") )
+                console.log( "Result of insert[%d]",
+                  v.id,
+                  await url_insert_result.getWarnings()
+                );
+            }
+          }//}}}
+          catch(e) {
+            console.log( "URL record %s insert error",
+              k,
+              inspect(e.info ? e.info : e, default_insp),
+              inspect(url_insert_result, default_insp)
+            );
+            process.exit(0);
+          }
+
+          // Create through table join record
+          try {//{{{
+            let join_select = [
+              'SELECT id, url_raw, congress_basedoc',
+              'FROM congress_basedoc_url_raw_join',
+              'WHERE url_raw = ? AND congress_basedoc = ?'
+            ].join(' ');
+            let extant_joins = await sqlexec_resultset( 
+              p.db, join_select, 
+              [ v.id, congress_basedoc_db_id ]
+            );
+
+            if ( extant_joins !== undefined && extant_joins.length > 0 ) {
+              console.log( "Found %d extant join records for URL %s",
+                extant_joins.length,
+                k
+              );
+              while ( extant_joins.length > 0 ) {
+                let extant_join = extant_joins.shift();
+                console.log( "- %d", extant_join.get('id') );
+              }
+            }
+            else {
+              let join_insert_result = await p.joins
+                .insert(['url_raw','congress_basedoc','edgeinfo'])
+                .values([v.id,congress_basedoc_db_id,'-'])
+                .execute();
+              if ( envSet("DEBUG_BASEDOC_URL_JOINS","1") ) console.log( "Inserted join #%d", await join_insert_result.getAutoIncrementValue() );
+            }
+          }//}}}
+          catch(e) {
+            // TODO: Transaction per {url_raw} record
+            console.log( "Join record for %s insert error", 
+              k,
+              inspect(e.info ? e.info : e, default_insp)
+            );
+            process.exit(0);
+          }
+        }
+        console.log("URLs recorded (%d): ", urls.size, inspect(urls, default_insp) );
+      }
+      else {
+        console.log("No new URLs to record out of %d", resultset.length );
+      }
+    }//}}}
+
+  }
+  catch (e) {
+    console.log( "------------" );
+    console.log( "Unparseable %s", 
+      panel_info.id,
+      e.info ? e.info.msg : e,
+      inspect(
+        {
+          title_raw  : panel_info.text.get('Full Title, As Filed'),
+          title_full : title_full
+        },
+        default_insp
+      )
+    );
+  }
+  return Promise.resolve(panel_info);
+}//}}}
+
+async function congress_bills_panel_to_db( j, p )
+{//{{{
+  // Accepts JSON intended to be written to cache files
+  // and writes information directly to database
+  let panel_info;
+  if ( j.history !== undefined ) {
+    j.history = return_sorted_map_ordinalkeys( j.history );
+    panel_info = {
+      url     : j.url,
+      id      : j.id,
+      links   : j.links,
+      //network : j.network || false,
+      text    : j.text,
+      history : j.history 
+    };
+    panel_info = await congress_record_panelinfo( panel_info, p );
+  }
+  return panel_info;
+}//}}}
+
+async function congress_record_fe_panelinfo( f, p )
+{//{{{
+  let panel_info = read_map_from_file( f );
+
+  panel_info = await congress_record_panelinfo( panel_info, p );
+
+  return Promise.resolve(panel_info);
+}//}}}
+
+async function examine_ingest_json( f, p )
+{//{{{
+  // let panel_info;
+  let j = read_map_from_file( f );
+  let hashval;
+  if ( j.history instanceof Map && j.history.size > 0 ) {
+    let congress_basedoc_id = sanitize_congress_billres_sn( j.id );
+    let c = congress_basedoc_id.replace(/^([^-]*)-([0-9]{1,}).*/g,"$2");
+    let h_map = new Array;
+    let hash = createHash('sha256');
+    
+    j.history.forEach((v,k) => { h_map.push( [k,v].join('|') ); });
+    hash.update(h_map.join(';'));
+    hashval = hash.digest('hex');
+
+    if ( p.work.has( hashval ) )
+      p.work.set( hashval, p.work.get( hashval ) + 1 );
+    else
+      p.work.set( hashval, 1 );
+
+  }
+  return Promise.resolve(hashval);
+}//}}}
+
 async function monitor()
 {//{{{
 
@@ -801,10 +1478,38 @@ async function monitor()
   let rootnode       = 0;
   let completed      = false;
 
+  rr_callback = rr_callback_default;
+
   client = await CDP();
 
-  const { Network, Page, DOM, Input } = client;
+  const { Browser, Network, Page, DOM, Input } = client;
   
+  function document_reset( clear_traversal_flags )
+  {//{{{
+    console.log( clear_traversal_flags ? "HARD RESET" : "RESET" );
+    nodes_seen.clear();
+    nodes_tree.clear();
+    lookup_tree.clear();
+    outstanding_rr.clear();
+    cycle_date = null;
+    rr_map.clear();
+
+    waiting_parent = 0;
+    depth          = 0;
+    rootnode       = 0;
+    completed      = false;
+    if ( clear_traversal_flags === true ) {
+      traversal_abort = false;
+      exception_abort = false;
+    }
+    rr_callback = rr_callback_default;
+
+    while ( parents_pending_children.length > 0 )
+      parents_pending_children.shift();
+    while ( tag_stack.length > 0 )
+      tag_stack.shift();
+  }//}}}
+
   async function watchdog(cb)
   {//{{{
     return new Promise((resolve) => {
@@ -815,12 +1520,14 @@ async function monitor()
           if ( delta > 1000 * rr_timeout_s ) { 
             rr_mark = 0;
             mark_steps = 0;
+            resume_url = null;
             console.log("\r\n--CLEAR--\r\n");
             if ( cb ) await cb( mark_steps );
           }
           else {
             mark_steps++;
             if ( envSet('WATCHDOG','1') ) console.log("--MARK[%d]--", mark_steps, parents_pending_children.length);
+            if ( !(mark_steps % 10) ) process.stdout.write('.');
             if ( cb ) await cb( mark_steps );
           }
         }
@@ -849,6 +1556,11 @@ async function monitor()
     // m: CDP DOM.Node
     // parentNode: Abbreviated node record ID
     // depth: Current recursive call nesting depth
+    if ( !nodes_seen.has( parseInt(parent_nodeId) ) ) {
+      console.log( "MISSING PARENT %d for node", parent_nodeId, inspect( m, default_insp ) );
+      return Promise.resolve(true);
+    }
+
     let parentNode = nodes_seen.get( parseInt(parent_nodeId) ); 
     let has_child_array = (m.children !== undefined) && (m.children.length !== undefined);
     let enqueue_m_nodeid = (m.childNodeCount !== undefined) && !has_child_array && m.childNodeCount > 0;
@@ -869,7 +1581,11 @@ async function monitor()
     }
 
     // Create placeholder flat Map node entry
-    parentNode.content.set(parseInt(m.nodeId), null);
+    if ( parentNode.content === undefined || !(parentNode.content instanceof Map ) ) {
+      console.log( "Overriding parent node .content, originally", inspect( parentNode, default_insp ) );
+      parentNode.content = new Map;
+    }
+    parentNode.content.set( parseInt(m.nodeId), null );
     nodes_seen.set( parent_nodeId, parentNode );
 
     if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
@@ -879,11 +1595,6 @@ async function monitor()
       m.nodeId,
       parent_nodeId,
       m.childNodeCount ? m.childNodeCount : 0
-      //(await DOM.resolveNode({nodeId: m.nodeId})).object, 
-      //(await DOM.getOuterHTML({nodeId: m.nodeId})).outerHTML
-      //,m
-      //,inspect((await DOM.describeNode({ nodeId: m.nodeId })).node, default_insp)
-      //,inspect(m.children ? m.children : [], default_insp)
     );
 
     // Only enqueue requestChildNodes for parents missing .children array
@@ -985,18 +1696,23 @@ async function monitor()
       waiting_parent = parents_pending_children.shift();
       // The DOM.requestChildNodes call should result in
       // invocation of domSetChildNodes(p) within milliseconds.
-      let rq_result = await DOM.requestChildNodes({
-        nodeId : waiting_parent,
-        depth  : node_request_depth,
-        pierce : true
-      });
-      if ( envSet('TRIGGER_DOM_FETCH','1') || postprocessing == 1 ) {
-        console.log("requestChildNodes %d", 
-          waiting_parent, 
-          nodes_seen.has(waiting_parent), 
-          parents_pending_children.length,
-          rq_result
-        ); 
+      try {
+        let rq_result = await DOM.requestChildNodes({
+          nodeId : waiting_parent,
+          depth  : node_request_depth,
+          pierce : true
+        });
+        if ( envSet('TRIGGER_DOM_FETCH','1') || postprocessing == 1 ) {
+          console.log("requestChildNodes %d", 
+            waiting_parent, 
+            nodes_seen.has(waiting_parent), 
+            parents_pending_children.length,
+            rq_result
+          ); 
+        }
+      }
+      catch (e) {
+        console.log( "trigger_dom_fetch", inspect(e, default_insp) );
       }
       rr_mark = hrtime.bigint();
     }
@@ -1176,10 +1892,13 @@ async function monitor()
       }
       extracted_info.links.delete('[History]');
       if ( p.found_data_id ) {
-        console.log( "Omitting panels.json write for %s", p.found_data_id );
+        if ( !envSet("QUIET") ) console.log( "Omitting panels.json write for %s", p.found_data_id );
       }
       else {
         let final_data = normalize_j_history( final_data_raw );
+
+        congress_bills_panel_to_db( final_data, p );
+        // Write to cache file since we do not yet (4 May 2024) record all extracted data
         write_map_to_file(
           extracted_info.id, 
           "panels.json",
@@ -1192,7 +1911,7 @@ async function monitor()
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
         inspect(final_data, default_insp)
       );
-      console.log( "---- MARK ----" );
+      if ( !envSet("QUIET") ) console.log( "---- CYCLE DONE ----" );
       p.child_hits = 0;
       p.hit_depth = 0;
       p.flattened.clear();
@@ -1226,7 +1945,6 @@ async function monitor()
             let label = child_node.content.trim();
             p.links.set( label, { url : link, data_id : linkid } /* link */ );
             if ( linkid ) {
-              // Check whether this non-empty ID is found in the database
               p.id = linkid;
             }
             if ( !p.text.has( e ) )
@@ -1305,7 +2023,7 @@ async function monitor()
 
   async function trigger_page_traverse_cb( sp, nm, p, node_id, d )
   {//{{{
-    if ( exception_abort )
+    if ( traversal_abort || exception_abort )
       return Promise.resolve(nm);
 
     trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
@@ -1346,44 +2064,54 @@ async function monitor()
     return Promise.resolve(nm);
   }//}}}
 
-  async function clickon_node( node_id, nm )
+  async function clickon_node( node_id, nm, cb )
   {//{{{
 
+    let result;
     let traversable = await traverse_to( node_id, nm );
     
-    if ( traversable ) {
+    if ( traversable ) while ( result === undefined ) {
 
-      let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
-      let cx = (content[0] + content[2])/2;
-      let cy = (content[1] + content[5])/2;
+      try {
+        let {model:{content,width,height}} = await DOM.getBoxModel({nodeId: node_id});
+        let cx = (content[0] + content[2])/2;
+        let cy = (content[1] + content[5])/2;
 
-      await Input.dispatchMouseEvent({
-        type: "mouseMoved",
-        x: parseFloat(cx),
-        y: parseFloat(cy)
-      });
-      await sleep(300);
+        await Input.dispatchMouseEvent({
+          type: "mouseMoved",
+          x: parseFloat(cx),
+          y: parseFloat(cy)
+        });
+        await sleep(300);
 
-      console.log( "Click at (%d,%d)", cx, cy );
-      await Input.dispatchMouseEvent({
-        type: "mousePressed",
-        x: parseFloat(cx),
-        y: parseFloat(cy),
-        button: "left",
-        clickCount: 1
-      });
-      await sleep(10);
+        console.log( "Click on %d at (%d,%d)", node_id, cx, cy );
+        await Input.dispatchMouseEvent({
+          type: "mousePressed",
+          x: parseFloat(cx),
+          y: parseFloat(cy),
+          button: "left",
+          clickCount: 1
+        });
+        await sleep(10);
 
-      console.log( "Release (%d,%d)", cx, cy );
-      await Input.dispatchMouseEvent({
-        type: "mouseReleased",
-        x: parseFloat(cx),
-        y: parseFloat(cy),
-        button: "left"
-      });
-      return sleep(200);
+        console.log( "Release (%d,%d)", cx, cy );
+        await Input.dispatchMouseEvent({
+          type: "mouseReleased",
+          x: parseFloat(cx),
+          y: parseFloat(cy),
+          button: "left"
+        });
+        result = cb === undefined
+        ? true
+        : await cb( node_id, nm );
+      }
+      catch (e) {
+        console.log( "clickon_node", e );
+        result = false;
+      }
     }
-    return sleep(10);
+    await sleep(10);
+    return Promise.resolve(result);
   }//}}}
 
   async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
@@ -1401,6 +2129,154 @@ async function monitor()
     // p            : Callback parameters passed to inorder_traversal
     // Return value : nm
 
+    // Two callbacks are in effect:
+    // - xhr_response_callback provides request/response state to this
+    //   application.  A failed POST XHR must cause end of traversal.
+    // - clickon_callback defers return from the XHR trigger click action
+    //   until the matching networkLoadingFinished event occurs, signaling
+    //   the browser has received renderable content.
+    // 
+    // Fetch state is maintained in this scope.  
+    // - xhr_response_callback provides state;
+    // - clickon_callback consumes this state, and holds execution
+    //   until data is returned, or response status indicates
+    //   processing must halt.
+    //
+    const rq_dur_ms = 30000;
+    const rq_retry_max = 3;
+    let traversal_request_id;
+    let traversal_rq_start_tm;
+    let traversal_rq_retry = 0;
+    let traversal_rq_aborted = false;
+    let traversal_rq_success = false;
+
+    function xhr_response_callback( data, requestId, phase )
+    {//{{{
+      switch ( phase ) {
+        case 'Q':
+          // Request about to be sent.  Register the requestId only if
+          // it is a POST request to the Congress server backend, directed at
+          // the URL https://congress.gov.ph/members/fetch_history.php
+          if ( data.method === 'POST' && /fetch_history.php$/ig.test( data.url ) ) {
+            traversal_request_id = data.requestId;
+            traversal_rq_start_tm = hrtime.bigint();
+            console.log( "XHR [%s] Mark, duration %dms", requestId, rq_dur_ms );
+          }
+          break;
+        case 'A':
+          // Response received.  We expect Content-Type text/html 
+          // and HTTP response code 200
+          // ANY OTHER http response code (including a 3xx redirect)
+          // is handled as a traversal abort condition.
+          // In the event of response.status !== 200, set traversal_abort = true
+          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
+            if ( traversal_request_id == requestId && /text\/html$/ig.test( data.mimeType ) ) {
+              let rq_status = parseInt(data.status);
+              if ( rq_status == 200 ) {
+                // Successful request
+                console.log( "XHR [%s] OK", requestId );
+              }
+              else {
+                // Unconditional traversal abort
+                let rr_mitig_target;
+                if ( rr_map.has( traversal_request_id ) ) {
+                  rr_mitig_target = rr_map.get( traversal_request_id );
+                  // After the CF intercept frame code runs, they [should]
+                  // redirect the browser to the original POST target,
+                  // mitigation_intercept_url.  We wait for Page.loadEventFired
+                  // to be triggered, whence we redirect to the bills and resolutions
+                  // page.
+                  mitigation_intercept_url = rr_mitig_target.url; 
+                }
+
+                traversal_rq_aborted = true;
+                console.log(
+                  "Traversal aborted on %s XHR fetch[%s] from %s error", 
+                  current_url,
+                  rr_mitig_target === undefined ? 'untracked' : traversal_request_id,
+                  rr_mitig_target === undefined ? '{nowhere}' : rr_mitig_target.url,
+                  inspect( data, default_insp )
+                );
+                resume_url = current_url;
+              }
+              traversal_rq_start_tm = hrtime.bigint();
+            }
+          }
+          break;
+        case 'B':
+          // Untracked response with unexpected responseId
+          break;
+        case 'L':
+          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
+            if ( traversal_request_id == requestId ) {
+              // Set flag indicating we should proceed, and terminate
+              // our wait loop.
+              traversal_rq_success = true;
+              console.log( "XHR [%s] Done", requestId );
+              rr_callback = rr_callback_default;
+            }
+          }
+          // Request loading finished
+          break;
+      }
+    }//}}}
+
+    async function clickon_callback( node_id, nm )
+    {//{{{
+      // Invoked AFTER a sequence of Input events { mouseMoved, mousePressed, mouseReleased }
+      // has been executed. Here we simply wait for network events (or
+      // timeout) to occur.
+      //
+      // In the event of timeout, set traversal_abort = true.
+      //
+      let success_result = false;
+      let traversal_wait_mark = hrtime.bigint();
+      while ( success_result !== undefined ) {
+        if ( traversal_rq_start_tm !== undefined ) {
+          let traversal_dur_ms = Number.parseFloat(
+            Number((hrtime.bigint() - traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
+          );
+          if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+            console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+            traversal_abort = true;
+            break;
+          }
+        }
+        else {
+          let traversal_wait_dur = Number.parseFloat(
+            Number((hrtime.bigint() - traversal_wait_mark)/BigInt(1000 * 1000))/1.0
+          );
+          if ( Number.parseInt(traversal_wait_dur) > Number.parseInt(rq_dur_ms) ) {
+            traversal_rq_retry++;
+            if ( traversal_rq_retry < rq_retry_max ) {
+              console.log( "Retry %d/%d XHR setup", traversal_rq_retry, rq_retry_max, traversal_wait_dur );
+              traversal_wait_mark = hrtime.bigint();
+              success_result = undefined;
+            }
+            else {
+              console.log( "Timeout exceeded for XHR setup", traversal_wait_dur );
+              traversal_abort = true;
+            }
+            break;
+          }
+        }
+        if ( traversal_rq_aborted ) {
+          traversal_abort = true;
+          break;
+        }
+        if ( traversal_rq_success ) {
+          success_result = true;
+          break;
+        }
+        await sleep(10);
+        rr_mark = hrtime.bigint();
+      }
+      return Promise.resolve(success_result);
+    }//}}}
+
+    if ( traversal_abort )
+      return Promise.resolve(nm);
+
     if ( exception_abort )
       return Promise.resolve(nm);
 
@@ -1408,8 +2284,8 @@ async function monitor()
 
     if ( p.triggerable != 0 ) {//{{{
 
-      if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) {
-
+      if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
+      {//{{{
         // Perform database lookup done here, before 
         // an XHR for document history markup is triggered.
         // Referencing p.id works where, as in the case of 
@@ -1427,7 +2303,7 @@ async function monitor()
             : null
           ;
           p.found_data_id = null;
-          p.missing_data_id = null;
+          p.unfetched_data_id = null;
           if ( linkid ) {
             let congress_basedoc = await p.congress_basedoc
               .select(['id','create_time','congress_n','sn','title_full'])
@@ -1436,18 +2312,20 @@ async function monitor()
               .execute();
             let r = await congress_basedoc.fetchAll();
             if ( r.length > 0 ) {
-              console.log( "Found stored %s", linkid );
+              if ( !envSet("QUIET") ) console.log( "Found stored %s", linkid );
               p.found_data_id = linkid;
             }
             else {
-              p.missing_data_id = linkid;
+              console.log( "Pending retrieval of %s", linkid );
+              p.unfetched_data_id = linkid;
             }
             await sleep(10);
           }
         }
-      }
+      }//}}}
 
-      if ( nm.nodeName == '#text' && nm.content == '[History]' ) {//{{{
+      if ( nm.nodeName == '#text' && nm.content == '[History]' )
+      {//{{{
 
         // Indicates that we've found a [History] trigger in
         // a child node, so that the triggering tag and surrounding
@@ -1459,25 +2337,90 @@ async function monitor()
         p.child_hits++;
         p.hit_depth = d;
 
-        if ( p.found_data_id ) {
-          console.log( "Skipping live fetch of %s", p.found_data_id );
+        if ( traversal_abort || exception_abort ) {
+
+          console.log( 'Aborting fetch of %s', p.unfetched_data_id );
+
+        }
+        else if ( p.found_data_id ) {
+
+          if ( !envSet("QUIET") ) console.log( "Skipping live fetch of %s", p.found_data_id );
+
         }
         else {
-
-          console.log( 'Live fetch %s', p.missing_data_id );
+      
+          console.log( 'Live fetch %s', p.unfetched_data_id );
 
           try {
 
+            let click_result;
             p.triggerable--;
             append_buffer_to_rr_map = 0;
 
-            await clickon_node( node_id, nm );
+            // Set up network callback, 
+            rr_callback = xhr_response_callback;
+            click_result = await clickon_node( node_id, nm, clickon_callback );
 
-            if ( append_buffer_to_rr_map > 0 ) {
+            if ( !(click_result === true) && !isNaN(parseInt(traversal_request_id)) ) {
+              let trav_response_body;
+              if ( !traversal_rq_success ) {
+                let traversal_rq_success_mark = hrtime.bigint();
+                while ( !traversal_rq_success ) {
+                  await sleep(500);
+                  let traversal_dur_ms = Number.parseFloat(
+                    Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
+                  );
+                  console.log( "Activation wait %d/%d", traversal_dur_ms, rq_dur_ms );
+                  if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+                    console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+                    break;
+                  }
+                }
+              }
+              trav_response_body = traversal_rq_success 
+                ? await Network.getResponseBody( { requestId: traversal_request_id } )
+                : { body: '', base64Encoded: false } 
+                ;
+              console.log( "Terminating message [%s]",
+                traversal_request_id,
+                inspect( trav_response_body, default_insp )
+              );
+              if ( rr_map.has( traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
+                // Update network R/R entry, inserting terminating message as .markup attribute
+                let rr_term = rr_map.get( traversal_request_id );
+                let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
+                let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
+                rr_term.markup = trav_response_body;
+                rr_map.set( traversal_request_id, rr_term );
+                write_map_to_file( "XHR interruption",
+                  "xhr-intercept.json",
+                  rr_term,
+                  file_ts
+                );
+                if ( true || (is_text_html && is_cf_mitigated) ) {
+                  // Attempt to override displayed page contents
+                  try {
+                    console.log( "Loading CF mitigation challenge to target frame %s", inspect({
+                      frame_id: frame_id
+                    }, default_insp) );
+                    await Page.setDocumentContent({
+                      frameId: frame_id,
+                      html: trav_response_body.body 
+                    });
+                  }
+                  catch (e) {
+                    console.log( "Aborted XHR override error",
+                      inspect(e , default_insp)
+                    );
+                  }
+                }
+              }
+            }
+            else if ( append_buffer_to_rr_map > 0 ) {
               let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
               let markup;
               await setup_dom_fetch( append_buffer_to_rr_map );
-              await sleep(1000);
+              await sleep(1500);
 
               // Climb the popup container tree
               if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
@@ -1512,9 +2455,9 @@ async function monitor()
               else {
                 console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
               }
-              await sleep(500);
-              markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
-              console.log( "TRIGGERED FETCH %s INTO %s %d", 
+              await sleep(500); // Delay to allow browser to populate XHR container modal
+              markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
+              console.log( "FETCHED %s INTO %s %d", 
                 xhr_fetch_rr,
                 p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
                 append_buffer_to_rr_map,
@@ -1527,7 +2470,9 @@ async function monitor()
 
               if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
 
-              if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file( "Fragment", "trie.txt", 
+              if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file(
+                "Fragment",
+                "trie.txt", 
                 nodes_seen,
                 file_ts,
                 p.n
@@ -1553,12 +2498,24 @@ async function monitor()
                 let rr_entry = rr_map.get( xhr_fetch_rr );
                 rr_entry.markup = p.flattened;
                 rr_map.set( xhr_fetch_rr, rr_entry );
+                if ( !user_agent ) {
+                  let ua = rr_entry.request !== undefined 
+                    && rr_entry.request.headers !== undefined 
+                    && rr_entry.request.headers['User-Agent'] !== undefined 
+                    ? rr_entry.request.headers['User-Agent']
+                    : null
+                  ;
+                  if ( ua && ua.length > 0 ) {
+                    user_agent = ua;
+                    console.log( "UA: %s", user_agent );
+                  }
+                }
               }
 
               if ( p.closer_node == 0 ) {
                 console.log( "Input needed: Close dialog in 10s" );
               }
-              await sleep(5000);
+              await sleep(2500);
             }
             nodes_seen.clear();
           }
@@ -1576,37 +2533,49 @@ async function monitor()
         // if ( nm.nodeName == '#text' && nm.content == '[History]' )
       }//}}}
       else if ( p.child_hits > 0 ) {
+        if ( traversal_abort || exception_abort ) {
+          console.log( "Skipping further DOM node processing" );
+        }
+        else
         await congress_extract_history_panel( sp, nm, p, node_id, d );
       }
       // p.triggerable != 0
     }//}}}
-
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
   
   async function setup_dom_fetch( nodeId, parentId )
   {//{{{
+    let setup_result = false;
     rootnode   = nodeId;
     rr_mark    = hrtime.bigint();
     cycle_date = new Date();
     rr_begin   = rr_mark;
-    rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
     waiting_parent = nodeId;
-    nodes_seen.set( waiting_parent, {
-      nodeName   : rootnode_n.object.description,
-      parentId   : parentId !== undefined ? parseInt(parentId) : 0,
-      attributes : new Map,
-      isLeaf     : false,
-      content    : new Map
-    });
-    if (envSet("SETUP_DOM_FETCH","1")) console.log("setup_dom_fetch( %d )", 
+    try {
+      rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
+      nodes_seen.set( waiting_parent, {
+        nodeName   : rootnode_n.object.description,
+        parentId   : parentId === undefined ? 0 : parseInt(parentId),
+        attributes : new Map,
+        isLeaf     : false,
+        content    : new Map
+      });
+      setup_result = true;
+    }
+    catch(e) {
+      console.log( "setup_dom_fetch", inspect( e, default_insp ) );
+    }
+    if (envSet("SETUP_DOM_FETCH","1") || !setup_result ) console.log("setup_dom_fetch( %d )", 
       nodeId, 
       inspect(rootnode_n,default_insp)
     );
-    parents_pending_children.unshift( nodeId );
-    await trigger_dom_fetch();
-    return Promise.resolve(true);
+    if ( setup_result ) {
+      parents_pending_children.unshift( nodeId );
+      await trigger_dom_fetch();
+    }
+    return Promise.resolve(setup_result);
   }//}}}
   
   async function domAttributeModified(params)
@@ -1614,7 +2583,7 @@ async function monitor()
     // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
     if ( params.value == 'modal fade in' ) {
       append_buffer_to_rr_map = params.nodeId;
-      let markup = (await DOM.getOuterHTML({nodeId: append_buffer_to_rr_map})).outerHTML;
+      let markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
       let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
       if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
         let rr_entry = rr_map.get( latest_rr );
@@ -1731,15 +2700,34 @@ async function monitor()
 
   async function get_outerhtml( nm, nodeId )
   {//{{{
-    return (await DOM.getOuterHTML({ nodeId : nodeId })).outerHTML;
+    let outerhtml;
+    try {
+      outerhtml = await DOM.getOuterHTML({ nodeId : nodeId });
+      if ( outerhtml !== undefined && outerhtml.outerHTML !== undefined ) 
+        outerhtml = outerhtml.outerHTML;
+      else {
+        console.log( "No node[%d].outerHTML, returning null", nodeId,
+          inspect( outerhtml, default_insp )
+        );
+        outerhtml = null;
+      }
+    }
+    catch (e) {
+      console.log( "No outerHTML for node[%d], returning null", nodeId,
+        inspect( e, default_insp )
+      );
+      outerhtml = null;
+    }
+    return outerhtml; 
   }//}}}
 
-  async function finalize_metadata( step )
-  {//{{{
+  async function finalize_metadata_congress_gov_ph( step )
+  {
     // Chew up, digest, dump, and clear captured nodes.
-    file_ts = datestring( cycle_date );
-    let text_headers;
     if ( step == 0 ) {
+
+      file_ts = datestring( cycle_date );
+      let text_headers;
 
       if ( nodes_seen.size > 0 ) {
         // First, sort nodes - just because we can.
@@ -1753,14 +2741,16 @@ async function monitor()
 
         let markupfile = "index.html";
         try {
-          console.log( "Writing markup %s [%d]", markupfile, rootnode );
+          console.log( "Writing markup %s [node %d]", markupfile, rootnode );
           write_to_file( markupfile,  
-            (await DOM.getOuterHTML({nodeId: rootnode})).outerHTML, 
+            await get_outerhtml( undefined, rootnode ), 
             file_ts
           );
         }
         catch(e) {
-          console.log( "Unable to write markup file", markupfile );
+          console.log( "Unable to write markup file", markupfile,
+            inspect(e, default_insp)
+          );
         }
 
         console.log( "TIME: TRANSFORM", rr_time_delta() );
@@ -1771,7 +2761,6 @@ async function monitor()
           text_headers.forEach((v,k) => { v = 0; });
           console.log( "Loaded text sections master", inspect( text_headers, default_insp ) );
         }
-
 
         // Copy into lookup_tree before reducing to tree
         nodes_seen.forEach((v,key,map) => {
@@ -1821,9 +2810,10 @@ async function monitor()
           textkeys     : textkeys, // Stores bill history dictionary 
           text_headers : text_headers, // .text map lookup table, if available
           n            : 0,
-          // Database lookup
-          missing_data_id  : null,
+
+          unfetched_data_id: null,
           found_data_id    : null,
+          db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
           joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
@@ -1893,27 +2883,30 @@ async function monitor()
           rr_map, 
           file_ts
         );
-        rr_map.clear();
       }
-
-      nodes_seen.clear();
-      nodes_tree.clear();
-      lookup_tree.clear();
-      cycle_date = null;
 
       if ( exception_abort ) {
         console.log( "Process Abort" );
+        if ( envSet("ABORT_CLOSES_BROWSER","1") ) await Browser.close();
         process.exit(1);
       }
+
+      document_reset( true );
     }
     else {
       // Trigger requestChildNodes
       await trigger_dom_fetch();
     }
     return Promise.resolve(true);
+  }
+
+  async function finalize_metadata( step )
+  {//{{{
+    return finalize_metadata_congress_gov_ph( step );
   }//}}}
 
-  try {
+  try
+  {//{{{
 
     Network.requestWillBeSent(networkRequestWillBeSent);
     Network.responseReceived(networkResponseReceived);
@@ -1949,24 +2942,51 @@ async function monitor()
 
     await DOM.documentUpdated(async (params) => {
       console.log( 'DOM::documentUpdated', params );
+      document_reset( false );
     });
 
     await Page.loadEventFired(async (ts) => {
-      const { currentIndex, entries } = await Page.getNavigationHistory();
-      const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
 
-      await setup_dom_fetch( nodeId );
+      try {
+        const { currentIndex, entries } = await Page.getNavigationHistory();
+        const {root:{nodeId}} = await DOM.getDocument({ pierce: true });
 
-      current_url = entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
-        ? entries[currentIndex].url 
-        : '---';
+        current_url = entries && entries.length > 0 && entries[currentIndex] && entries[currentIndex].url 
+          ? entries[currentIndex].url 
+          : '---';
 
-      console.log("LOAD EVENT root[%d]", 
-        nodeId, 
-        ts,
-        datestring( cycle_date ),
-        current_url
-      );
+        if ( mitigation_intercept_url !== null && current_url === mitigation_intercept_url && resume_url !== null ) {
+          console.log( "Redirecting browser to %s from %s",
+            resume_url,
+            current_url
+          );
+          current_url = resume_url;
+          resume_url = null;
+          mitigation_intercept_url = null;
+          setTimeout(async () => { 
+            console.log( "Async load of %s", current_url );
+            await Page.navigate({ url: current_url });
+          },1000);
+        }
+        else {
+          await setup_dom_fetch( nodeId );
+          console.log("LOAD EVENT OK root[%d]", 
+            nodeId, 
+            ts,
+            datestring( cycle_date ),
+            current_url
+          );
+        }
+      }
+      catch(e) {
+        console.log("LOAD EVENT EXCEPTION root[%d]",
+          nodeId,
+          ts,
+          datestring( cycle_date ),
+          current_url,
+          inspect( e, default_insp )
+        );
+      }
 
     });
 
@@ -1980,6 +3000,11 @@ async function monitor()
 
     await Page.lifecycleEvent(async (p) => {
       console.log("Lifecycle", p);
+      if ( frame_id === undefined || !frame_id ) {
+        if ( p.frameId !== undefined && p.frameId.length > 0 ) {
+          frame_id = p.frameId;
+        }
+      }
     });
 
     await Page.setLifecycleEventsEnabled({enabled: true});
@@ -1987,11 +3012,11 @@ async function monitor()
     await Page.setInterceptFileChooserDialog({enabled : true});
     
     await Page.fileChooserOpened(async (p) => {
-      console.log("Page::fileChooseOpened", p);
+      console.log("Page::fileChooserOpened", p);
     });
 
     await Page.frameAttached(async (p) => {
-      console.log("Page::frameAttached",p);
+      console.log("Page::frameAttached",inspect(p, default_insp));
     });
 
     await Page.frameDetached(async (p) => {
@@ -2000,6 +3025,7 @@ async function monitor()
     
     await Page.frameNavigated(async (p) => {
       console.log("Page::frameNavigated",p);
+      frame_id = p.frame.id || null;
     });
     
     await Page.interstitialHidden(async (p) => {
@@ -2024,7 +3050,7 @@ async function monitor()
     await DOM.enable({ includeWhitespace: "none" });
     await Page.enable();
 
-    nodes_seen.clear();
+    document_reset( true );
 
     // Trigger a page fetch, else stand by for browser interaction or timeout
     if ( targetUrl.length > 0 ) {
@@ -2035,295 +3061,20 @@ async function monitor()
       await watchdog( finalize_metadata );
     }
 
-  } catch (err) {
-    console.error(err);
-  } finally {
+  }//}}}
+  catch (err)
+  {//{{{
+    console.error("Main exception", inspect(err, default_insp));
+  }//}}}
+  finally
+  {//{{{
     if (client) {
       console.log( "Close opportunity ended" );
       // client.close();
     }
-  }
+  }//}}}
   return Promise.resolve(true);
-}//}}}
 
-async function stack_markup( sp, nm, p, node_id, d )
-{//{{{
-  // Requires:
-  // inorder_traversal_previsit = false;
-  // inorder_traversal_postvisit = true;
- 
-  if ( nm.isLeaf ) {
-    let $ = await cheerio.load( nm.content, null, false );
-    if (0) console.log( "Element", typeof nm.content, $('td').text() || nm.content );
-    if (0) $('td').children().each(function (i,e) {
-      console.log("- %d", i, $(this).text, $(this).text() );
-    });
-    p.markup_a.set( parseInt(node_id), $('td').text() || nm.content );
-  }
-}//}}}
-
-async function ingest_panels( f )
-{//{{{
-  let fn = f || env['TARGETURL'];
-  let panel_id;
-
-  if ( !existsSync( fn ) ) {
-    console.log( "Unable to see %s", fn );
-    process.exit(1);
-  }
-
-  let j = read_map_from_file( fn );
-
-  if ( j.history !== undefined ) {
-
-    j.history = return_sorted_map_ordinalkeys( j.history );
-
-    panel_id = {
-      url     : j.url,
-      id      : j.id,
-      links   : j.links,
-      text    : j.text,
-      history : j.history 
-    };
-    if (0) console.log(
-      "Markup",
-      inspect( panel_id, default_insp )
-    );
-    if (envSet("PERMIT_UNLINK","Y")) {
-      try {
-        if ( existsSync( fn ) )
-          unlinkSync( fn );
-        console.log( "No history in %s, unlinking", fn, 
-          inspect(j, default_insp)
-        );
-      }
-      catch (e) {}
-    }
-  }
-  return Promise.resolve(panel_id);
-}//}}}
-
-async function preload( f )
-{//{{{
-  try {
-    let t = read_map_from_file( f );
-
-    let branchpat = new Array;
-    let markup_a = new Map;
-
-    await inorder_traversal(
-      { branchpat : branchpat, traversal_parent : null },
-      t, -1,
-      stack_markup,
-      { markup_a : markup_a }
-    );
-    console.log( 
-      f, 
-      inspect( t, default_insp)
-    );
-  }
-  catch(e) {
-    console.log( "Problem loading %s", f );
-    unlinkSync(f);
-  }
-}//}}}
-
-async function normalize( f )
-{//{{{
-  let j = read_map_from_file( f );
-  let r = normalize_j_history( j );
-  if ( r !== undefined ) {
-    write_map_to_file( f, f, r );
-  }
-  return Promise.resolve(true);
-}//}}}
-
-function congress_panel_text_hdrfix( panel_info_text, text_headers )
-{//{{{
-  // Fix keys in .text collected using naive token pairing.
-  // Serialize elements, and then tokenize + restructure.
-  let tokens = new Array;
-  let revised = new Map;
-  let pairkey, pairval, e_undef;
-
-  if (0) console.log( "Fixing headers in this", inspect( panel_info_text ) );
-
-  panel_info_text.forEach((v,k) => {
-    tokens.push(k);
-    tokens.push(v);
-  });
-  while ( tokens.length > 0 ) {
-    let t = (tokens.shift() || '').replace(/[: ]$/g,'');
-    if ( text_headers.has( t ) ) { 
-      pairkey = t;
-      t = (tokens.shift() || '').replace(/[: ]$/g,'') || '';
-      if ( text_headers.has( t ) ) {
-        revised.set( pairkey, '' );
-        pairkey = t;
-        pairval = e_undef;
-      }
-      else {
-        pairval = t;
-      }
-    }
-    else {
-      pairval = t;
-    }
-    if ( pairkey.length > 0 && pairval !== undefined ) {
-      revised.set( pairkey, pairval );
-      pairkey = '';
-      pairval = e_undef;
-    }
-    else { 
-      if (0) console.log( "Floof", inspect( { r: tokens.length, k : pairkey, v: pairval, t : t}, default_insp ) );
-      if ( tokens.length == 0 && t.length > 0 ) {
-        let kv = t.split(":");
-        let k = (kv[0] || '').trim();
-        let v = (kv[1] || '').trim();
-        if ( text_headers.has(k) ) {
-          revised.set(k,v);
-        }
-      }
-    }
-  }
-  if ( revised.size > 0 ) {
-    panel_info_text.clear();
-    text_headers.forEach((v,k) => {
-      if ( revised.has(k) )
-        panel_info_text.set( k, revised.get(k) );
-    });
-  }
-  if (0) console.log( "Repaired as", inspect( revised, default_insp ) );
-}//}}}
-
-function panel_info_text_check( panel_info, text_headers, text_headers_master )
-{//{{{
-  if ( panel_info.text !== undefined ) {
-    // Keep unique document .text map keys
-    let broken_headers = false;
-    panel_info.text.forEach((v,k) => {
-      let th;
-      if ( !text_headers.has( k ) ) {
-        if ( text_headers_master ) {
-          broken_headers = true;
-        }
-        else {
-          text_headers.set( k, 0 );
-        }
-      }
-      if ( !text_headers_master ) {
-        th = text_headers.get( k );
-        th++;
-        text_headers.set( k, th );
-      }
-    });
-
-    if ( broken_headers ) {
-      congress_panel_text_hdrfix( panel_info.text, text_headers )
-    }
-  }
-}//}}}
-
-function full_title_map_filter( m, f )
-{//{{{
-  let title_full_raw = Buffer.from(m.get(f) || '', 'utf8');
-  let title_full_hex = title_full_raw.toString('hex').replace(/([a-f0-9]{2})/g,"$1 ");
-  let title_full_buf = Buffer.from(title_full_hex
-    .replace(/e2 82 b1/g,'50') // Philippine peso
-    .replace(/ea 9e 8c/g,'27') // apostrophe
-    .replace(/c4 94/g,'c389') // EACCENT in ATTACH[E]
-    .replace(/c5 87/g,'c391') // NTILDE
-    .replace(/c5 83/g,'c391') // NTILDE
-    .replace(/cc 83/g,'c391') // NTILDE
-    .replace(/ef bf bd/g,'c391') // NTILDE
-    .replace(/c8 98/,'c59e') // S with cedilla
-    .replace(/e2 80 b3/,'22')
-    .replace(/e2 80 9c/,'22')
-    .replace(/\\n/g,' ')
-    .replace(/ */g,'')
-    ,
-    'hex'
-  );
-  return title_full_buf.toString('utf8');
-}//}}}
-
-async function congress_record_fe_panelinfo( f, p )
-{//{{{
-  let pm = read_map_from_file( f );
-
-  panel_info_text_check( pm, p.text_headers, true );
-
-  try {
-    // REVIEW: Sanitize page inputs, there are human-encoded entries which contain unexpected, non-alphanumerics.
-    let congress_basedoc_id = pm.id
-      .replace(/[^A-Z0-9#-]/g,'')
-      .replace(/([A-Z0-9#-]{1,32})/,'$1')
-      .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
-      .trim();
-    let congress_basedoc = await p.congress_basedoc
-      .select(['id','create_time','congress_n','sn','title_full'])
-      .where("sn = :sn")
-      .bind("sn",congress_basedoc_id)
-      .execute();
-    let r = await congress_basedoc.fetchAll();
-    let title_full = full_title_map_filter( pm.text, 'Full Title, As Filed' );
-
-    // Create missing document record
-    if ( r.length == 0 ) {
-
-      if ( title_full.length == 0 )
-        title_full = congress_basedoc_id;
-
-      if ( title_full.length > 0 ) {
-        let congress_n = parseInt(congress_basedoc_id.replace(/^([^-]{1,})-([0-9]*)/,"$2") || 0);
-        r = await p.congress_basedoc
-          .insert(['congress_n','sn','title_full'])
-          .values([congress_n, congress_basedoc_id, title_full])
-          .execute()
-          .then(() => {
-            return p.congress_basedoc
-              .select(['id','create_time','congress_n','sn','title_full'])
-              .where("sn = :sn")
-              .bind("sn",congress_basedoc_id)
-              .execute()
-          });
-        r = r.fetchAll();
-        if ( r.length > 0 ) {
-          r.forEach((b) => {
-            console.log( "Res %s", congress_basedoc_id, inspect(b, default_insp) );
-          });
-        }
-      }
-      else {
-        console.log( 
-          "Empty full title for %s",
-          congress_basedoc_id,
-          inspect(pm, default_insp)
-        );
-      }
-      await sleep(1);
-    }
-    else {
-      if (0) r.forEach((e) => {
-        console.log( "Already have %s", congress_basedoc_id, inspect(e[0], default_insp) );
-      });
-    }
-  }
-  catch (e) {
-    console.log( "------------" );
-    console.log( "Unparseable %s", 
-      f,
-      e.info ? e.info.msg : e,
-      inspect(
-        {
-          title_raw  : pm.text.get('Full Title, As Filed'),
-          title_full : title_full
-        },
-        default_insp
-      )
-    );
-  }
-  return Promise.resolve(pm);
 }//}}}
 
 async function traverse()
@@ -2349,23 +3100,26 @@ async function traverse()
     console.log( "Loaded text sections master", inspect( text_headers, default_insp ) );
   }
 
+  let s = await setup_db();
+  let ingest_paramset = {
+    text_headers     : text_headers,
+    db               : s,
+    congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
+    url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
+    joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join'),
+    work             : new Map
+  }
+
   if ( ss.isFile() ) {
     console.log( "Parse file '%s'", fn );
-    let panel_raw = await ingest_panels( fn );
-    let panel = normalize_j_history( panel_raw );
-    console.log( "Finalized panel", inspect( panel, default_insp ));
+    //let panel_raw = await ingest_panels( fn );
+    //let panel = normalize_j_history( panel_raw );
+    //console.log( "Finalized panel", inspect( panel, default_insp ));
+    //result = await examine_ingest_json( fn, ingest_paramset );
   }
 
   if ( ss.isDirectory() ) {
     let dh = readdirSync( fn, { withFileTypes: true, recursive: true } ); 
-    let s = await setup_db();
-    let ingest_paramset = {
-      text_headers     : text_headers,
-      db               : s,
-      congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
-      url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
-      joins            : await s.getSchema( db_name ).getTable('congress_basedoc_url_raw_join')
-    }
     if (0) console.log( "Check", typeof ingest_paramset, inspect(ingest_paramset, default_insp) );
     console.log( "Locate %d files in '%s'", dh.length, fn );
     while ( dh.length > 0 ) {
@@ -2379,20 +3133,42 @@ async function traverse()
 
       let f = [ dirent.parentPath, dirent.name ].join('/');
 
-      if ( ( /^INGEST/.test( dirent.parentPath ) || /^HOLDING/.test( dirent.parentPath )) && /\.json$/.test( dirent.name ) ) {
+      if ( ( /^INGEST/.test( dirent.parentPath ) || /^HOLDING/.test( dirent.parentPath )) && /\.json$/.test( dirent.name ) ) {//{{{
+        let result;
         try { 
-          let ingest_record = await congress_record_fe_panelinfo( f, ingest_paramset );
+          switch ( process.env['PARSEMODE'] || '' ) { 
+            case "ingest":
+              result = await congress_record_fe_panelinfo( f, ingest_paramset );
+              if ( result !== undefined )
+                files_processed++;
+              break;
+            case "examine_history":
+              result = await examine_ingest_json( f, ingest_paramset );
+              if ( result !== undefined ) {
+                console.log( "%s|%s", result, f );
+                files_processed++;
+              }
+              break;
+            default:
+              break;
+          }
         }
         catch (e) {
           console.log( "Skip %s", f, e );
         }
-      }
+      }//}}}
       else if ( /panels-(.*)\.json/.test( dirent.name ) ) {//{{{
+        // Live DOM page traversal will dump these panels-*.json files
+        // if the database is not accessible, or when an error occurs
+        // (e.g. database connection timeout, or [TODO] first database 
+        // INSERT error).
         let panel_info = await ingest_panels( f );
         if ( panel_info !== undefined ) {
           let panel_id = panel_info.id.replace(/^#/,'');
           let panel_filename;
           let suffix;
+
+          files_processed++;
 
           // Check for duplicates in this batch
           if ( !panel_ids.has( panel_id ) )
@@ -2410,7 +3186,7 @@ async function traverse()
 
           panel_info_text_check( panel_info, text_headers, text_headers_master );
 
-          // Write to EXTRACTED/
+          // Write to EXTRACTED/ and INGEST/ directories
           panel_filename = [ panel_id ];
           if ( suffix !== undefined ) panel_filename.push( suffix );
           panel_filename = [ panel_filename.join('-'), 'json' ].join('.');
@@ -2419,7 +3195,12 @@ async function traverse()
             inspect(panel_info, default_insp)
           );
 
-          if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
+          // Insert newly-fetched document information 
+          if ( panel_info.links.size > 0 || panel_info.history.size > 0 ) {
+            await congress_record_panelinfo( panel_info, ingest_paramset );
+          }
+
+          if (0) if ( !existsSync(['EXTRACTED', panel_filename ].join('/')) || 
             envSet("INGEST_OVERWRITE","1") ) {
             write_map_to_file( 
               panel_filename, 
@@ -2430,12 +3211,27 @@ async function traverse()
           else {
             console.log("Not writing %s", panel_filename);
           }
+
+          if (1) if ( existsSync('INGEST') ) {
+            if ( !existsSync(['INGEST', panel_filename ].join('/')) || 
+              envSet("INGEST_OVERWRITE","1") ) {
+              write_map_to_file( 
+                panel_filename, 
+                ['INGEST', panel_filename ].join('/'),
+                panel_info
+              );
+            }
+            else {
+              console.log("Not writing %s", panel_filename);
+            }
+          }
+
         }
         else if ( existsSync(f) ) {
           let rawjson;
           rawjson = read_map_from_file( f ); 
           console.log( "Unable to parse %s", f,
-            inspect( rawjson, default_insp)
+            inspect( rawjson, default_insp )
           );
         }
         else {
@@ -2443,17 +3239,21 @@ async function traverse()
         }
         console.log('-----------');
       }//}}}
-      else if ( /trie-(.*)\./.test( dirent.name ) ) {
+      else if ( /trie-(.*)\./.test( dirent.name ) ) {//{{{
         if (envSet("TRIE","1")) {
           console.log( "Parse file '%s'", f );
           await preload( f );
           console.log('-----------');
+          files_processed++;
         }
-      }
-      else if ( /([^-]{1,})-([0-9-]{1,}).json/.test( dirent.name ) ) {
+      }//}}}
+      else if ( /([^-]{1,})-([0-9-]{1,}).json/.test( dirent.name ) ) {//{{{
         if (envSet("NORMALIZE","1"))
           await normalize( f );
-      }
+          files_processed++;
+      }//}}}
+
+      await sleep(20);
     }
 
     // Clean up text headers
@@ -2470,53 +3270,68 @@ async function traverse()
       inspect( text_headers, default_insp )
     );
 
-    write_map_to_file( "Text section headers", 
+    if ( envSet("CONGRESS_RETAIN_RAWHDR","1") ) write_map_to_file( "Text section headers", 
       "EXTRACTED/textsections.json",
       text_headers
     );
 
-    // Collect non-duplicated panel sources for removal
-    panel_ids.forEach((v,k) => {
-      if ( v.length == 1 ) {
-        uniques.push(k)
-      };
-    });
-
-    if (envSet("PERMIT_UNLINK","1")) while ( uniques.length > 0 ) {
-      let unique_e = uniques.shift();
-      let entries = panel_ids.get(unique_e);
-      entries.forEach((f) => {
-        try {
-          if ( existsSync( f ) )
-            unlinkSync( f );
-          console.log("x", f);
-        }
-        catch (e) {}
+    if ( panel_ids.size > 0 ) {
+      // Collect non-duplicated panel sources for removal
+      panel_ids.forEach((v,k) => {
+        if ( v.length == 1 ) {
+          uniques.push(k)
+        };
       });
-      panel_ids.delete(unique_e);
+
+      if (envSet("PERMIT_UNLINK","1")) while ( uniques.length > 0 ) {
+        let unique_e = uniques.shift();
+        let entries = panel_ids.get(unique_e);
+        entries.forEach((f) => {
+          try {
+            if ( existsSync( f ) )
+              unlinkSync( f );
+            console.log("x", f);
+          }
+          catch (e) {}
+        });
+        panel_ids.delete(unique_e);
+      }
+
+      if (envSet("PERMIT_UNLINK","1")) panel_ids.forEach((v,k) => {
+        v.forEach((f) => {
+          try {
+            if ( existsSync( f ) )
+              unlinkSync( f );
+            console.log("*", f);
+          }
+          catch (e) {}
+        });
+      });
+
+      // Retain registry of duplicate sources
+      if ( envSet("CONGRESS_RETAIN_DUPLIST","1") ) write_map_to_file( 
+        "Panel IDs", 
+        "EXTRACTED/panels.json", 
+        panel_ids
+      );
+    }
+    else {
+      console.log( "Skipping file removals" );
     }
 
-    if (envSet("PERMIT_UNLINK","1")) panel_ids.forEach((v,k) => {
-      v.forEach((f) => {
-        try {
-          if ( existsSync( f ) )
-            unlinkSync( f );
-          console.log("*", f);
-        }
-        catch (e) {}
-      });
+    console.log( "Processed %d", files_processed );
+
+    ingest_paramset.work.forEach((v,k,m) => {
+      if ( v <= 1 ) m.delete(k);
     });
 
-    // Retain registry of duplicate sources
-    write_map_to_file( 
-      "Panel IDs", 
-      "EXTRACTED/panels.json", 
-      panel_ids
+    write_map_to_file(
+      "History hashes",
+      "history.sha256.json",  
+      ingest_paramset.work
     );
-
-    process.exit(0);
-
   }
+  process.exit(0);
 }//}}}
 
 if ( envSet("ACTIVE_MONITOR","1") ) {
@@ -2524,6 +3339,5 @@ if ( envSet("ACTIVE_MONITOR","1") ) {
 }
 
 if ( envSet("PARSE","1") ) {
-  //ingest_panels();
   traverse();
 }

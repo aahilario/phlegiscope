@@ -475,7 +475,11 @@ async function extract_hosts_from_urlarray( target_url, result )
   {//{{{
     // URLFIX
     // let g = normalizeUrl(result.shift()); // result.shift().replace(/\/\.\.\//,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
-    let g = result.shift().replace(/\/\.\.\//g,'/').replace(/\/$/,'').replace(/[.]{1,}$/,'').replace(/\/$/,'');
+    let g = result.shift()
+      .replace(/\/\.\.\//g,"/")
+        .replace(/\/$/,'')
+        .replace(/[.]{1,}$/,'')
+        .replace(/\/$/,'');
 
     if ( process.env.PERMIT_HTTP === undefined ) {
       let h = g.replace(/^http:/,'https:');

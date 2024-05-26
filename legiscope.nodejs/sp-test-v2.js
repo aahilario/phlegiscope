@@ -2062,7 +2062,7 @@ async function monitor()
             d, 
             nm.nodeName, 
             inspect( e.request !== undefined ? e.request : {}, default_insp ),
-            inspect( e.response !== undefined ? e.response : {}, default_insp )
+            inspect( e.response !== undefined ? e.response : {}, default_insp ),
             inspect(nm, default_insp)
           );
           exception_abort = true;

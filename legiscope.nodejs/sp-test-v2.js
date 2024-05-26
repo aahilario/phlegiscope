@@ -2061,8 +2061,8 @@ async function monitor()
           console.log("Exception at depth %d", 
             d, 
             nm.nodeName, 
-            e && e.request !== undefined ? e.request : e, 
-            e && e.response !== undefined ? e.response : e, 
+            inspect( e.request !== undefined ? e.request : {}, default_insp ),
+            inspect( e.response !== undefined ? e.response : {}, default_insp )
             inspect(nm, default_insp)
           );
           exception_abort = true;
@@ -2555,8 +2555,8 @@ async function monitor()
           console.log("Exception in trigger_page_fetch_cb at depth %d", 
             d, 
             nm.nodeName, 
-            e && e.request !== undefined ? e.request : e, 
-            e && e.response !== undefined ? e.response : e, 
+            inspect( e.request !== undefined ? e.request : {}, default_insp ),
+            inspect( e.response !== undefined ? e.response : {}, default_insp )
             inspect(nm, default_insp)
           );
           exception_abort = true;
@@ -2618,29 +2618,28 @@ async function monitor()
     // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
     let result = false;
     if ( params.value == 'modal fade in' ) {
+      append_buffer_to_rr_map = params.nodeId;
       try {
-        append_buffer_to_rr_map = params.nodeId;
-        let markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
-        let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
+        let markup = await get_outerhtml( undefined, params.nodeId );
         if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
           let rr_entry = rr_map.get( latest_rr );
           rr_entry.markup = markup;
           rr_map.set( latest_rr, rr_entry );
-          console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
-            append_buffer_to_rr_map,
-            latest_rr,
-            envSet("VERBOSE","1") ? markup : '',
-            envSet("VERBOSE","1") ? inspect(R,default_insp) : ''
-          ); 
           xhr_fetch_rr = latest_rr;
           latest_rr = 0;
           result = true;
+          console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
+            params.nodeId,
+            latest_rr,
+            envSet("VERBOSE","1") ? markup : ''
+          ); 
         }
       }
       catch (e) {
         console.log( "domAttributeModified",
           inspect( params, default_insp ),
-          inspect( e, default_insp )
+          inspect( e.request !== undefined ? e.request : {}, default_insp ),
+          inspect( e.response !== undefined ? e.response : {}, default_insp )
         );
       }
       if ( result ) return setup_dom_fetch( append_buffer_to_rr_map );

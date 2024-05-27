@@ -1628,8 +1628,6 @@ async function monitor()
         waiting_parent,
         nodes.length,
         nodes.map((e) => e.nodeId).join(',')
-        //,descriptor
-        //,params
       );
       let parent_node;
       if ( nodes_seen.has( waiting_parent ) ) {
@@ -1794,6 +1792,8 @@ async function monitor()
       p.child_hits = 0;
       p.hit_depth = 0;
      
+      trigger_page_fetch_init_xhr(p);
+
       let extracted_info = {
         id       : null,
         links    : new Map,
@@ -2127,6 +2127,16 @@ async function monitor()
     return Promise.resolve(result);
   }//}}}
 
+  function trigger_page_fetch_init_xhr(p)
+  {//{{{
+    p.traversal_request_id = undefined;
+    p.traversal_rq_start_tm = undefined;
+    p.traversal_rq_retry = 0;
+    p.traversal_rq_aborted = false;
+    p.traversal_rq_success = false;
+    p.traversal_rq_complete = false;
+  }//}}}
+
   async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
   {//{{{
     // Trigger click event on document [History] links.
@@ -2168,11 +2178,6 @@ async function monitor()
     //
     const rq_dur_ms = 30000;
     const rq_retry_max = 3;
-    let traversal_request_id;
-    let traversal_rq_start_tm;
-    let traversal_rq_retry = 0;
-    let traversal_rq_aborted = false;
-    let traversal_rq_success = false;
 
     function xhr_response_callback( data, requestId, phase )
     {//{{{
@@ -2182,8 +2187,8 @@ async function monitor()
           // it is a POST request to the Congress server backend, directed at
           // the URL https://congress.gov.ph/members/fetch_history.php
           if ( data.method === 'POST' && /fetch_history.php$/ig.test( data.url ) ) {
-            traversal_request_id = data.requestId;
-            traversal_rq_start_tm = hrtime.bigint();
+            p.traversal_request_id = data.requestId;
+            p.traversal_rq_start_tm = hrtime.bigint();
             console.log( "XHR [%s] Mark, duration %dms", requestId, rq_dur_ms );
           }
           break;
@@ -2193,8 +2198,8 @@ async function monitor()
           // ANY OTHER http response code (including a 3xx redirect)
           // is handled as a traversal abort condition.
           // In the event of response.status !== 200, set traversal_abort = true
-          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
-            if ( traversal_request_id == requestId && /text\/html$/ig.test( data.mimeType ) ) {
+          if ( p.traversal_request_id !== undefined && p.traversal_request_id.length > 0 ) {
+            if ( p.traversal_request_id == requestId && /text\/html$/ig.test( data.mimeType ) ) {
               let rq_status = parseInt(data.status);
               if ( rq_status == 200 ) {
                 // Successful request
@@ -2203,8 +2208,8 @@ async function monitor()
               else {
                 // Unconditional traversal abort
                 let rr_mitig_target;
-                if ( rr_map.has( traversal_request_id ) ) {
-                  rr_mitig_target = rr_map.get( traversal_request_id );
+                if ( rr_map.has( p.traversal_request_id ) ) {
+                  rr_mitig_target = rr_map.get( p.traversal_request_id );
                   // After the CF intercept frame code runs, they [should]
                   // redirect the browser to the original POST target,
                   // mitigation_intercept_url.  We wait for Page.loadEventFired
@@ -2213,17 +2218,17 @@ async function monitor()
                   mitigation_intercept_url = rr_mitig_target.url; 
                 }
 
-                traversal_rq_aborted = true;
+                p.traversal_rq_aborted = true;
                 console.log(
                   "Traversal aborted on %s XHR fetch[%s] from %s error", 
                   current_url,
-                  rr_mitig_target === undefined ? 'untracked' : traversal_request_id,
+                  rr_mitig_target === undefined ? 'untracked' : p.traversal_request_id,
                   rr_mitig_target === undefined ? '{nowhere}' : rr_mitig_target.url,
                   inspect( data, default_insp )
                 );
                 resume_url = current_url;
               }
-              traversal_rq_start_tm = hrtime.bigint();
+              p.traversal_rq_start_tm = hrtime.bigint();
             }
           }
           break;
@@ -2231,11 +2236,11 @@ async function monitor()
           // Untracked response with unexpected responseId
           break;
         case 'L':
-          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
-            if ( traversal_request_id == requestId ) {
+          if ( p.traversal_request_id !== undefined && p.traversal_request_id.length > 0 ) {
+            if ( p.traversal_request_id == requestId ) {
               // Set flag indicating we should proceed, and terminate
               // our wait loop.
-              traversal_rq_success = true;
+              p.traversal_rq_success = true;
               console.log( "XHR [%s] Done", requestId );
               rr_callback = rr_callback_default;
             }
@@ -2253,29 +2258,19 @@ async function monitor()
       //
       // In the event of timeout, set traversal_abort = true.
       //
-      let success_result = false;
+      let success_result; // Undefined until response received, a timeout occurs, or DDoS mitigation is triggered
       let traversal_wait_mark = hrtime.bigint();
-      while ( success_result !== undefined ) {
-        if ( traversal_rq_start_tm !== undefined ) {
-          let traversal_dur_ms = Number.parseFloat(
-            Number((hrtime.bigint() - traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
-          );
-          if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
-            console.log( "Timeout waiting for XHR response", traversal_dur_ms );
-            traversal_abort = true;
-            break;
-          }
-        }
-        else {
+      while ( success_result === undefined ) {
+        if ( p.traversal_rq_start_tm === undefined ) {
+          // xhr_response_callback has not received an 'A' event 
           let traversal_wait_dur = Number.parseFloat(
             Number((hrtime.bigint() - traversal_wait_mark)/BigInt(1000 * 1000))/1.0
           );
           if ( Number.parseInt(traversal_wait_dur) > Number.parseInt(rq_dur_ms) ) {
-            traversal_rq_retry++;
-            if ( traversal_rq_retry < rq_retry_max ) {
-              console.log( "Retry %d/%d XHR setup", traversal_rq_retry, rq_retry_max, traversal_wait_dur );
+            if ( p.traversal_rq_retry < rq_retry_max ) {
+              p.traversal_rq_retry++;
+              console.log( "Retry %d/%d XHR setup", p.traversal_rq_retry, rq_retry_max, traversal_wait_dur );
               traversal_wait_mark = hrtime.bigint();
-              success_result = undefined;
             }
             else {
               console.log( "Timeout exceeded for XHR setup", traversal_wait_dur );
@@ -2284,12 +2279,25 @@ async function monitor()
             break;
           }
         }
-        if ( traversal_rq_aborted ) {
-          traversal_abort = true;
-          break;
-        }
-        if ( traversal_rq_success ) {
+        else if ( p.traversal_rq_success ) {
+          // xhr_response_callback received an 'L' event
           success_result = true;
+        }
+        else {
+          // xhr_response_callback received an 'A' event, 
+          // wait for request to finish with an 'L' event
+          let traversal_dur_ms = Number.parseFloat(
+            Number((hrtime.bigint() - p.traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
+          );
+          if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+            console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+            success_result = false;
+            break;
+          }
+        }
+        if ( p.traversal_rq_aborted ) {
+          traversal_abort = true;
+          success_result = false;
           break;
         }
         await sleep(10);
@@ -2383,20 +2391,24 @@ async function monitor()
         );
 
         try {
+
           let click_result;
 
           append_buffer_to_rr_map = 0;
 
-          // Set up network callback, 
+          // Set up network callback, and await state update 
           rr_callback = xhr_response_callback;
+
+          trigger_page_fetch_init_xhr(p);
+
           click_result = await clickon_node( node_id, nm, clickon_callback );
 
-          if ( !(click_result === true) && !isNaN(parseInt(traversal_request_id)) )
+          if ( !(click_result === true) && !isNaN(parseInt(p.traversal_request_id)) )
           {//{{{
             let trav_response_body;
-            if ( !traversal_rq_success ) {
+            if ( !p.traversal_rq_success ) {
               let traversal_rq_success_mark = hrtime.bigint();
-              while ( !traversal_rq_success ) {
+              while ( !p.traversal_rq_success ) {
                 await sleep(500);
                 let traversal_dur_ms = Number.parseFloat(
                   Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
@@ -2408,21 +2420,21 @@ async function monitor()
                 }
               }
             }
-            trav_response_body = traversal_rq_success 
-              ? await Network.getResponseBody( { requestId: traversal_request_id } )
+            trav_response_body = p.traversal_rq_success 
+              ? await Network.getResponseBody( { requestId: p.traversal_request_id } )
               : { body: '', base64Encoded: false } 
             ;
             console.log( "Terminating message [%s]",
-              traversal_request_id,
+              p.traversal_request_id,
               inspect( trav_response_body, default_insp )
             );
-            if ( rr_map.has( traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
+            if ( rr_map.has( p.traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
               // Update network R/R entry, inserting terminating message as .markup attribute
-              let rr_term = rr_map.get( traversal_request_id );
+              let rr_term = rr_map.get( p.traversal_request_id );
               let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
               let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
               rr_term.markup = trav_response_body;
-              rr_map.set( traversal_request_id, rr_term );
+              rr_map.set( p.traversal_request_id, rr_term );
               write_map_to_file( "XHR interruption",
                 "xhr-intercept.json",
                 rr_term,
@@ -2547,6 +2559,15 @@ async function monitor()
             if ( p.closer_node == 0 ) {
               console.log( "Input needed: Close dialog in 10s" );
             }
+
+            p.traversal_rq_complete = true;
+
+            console.log( "Ready to write", inspect({ 
+              extant: p.found_data_id,
+              fetch: p.unfetched_data_id,
+              immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )
+            }, default_insp));
+
             await sleep(2500);
           }//}}}
           nodes_seen.clear();
@@ -2557,20 +2578,23 @@ async function monitor()
             nm.nodeName, 
             inspect( e.request !== undefined ? e.request : {}, default_insp ),
             inspect( e.response !== undefined ? e.response : {}, default_insp ),
-            inspect(nm, default_insp)
+            inspect(nm, default_insp),
+            inspect( e, default_insp )
           );
           exception_abort = true;
         }
       }
       // if ( nm.nodeName == '#text' && nm.content == '[History]' )
     }//}}}
-    else if ( p.child_hits > 0 )
+    if ( p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )  )
     {//{{{
+      process.stdout.write( p.traversal_rq_complete ? '%' : '$');
       if ( traversal_abort || exception_abort ) {
         console.log( "Skipping further DOM node processing" );
       }
-      else
+      else {
         await congress_extract_history_panel( sp, nm, p, node_id, d );
+      }
     }//}}}
 
     rr_mark = hrtime.bigint();
@@ -2857,8 +2881,16 @@ async function monitor()
           text_headers : text_headers, // .text map lookup table, if available
           n            : 0,
 
-          unfetched_data_id: null,
-          found_data_id    : null,
+          // XHR content request flags
+          traversal_request_id  : null,
+          traversal_rq_start_tm : null,
+          traversal_rq_retry    : 0,
+          traversal_rq_aborted  : null,
+          traversal_rq_success  : null,
+          traversal_rq_complete : null,
+          unfetched_data_id     : null,
+          found_data_id         : null,
+
           db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),

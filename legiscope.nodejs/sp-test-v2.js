@@ -1945,6 +1945,7 @@ async function monitor()
           extant: p.found_data_id,
           fetch: p.unfetched_data_id,
           immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
+          nodeId: node_id,
           depth: d,
           hitat: p.hit_depth
         }, default_insp),
@@ -2616,6 +2617,10 @@ async function monitor()
 
             // FIXME:  Use sp.nodestack to look up the container of this 
             // [History] event trigger link
+            // TEST 1:
+            // Depth [d] is 1 greater than the key/index at the "top"
+            // of sp.nodestack.
+            // sp.nodestack[ d - 4 ] appears to be a usable target.
 
             let tempmap = new Map;
             sp.nodestack.forEach((v,k) => {
@@ -2635,11 +2640,23 @@ async function monitor()
                 extant: p.found_data_id,
                 fetch: p.unfetched_data_id,
                 immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
+                nodeId: node_id,
                 depth: d,
                 hitat: p.hit_depth
               }, default_insp),
               inspect( tempmap, default_insp )
             );
+
+            if ( sp.nodestack.has( d - 4 ) ) {
+              let candidate = sp.nodestack.get( d - 4 );
+              await congress_extract_write_history_panel( 
+                sp,
+                candidate.node,
+                p,
+                candidate.nodeId,
+                d - 4
+              );
+            }
             await sleep(2500);
           }//}}}
           nodes_seen.clear();
@@ -2658,7 +2675,7 @@ async function monitor()
       }
       // if ( nm.nodeName == '#text' && nm.content == '[History]' )
     }//}}}
-    else if ( p.child_hits /*> 0 && p.traversal_rq_complete*/ /*p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )*/  )
+    else if ( envSet("DEPRECATED_POSTORDER_TRAVERSE","1") && p.child_hits /*> 0 && p.traversal_rq_complete*/ /*p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )*/  )
     {//{{{
       // FIXME:  REMOVE THIS BLOCK
       process.stdout.write( p.traversal_rq_complete ? '%' : '$');

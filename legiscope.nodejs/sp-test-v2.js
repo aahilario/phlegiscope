@@ -555,7 +555,13 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
 {//{{{
   // Depth-first inorder traversal of .content maps in each node.
   // Parameters:
+  // sp: Traversal stacks to keep track of node attributes and nodes
   // nm: Either an abbreviated node or a Map of such nodes
+  // d: Traversal depth
+  // cb: Callback invoked before or after ascending the tree (toward leaf nodes)
+  // cb_param: Parameters used by the callback [cb]
+  // nodeId: CDP DOM node identifier of node [nm] (used in e.g. DOM.resolveNode({ nodeId: nodeId })
+  // parentId: When defined, the DOM nodeId of the parent of node [nm] 
   //
   // Return value:
   // - An abbreviated node
@@ -580,6 +586,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       revmap.delete(k);
     }
   }//}}}
+
 
   if ( traversal_abort ) {
     console.log( "Traversal halted" );
@@ -615,6 +622,9 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     sp.branchpat.push(nm.nodeName);
 
     if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+
+    sp.nodestack.set( d, { node: nm, nodeId: nodeId } );
+
     if ( traversal_abort || exception_abort ) {
     }
     else if ( nm === undefined ) {
@@ -656,6 +666,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       }
     }
     if ( cb !== undefined && inorder_traversal_postvisit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+    sp.nodestack.delete( d );
     sp.branchpat.pop();
   }
   return Promise.resolve(nm);
@@ -788,7 +799,7 @@ async function treeify( t )
   inorder_traversal_previsit = true;
   inorder_traversal_postvisit = false;
    await inorder_traversal(
-    { branchpat : branchpat, traversal_parent : null },
+    { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
     tempmap, -1,
     treeify_cb,
     { source_map: t }
@@ -798,7 +809,7 @@ async function treeify( t )
   inorder_traversal_previsit = false;
   inorder_traversal_postvisit = true;
   await inorder_traversal(
-    { branchpat : branchpat, traversal_parent : null },
+    { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
     tempmap, -1,
     prune_cb,
     { source_map: t }
@@ -903,7 +914,7 @@ async function preload( f )
     let markup_a = new Map;
 
     await inorder_traversal(
-      { branchpat : branchpat, traversal_parent : null },
+      { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
       t, -1,
       stack_markup,
       { markup_a : markup_a }
@@ -1614,80 +1625,87 @@ async function monitor()
   {//{{{
     // Populate nodes_seen array with all DOM nodes.
     // Inorder traversal takes care of appending already-fetched nodes.
-    const {parentId, nodes} = params;
-    const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
+    let result = false;
+    try {
+      const {parentId, nodes} = params;
+      const descriptor = (await DOM.resolveNode({nodeId: parentId})).object;
 
-    if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
-    if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log( 
-      "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
-      nodes_seen.size,
-      descriptor.description,
-      parentId, 
-
-      waiting_parent,
-      nodes.length,
-      nodes.map((e) => e.nodeId).join(',')
-      //,descriptor
-      //,params
-    );
-    let parent_node;
-    if ( nodes_seen.has( waiting_parent ) ) {
-      // Avoid need for fixup by fixing waiting_parent content map
-      parent_node = nodes_seen.get( waiting_parent );
-      if ( !parent_node.content.has( parentId ) && (waiting_parent != parentId) ) {
-        parent_node.content.set( parentId, null );
-        nodes_seen.set( waiting_parent, parent_node );
-        if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) 
-          console.log( "Fixup %d.%d", parentId, waiting_parent );
+      if ( envSet('DOMSETCHILDNODES','2') || postprocessing == 2 ) process.stdout.write('.');
+      if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) console.log( 
+        "NodeDSC[%d] %s %d <== parent %d children %d { %s }", 
+        nodes_seen.size,
+        descriptor.description,
+        parentId, 
+        waiting_parent,
+        nodes.length,
+        nodes.map((e) => e.nodeId).join(',')
+      );
+      let parent_node;
+      if ( nodes_seen.has( waiting_parent ) ) {
+        // Avoid need for fixup by fixing waiting_parent content map
+        parent_node = nodes_seen.get( waiting_parent );
+        if ( !parent_node.content.has( parentId ) && (waiting_parent != parentId) ) {
+          parent_node.content.set( parentId, null );
+          nodes_seen.set( waiting_parent, parent_node );
+          if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) 
+            console.log( "Fixup %d.%d", parentId, waiting_parent );
+        }
       }
-    }
-    if ( !nodes_seen.has( parentId ) ) {
-      let R = (await DOM.describeNode({nodeId: parentId})).node;
-      let attrset = R.attributes ? R.attributes : [];
-      let attrmap = new Map;
-      while ( attrset.length > 0 ) {
-        let attr = attrset.shift();
-        let attrval = attrset.shift();
-        attrmap.set( attr, attrval );
-      }
-      nodes_seen.set( parseInt(parentId), {
-        nodeName   : R.nodeName,
-        parentId   : parseInt(waiting_parent),
-        attributes : attrmap,
-        isLeaf     : !(R.childNodeCount && R.childNodeCount > 0),
-        content    : R.childNodeCount && R.childNodeCount > 0
+      if ( !nodes_seen.has( parentId ) ) {
+        let R = (await DOM.describeNode({nodeId: parentId})).node;
+        let attrset = R.attributes ? R.attributes : [];
+        let attrmap = new Map;
+        while ( attrset.length > 0 ) {
+          let attr = attrset.shift();
+          let attrval = attrset.shift();
+          attrmap.set( attr, attrval );
+        }
+        nodes_seen.set( parseInt(parentId), {
+          nodeName   : R.nodeName,
+          parentId   : parseInt(waiting_parent),
+          attributes : attrmap,
+          isLeaf     : !(R.childNodeCount && R.childNodeCount > 0),
+          content    : R.childNodeCount && R.childNodeCount > 0
           ? new Map 
           : R.nodeValue 
-      });
-    }
-    parent_node = nodes_seen.get( parentId );
-    if ( 1/*parent_node.content.size == 0 && !parent_node.isLeaf*/ ) {
-      let modified = 0;
-      nodes.forEach((n,nn,node) => {
-        if ( n.nodeId != parentId && !parent_node.content.has( n.nodeId ) ) {
-          parent_node.content.set( parseInt(n.nodeId), null );
-          modified++;
+        });
+      }
+      parent_node = nodes_seen.get( parentId );
+      if ( 1/*parent_node.content.size == 0 && !parent_node.isLeaf*/ ) {
+        let modified = 0;
+        nodes.forEach((n,nn,node) => {
+          if ( n.nodeId != parentId && !parent_node.content.has( n.nodeId ) ) {
+            parent_node.content.set( parseInt(n.nodeId), null );
+            modified++;
+          }
+        });
+        if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) {
+          console.log( "- Preregistered %d/%d nodes with parent[%d]",
+            modified,
+            nodes.length,
+            parentId
+          );
         }
-      });
-      if ( envSet('DOMSETCHILDNODES','1') || postprocessing == 1 ) {
-        console.log( "- Preregistered %d/%d nodes with parent[%d]",
-          modified,
-          nodes.length,
-          parentId
-        );
+        if ( modified > 0 ) {
+          parent_node.isLeaf = false;
+          nodes_seen.set( parseInt(parentId), parent_node );
+        }
       }
-      if ( modified > 0 ) {
-        parent_node.isLeaf = false;
-        nodes_seen.set( parseInt(parentId), parent_node );
-      }
-    }
 
-    await nodes.forEach(async (n,nn,node) => {
-      await recursively_add_and_register( n, parentId, 0 );
-      return true;
-    });
-    rr_mark = hrtime.bigint();
-    return true;
+      await nodes.forEach(async (n,nn,node) => {
+        await recursively_add_and_register( n, parentId, 0 );
+        return true;
+      });
+      rr_mark = hrtime.bigint();
+      result = true;
+    }
+    catch (e) {
+      console.log( "domSetChildNodes",
+        inspect( params, default_insp ),
+        inspect( e, default_insp )
+      );
+    }
+    return result;
   }//}}}
 
   async function trigger_dom_fetch()
@@ -1703,9 +1721,9 @@ async function monitor()
           pierce : true
         });
         if ( envSet('TRIGGER_DOM_FETCH','1') || postprocessing == 1 ) {
-          console.log("requestChildNodes %d", 
+          console.log("requestChildNodes %d %s (remaining %d)", 
             waiting_parent, 
-            nodes_seen.has(waiting_parent), 
+            nodes_seen.has(waiting_parent) ? "present" : "missing", 
             parents_pending_children.length,
             rq_result
           ); 
@@ -1773,150 +1791,195 @@ async function monitor()
     return Promise.resolve(nm);
   }//}}}
 
+  async function congress_extract_write_history_panel( sp, nm, p, node_id, d )
+  {
+    // This code block is entered after descending back to the 
+    // ancestor node containing links and document description text.
+
+    p.child_hits = 0;
+    p.hit_depth = 0;
+
+    trigger_page_fetch_init_xhr(p);
+
+    let extracted_info = {
+      id       : null,
+      links    : new Map,
+      text     : new Map,
+      skipthis : new Map
+    };
+    // Extract information from branch and leaves
+    let local_sp = new Array;
+    if ( envSet("CONGRESS_BILLRES_CB","1") ) {
+      console.log( "---- MARK ----",
+        inspect(nm, default_insp)
+      );
+    }
+
+    await inorder_traversal(
+      { branchpat : local_sp, traversal_parent : null, nodestack : new Map },
+      nm,
+      -1,
+      congress_billres_extract_cb,
+      extracted_info
+    );
+
+    // Clean up extracted key-value pairs
+    let ka = new Array;
+    let document_id = extracted_info.id.replace(/^\#/,'');
+    extracted_info.text.forEach((v,k,m) => { ka.push(k); });
+
+    if (envSet("CONGRESS_BILLRES_SAVE_PANELTEXTS","1")) {
+      // Cannot use mapify_attributes owing to inconsistencies in formatting
+      write_map_to_file(
+        extracted_info.id, 
+        "paneltexts.json",
+        extracted_info.text,
+        file_ts,
+        document_id
+      );
+    }
+
+    // Construct .text section of bill panel markup data
+    while ( ka.length > 0 ) {
+      let k = ka.shift();
+      let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
+      let k_arr = k_str.split(':');
+      let v;
+      let v_str;
+      if ( k_arr.length == 2 ) {
+        k_str = k_arr[0];
+        v_str = k_arr[1];
+      }
+      else {
+        v = ka.shift();
+        v_str = extracted_info.text.get(v);
+        extracted_info.text.delete(v);
+      }
+      extracted_info.text.set( k_str, v_str );
+      extracted_info.text.delete(k);
+    }
+    if ( p.text_headers !== undefined && p.text_headers.size > 1 ) {
+      congress_panel_text_hdrfix( extracted_info.text, p.text_headers );
+    }
+
+    extracted_info.text.forEach((v,k,m) => {
+      if ( !p.textkeys.has(k) )
+        p.textkeys.set(k,1);
+      else {
+        let tk = p.textkeys.get(k);
+        tk++;
+        p.textkeys.set(k,tk);
+      }
+    });
+    ka.sort((a,b) => {return a - b;});
+
+    // Remove branch and all leaves from frontend DOM
+    await inorder_traversal(
+      { branchpat : local_sp, traversal_parent : null, nodestack : new Map },
+      nm,
+      -1,
+      congress_prune_panel_cb,
+      extracted_info
+    );
+    let final_data_raw = {
+      url     : current_url,
+      id      : extracted_info.id,
+      links   : extracted_info.links,
+      text    : extracted_info.text,
+      network : rr_map,
+      history : null 
+    };
+
+    if ( p.flattened instanceof Map && p.flattened.size > 0 ) {
+      let previsit = inorder_traversal_previsit;
+      let postvisit = inorder_traversal_postvisit;
+      let history_p = return_sorted_map_ordinalkeys( p.flattened );
+
+      let branchpat = new Array;
+      let markup_a = new Map;
+
+      history_p = await treeify( history_p );
+
+      inorder_traversal_previsit = false;
+      inorder_traversal_postvisit = true;
+      await inorder_traversal(
+        { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
+        history_p, -1,
+        stack_markup,
+        { markup_a : markup_a }
+      );
+      final_data_raw.history = markup_a;
+      inorder_traversal_previsit = previsit;
+      inorder_traversal_postvisit = postvisit;
+    }
+    else {
+      final_data_raw.history = p.flattened;
+    }
+
+    extracted_info.links.delete('[History]');
+
+    if ( p.found_data_id ) {
+      if ( !envSet("QUIET") ) console.log( "Omitting panels.json write for %s", p.found_data_id );
+    }
+    else {
+      let final_data = normalize_j_history( final_data_raw );
+
+      await congress_bills_panel_to_db( final_data, p );
+      // Write to cache file since we do not yet (4 May 2024) record all extracted data
+      let tempmap = new Map;
+      sp.nodestack.forEach((v,k) => {
+        let cmap = new Map;
+        let nodeIds = new Array;
+        if ( v.content instanceof Map ) {
+          v.content.forEach((n,i) => {
+            nodeIds.push(i);
+          });
+        }
+        cmap.set( v.nodeId, nodeIds );
+        tempmap.set( k, cmap );
+      });
+
+      console.log( "WRITING %s", 
+        extracted_info.id,
+        inspect({ 
+          extant: p.found_data_id,
+          fetch: p.unfetched_data_id,
+          immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
+          nodeId: node_id,
+          depth: d,
+          hitat: p.hit_depth
+        }, default_insp),
+        inspect( tempmap, default_insp )
+      );
+
+      write_map_to_file(
+        extracted_info.id, 
+        "panels.json",
+        final_data,
+        file_ts,
+        document_id
+      );
+    }
+
+    if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
+      inspect(final_data, default_insp)
+    );
+    if ( !envSet("QUIET") ) console.log( "---- CYCLE DONE ----" );
+    p.flattened.clear();
+    rr_map.clear();
+
+    return Promise.resolve(true);
+  }
+
   async function congress_extract_history_panel( sp, nm, p, node_id, d )
   {//{{{
     // Extract bill information from markup AFTER returning 'up' the
     // DOM tree, and after finding a child node that contains [History] links.
     if ( p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ) ) {
-
-      let extracted_info = {
-        id       : null,
-        links    : new Map,
-        text     : new Map,
-        skipthis : new Map
-      };
-      // Extract information from branch and leaves
-      let local_sp = new Array;
-      if ( envSet("CONGRESS_BILLRES_CB","1") ) {
-        console.log( "---- MARK ----",
-          inspect(nm, default_insp)
-        );
-      }
-      await inorder_traversal(
-        { branchpat : local_sp, traversal_parent : null },
-        nm,
-        -1,
-        congress_billres_extract_cb,
-        extracted_info
-      );
-      // Clean up extracted key-value pairs
-      let ka = new Array;
-      let document_id = extracted_info.id.replace(/^\#/,'');
-      extracted_info.text.forEach((v,k,m) => { ka.push(k); });
-
-      if (envSet("CONGRESS_BILLRES_SAVE_PANELTEXTS","1")) {
-        // Cannot use mapify_attributes owing to inconsistencies in formatting
-        write_map_to_file(
-          extracted_info.id, 
-          "paneltexts.json",
-          extracted_info.text,
-          file_ts,
-          document_id
-        );
-      }
-
-      // Construct .text section of bill panel markup data
-      while ( ka.length > 0 ) {
-        let k = ka.shift();
-        let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
-        let k_arr = k_str.split(':');
-        let v;
-        let v_str;
-        if ( k_arr.length == 2 ) {
-          k_str = k_arr[0];
-          v_str = k_arr[1];
-        }
-        else {
-          v = ka.shift();
-          v_str = extracted_info.text.get(v);
-          extracted_info.text.delete(v);
-        }
-        extracted_info.text.set( k_str, v_str );
-        extracted_info.text.delete(k);
-      }
-      if ( p.text_headers !== undefined && p.text_headers.size > 1 ) {
-        congress_panel_text_hdrfix( extracted_info.text, p.text_headers );
-      }
-
-      extracted_info.text.forEach((v,k,m) => {
-        if ( !p.textkeys.has(k) )
-          p.textkeys.set(k,1);
-        else {
-          let tk = p.textkeys.get(k);
-          tk++;
-          p.textkeys.set(k,tk);
-        }
-      });
-      ka.sort((a,b) => {return a - b;});
-
-      // Remove branch and all leaves from frontend DOM
-      await inorder_traversal(
-        { branchpat : local_sp, traversal_parent : null },
-        nm,
-        -1,
-        congress_prune_panel_cb,
-        extracted_info
-      );
-      let final_data_raw = {
-        url     : current_url,
-        id      : extracted_info.id,
-        links   : extracted_info.links,
-        text    : extracted_info.text,
-        network : rr_map,
-        history : null 
-      };
-      if ( p.flattened instanceof Map && p.flattened.size > 0 ) {
-        let previsit = inorder_traversal_previsit;
-        let postvisit = inorder_traversal_postvisit;
-        let history_p = return_sorted_map_ordinalkeys( p.flattened );
-
-        let branchpat = new Array;
-        let markup_a = new Map;
-
-        history_p = await treeify( history_p );
-
-        inorder_traversal_previsit = false;
-        inorder_traversal_postvisit = true;
-        await inorder_traversal(
-          { branchpat : branchpat, traversal_parent : null },
-          history_p, -1,
-          stack_markup,
-          { markup_a : markup_a }
-        );
-        final_data_raw.history = markup_a;
-        inorder_traversal_previsit = previsit;
-        inorder_traversal_postvisit = postvisit;
-      }
-      else {
-        final_data_raw.history = p.flattened;
-      }
-      extracted_info.links.delete('[History]');
-      if ( p.found_data_id ) {
-        if ( !envSet("QUIET") ) console.log( "Omitting panels.json write for %s", p.found_data_id );
-      }
-      else {
-        let final_data = normalize_j_history( final_data_raw );
-
-        congress_bills_panel_to_db( final_data, p );
-        // Write to cache file since we do not yet (4 May 2024) record all extracted data
-        write_map_to_file(
-          extracted_info.id, 
-          "panels.json",
-          final_data,
-          file_ts,
-          document_id
-        );
-      }
-
-      if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
-        inspect(final_data, default_insp)
-      );
-      if ( !envSet("QUIET") ) console.log( "---- CYCLE DONE ----" );
-      p.child_hits = 0;
-      p.hit_depth = 0;
-      p.flattened.clear();
-      rr_map.clear();
+      await congress_extract_write_history_panel( sp, nm, p, node_id, d );
     }
+
+    return Promise.resolve(true);
   }//}}}
 
   async function congress_billres_extract_cb( sp, nm, p, node_id, d )
@@ -1929,7 +1992,7 @@ async function monitor()
         : null
       ;
       let linkid = nm.attributes.has('data-id')
-        ? nm.attributes.get('data-id')
+        ? sanitize_congress_billres_sn( nm.attributes.get('data-id') )
         : null
       ;
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "Extract A", inspect(nm) );
@@ -2037,10 +2100,10 @@ async function monitor()
         // siblings can be captured post-traversal.
         p.child_hits++;
         p.hit_depth = d;
+        p.triggerable--;
 
         try {
 
-          p.triggerable--;
           await traverse_to( node_id, nm );
 
         }
@@ -2048,8 +2111,8 @@ async function monitor()
           console.log("Exception at depth %d", 
             d, 
             nm.nodeName, 
-            e && e.request !== undefined ? e.request : e, 
-            e && e.response !== undefined ? e.response : e, 
+            inspect( e.request !== undefined ? e.request : {}, default_insp ),
+            inspect( e.response !== undefined ? e.response : {}, default_insp ),
             inspect(nm, default_insp)
           );
           exception_abort = true;
@@ -2114,29 +2177,50 @@ async function monitor()
     return Promise.resolve(result);
   }//}}}
 
+  function trigger_page_fetch_init_xhr(p)
+  {//{{{
+    p.traversal_request_id = undefined;
+    p.traversal_rq_start_tm = undefined;
+    p.traversal_rq_retry = 0;
+    p.traversal_rq_aborted = false;
+    p.traversal_rq_success = false;
+    p.traversal_rq_complete = false;
+  }//}}}
+
   async function trigger_page_fetch_cb( sp, nm, p, node_id, d )
   {//{{{
-    // This callback performs two functions:
-    // 1. It takes each node nm passed to it by inorder_traversal(cb)
-    //    and assembles these into a simplified DOM tree
+    // Trigger click event on document [History] links.
+    //
+    // This callback performs two main functions:
+    // 1. It takes node nm passed to it by inorder_traversal(cb)
+    //    containing Congress document history information, and 
+    //    extracts a) a document ID string or b) the human-readable
+    //    history text.  The latter is collected in a Map in the order 
+    //    in which they are found in the DOM.
     // 2. It traverses the (presumably still-loaded page) DOM, moves
-    //    those text links into focus, and executes an Input mouse click on
-    //    those selected nodes.
+    //    certain text links into focus, and executes an Input mouse 
+    //    click on those selected nodes.
+    // 3. DOM tree traversal is halted when a document history fetch
+    //    network event results in a DDoS mitigation challenge.  This
+    //    happens after a [History] link click event causes an
+    //    HTTP 403 response to the XHR POST action triggered by that click.
     //
     // Parameters
+    // sp           : Tree traversal information relating to DOM structure, not content (the branch nodeName stack, and the abbreviated node parent of the current node nm).
     // nm           : Abbreviated node
     // node_id      : node_id for {nm}
-    // p            : Callback parameters passed to inorder_traversal
+    // p            : DOM content information obtained during traversal of tree. 
+    // d            : Tree traversal depth
     // Return value : nm
 
-    // Two callbacks are in effect:
+    // Two callbacks are defined in this scope:
     // - xhr_response_callback provides request/response state to this
     //   application.  A failed POST XHR must cause end of traversal.
     // - clickon_callback defers return from the XHR trigger click action
     //   until the matching networkLoadingFinished event occurs, signaling
     //   the browser has received renderable content.
     // 
-    // Fetch state is maintained in this scope.  
+    // Fetch state for these callbacks is maintained in this scope.  
     // - xhr_response_callback provides state;
     // - clickon_callback consumes this state, and holds execution
     //   until data is returned, or response status indicates
@@ -2144,11 +2228,6 @@ async function monitor()
     //
     const rq_dur_ms = 30000;
     const rq_retry_max = 3;
-    let traversal_request_id;
-    let traversal_rq_start_tm;
-    let traversal_rq_retry = 0;
-    let traversal_rq_aborted = false;
-    let traversal_rq_success = false;
 
     function xhr_response_callback( data, requestId, phase )
     {//{{{
@@ -2158,8 +2237,8 @@ async function monitor()
           // it is a POST request to the Congress server backend, directed at
           // the URL https://congress.gov.ph/members/fetch_history.php
           if ( data.method === 'POST' && /fetch_history.php$/ig.test( data.url ) ) {
-            traversal_request_id = data.requestId;
-            traversal_rq_start_tm = hrtime.bigint();
+            p.traversal_request_id = data.requestId;
+            p.traversal_rq_start_tm = hrtime.bigint();
             console.log( "XHR [%s] Mark, duration %dms", requestId, rq_dur_ms );
           }
           break;
@@ -2169,8 +2248,8 @@ async function monitor()
           // ANY OTHER http response code (including a 3xx redirect)
           // is handled as a traversal abort condition.
           // In the event of response.status !== 200, set traversal_abort = true
-          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
-            if ( traversal_request_id == requestId && /text\/html$/ig.test( data.mimeType ) ) {
+          if ( p.traversal_request_id !== undefined && p.traversal_request_id.length > 0 ) {
+            if ( p.traversal_request_id == requestId && /text\/html$/ig.test( data.mimeType ) ) {
               let rq_status = parseInt(data.status);
               if ( rq_status == 200 ) {
                 // Successful request
@@ -2179,8 +2258,8 @@ async function monitor()
               else {
                 // Unconditional traversal abort
                 let rr_mitig_target;
-                if ( rr_map.has( traversal_request_id ) ) {
-                  rr_mitig_target = rr_map.get( traversal_request_id );
+                if ( rr_map.has( p.traversal_request_id ) ) {
+                  rr_mitig_target = rr_map.get( p.traversal_request_id );
                   // After the CF intercept frame code runs, they [should]
                   // redirect the browser to the original POST target,
                   // mitigation_intercept_url.  We wait for Page.loadEventFired
@@ -2189,17 +2268,17 @@ async function monitor()
                   mitigation_intercept_url = rr_mitig_target.url; 
                 }
 
-                traversal_rq_aborted = true;
+                p.traversal_rq_aborted = true;
                 console.log(
                   "Traversal aborted on %s XHR fetch[%s] from %s error", 
                   current_url,
-                  rr_mitig_target === undefined ? 'untracked' : traversal_request_id,
+                  rr_mitig_target === undefined ? 'untracked' : p.traversal_request_id,
                   rr_mitig_target === undefined ? '{nowhere}' : rr_mitig_target.url,
                   inspect( data, default_insp )
                 );
                 resume_url = current_url;
               }
-              traversal_rq_start_tm = hrtime.bigint();
+              p.traversal_rq_start_tm = hrtime.bigint();
             }
           }
           break;
@@ -2207,11 +2286,11 @@ async function monitor()
           // Untracked response with unexpected responseId
           break;
         case 'L':
-          if ( traversal_request_id !== undefined && traversal_request_id.length > 0 ) {
-            if ( traversal_request_id == requestId ) {
+          if ( p.traversal_request_id !== undefined && p.traversal_request_id.length > 0 ) {
+            if ( p.traversal_request_id == requestId ) {
               // Set flag indicating we should proceed, and terminate
               // our wait loop.
-              traversal_rq_success = true;
+              p.traversal_rq_success = true;
               console.log( "XHR [%s] Done", requestId );
               rr_callback = rr_callback_default;
             }
@@ -2229,29 +2308,19 @@ async function monitor()
       //
       // In the event of timeout, set traversal_abort = true.
       //
-      let success_result = false;
+      let success_result; // Undefined until response received, a timeout occurs, or DDoS mitigation is triggered
       let traversal_wait_mark = hrtime.bigint();
-      while ( success_result !== undefined ) {
-        if ( traversal_rq_start_tm !== undefined ) {
-          let traversal_dur_ms = Number.parseFloat(
-            Number((hrtime.bigint() - traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
-          );
-          if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
-            console.log( "Timeout waiting for XHR response", traversal_dur_ms );
-            traversal_abort = true;
-            break;
-          }
-        }
-        else {
+      while ( success_result === undefined ) {
+        if ( p.traversal_rq_start_tm === undefined ) {
+          // xhr_response_callback has not received an 'A' event 
           let traversal_wait_dur = Number.parseFloat(
             Number((hrtime.bigint() - traversal_wait_mark)/BigInt(1000 * 1000))/1.0
           );
           if ( Number.parseInt(traversal_wait_dur) > Number.parseInt(rq_dur_ms) ) {
-            traversal_rq_retry++;
-            if ( traversal_rq_retry < rq_retry_max ) {
-              console.log( "Retry %d/%d XHR setup", traversal_rq_retry, rq_retry_max, traversal_wait_dur );
+            if ( p.traversal_rq_retry < rq_retry_max ) {
+              p.traversal_rq_retry++;
+              console.log( "Retry %d/%d XHR setup", p.traversal_rq_retry, rq_retry_max, traversal_wait_dur );
               traversal_wait_mark = hrtime.bigint();
-              success_result = undefined;
             }
             else {
               console.log( "Timeout exceeded for XHR setup", traversal_wait_dur );
@@ -2260,12 +2329,25 @@ async function monitor()
             break;
           }
         }
-        if ( traversal_rq_aborted ) {
-          traversal_abort = true;
-          break;
-        }
-        if ( traversal_rq_success ) {
+        else if ( p.traversal_rq_success ) {
+          // xhr_response_callback received an 'L' event
           success_result = true;
+        }
+        else {
+          // xhr_response_callback received an 'A' event, 
+          // wait for request to finish with an 'L' event
+          let traversal_dur_ms = Number.parseFloat(
+            Number((hrtime.bigint() - p.traversal_rq_start_tm)/BigInt(1000 * 1000))/1.0
+          );
+          if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+            console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+            success_result = false;
+            break;
+          }
+        }
+        if ( p.traversal_rq_aborted ) {
+          traversal_abort = true;
+          success_result = false;
           break;
         }
         await sleep(10);
@@ -2282,265 +2364,329 @@ async function monitor()
 
     trigger_page_fetch_common_cb( sp, nm, p, node_id, d );
 
-    if ( p.triggerable != 0 ) {//{{{
+    if ( !(p.triggerable != 0) )
+    {//{{{
+      rr_mark = hrtime.bigint();
+      return Promise.resolve(nm);
+      // No-op
+    }//}}}
+    if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
+    {//{{{
+      // Perform database lookup done here, before 
+      // an XHR for document history markup is triggered.
+      // Referencing p.id works where, as in the case of 
+      // The Philippines Congress, this #text node is a 
+      // DOM child of the anchor tag.
 
-      if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
-      {//{{{
-        // Perform database lookup done here, before 
-        // an XHR for document history markup is triggered.
-        // Referencing p.id works where, as in the case of 
-        // The Philippines Congress, this #text node is a 
-        // DOM child of the anchor tag.
-
-        let href = nm.attributes.get('href') || '';
-        if ( href == '#HistoryModal' ) {
-          let linkid = nm.attributes.has('data-id')
-            ? (nm.attributes.get('data-id') || '')
-            .replace(/[^A-Z0-9#-]/g,'')
-            .replace(/([A-Z0-9#-]{1,32})/,'$1')
-            .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
-            .trim()
-            : null
-          ;
-          p.found_data_id = null;
-          p.unfetched_data_id = null;
-          if ( linkid ) {
-            let congress_basedoc = await p.congress_basedoc
-              .select(['id','create_time','congress_n','sn','title_full'])
-              .where("sn = :sn")
-              .bind("sn",linkid)
-              .execute();
-            let r = await congress_basedoc.fetchAll();
-            if ( r.length > 0 ) {
-              if ( !envSet("QUIET") ) console.log( "Found stored %s", linkid );
-              p.found_data_id = linkid;
-            }
-            else {
-              console.log( "Pending retrieval of %s", linkid );
-              p.unfetched_data_id = linkid;
-            }
-            await sleep(10);
+      let href = nm.attributes.get('href') || '';
+      if ( href == '#HistoryModal' ) {
+        let linkid = nm.attributes.has('data-id')
+          ? (nm.attributes.get('data-id') || '')
+          .replace(/[^A-Z0-9#-]/g,'')
+          .replace(/([A-Z0-9#-]{1,32})/,'$1')
+          .replace(/^#([A-Z0-9]{1,30})-([0-9]{1,4}).*/,'$1-$2')
+          .trim()
+          : null
+        ;
+        p.found_data_id = null;
+        p.unfetched_data_id = null;
+        if ( linkid ) {
+          let congress_basedoc = await p.congress_basedoc
+            .select(['id','create_time','congress_n','sn','title_full'])
+            .where("sn = :sn")
+            .bind("sn",linkid)
+            .execute();
+          let r = await congress_basedoc.fetchAll();
+          if ( r.length > 0 ) {
+            if ( !envSet("QUIET") ) console.log( "Found stored %s", linkid );
+            p.found_data_id = linkid;
           }
+          else {
+            console.log( "Pending retrieval of %s", linkid );
+            p.unfetched_data_id = linkid;
+          }
+          await sleep(10);
         }
-      }//}}}
+      }
+    }//}}}
+    
+    if ( nm.nodeName == '#text' && nm.content == '[History]' )
+    {//{{{
 
-      if ( nm.nodeName == '#text' && nm.content == '[History]' )
-      {//{{{
+      // Indicates that we've found a [History] trigger in
+      // a sibling node, so that the triggering tag and surrounding
+      // siblings can be captured post-traversal.
 
-        // Indicates that we've found a [History] trigger in
-        // a child node, so that the triggering tag and surrounding
-        // siblings can be captured post-traversal.
+      // Method congress_extract_history_panel uses p.hit_depth to
+      // 'gate' further markup processing (including deletion of DOM nodes) 
 
-        // Method congress_extract_history_panel uses p.hit_depth to
-        // 'gate' further markup processing (including deletion of DOM nodes) 
+      p.child_hits++;
+      p.hit_depth = d;
+      p.triggerable--;
+      p.trigger_node = node_id;
 
-        p.child_hits++;
-        p.hit_depth = d;
+      if ( traversal_abort || exception_abort ) {
 
-        if ( traversal_abort || exception_abort ) {
+        console.log( 'Aborting fetch of %s', p.unfetched_data_id );
 
-          console.log( 'Aborting fetch of %s', p.unfetched_data_id );
+      }
+      else if ( p.found_data_id ) {
 
-        }
-        else if ( p.found_data_id ) {
+        if ( !envSet("QUIET") ) console.log( "Skipping live fetch of %s", p.found_data_id );
 
-          if ( !envSet("QUIET") ) console.log( "Skipping live fetch of %s", p.found_data_id );
+      }
+      else {
 
-        }
-        else {
-      
-          console.log( 'Live fetch %s', p.unfetched_data_id );
+        console.log( 'Live fetch %s (%d %s in lookup_tree)', 
+          p.unfetched_data_id,
+          node_id,
+          p.lookup_tree.has( node_id ) ? "present" : "not"
+        );
 
-          try {
+        try {
 
-            let click_result;
-            p.triggerable--;
-            append_buffer_to_rr_map = 0;
+          let click_result;
 
-            // Set up network callback, 
-            rr_callback = xhr_response_callback;
-            click_result = await clickon_node( node_id, nm, clickon_callback );
+          append_buffer_to_rr_map = 0;
 
-            if ( !(click_result === true) && !isNaN(parseInt(traversal_request_id)) ) {
-              let trav_response_body;
-              if ( !traversal_rq_success ) {
-                let traversal_rq_success_mark = hrtime.bigint();
-                while ( !traversal_rq_success ) {
-                  await sleep(500);
-                  let traversal_dur_ms = Number.parseFloat(
-                    Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
-                  );
-                  console.log( "Activation wait %d/%d", traversal_dur_ms, rq_dur_ms );
-                  if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
-                    console.log( "Timeout waiting for XHR response", traversal_dur_ms );
-                    break;
-                  }
-                }
-              }
-              trav_response_body = traversal_rq_success 
-                ? await Network.getResponseBody( { requestId: traversal_request_id } )
-                : { body: '', base64Encoded: false } 
-                ;
-              console.log( "Terminating message [%s]",
-                traversal_request_id,
-                inspect( trav_response_body, default_insp )
-              );
-              if ( rr_map.has( traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
-                // Update network R/R entry, inserting terminating message as .markup attribute
-                let rr_term = rr_map.get( traversal_request_id );
-                let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
-                let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
-                rr_term.markup = trav_response_body;
-                rr_map.set( traversal_request_id, rr_term );
-                write_map_to_file( "XHR interruption",
-                  "xhr-intercept.json",
-                  rr_term,
-                  file_ts
+          // Set up network callback, and await state update 
+          rr_callback = xhr_response_callback;
+
+          trigger_page_fetch_init_xhr(p);
+
+          click_result = await clickon_node( node_id, nm, clickon_callback );
+
+          if ( !(click_result === true) && !isNaN(parseInt(p.traversal_request_id)) )
+          {//{{{
+            let trav_response_body;
+            if ( !p.traversal_rq_success ) {
+              let traversal_rq_success_mark = hrtime.bigint();
+              while ( !p.traversal_rq_success ) {
+                await sleep(500);
+                let traversal_dur_ms = Number.parseFloat(
+                  Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
                 );
-                if ( true || (is_text_html && is_cf_mitigated) ) {
-                  // Attempt to override displayed page contents
-                  try {
-                    console.log( "Loading CF mitigation challenge to target frame %s", inspect({
-                      frame_id: frame_id
-                    }, default_insp) );
-                    await Page.setDocumentContent({
-                      frameId: frame_id,
-                      html: trav_response_body.body 
-                    });
-                  }
-                  catch (e) {
-                    console.log( "Aborted XHR override error",
-                      inspect(e , default_insp)
-                    );
-                  }
+                console.log( "Activation wait %d/%d", traversal_dur_ms, rq_dur_ms );
+                if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+                  console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+                  break;
                 }
               }
             }
-            else if ( append_buffer_to_rr_map > 0 ) {
-              let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
-              let markup;
-              await setup_dom_fetch( append_buffer_to_rr_map );
-              await sleep(1500);
-
-              // Climb the popup container tree
-              if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
-                let dp = p.lookup_tree.get( append_buffer_to_rr_map );
-                let cka = new Array;
-                if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
-                  append_buffer_to_rr_map
-                );
-                dp.content.forEach((v,ck,map) => {
-                  cka.push(ck);
-                });
-                while ( cka.length > 0 ) {
-                  let ck = cka.shift();
-                  if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
-                  await setup_dom_fetch( ck, append_buffer_to_rr_map );
+            trav_response_body = p.traversal_rq_success 
+              ? await Network.getResponseBody( { requestId: p.traversal_request_id } )
+              : { body: '', base64Encoded: false } 
+            ;
+            console.log( "Terminating message [%s]",
+              p.traversal_request_id,
+              inspect( trav_response_body, default_insp )
+            );
+            if ( rr_map.has( p.traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
+              // Update network R/R entry, inserting terminating message as .markup attribute
+              let rr_term = rr_map.get( p.traversal_request_id );
+              let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
+              let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
+              rr_term.markup = trav_response_body;
+              rr_map.set( p.traversal_request_id, rr_term );
+              write_map_to_file( "XHR interruption",
+                "xhr-intercept.json",
+                rr_term,
+                file_ts
+              );
+              if ( true || (is_text_html && is_cf_mitigated) ) {
+                // Attempt to override displayed page contents
+                try {
+                  console.log( "Loading CF mitigation challenge to target frame %s", inspect({
+                    frame_id: frame_id
+                  }, default_insp) );
+                  await Page.setDocumentContent({
+                    frameId: frame_id,
+                    html: trav_response_body.body 
+                  });
                 }
-                // Decompose the dialog container to get at 
-                // the good bits: The Close button and link text.
-                let dialog_motif = new Array;
-                await inorder_traversal(
-                  { branchpat  : dialog_motif, traversal_parent : null },
-                  dp,
-                  -1,
-                  flatten_dialog_container,
-                  p
-                );
-                if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
-                  append_buffer_to_rr_map,
-                  inspect(dp,default_insp),
-                );
-              }//}}}
-              else {
-                console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
+                catch (e) {
+                  console.log( "Aborted XHR override error",
+                    inspect(e , default_insp)
+                  );
+                }
               }
-              await sleep(500); // Delay to allow browser to populate XHR container modal
-              markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
-              console.log( "FETCHED %s INTO %s %d", 
-                xhr_fetch_rr,
-                p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
-                append_buffer_to_rr_map,
-                envSet("VERBOSE","1") ? markup : '',
-                envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
-                nodes_seen.size
+            }
+          }//}}}
+          else if ( append_buffer_to_rr_map > 0 )
+          {//{{{
+            let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
+            let markup;
+            let setup_state = await setup_dom_fetch( append_buffer_to_rr_map );
+            await sleep(1500);
+
+            // Climb the popup container tree
+            if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
+              let dp = p.lookup_tree.get( append_buffer_to_rr_map );
+              let cka = new Array;
+              if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
+                append_buffer_to_rr_map
               );
-              await sleep(500);
-              await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
-
-              if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
-
-              if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file(
-                "Fragment",
-                "trie.txt", 
-                nodes_seen,
-                file_ts,
-                p.n
-              );
-              p.n++;
-
-              p.flattened.clear();
+              dp.content.forEach((v,ck,map) => {
+                cka.push(ck);
+              });
+              while ( cka.length > 0 ) {
+                let ck = cka.shift();
+                if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
+                await setup_dom_fetch( ck, append_buffer_to_rr_map );
+              }
+              // Decompose the dialog container to get at 
+              // the good bits: The Close button and link text.
+              let dialog_motif = new Array;
               await inorder_traversal(
-                { branchpat : new Array, traversal_parent : nm },
-                nodes_seen,
+                { branchpat  : dialog_motif, traversal_parent : null, nodestack : new Map },
+                dp,
                 -1,
-                flatten_container,
+                flatten_dialog_container,
                 p
               );
-              p.flattened = return_sorted_map( p.flattened );
+              if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
+                append_buffer_to_rr_map,
+                inspect(dp,default_insp),
+              );
+            }//}}}
+            else {
+              console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
+            }
+            await sleep(500); // Delay to allow browser to populate XHR container modal
+            markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
+            console.log( "FETCHED %s INTO %s %d", 
+              xhr_fetch_rr,
+              p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
+              append_buffer_to_rr_map,
+              envSet("VERBOSE","1") ? markup : '',
+              envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
+              nodes_seen.size
+            );
+            await sleep(500);
+            await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
 
-              if ( p.closer_node > 0 ) {
-                console.log( "Closing modal using event on %d", p.closer_node );
-                await clickon_node( p.closer_node, nm );
-              }
+            if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
 
-              if ( rr_map.has( xhr_fetch_rr ) ) {
-                let rr_entry = rr_map.get( xhr_fetch_rr );
-                rr_entry.markup = p.flattened;
-                rr_map.set( xhr_fetch_rr, rr_entry );
-                if ( !user_agent ) {
-                  let ua = rr_entry.request !== undefined 
-                    && rr_entry.request.headers !== undefined 
-                    && rr_entry.request.headers['User-Agent'] !== undefined 
-                    ? rr_entry.request.headers['User-Agent']
-                    : null
-                  ;
-                  if ( ua && ua.length > 0 ) {
-                    user_agent = ua;
-                    console.log( "UA: %s", user_agent );
-                  }
+            if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file(
+              "Fragment",
+              "trie.txt", 
+              nodes_seen,
+              file_ts,
+              p.n
+            );
+            p.n++;
+
+            p.flattened.clear();
+            await inorder_traversal(
+              { branchpat : new Array, traversal_parent : nm, nodestack : new Map },
+              nodes_seen,
+              -1,
+              flatten_container,
+              p
+            );
+            p.flattened = return_sorted_map( p.flattened );
+
+            if ( p.closer_node > 0 ) {
+              console.log( "Closing modal using event on %d", p.closer_node );
+              await clickon_node( p.closer_node, nm );
+            }
+
+            if ( rr_map.has( xhr_fetch_rr ) ) {
+              let rr_entry = rr_map.get( xhr_fetch_rr );
+              rr_entry.markup = p.flattened;
+              rr_map.set( xhr_fetch_rr, rr_entry );
+              if ( !user_agent ) {
+                let ua = rr_entry.request !== undefined 
+                  && rr_entry.request.headers !== undefined 
+                  && rr_entry.request.headers['User-Agent'] !== undefined 
+                  ? rr_entry.request.headers['User-Agent']
+                  : null
+                ;
+                if ( ua && ua.length > 0 ) {
+                  user_agent = ua;
+                  console.log( "UA: %s", user_agent );
                 }
               }
-
-              if ( p.closer_node == 0 ) {
-                console.log( "Input needed: Close dialog in 10s" );
-              }
-              await sleep(2500);
             }
-            nodes_seen.clear();
-          }
-          catch(e) {
-            console.log("Exception at depth %d", 
-              d, 
-              nm.nodeName, 
-              e && e.request !== undefined ? e.request : e, 
-              e && e.response !== undefined ? e.response : e, 
-              inspect(nm, default_insp)
+
+            if ( p.closer_node == 0 ) {
+              console.log( "Input needed: Close dialog in 10s" );
+            }
+
+            p.traversal_rq_complete = true;
+
+            // FIXME:  Use sp.nodestack to look up the container of this 
+            // [History] event trigger link
+            // TEST 1:
+            // Depth [d] is 1 greater than the key/index at the "top"
+            // of sp.nodestack.
+            // sp.nodestack[ d - 4 ] appears to be a usable target.
+
+            let tempmap = new Map;
+            sp.nodestack.forEach((v,k) => {
+              let cmap = new Map;
+              let nodeIds = new Array;
+              if ( v.content instanceof Map ) {
+                v.content.forEach((n,i) => {
+                  nodeIds.push(i);
+                });
+              }
+              cmap.set( v.nodeId, nodeIds );
+              tempmap.set( k, cmap );
+            });
+
+            console.log( "Ready to write", 
+              inspect({ 
+                extant: p.found_data_id,
+                fetch: p.unfetched_data_id,
+                immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
+                nodeId: node_id,
+                depth: d,
+                hitat: p.hit_depth
+              }, default_insp),
+              inspect( tempmap, default_insp )
             );
-            exception_abort = true;
-          }
+
+            if ( sp.nodestack.has( d - 4 ) ) {
+              let candidate = sp.nodestack.get( d - 4 );
+              await congress_extract_write_history_panel( 
+                sp,
+                candidate.node,
+                p,
+                candidate.nodeId,
+                d - 4
+              );
+            }
+            await sleep(2500);
+          }//}}}
+          nodes_seen.clear();
         }
-        // if ( nm.nodeName == '#text' && nm.content == '[History]' )
-      }//}}}
-      else if ( p.child_hits > 0 ) {
-        if ( traversal_abort || exception_abort ) {
-          console.log( "Skipping further DOM node processing" );
+        catch(e) {
+          console.log("Exception in trigger_page_fetch_cb at depth %d", 
+            d, 
+            nm.nodeName, 
+            inspect( e.request !== undefined ? e.request : {}, default_insp ),
+            inspect( e.response !== undefined ? e.response : {}, default_insp ),
+            inspect( nm, default_insp ),
+            inspect( e, default_insp )
+          );
+          exception_abort = true;
         }
-        else
+      }
+      // if ( nm.nodeName == '#text' && nm.content == '[History]' )
+    }//}}}
+    else if ( envSet("DEPRECATED_POSTORDER_TRAVERSE","1") && p.child_hits /*> 0 && p.traversal_rq_complete*/ /*p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )*/  )
+    {//{{{
+      // FIXME:  REMOVE THIS BLOCK
+      process.stdout.write( p.traversal_rq_complete ? '%' : '$');
+      if ( traversal_abort || exception_abort ) {
+        console.log( "Skipping further DOM node processing" );
+      }
+      else {
         await congress_extract_history_panel( sp, nm, p, node_id, d );
       }
-      // p.triggerable != 0
     }//}}}
+
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
@@ -2552,10 +2698,9 @@ async function monitor()
     rr_mark    = hrtime.bigint();
     cycle_date = new Date();
     rr_begin   = rr_mark;
-    waiting_parent = nodeId;
     try {
       rootnode_n = (await DOM.resolveNode({nodeId: nodeId}));
-      nodes_seen.set( waiting_parent, {
+      nodes_seen.set( nodeId, {
         nodeName   : rootnode_n.object.description,
         parentId   : parentId === undefined ? 0 : parseInt(parentId),
         attributes : new Map,
@@ -2567,8 +2712,12 @@ async function monitor()
     catch(e) {
       console.log( "setup_dom_fetch", inspect( e, default_insp ) );
     }
-    if (envSet("SETUP_DOM_FETCH","1") || !setup_result ) console.log("setup_dom_fetch( %d )", 
-      nodeId, 
+    if (envSet("SETUP_DOM_FETCH","1") || !setup_result ) console.log(
+      "setup_dom_fetch( %d of %d )", 
+      nodeId,
+      parents_pending_children.length,
+      setup_result ? "resolve OK" : "resolveNode fail",
+      nodes_seen.has( nodeId ) ? "inserted" : "unaccounted",
       inspect(rootnode_n,default_insp)
     );
     if ( setup_result ) {
@@ -2581,24 +2730,33 @@ async function monitor()
   async function domAttributeModified(params)
   {//{{{
     // This event is triggered by clicking on [History] links on https://congress.gov.ph/legisdocs/?v=bills 
+    let result = false;
     if ( params.value == 'modal fade in' ) {
       append_buffer_to_rr_map = params.nodeId;
-      let markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
-      let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
-      if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
-        let rr_entry = rr_map.get( latest_rr );
-        rr_entry.markup = markup;
-        rr_map.set( latest_rr, rr_entry );
-        console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
-          append_buffer_to_rr_map,
-          latest_rr,
-          envSet("VERBOSE","1") ? markup : '',
-          envSet("VERBOSE","1") ? inspect(R,default_insp) : ''
-        ); 
-        xhr_fetch_rr = latest_rr;
-        latest_rr = 0;
-        return setup_dom_fetch( append_buffer_to_rr_map );
+      try {
+        let markup = await get_outerhtml( undefined, params.nodeId );
+        if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
+          let rr_entry = rr_map.get( latest_rr );
+          rr_entry.markup = markup;
+          rr_map.set( latest_rr, rr_entry );
+          xhr_fetch_rr = latest_rr;
+          latest_rr = 0;
+          result = true;
+          console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
+            params.nodeId,
+            latest_rr,
+            envSet("VERBOSE","1") ? markup : ''
+          ); 
+        }
       }
+      catch (e) {
+        console.log( "domAttributeModified",
+          inspect( params, default_insp ),
+          inspect( e.request !== undefined ? e.request : {}, default_insp ),
+          inspect( e.response !== undefined ? e.response : {}, default_insp )
+        );
+      }
+      if ( result ) return setup_dom_fetch( append_buffer_to_rr_map );
     }
     return Promise.resolve(false);
   }//}}}
@@ -2714,7 +2872,8 @@ async function monitor()
     }
     catch (e) {
       console.log( "No outerHTML for node[%d], returning null", nodeId,
-        inspect( e, default_insp )
+        inspect( e.request !== undefined ? e.request : {}, default_insp ),
+        inspect( e.response !== undefined ? e.response : {}, default_insp )
       );
       outerhtml = null;
     }
@@ -2799,10 +2958,12 @@ async function monitor()
         let s = await setup_db();
         let traversal_paramset = { // 'p' traversal data passed to inorder_traversal callback
           tagstack     : tagstack, // Retains tag counts at depth d
+          // nodestack    : new Map, // Allows lookup of ancestors back down to DOM root node
           motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
           lookup_tree  : lookup_tree, // Flat Map of document nodes 
           dialog_nodes : new Map,
-          closer_node  : 0, // nodeId
+          trigger_node : 0, // DOM node ID of found [History] link
+          closer_node  : 0, // XHR response container close event trigger
           child_hits   : 0, // Count of 'interesting' nodes in children
           hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
           triggerable  : -1, // DEBUG: Limit number of elements traversed
@@ -2811,8 +2972,16 @@ async function monitor()
           text_headers : text_headers, // .text map lookup table, if available
           n            : 0,
 
-          unfetched_data_id: null,
-          found_data_id    : null,
+          // XHR content request flags
+          traversal_request_id  : null,
+          traversal_rq_start_tm : null,
+          traversal_rq_retry    : 0,
+          traversal_rq_aborted  : null,
+          traversal_rq_success  : null,
+          traversal_rq_complete : null,
+          unfetched_data_id     : null,
+          found_data_id         : null,
+
           db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),
           url_raw          : await s.getSchema( db_name ).getTable('url_raw'),
@@ -2820,7 +2989,7 @@ async function monitor()
         };
 
         await inorder_traversal( 
-          { branchpat  : tagmotif, traversal_parent : null },
+          { branchpat  : tagmotif, traversal_parent : null, nodestack : new Map },
           nodes_tree, 
           -1, 
           envSet("MODE","TRAVERSE") 

@@ -555,7 +555,13 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
 {//{{{
   // Depth-first inorder traversal of .content maps in each node.
   // Parameters:
+  // sp: Traversal stacks to keep track of node attributes and nodes
   // nm: Either an abbreviated node or a Map of such nodes
+  // d: Traversal depth
+  // cb: Callback invoked before or after ascending the tree (toward leaf nodes)
+  // cb_param: Parameters used by the callback [cb]
+  // nodeId: CDP DOM node identifier of node [nm] (used in e.g. DOM.resolveNode({ nodeId: nodeId })
+  // parentId: When defined, the DOM nodeId of the parent of node [nm] 
   //
   // Return value:
   // - An abbreviated node
@@ -580,6 +586,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       revmap.delete(k);
     }
   }//}}}
+
 
   if ( traversal_abort ) {
     console.log( "Traversal halted" );
@@ -615,6 +622,9 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
     sp.branchpat.push(nm.nodeName);
 
     if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+
+    sp.nodestack.set( d, { node: nm, nodeId: nodeId } );
+
     if ( traversal_abort || exception_abort ) {
     }
     else if ( nm === undefined ) {
@@ -656,6 +666,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       }
     }
     if ( cb !== undefined && inorder_traversal_postvisit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+    sp.nodestack.delete( d );
     sp.branchpat.pop();
   }
   return Promise.resolve(nm);
@@ -788,7 +799,7 @@ async function treeify( t )
   inorder_traversal_previsit = true;
   inorder_traversal_postvisit = false;
    await inorder_traversal(
-    { branchpat : branchpat, traversal_parent : null },
+    { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
     tempmap, -1,
     treeify_cb,
     { source_map: t }
@@ -798,7 +809,7 @@ async function treeify( t )
   inorder_traversal_previsit = false;
   inorder_traversal_postvisit = true;
   await inorder_traversal(
-    { branchpat : branchpat, traversal_parent : null },
+    { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
     tempmap, -1,
     prune_cb,
     { source_map: t }
@@ -903,7 +914,7 @@ async function preload( f )
     let markup_a = new Map;
 
     await inorder_traversal(
-      { branchpat : branchpat, traversal_parent : null },
+      { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
       t, -1,
       stack_markup,
       { markup_a : markup_a }
@@ -1780,156 +1791,194 @@ async function monitor()
     return Promise.resolve(nm);
   }//}}}
 
+  async function congress_extract_write_history_panel( sp, nm, p, node_id, d )
+  {
+    // This code block is entered after descending back to the 
+    // ancestor node containing links and document description text.
+
+    p.child_hits = 0;
+    p.hit_depth = 0;
+
+    trigger_page_fetch_init_xhr(p);
+
+    let extracted_info = {
+      id       : null,
+      links    : new Map,
+      text     : new Map,
+      skipthis : new Map
+    };
+    // Extract information from branch and leaves
+    let local_sp = new Array;
+    if ( envSet("CONGRESS_BILLRES_CB","1") ) {
+      console.log( "---- MARK ----",
+        inspect(nm, default_insp)
+      );
+    }
+
+    await inorder_traversal(
+      { branchpat : local_sp, traversal_parent : null, nodestack : new Map },
+      nm,
+      -1,
+      congress_billres_extract_cb,
+      extracted_info
+    );
+
+    // Clean up extracted key-value pairs
+    let ka = new Array;
+    let document_id = extracted_info.id.replace(/^\#/,'');
+    extracted_info.text.forEach((v,k,m) => { ka.push(k); });
+
+    if (envSet("CONGRESS_BILLRES_SAVE_PANELTEXTS","1")) {
+      // Cannot use mapify_attributes owing to inconsistencies in formatting
+      write_map_to_file(
+        extracted_info.id, 
+        "paneltexts.json",
+        extracted_info.text,
+        file_ts,
+        document_id
+      );
+    }
+
+    // Construct .text section of bill panel markup data
+    while ( ka.length > 0 ) {
+      let k = ka.shift();
+      let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
+      let k_arr = k_str.split(':');
+      let v;
+      let v_str;
+      if ( k_arr.length == 2 ) {
+        k_str = k_arr[0];
+        v_str = k_arr[1];
+      }
+      else {
+        v = ka.shift();
+        v_str = extracted_info.text.get(v);
+        extracted_info.text.delete(v);
+      }
+      extracted_info.text.set( k_str, v_str );
+      extracted_info.text.delete(k);
+    }
+    if ( p.text_headers !== undefined && p.text_headers.size > 1 ) {
+      congress_panel_text_hdrfix( extracted_info.text, p.text_headers );
+    }
+
+    extracted_info.text.forEach((v,k,m) => {
+      if ( !p.textkeys.has(k) )
+        p.textkeys.set(k,1);
+      else {
+        let tk = p.textkeys.get(k);
+        tk++;
+        p.textkeys.set(k,tk);
+      }
+    });
+    ka.sort((a,b) => {return a - b;});
+
+    // Remove branch and all leaves from frontend DOM
+    await inorder_traversal(
+      { branchpat : local_sp, traversal_parent : null, nodestack : new Map },
+      nm,
+      -1,
+      congress_prune_panel_cb,
+      extracted_info
+    );
+    let final_data_raw = {
+      url     : current_url,
+      id      : extracted_info.id,
+      links   : extracted_info.links,
+      text    : extracted_info.text,
+      network : rr_map,
+      history : null 
+    };
+
+    if ( p.flattened instanceof Map && p.flattened.size > 0 ) {
+      let previsit = inorder_traversal_previsit;
+      let postvisit = inorder_traversal_postvisit;
+      let history_p = return_sorted_map_ordinalkeys( p.flattened );
+
+      let branchpat = new Array;
+      let markup_a = new Map;
+
+      history_p = await treeify( history_p );
+
+      inorder_traversal_previsit = false;
+      inorder_traversal_postvisit = true;
+      await inorder_traversal(
+        { branchpat : branchpat, traversal_parent : null, nodestack : new Map },
+        history_p, -1,
+        stack_markup,
+        { markup_a : markup_a }
+      );
+      final_data_raw.history = markup_a;
+      inorder_traversal_previsit = previsit;
+      inorder_traversal_postvisit = postvisit;
+    }
+    else {
+      final_data_raw.history = p.flattened;
+    }
+
+    extracted_info.links.delete('[History]');
+
+    if ( p.found_data_id ) {
+      if ( !envSet("QUIET") ) console.log( "Omitting panels.json write for %s", p.found_data_id );
+    }
+    else {
+      let final_data = normalize_j_history( final_data_raw );
+
+      await congress_bills_panel_to_db( final_data, p );
+      // Write to cache file since we do not yet (4 May 2024) record all extracted data
+      let tempmap = new Map;
+      sp.nodestack.forEach((v,k) => {
+        let cmap = new Map;
+        let nodeIds = new Array;
+        if ( v.content instanceof Map ) {
+          v.content.forEach((n,i) => {
+            nodeIds.push(i);
+          });
+        }
+        cmap.set( v.nodeId, nodeIds );
+        tempmap.set( k, cmap );
+      });
+
+      console.log( "WRITING %s", 
+        extracted_info.id,
+        inspect({ 
+          extant: p.found_data_id,
+          fetch: p.unfetched_data_id,
+          immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
+          depth: d,
+          hitat: p.hit_depth
+        }, default_insp),
+        inspect( tempmap, default_insp )
+      );
+
+      write_map_to_file(
+        extracted_info.id, 
+        "panels.json",
+        final_data,
+        file_ts,
+        document_id
+      );
+    }
+
+    if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
+      inspect(final_data, default_insp)
+    );
+    if ( !envSet("QUIET") ) console.log( "---- CYCLE DONE ----" );
+    p.flattened.clear();
+    rr_map.clear();
+
+    return Promise.resolve(true);
+  }
+
   async function congress_extract_history_panel( sp, nm, p, node_id, d )
   {//{{{
     // Extract bill information from markup AFTER returning 'up' the
     // DOM tree, and after finding a child node that contains [History] links.
     if ( p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ) ) {
-
-      // This code block is entered after descending back to the 
-      // ancestor node containing links and document description text.
-
-      p.child_hits = 0;
-      p.hit_depth = 0;
-     
-      trigger_page_fetch_init_xhr(p);
-
-      let extracted_info = {
-        id       : null,
-        links    : new Map,
-        text     : new Map,
-        skipthis : new Map
-      };
-      // Extract information from branch and leaves
-      let local_sp = new Array;
-      if ( envSet("CONGRESS_BILLRES_CB","1") ) {
-        console.log( "---- MARK ----",
-          inspect(nm, default_insp)
-        );
-      }
-      await inorder_traversal(
-        { branchpat : local_sp, traversal_parent : null },
-        nm,
-        -1,
-        congress_billres_extract_cb,
-        extracted_info
-      );
-      // Clean up extracted key-value pairs
-      let ka = new Array;
-      let document_id = extracted_info.id.replace(/^\#/,'');
-      extracted_info.text.forEach((v,k,m) => { ka.push(k); });
-
-      if (envSet("CONGRESS_BILLRES_SAVE_PANELTEXTS","1")) {
-        // Cannot use mapify_attributes owing to inconsistencies in formatting
-        write_map_to_file(
-          extracted_info.id, 
-          "paneltexts.json",
-          extracted_info.text,
-          file_ts,
-          document_id
-        );
-      }
-
-      // Construct .text section of bill panel markup data
-      while ( ka.length > 0 ) {
-        let k = ka.shift();
-        let k_str = extracted_info.text.get(k).replace(/[:]*$/g,'');
-        let k_arr = k_str.split(':');
-        let v;
-        let v_str;
-        if ( k_arr.length == 2 ) {
-          k_str = k_arr[0];
-          v_str = k_arr[1];
-        }
-        else {
-          v = ka.shift();
-          v_str = extracted_info.text.get(v);
-          extracted_info.text.delete(v);
-        }
-        extracted_info.text.set( k_str, v_str );
-        extracted_info.text.delete(k);
-      }
-      if ( p.text_headers !== undefined && p.text_headers.size > 1 ) {
-        congress_panel_text_hdrfix( extracted_info.text, p.text_headers );
-      }
-
-      extracted_info.text.forEach((v,k,m) => {
-        if ( !p.textkeys.has(k) )
-          p.textkeys.set(k,1);
-        else {
-          let tk = p.textkeys.get(k);
-          tk++;
-          p.textkeys.set(k,tk);
-        }
-      });
-      ka.sort((a,b) => {return a - b;});
-
-      // Remove branch and all leaves from frontend DOM
-      await inorder_traversal(
-        { branchpat : local_sp, traversal_parent : null },
-        nm,
-        -1,
-        congress_prune_panel_cb,
-        extracted_info
-      );
-      let final_data_raw = {
-        url     : current_url,
-        id      : extracted_info.id,
-        links   : extracted_info.links,
-        text    : extracted_info.text,
-        network : rr_map,
-        history : null 
-      };
-      if ( p.flattened instanceof Map && p.flattened.size > 0 ) {
-        let previsit = inorder_traversal_previsit;
-        let postvisit = inorder_traversal_postvisit;
-        let history_p = return_sorted_map_ordinalkeys( p.flattened );
-
-        let branchpat = new Array;
-        let markup_a = new Map;
-
-        history_p = await treeify( history_p );
-
-        inorder_traversal_previsit = false;
-        inorder_traversal_postvisit = true;
-        await inorder_traversal(
-          { branchpat : branchpat, traversal_parent : null },
-          history_p, -1,
-          stack_markup,
-          { markup_a : markup_a }
-        );
-        final_data_raw.history = markup_a;
-        inorder_traversal_previsit = previsit;
-        inorder_traversal_postvisit = postvisit;
-      }
-      else {
-        final_data_raw.history = p.flattened;
-      }
-      extracted_info.links.delete('[History]');
-      if ( p.found_data_id ) {
-        if ( !envSet("QUIET") ) console.log( "Omitting panels.json write for %s", p.found_data_id );
-      }
-      else {
-        let final_data = normalize_j_history( final_data_raw );
-
-        congress_bills_panel_to_db( final_data, p );
-        // Write to cache file since we do not yet (4 May 2024) record all extracted data
-        write_map_to_file(
-          extracted_info.id, 
-          "panels.json",
-          final_data,
-          file_ts,
-          document_id
-        );
-      }
-
-      if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
-        inspect(final_data, default_insp)
-      );
-      if ( !envSet("QUIET") ) console.log( "---- CYCLE DONE ----" );
-      p.flattened.clear();
-      rr_map.clear();
+      await congress_extract_write_history_panel( sp, nm, p, node_id, d );
     }
+
+    return Promise.resolve(true);
   }//}}}
 
   async function congress_billres_extract_cb( sp, nm, p, node_id, d )
@@ -1942,7 +1991,7 @@ async function monitor()
         : null
       ;
       let linkid = nm.attributes.has('data-id')
-        ? nm.attributes.get('data-id')
+        ? sanitize_congress_billres_sn( nm.attributes.get('data-id') )
         : null
       ;
       if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "Extract A", inspect(nm) );
@@ -2316,9 +2365,11 @@ async function monitor()
 
     if ( !(p.triggerable != 0) )
     {//{{{
+      rr_mark = hrtime.bigint();
+      return Promise.resolve(nm);
       // No-op
     }//}}}
-    else if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
+    if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
     {//{{{
       // Perform database lookup done here, before 
       // an XHR for document history markup is triggered.
@@ -2357,7 +2408,8 @@ async function monitor()
         }
       }
     }//}}}
-    else if ( nm.nodeName == '#text' && nm.content == '[History]' )
+    
+    if ( nm.nodeName == '#text' && nm.content == '[History]' )
     {//{{{
 
       // Indicates that we've found a [History] trigger in
@@ -2485,7 +2537,7 @@ async function monitor()
               // the good bits: The Close button and link text.
               let dialog_motif = new Array;
               await inorder_traversal(
-                { branchpat  : dialog_motif, traversal_parent : null },
+                { branchpat  : dialog_motif, traversal_parent : null, nodestack : new Map },
                 dp,
                 -1,
                 flatten_dialog_container,
@@ -2525,7 +2577,7 @@ async function monitor()
 
             p.flattened.clear();
             await inorder_traversal(
-              { branchpat : new Array, traversal_parent : nm },
+              { branchpat : new Array, traversal_parent : nm, nodestack : new Map },
               nodes_seen,
               -1,
               flatten_container,
@@ -2562,12 +2614,32 @@ async function monitor()
 
             p.traversal_rq_complete = true;
 
-            console.log( "Ready to write", inspect({ 
-              extant: p.found_data_id,
-              fetch: p.unfetched_data_id,
-              immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )
-            }, default_insp));
+            // FIXME:  Use sp.nodestack to look up the container of this 
+            // [History] event trigger link
 
+            let tempmap = new Map;
+            sp.nodestack.forEach((v,k) => {
+              let cmap = new Map;
+              let nodeIds = new Array;
+              if ( v.content instanceof Map ) {
+                v.content.forEach((n,i) => {
+                  nodeIds.push(i);
+                });
+              }
+              cmap.set( v.nodeId, nodeIds );
+              tempmap.set( k, cmap );
+            });
+
+            console.log( "Ready to write", 
+              inspect({ 
+                extant: p.found_data_id,
+                fetch: p.unfetched_data_id,
+                immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
+                depth: d,
+                hitat: p.hit_depth
+              }, default_insp),
+              inspect( tempmap, default_insp )
+            );
             await sleep(2500);
           }//}}}
           nodes_seen.clear();
@@ -2578,7 +2650,7 @@ async function monitor()
             nm.nodeName, 
             inspect( e.request !== undefined ? e.request : {}, default_insp ),
             inspect( e.response !== undefined ? e.response : {}, default_insp ),
-            inspect(nm, default_insp),
+            inspect( nm, default_insp ),
             inspect( e, default_insp )
           );
           exception_abort = true;
@@ -2586,8 +2658,9 @@ async function monitor()
       }
       // if ( nm.nodeName == '#text' && nm.content == '[History]' )
     }//}}}
-    if ( p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )  )
+    else if ( p.child_hits /*> 0 && p.traversal_rq_complete*/ /*p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )*/  )
     {//{{{
+      // FIXME:  REMOVE THIS BLOCK
       process.stdout.write( p.traversal_rq_complete ? '%' : '$');
       if ( traversal_abort || exception_abort ) {
         console.log( "Skipping further DOM node processing" );
@@ -2868,6 +2941,7 @@ async function monitor()
         let s = await setup_db();
         let traversal_paramset = { // 'p' traversal data passed to inorder_traversal callback
           tagstack     : tagstack, // Retains tag counts at depth d
+          // nodestack    : new Map, // Allows lookup of ancestors back down to DOM root node
           motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
           lookup_tree  : lookup_tree, // Flat Map of document nodes 
           dialog_nodes : new Map,
@@ -2898,7 +2972,7 @@ async function monitor()
         };
 
         await inorder_traversal( 
-          { branchpat  : tagmotif, traversal_parent : null },
+          { branchpat  : tagmotif, traversal_parent : null, nodestack : new Map },
           nodes_tree, 
           -1, 
           envSet("MODE","TRAVERSE") 

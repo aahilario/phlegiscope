@@ -2657,7 +2657,7 @@ async function monitor()
                 d - 4
               );
             }
-            await sleep(2500);
+            await sleep(1500);
           }//}}}
           nodes_seen.clear();
         }
@@ -2674,17 +2674,6 @@ async function monitor()
         }
       }
       // if ( nm.nodeName == '#text' && nm.content == '[History]' )
-    }//}}}
-    else if ( envSet("DEPRECATED_POSTORDER_TRAVERSE","1") && p.child_hits /*> 0 && p.traversal_rq_complete*/ /*p.hit_depth > d && ( p.hit_depth == ( 3 + d ) )*/  )
-    {//{{{
-      // FIXME:  REMOVE THIS BLOCK
-      process.stdout.write( p.traversal_rq_complete ? '%' : '$');
-      if ( traversal_abort || exception_abort ) {
-        console.log( "Skipping further DOM node processing" );
-      }
-      else {
-        await congress_extract_history_panel( sp, nm, p, node_id, d );
-      }
     }//}}}
 
     rr_mark = hrtime.bigint();

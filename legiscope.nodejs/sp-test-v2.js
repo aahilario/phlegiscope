@@ -2494,6 +2494,7 @@ async function monitor()
               p.triggerable--;
               p.trigger_node = link_node_id;
 
+              await DOM.describeNode({nodeId: link_node_id});
               await traverse_to( link_node_id, link_node );
 
               if ( traversal_abort || exception_abort ) {
@@ -2541,6 +2542,7 @@ async function monitor()
                   trigger_page_fetch_init_xhr(p);
 
                   click_result = await clickon_node( link_node_id, link_node, clickon_callback );
+                  await sleep(500);
 
                   if ( !(click_result === true) && !isNaN(parseInt(p.traversal_request_id)) )
                   {//{{{
@@ -2619,6 +2621,7 @@ async function monitor()
                       // Decompose the dialog container to get at 
                       // the good bits: The Close button and link text.
                       let dialog_motif = new Array;
+                      p.closer_node = 0;
                       await inorder_traversal(
                         { branchpat  : dialog_motif, traversal_parent : null, nodestack : new Map },
                         dp,

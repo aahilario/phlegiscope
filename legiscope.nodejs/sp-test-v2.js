@@ -229,8 +229,8 @@ function networkRequestWillBeSent(params)
 
 function networkLoadingFinished(params)
 {//{{{
+  latest_rr = params.requestId; // FIXME: Assignments to latest_rr superseded by callback-mediated control flow
   if ( outstanding_rr.has( params.requestId ) ) {
-    latest_rr = params.requestId; // FIXME: Assignments to latest_rr superseded by callback-mediated control flow
     outstanding_rr.delete( params.requestId );
   }
   if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
@@ -335,7 +335,18 @@ function read_map_from_file( map_file )
     return value;
   }
   let f = readFileSync( map_file, { flags : "r" } ); 
-  return JSON.parse( f, reviver );
+  let rv;
+  try {
+    rv = JSON.parse( f, reviver );
+  }
+  catch(e) {
+    console.log( "read_map_from_file( %s )",
+      map_file,
+      inspect(e, default_insp)
+    );
+    rv = {};
+  }
+  return rv;
 }//}}}
 
 function write_map_to_file( description, map_file, map_obj, file_ts, n )
@@ -355,12 +366,17 @@ function write_map_to_file( description, map_file, map_obj, file_ts, n )
     }
   }
 
-  write_to_file( 
-    map_file,
-    JSON.stringify( map_obj, recoverable, 2 ),
-    file_ts,  
-    n
-  );
+  try {
+    write_to_file( 
+      map_file,
+      JSON.stringify( map_obj, recoverable, 2 ),
+      file_ts,  
+      n
+    );
+  }
+  catch(e) {
+    console.log( "Failed to write %s to %s", description, map_file );
+  }
 
 }//}}}
 
@@ -621,9 +637,9 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
 
     sp.branchpat.push(nm.nodeName);
 
-    if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
-
     sp.nodestack.set( d, { node: nm, nodeId: nodeId } );
+
+    if ( cb !== undefined && inorder_traversal_previsit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
 
     if ( traversal_abort || exception_abort ) {
     }
@@ -666,6 +682,7 @@ async function inorder_traversal( sp, nm, d, cb, cb_param, nodeId, parentId )
       }
     }
     if ( cb !== undefined && inorder_traversal_postvisit ) nm = await cb(sp,nm,cb_param,nodeId,d+1);
+
     sp.nodestack.delete( d );
     sp.branchpat.pop();
   }
@@ -1736,7 +1753,7 @@ async function monitor()
     }
   }//}}}
 
-  async function flatten_dialog_container( sp, nm, p, node_id, d )
+  async function locate_modal_closer( sp, nm, p, node_id, d )
   {//{{{
     if ( !p.dialog_nodes.has( node_id ) ) {
       p.dialog_nodes.set( node_id, nm );
@@ -1777,7 +1794,7 @@ async function monitor()
   async function congress_prune_panel_cb( sp, nm, p, node_id, d )
   {//{{{
     // Invoked by: 
-    // - congress_extract_history_panel
+    // - congress_extract_write_history_panel
     if ( nm.isLeaf ) {
       try {
         if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log( "- Removing %d", node_id );
@@ -1795,9 +1812,6 @@ async function monitor()
   {
     // This code block is entered after descending back to the 
     // ancestor node containing links and document description text.
-
-    p.child_hits = 0;
-    p.hit_depth = 0;
 
     trigger_page_fetch_init_xhr(p);
 
@@ -1873,14 +1887,6 @@ async function monitor()
     });
     ka.sort((a,b) => {return a - b;});
 
-    // Remove branch and all leaves from frontend DOM
-    await inorder_traversal(
-      { branchpat : local_sp, traversal_parent : null, nodestack : new Map },
-      nm,
-      -1,
-      congress_prune_panel_cb,
-      extracted_info
-    );
     let final_data_raw = {
       url     : current_url,
       id      : extracted_info.id,
@@ -1926,31 +1932,33 @@ async function monitor()
 
       await congress_bills_panel_to_db( final_data, p );
       // Write to cache file since we do not yet (4 May 2024) record all extracted data
-      let tempmap = new Map;
-      sp.nodestack.forEach((v,k) => {
-        let cmap = new Map;
-        let nodeIds = new Array;
-        if ( v.content instanceof Map ) {
-          v.content.forEach((n,i) => {
-            nodeIds.push(i);
-          });
-        }
-        cmap.set( v.nodeId, nodeIds );
-        tempmap.set( k, cmap );
-      });
+      if ( envSet("MAPCHECK","1") ) {//{{{
+        // MAPCHECK
+        let tempmap = new Map;
+        sp.nodestack.forEach((v,k) => {
+          let cmap = new Map;
+          let nodeIds = new Array;
+          if ( v.node.content instanceof Map ) {
+            v.node.content.forEach((n,i) => {
+              nodeIds.push(i);
+            });
+          }
+          cmap.set( v.nodeId, nodeIds );
+          tempmap.set( k, cmap );
+        });
 
-      console.log( "WRITING %s", 
-        extracted_info.id,
-        inspect({ 
-          extant: p.found_data_id,
-          fetch: p.unfetched_data_id,
-          immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
-          nodeId: node_id,
-          depth: d,
-          hitat: p.hit_depth
-        }, default_insp),
-        inspect( tempmap, default_insp )
-      );
+        console.log( "WRITING %s", 
+          extracted_info.id,
+          inspect({ 
+            extant  : p.found_data_id,
+            fetch   : p.unfetched_data_id,
+            fetched : p.fetched_data_id,
+            nodeId  : node_id,
+            depth   : d
+          }, default_insp),
+          inspect( tempmap, default_insp )
+        );
+      }//}}}
 
       write_map_to_file(
         extracted_info.id, 
@@ -1960,6 +1968,15 @@ async function monitor()
         document_id
       );
     }
+
+    // Remove branch and all leaves from frontend DOM
+    await inorder_traversal(
+      { branchpat : local_sp, traversal_parent : null, nodestack : new Map },
+      nm,
+      -1,
+      congress_prune_panel_cb,
+      extracted_info
+    );
 
     if ( envSet("CONGRESS_BILLRES_CB","1") ) console.log(
       inspect(final_data, default_insp)
@@ -1971,21 +1988,10 @@ async function monitor()
     return Promise.resolve(true);
   }
 
-  async function congress_extract_history_panel( sp, nm, p, node_id, d )
-  {//{{{
-    // Extract bill information from markup AFTER returning 'up' the
-    // DOM tree, and after finding a child node that contains [History] links.
-    if ( p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ) ) {
-      await congress_extract_write_history_panel( sp, nm, p, node_id, d );
-    }
-
-    return Promise.resolve(true);
-  }//}}}
-
   async function congress_billres_extract_cb( sp, nm, p, node_id, d )
   {//{{{
     // Invoked by:
-    // - inorder_traversal: congress_extract_history_panel 
+    // - inorder_traversal: congress_extract_write_history_panel 
     if ( nm.nodeName == 'A' ) {
       let link = nm.attributes.has('href') 
         ? nm.attributes.get('href')
@@ -2098,8 +2104,6 @@ async function monitor()
         // Indicates that we've found a [History] trigger in
         // a child node, so that the triggering tag and surrounding
         // siblings can be captured post-traversal.
-        p.child_hits++;
-        p.hit_depth = d;
         p.triggerable--;
 
         try {
@@ -2119,7 +2123,7 @@ async function monitor()
         }
       }
       else if ( p.child_hits > 0 ) {
-        await congress_extract_history_panel( sp, nm, p, node_id, d );
+        await congress_extract_write_history_panel( sp, nm, p, node_id, d );
       }
     }
 
@@ -2221,7 +2225,6 @@ async function monitor()
     //   the browser has received renderable content.
     // 
     // Fetch state for these callbacks is maintained in this scope.  
-    // - xhr_response_callback provides state;
     // - clickon_callback consumes this state, and holds execution
     //   until data is returned, or response status indicates
     //   processing must halt.
@@ -2239,7 +2242,7 @@ async function monitor()
           if ( data.method === 'POST' && /fetch_history.php$/ig.test( data.url ) ) {
             p.traversal_request_id = data.requestId;
             p.traversal_rq_start_tm = hrtime.bigint();
-            console.log( "XHR [%s] Mark, duration %dms", requestId, rq_dur_ms );
+            console.log( "Q[%s] XHR Mark, duration %dms", requestId, rq_dur_ms );
           }
           break;
         case 'A':
@@ -2253,7 +2256,7 @@ async function monitor()
               let rq_status = parseInt(data.status);
               if ( rq_status == 200 ) {
                 // Successful request
-                console.log( "XHR [%s] OK", requestId );
+                console.log( "A[%s] XHR OK", requestId );
               }
               else {
                 // Unconditional traversal abort
@@ -2286,16 +2289,28 @@ async function monitor()
           // Untracked response with unexpected responseId
           break;
         case 'L':
-          if ( p.traversal_request_id !== undefined && p.traversal_request_id.length > 0 ) {
-            if ( p.traversal_request_id == requestId ) {
-              // Set flag indicating we should proceed, and terminate
-              // our wait loop.
-              p.traversal_rq_success = true;
-              console.log( "XHR [%s] Done", requestId );
-              rr_callback = rr_callback_default;
-            }
+          if ( !(p.traversal_request_id !== undefined && p.traversal_request_id.length > 0) ) {
+            console.log( "L[%s] Unexpected empty traversal request ID, or not yet set",
+              requestId,
+              p.traversal_request_id
+            );
           }
-          // Request loading finished
+          else if ( p.traversal_request_id == requestId ) {
+            // Set flag indicating we should proceed, and terminate
+            // our wait loop.
+            p.traversal_rq_success = true;
+            console.log( "L[%s] XHR Done for %s", requestId, p.unfetched_data_id );
+            p.fetched_data_id = p.unfetched_data_id;
+            p.unfetched_data_id = undefined;
+            rr_callback = rr_callback_default;
+            // Request loading finished
+          }
+          else {
+            console.log( "L[%s] Mismatched request vs.",
+              requestId,
+              p.traversal_request_id
+            );
+          }
           break;
       }
     }//}}}
@@ -2370,16 +2385,17 @@ async function monitor()
       return Promise.resolve(nm);
       // No-op
     }//}}}
+
     if ( nm.nodeName == 'A' && nm.attributes !== undefined && nm.attributes instanceof Map && nm.attributes.size > 0 ) 
     {//{{{
-      // Perform database lookup done here, before 
+      // Perform database lookup here, before 
       // an XHR for document history markup is triggered.
       // Referencing p.id works where, as in the case of 
       // The Philippines Congress, this #text node is a 
       // DOM child of the anchor tag.
 
       let href = nm.attributes.get('href') || '';
-      if ( href == '#HistoryModal' ) {
+      if ( href == '#HistoryModal' ) {//{{{
         let linkid = nm.attributes.has('data-id')
           ? (nm.attributes.get('data-id') || '')
           .replace(/[^A-Z0-9#-]/g,'')
@@ -2388,8 +2404,8 @@ async function monitor()
           .trim()
           : null
         ;
-        p.found_data_id = null;
-        p.unfetched_data_id = null;
+        p.found_data_id     = undefined;
+        p.unfetched_data_id = undefined;
         if ( linkid ) {
           let congress_basedoc = await p.congress_basedoc
             .select(['id','create_time','congress_n','sn','title_full'])
@@ -2398,284 +2414,368 @@ async function monitor()
             .execute();
           let r = await congress_basedoc.fetchAll();
           if ( r.length > 0 ) {
-            if ( !envSet("QUIET") ) console.log( "Found stored %s", linkid );
+            if ( envSet("QUIET","0") ) console.log( "Found stored %s", linkid );
             p.found_data_id = linkid;
           }
-          else {
+          else {//{{{
+            let panel_body_nmid = sp.nodestack.get( d - 3 );
+            let panel_body_id = panel_body_nmid.nodeId;
+
             console.log( "Pending retrieval of %s", linkid );
-            p.unfetched_data_id = linkid;
-          }
-          await sleep(10);
-        }
-      }
-    }//}}}
-    
-    if ( nm.nodeName == '#text' && nm.content == '[History]' )
-    {//{{{
-
-      // Indicates that we've found a [History] trigger in
-      // a sibling node, so that the triggering tag and surrounding
-      // siblings can be captured post-traversal.
-
-      // Method congress_extract_history_panel uses p.hit_depth to
-      // 'gate' further markup processing (including deletion of DOM nodes) 
-
-      p.child_hits++;
-      p.hit_depth = d;
-      p.triggerable--;
-      p.trigger_node = node_id;
-
-      if ( traversal_abort || exception_abort ) {
-
-        console.log( 'Aborting fetch of %s', p.unfetched_data_id );
-
-      }
-      else if ( p.found_data_id ) {
-
-        if ( !envSet("QUIET") ) console.log( "Skipping live fetch of %s", p.found_data_id );
-
-      }
-      else {
-
-        console.log( 'Live fetch %s (%d %s in lookup_tree)', 
-          p.unfetched_data_id,
-          node_id,
-          p.lookup_tree.has( node_id ) ? "present" : "not"
-        );
-
-        try {
-
-          let click_result;
-
-          append_buffer_to_rr_map = 0;
-
-          // Set up network callback, and await state update 
-          rr_callback = xhr_response_callback;
-
-          trigger_page_fetch_init_xhr(p);
-
-          click_result = await clickon_node( node_id, nm, clickon_callback );
-
-          if ( !(click_result === true) && !isNaN(parseInt(p.traversal_request_id)) )
-          {//{{{
-            let trav_response_body;
-            if ( !p.traversal_rq_success ) {
-              let traversal_rq_success_mark = hrtime.bigint();
-              while ( !p.traversal_rq_success ) {
-                await sleep(500);
-                let traversal_dur_ms = Number.parseFloat(
-                  Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
-                );
-                console.log( "Activation wait %d/%d", traversal_dur_ms, rq_dur_ms );
-                if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
-                  console.log( "Timeout waiting for XHR response", traversal_dur_ms );
-                  break;
-                }
-              }
-            }
-            trav_response_body = p.traversal_rq_success 
-              ? await Network.getResponseBody( { requestId: p.traversal_request_id } )
-              : { body: '', base64Encoded: false } 
-            ;
-            console.log( "Terminating message [%s]",
-              p.traversal_request_id,
-              inspect( trav_response_body, default_insp )
-            );
-            if ( rr_map.has( p.traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
-              // Update network R/R entry, inserting terminating message as .markup attribute
-              let rr_term = rr_map.get( p.traversal_request_id );
-              let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
-              let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
-              rr_term.markup = trav_response_body;
-              rr_map.set( p.traversal_request_id, rr_term );
-              write_map_to_file( "XHR interruption",
-                "xhr-intercept.json",
-                rr_term,
-                file_ts
+            if ( p.unfetched_data_id !== undefined ) {
+              let mark_fetch_hrtime   = hrtime.bigint();
+              let mark_current_hrtime = hrtime.bigint();
+              console.log("- Wait for completion of preceding fetch %s",
+                p.unfetched_data_id
               );
-              if ( true || (is_text_html && is_cf_mitigated) ) {
-                // Attempt to override displayed page contents
-                try {
-                  console.log( "Loading CF mitigation challenge to target frame %s", inspect({
-                    frame_id: frame_id
-                  }, default_insp) );
-                  await Page.setDocumentContent({
-                    frameId: frame_id,
-                    html: trav_response_body.body 
+              while ( p.unfetched_data_id !== undefined ) {
+                await sleep(10);
+                mark_current_hrtime = hrtime.bigint();
+              }
+              console.log( "Wait completed" );
+            }
+
+            p.unfetched_data_id = linkid;
+            p.unfetched_nodes.set( linkid, panel_body_id );
+
+            if ( envSet("MAPCHECK","1") ) {//{{{
+              ///////////////////////////////////////////////////////
+              // MAPCHECK
+              let tempmap = new Map;
+              sp.nodestack.forEach((v,k) => {
+                let cmap = new Map;
+                let nodeIds = new Array;
+                if ( v.node.content instanceof Map ) {
+                  v.node.content.forEach((n,i) => {
+                    nodeIds.push(i);
                   });
                 }
-                catch (e) {
-                  console.log( "Aborted XHR override error",
-                    inspect(e , default_insp)
-                  );
-                }
-              }
-            }
-          }//}}}
-          else if ( append_buffer_to_rr_map > 0 )
-          {//{{{
-            let R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
-            let markup;
-            let setup_state = await setup_dom_fetch( append_buffer_to_rr_map );
-            await sleep(1500);
-
-            // Climb the popup container tree
-            if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
-              let dp = p.lookup_tree.get( append_buffer_to_rr_map );
-              let cka = new Array;
-              if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
-                append_buffer_to_rr_map
-              );
-              dp.content.forEach((v,ck,map) => {
-                cka.push(ck);
+                cmap.set( v.nodeId, { name: v.node.nodeName, nodes: nodeIds } );
+                tempmap.set( k, cmap );
               });
-              while ( cka.length > 0 ) {
-                let ck = cka.shift();
-                if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
-                await setup_dom_fetch( ck, append_buffer_to_rr_map );
-              }
-              // Decompose the dialog container to get at 
-              // the good bits: The Close button and link text.
-              let dialog_motif = new Array;
-              await inorder_traversal(
-                { branchpat  : dialog_motif, traversal_parent : null, nodestack : new Map },
-                dp,
-                -1,
-                flatten_dialog_container,
-                p
+
+              console.log( "Node tree @ %s",
+                linkid,
+                inspect({ 
+                  extant  : p.found_data_id,
+                  fetch   : p.unfetched_data_id,
+                  fetched : p.fetched_data_id,
+                  nodeId  : node_id,
+                  depth   : d,
+                  stack   : tempmap
+                }, default_insp)
               );
-              if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
-                append_buffer_to_rr_map,
-                inspect(dp,default_insp),
-              );
+              ///////////////////////////////////////////////////////
             }//}}}
-            else {
-              console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
-            }
-            await sleep(500); // Delay to allow browser to populate XHR container modal
-            markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
-            console.log( "FETCHED %s INTO %s %d", 
-              xhr_fetch_rr,
-              p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
-              append_buffer_to_rr_map,
-              envSet("VERBOSE","1") ? markup : '',
-              envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
-              nodes_seen.size
-            );
-            await sleep(500);
-            await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
+          }//}}}
 
-            if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
+          await sleep(10);
 
-            if ( envSet("SAMPLE_TRIE","1") ) write_map_to_file(
-              "Fragment",
-              "trie.txt", 
-              nodes_seen,
-              file_ts,
-              p.n
-            );
-            p.n++;
+          if ( nm.content instanceof Map )
+          {//{{{
+            let link_node;
+            let link_node_id;
+            let processable = 0;
 
-            p.flattened.clear();
-            await inorder_traversal(
-              { branchpat : new Array, traversal_parent : nm, nodestack : new Map },
-              nodes_seen,
-              -1,
-              flatten_container,
-              p
-            );
-            p.flattened = return_sorted_map( p.flattened );
-
-            if ( p.closer_node > 0 ) {
-              console.log( "Closing modal using event on %d", p.closer_node );
-              await clickon_node( p.closer_node, nm );
-            }
-
-            if ( rr_map.has( xhr_fetch_rr ) ) {
-              let rr_entry = rr_map.get( xhr_fetch_rr );
-              rr_entry.markup = p.flattened;
-              rr_map.set( xhr_fetch_rr, rr_entry );
-              if ( !user_agent ) {
-                let ua = rr_entry.request !== undefined 
-                  && rr_entry.request.headers !== undefined 
-                  && rr_entry.request.headers['User-Agent'] !== undefined 
-                  ? rr_entry.request.headers['User-Agent']
-                  : null
-                ;
-                if ( ua && ua.length > 0 ) {
-                  user_agent = ua;
-                  console.log( "UA: %s", user_agent );
-                }
+            nm.content.forEach((_nm, _node_id) => {
+              if ( link_node === undefined && _nm.nodeName == '#text' && _nm.content == '[History]' ) {
+                link_node = _nm;
+                link_node_id = _node_id;
               }
-            }
-
-            if ( p.closer_node == 0 ) {
-              console.log( "Input needed: Close dialog in 10s" );
-            }
-
-            p.traversal_rq_complete = true;
-
-            // FIXME:  Use sp.nodestack to look up the container of this 
-            // [History] event trigger link
-            // TEST 1:
-            // Depth [d] is 1 greater than the key/index at the "top"
-            // of sp.nodestack.
-            // sp.nodestack[ d - 4 ] appears to be a usable target.
-
-            let tempmap = new Map;
-            sp.nodestack.forEach((v,k) => {
-              let cmap = new Map;
-              let nodeIds = new Array;
-              if ( v.content instanceof Map ) {
-                v.content.forEach((n,i) => {
-                  nodeIds.push(i);
-                });
-              }
-              cmap.set( v.nodeId, nodeIds );
-              tempmap.set( k, cmap );
             });
 
-            console.log( "Ready to write", 
-              inspect({ 
-                extant: p.found_data_id,
-                fetch: p.unfetched_data_id,
-                immed: p.child_hits > 0 && p.hit_depth > d && ( p.hit_depth == ( 3 + d ) ),
-                nodeId: node_id,
-                depth: d,
-                hitat: p.hit_depth
-              }, default_insp),
-              inspect( tempmap, default_insp )
-            );
+            if ( link_node !== undefined && link_node_id !== undefined && p.lookup_tree.has( link_node_id ) )
+            {//{{{
 
-            if ( sp.nodestack.has( d - 4 ) ) {
-              let candidate = sp.nodestack.get( d - 4 );
-              await congress_extract_write_history_panel( 
-                sp,
-                candidate.node,
-                p,
-                candidate.nodeId,
-                d - 4
-              );
-            }
-            await sleep(1500);
+              // Indicates that we've found a [History] trigger in
+              // a child node (of an A node), so that the triggering tag and surrounding
+              // siblings can be captured post-traversal.
+
+              p.triggerable--;
+              p.trigger_node = link_node_id;
+
+              await traverse_to( link_node_id, link_node );
+
+              if ( traversal_abort || exception_abort ) {
+
+                console.log( 'Aborting fetch of %s', p.unfetched_data_id );
+
+              }
+              else if ( p.found_data_id ) {
+
+                if ( !envSet("QUIET") ) console.log( "Skipping live fetch of %s", p.found_data_id );
+
+              }
+              else if ( p.unfetched_data_id === undefined ) {
+
+                console.log( "No unfetched data processing node %d child of %s",
+                  link_node_id,
+                  linkid
+                );
+              }
+              else {
+
+                let unfetched_node = p.unfetched_nodes.has( p.unfetched_data_id )
+                  ? p.unfetched_nodes.get( p.unfetched_data_id )
+                  : null;
+
+                if ( unfetched_node ) p.unfetched_nodes.delete( unfetched_node );
+
+                console.log( " " );
+                console.log( 'Live fetch %s (Panel %d %s in lookup_tree, clickon %d)', 
+                  p.unfetched_data_id,
+                  unfetched_node,
+                  p.lookup_tree.has( unfetched_node ) ? "present" : "not",
+                  link_node_id
+                );
+
+                try {
+
+                  let click_result;
+
+                  append_buffer_to_rr_map = 0;
+
+                  // Set up network callback, and await state update 
+                  rr_callback = xhr_response_callback;
+
+                  trigger_page_fetch_init_xhr(p);
+
+                  click_result = await clickon_node( link_node_id, link_node, clickon_callback );
+
+                  if ( !(click_result === true) && !isNaN(parseInt(p.traversal_request_id)) )
+                  {//{{{
+                    let trav_response_body;
+                    if ( !p.traversal_rq_success ) {
+                      let traversal_rq_success_mark = hrtime.bigint();
+                      while ( !p.traversal_rq_success ) {
+                        await sleep(500);
+                        let traversal_dur_ms = Number.parseFloat(
+                          Number((hrtime.bigint() - traversal_rq_success_mark)/BigInt(1000 * 1000))/1.0
+                        );
+                        console.log( "Activation wait %d/%d", traversal_dur_ms, rq_dur_ms );
+                        if ( Number.parseInt(traversal_dur_ms) > Number.parseInt(rq_dur_ms) ) {
+                          console.log( "Timeout waiting for XHR response", traversal_dur_ms );
+                          break;
+                        }
+                      }
+                    }
+                    trav_response_body = p.traversal_rq_success 
+                      ? await Network.getResponseBody( { requestId: p.traversal_request_id } )
+                      : { body: '', base64Encoded: false } 
+                    ;
+                    console.log( "Terminating message [%s]",
+                      p.traversal_request_id,
+                      inspect( trav_response_body, default_insp )
+                    );
+                    if ( rr_map.has( p.traversal_request_id ) && trav_response_body.body !== undefined && trav_response_body.body.length > 0 ) {
+                      // Update network R/R entry, inserting terminating message as .markup attribute
+                      let rr_term = rr_map.get( p.traversal_request_id );
+                      let is_cf_mitigated = /^challenge$/ig.test( rr_term.response.headers['cf-mitigated'] || '');
+                      let is_text_html    = /text\/html/ig.test(rr_term.response.headers['content-type'] || '');
+                      rr_term.markup = trav_response_body;
+                      rr_map.set( p.traversal_request_id, rr_term );
+                      write_map_to_file( "XHR interruption",
+                        "xhr-intercept.json",
+                        rr_term,
+                        file_ts
+                      );
+                      if ( true || (is_text_html && is_cf_mitigated) ) {
+                        // Attempt to override displayed page contents
+                        try {
+                          console.log( "Loading CF mitigation challenge to target frame %s", inspect({
+                            frame_id: frame_id
+                          }, default_insp) );
+                          await Page.setDocumentContent({
+                            frameId: frame_id,
+                            html: trav_response_body.body 
+                          });
+                        }
+                        catch (e) {
+                          console.log( "Aborted XHR override error",
+                            inspect(e , default_insp)
+                          );
+                        }
+                      }
+                    }
+                  }//}}}
+                  else if ( append_buffer_to_rr_map > 0 )
+                  {//{{{
+                    console.log( "Check for modal DOM node %s", append_buffer_to_rr_map );
+                    // Climb the popup container tree
+                    if ( p.lookup_tree.has( append_buffer_to_rr_map ) ) {//{{{
+                      let dp = p.lookup_tree.get( append_buffer_to_rr_map );
+                      let cka = new Array;
+                      if ( envSet("VERBOSE","1") ) console.log("Populating container %d",
+                        append_buffer_to_rr_map
+                      );
+                      dp.content.forEach((v,ck,map) => {
+                        cka.push(ck);
+                      });
+                      while ( cka.length > 0 ) {
+                        let ck = cka.shift();
+                        if ( envSet("VERBOSE","1") ) console.log("- %d", ck);
+                        await setup_dom_fetch( ck, append_buffer_to_rr_map );
+                      }
+                      // Decompose the dialog container to get at 
+                      // the good bits: The Close button and link text.
+                      let dialog_motif = new Array;
+                      await inorder_traversal(
+                        { branchpat  : dialog_motif, traversal_parent : null, nodestack : new Map },
+                        dp,
+                        -1,
+                        locate_modal_closer,
+                        p
+                      );
+                      if ( envSet("VERBOSE","1") ) console.log("Dialog container %d",
+                        append_buffer_to_rr_map,
+                        inspect(dp,default_insp),
+                      );
+                    }//}}}
+                    else {
+                      console.log("MISSING: Container %d not in lookup tree", append_buffer_to_rr_map);
+                    }
+
+                    let pop_pause = 1500;
+                    console.log( "Pause %dms to populate DOM", pop_pause ); 
+                    await sleep(pop_pause); // Delay to allow browser to populate XHR container modal
+
+                    let R;
+                    let markup;
+
+                    if ( envSet("VERBOSE","1") ) {
+                      R = (await DOM.describeNode({nodeId: append_buffer_to_rr_map})).node;
+                      markup = await get_outerhtml( undefined, append_buffer_to_rr_map );
+                    }
+
+                    console.log( "FETCHED %s INTO %s %d, expecting %s", 
+                      xhr_fetch_rr,
+                      p.lookup_tree.has( append_buffer_to_rr_map ) ? "in-tree" : "missing",
+                      append_buffer_to_rr_map,
+                      p.fetched_data_id,
+                      envSet("VERBOSE","1") ? markup : '',
+                      envSet("VERBOSE","1") ? inspect(R,default_insp) : '',
+                      nodes_seen.size
+                    );
+
+                    pop_pause = 500;
+                    console.log( "Pause %dms to before reducing nodes", pop_pause ); 
+                    await sleep(pop_pause);
+                    await reduce_nodes( nodes_seen, nodes_seen, get_outerhtml );
+
+                    if ( envSet("VERBOSE","1") ) console.log( "Reduced", inspect(nodes_seen,default_insp) );
+
+                    p.flattened.clear();
+                    await inorder_traversal(
+                      { branchpat : new Array, traversal_parent : link_node, nodestack : new Map },
+                      nodes_seen,
+                      -1,
+                      flatten_container,
+                      p
+                    );
+                    p.flattened = return_sorted_map( p.flattened );
+
+                    if ( true || envSet("SAMPLE_TRIE","1") ) write_map_to_file(
+                      "Flattened history",
+                      "trie.txt", 
+                      p.flattened,
+                      file_ts,
+                      p.fetched_data_id
+                    );
+                    p.n++;
+
+                    if ( p.closer_node > 0 ) {
+                      console.log( "Closing modal using event on %d", p.closer_node );
+                      await clickon_node( p.closer_node, link_node );
+                    }
+
+                    if ( rr_map.has( xhr_fetch_rr ) ) {
+                      let rr_entry = rr_map.get( xhr_fetch_rr );
+                      rr_entry.markup = p.flattened;
+                      rr_map.set( xhr_fetch_rr, rr_entry );
+                      if ( !user_agent ) {
+                        let ua = rr_entry.request !== undefined 
+                          && rr_entry.request.headers !== undefined 
+                          && rr_entry.request.headers['User-Agent'] !== undefined 
+                          ? rr_entry.request.headers['User-Agent']
+                          : null
+                        ;
+                        if ( ua && ua.length > 0 ) {
+                          user_agent = ua;
+                          console.log( "UA: %s", user_agent );
+                        }
+                      }
+                    }
+
+                    if ( p.closer_node == 0 ) {
+                      console.log( "Input needed: Close dialog in 10s" );
+                    }
+
+                    p.traversal_rq_complete = true;
+
+                    // FIXME:  Use sp.nodestack to look up the container of this 
+                    // [History] event trigger link
+                    // TEST 1:
+                    // Depth [d] is 1 greater than the key/index at the "top"
+                    // of sp.nodestack.
+                    // sp.nodestack[ d - 4 ] appears to be a usable target.
+
+                    console.log( "Ready to write", 
+                      inspect({ 
+                        extant    : p.found_data_id,
+                        fetch     : p.unfetched_data_id,
+                        fetched   : p.fetched_data_id,
+                        nodeId    : link_node_id,
+                        depth     : d,
+                        flattened : envSet( "TRAVERSAL_SHOW_DOMTREES","1" ) 
+                        ? p.flattened
+                        : p.size
+                      }, default_insp)
+                    );
+
+                    if ( unfetched_node ) {
+                      let candidate = p.lookup_tree.get( unfetched_node );
+                      console.log( "Candidate node for %s / %s: %s",
+                        unfetched_node,
+                        p.fetched_data_id,
+                        envSet( "TRAVERSAL_SHOW_DOMTREES","1" )
+                        ? inspect( candidate, default_insp )
+                        : ( p.lookup_tree.has( unfetched_node ) ? "present" : "absent" )
+                      );
+                      await congress_extract_write_history_panel( 
+                        sp,
+                        candidate,
+                        p,
+                        unfetched_node,
+                        d - 4
+                      );
+                      p.lookup_tree.set( unfetched_node, candidate ); // Return to tree
+                      p.fetched_data_id = undefined;
+                    }
+                    await sleep(1000);
+                  }//}}}
+                  nodes_seen.clear();
+                }
+                catch(e) {
+                  console.log("Exception in trigger_page_fetch_cb at depth %d", 
+                    d, 
+                    link_node.nodeName, 
+                    inspect( e.request !== undefined ? e.request : {}, default_insp ),
+                    inspect( e.response !== undefined ? e.response : {}, default_insp ),
+                    inspect( link_node, default_insp ),
+                    inspect( e, default_insp )
+                  );
+                  exception_abort = true;
+                }
+              }
+              // if ( link_node.nodeName == '#text' && link_node.content == '[History]' )
+            }//}}}
+
+
           }//}}}
-          nodes_seen.clear();
         }
-        catch(e) {
-          console.log("Exception in trigger_page_fetch_cb at depth %d", 
-            d, 
-            nm.nodeName, 
-            inspect( e.request !== undefined ? e.request : {}, default_insp ),
-            inspect( e.response !== undefined ? e.response : {}, default_insp ),
-            inspect( nm, default_insp ),
-            inspect( e, default_insp )
-          );
-          exception_abort = true;
-        }
-      }
-      // if ( nm.nodeName == '#text' && nm.content == '[History]' )
+      }//}}}
     }//}}}
-
+    
     rr_mark = hrtime.bigint();
     return Promise.resolve(nm);
   }//}}}
@@ -2723,19 +2823,15 @@ async function monitor()
     if ( params.value == 'modal fade in' ) {
       append_buffer_to_rr_map = params.nodeId;
       try {
-        let markup = await get_outerhtml( undefined, params.nodeId );
         if ( latest_rr !== 0 && rr_map.has( latest_rr ) ) {
-          let rr_entry = rr_map.get( latest_rr );
-          rr_entry.markup = markup;
-          rr_map.set( latest_rr, rr_entry );
           xhr_fetch_rr = latest_rr;
-          latest_rr = 0;
           result = true;
-          console.log( "Markup from nodeId[%d] recorded to R/R[%s]",
+          console.log( "Modal %d fade in event following R/R[%s]",
             params.nodeId,
             latest_rr,
-            envSet("VERBOSE","1") ? markup : ''
+            true || envSet("VERBOSE","1") ? inspect(params, default_insp) : ''
           ); 
+          latest_rr = 0;
         }
       }
       catch (e) {
@@ -2943,18 +3039,28 @@ async function monitor()
           nodes_seen.delete( key );
         });
 
+        try {
+          write_map_to_file( "Traversable tree",
+            "traversable.json",
+            nodes_tree,
+            file_ts
+          );
+        }
+        catch(e) {
+          console.log( "Unable to write traversable tree", 
+            inspect(e, default_insp)
+          );
+        }
+
         let textkeys = new Map;
         let s = await setup_db();
         let traversal_paramset = { // 'p' traversal data passed to inorder_traversal callback
           tagstack     : tagstack, // Retains tag counts at depth d
-          // nodestack    : new Map, // Allows lookup of ancestors back down to DOM root node
           motifs       : motifs, // A 'fast list' of DOM tree branch tag patterns ending in leaf nodes
           lookup_tree  : lookup_tree, // Flat Map of document nodes 
           dialog_nodes : new Map,
           trigger_node : 0, // DOM node ID of found [History] link
           closer_node  : 0, // XHR response container close event trigger
-          child_hits   : 0, // Count of 'interesting' nodes in children
-          hit_depth    : 0, // Viz. congress_extract_history_panel: Tunable to set depth of panel traversal
           triggerable  : -1, // DEBUG: Limit number of elements traversed
           flattened    : new Map, // Stores History markup tree
           textkeys     : textkeys, // Stores bill history dictionary 
@@ -2968,8 +3074,10 @@ async function monitor()
           traversal_rq_aborted  : null,
           traversal_rq_success  : null,
           traversal_rq_complete : null,
-          unfetched_data_id     : null,
+          unfetched_data_id     : undefined,
+          fetched_data_id       : undefined,
           found_data_id         : null,
+          unfetched_nodes       : new Map,
 
           db               : s,
           congress_basedoc : await s.getSchema( db_name ).getTable('congress_basedoc'),

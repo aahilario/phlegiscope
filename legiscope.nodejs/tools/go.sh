@@ -10,8 +10,6 @@ export CB_PREPROCESS=1
 export CONGRESS_BILLRES_CB=0
 export DEBUG_BASEDOC_URL_JOINS=0
 export DEBUG_OUTPUT_PATH=$YMDPATH
-export DOM=0
-export DOMSETCHILDNODES=0
 export DUMP_PRODUCT=0
 export FINALIZE_METADATA=0
 export GRAFT=2
@@ -23,12 +21,30 @@ export PRUNE_CB=0
 export QA=1
 export QUIET=0
 export REVERSE_CONTENT=10
-export SAMPLE_TRIE=1
-export SETUP_DOM_FETCH=0
+export SAMPLE_TRIE=0
 export SN_INORDER_TRAVERSAL=2
+
+export DOM=0
+export DOM_EVENT=0
+export DOMSETCHILDNODES=0
+export SETUP_DOM_FETCH=0
 export TRIGGER_DOM_FETCH=0
+
+export EVENTS_ONLY=1
+
 export VERBOSE=0
 export WATCHDOG=0
+
+# Writable logs
+export WRITE_PRE_TRANSFORM=0
+export WRITE_FETCHED_MARKUP=0
+export WRITE_TRAVERSABLE=0
+export WRITE_TAGSTACK=0
+export WRITE_MOTIFS=0
+export WRITE_PANELKEYS=0
+export WRITE_EVERYTHING_JSON=0
+export WRITE_NETWORK_JSON=0
+
 [ -d ${YMDPATH} ] || mkdir -p ${YMDPATH}
 
 touch ${OUTPUT_LOG}
@@ -41,5 +57,4 @@ node \
   --max-heap-size=8192 \
   --huge-max-old-generation-size \
   sp-test-v2.js $@ 2>&1 | tee -a ${OUTPUT_LOG}
-
 

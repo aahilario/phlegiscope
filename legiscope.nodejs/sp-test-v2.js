@@ -22,7 +22,8 @@ const output_path = process.env.DEBUG_OUTPUT_PATH || '';
 const targetUrl = process.env.TARGETURL || '';
 const rr_timeout_s = 30; // Seconds of inactivity before flushing page metadata 
 const node_request_depth = 7;
-const default_insp = { showHidden: false, depth: null, colors: true };
+const default_insp = { showHidden: false, depth: null, colors: envSet("MONOCHROME","1") ? false : true };
+const colorized_insp = { showHidden: false, depth: null, colors: true };
 
 const mysqlx = require("@mysql/xdevapi");
 
@@ -156,88 +157,9 @@ function sleep( millis )
   });
 }//}}}
 
-function rr_callback_default( data, requestId, phase )
-{
-  // Template for callbacks assigned to rr_callback, used by
-  // - Network.networkResponseReceived
-  // - Network.requestWillBeSent
-  // - Network.loadingFinished
-}
-
-function networkResponseReceived(params)
-{//{{{
-  let response = {
-    status            : params.response.status,
-    statusText        : params.response.statusText,
-    headers           : params.response.headers,
-    mimeType          : params.response.mimeType,
-    charset           : params.response.charset,
-    encodedDataLength : params.response.encodedDatalength,
-    responseTime      : params.response.responseTime,
-    protocol          : params.response.protocol
-  };
-  if ( rr_map.has( params.requestId ) ) {
-    let m = rr_map.get( params.requestId );
-    m.response = response;
-    if (envSet('QA','1')) console.log("A[%s] %d %s %s", 
-      params.requestId, 
-      response.status,
-      params.response.url, 
-      response.mimeType
-    );
-    rr_map.set( params.requestId, m );
-    rr_mark = hrtime.bigint();
-    if ( rr_callback ) rr_callback( response, params.requestId, 'A' ); 
-  }
-  else {
-    if (envSet('QA','1')) console.log("B[%s]", params.requestId, response );
-    rr_mark = hrtime.bigint();
-    if ( rr_callback ) rr_callback( response, params.requestId, 'B' ); 
-  }
-}//}}}
-
-function networkRequestWillBeSent(params)
-{//{{{
-  let markdata = {
-    requestId : params.requestId,
-    url       : params.request.url,
-    method    : params.request.method,
-    headers   : params.request.headers,
-    timestamp : params.timestamp,
-    wallTime  : params.wallTime,
-    initiator : params.initiator
-  };
-  latest_rr = params.requestId;
-  if ( !rr_map.has( latest_rr ) ) {
-    rr_map.set( latest_rr, {
-      url      : markdata.url,
-      request  : markdata,
-      response : {}
-    });
-  }
-  if ( !outstanding_rr.has( latest_rr ) ) {
-    outstanding_rr.set( latest_rr, markdata );
-  }
-  if (envSet('QA','1')) console.log("Q[%s] %s %s", 
-    latest_rr, 
-    markdata.method,
-    markdata.url
-  );
-  rr_mark = hrtime.bigint();
-  if ( rr_callback ) rr_callback( markdata, params.requestId, 'Q' ); 
-}//}}}
-
-function networkLoadingFinished(params)
-{//{{{
-  if ( outstanding_rr.has( params.requestId ) ) {
-    latest_rr = params.requestId; // FIXME: Assignments to latest_rr superseded by callback-mediated control flow
-    outstanding_rr.delete( params.requestId );
-  }
-  if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
-  rr_mark = hrtime.bigint();
-  if ( rr_callback ) rr_callback( params.requestId, params.requestId, 'L' ); 
-}//}}}
-
+////////////////////
+////////////////////
+//
 function return_sorted_map_ordinalkeys( map_obj )
 {//{{{
   let sorter = new Array;
@@ -1484,6 +1406,137 @@ async function monitor()
 
   const { Browser, Network, Page, DOM, Input } = client;
   
+  async function rr_callback_default( data, requestId, phase )
+  {//{{{
+    // Template for callbacks assigned to rr_callback, used by
+    // - Network.networkResponseReceived
+    // - Network.requestWillBeSent
+    // - Network.loadingFinished
+    return Promise.resolve(true);
+  }//}}}
+
+  async function networkDataReceived(params)
+  {//{{{
+
+    try {
+      let response = {
+        requestId         : params.requestId,
+        timestamp         : params.timestamp,
+        dataLength        : params.dataLength,
+        encodedDataLength : params.encodedDataLength,
+        data              : await Network.getResponseBody( { requestId: params.requestId } )
+      };
+      if ( rr_map.has( params.requestId ) ) {
+        let m = rr_map.get( params.requestId );
+        m.datameta = response;
+        if (envSet('QA','1')) if ( m.url.match(/\.json$/) ) console.log("NDRX[%s]", 
+          params.requestId, 
+          inspect( m, colorized_insp )
+        );
+        rr_map.set( params.requestId, m );
+        rr_mark = hrtime.bigint();
+        if ( rr_callback ) await rr_callback( response, params.requestId, 'NDRX' ); 
+      }
+      else {
+        rr_mark = hrtime.bigint();
+        if (envSet('QA','1')) console.log("NDRY[%s]", params.requestId, response );
+        if ( rr_callback ) await rr_callback( response, params.requestId, 'NDRY' ); 
+      }
+    }
+    catch (e) {
+      console.log( "NDRX[%s]: CB Fail", params.requestId,
+        inspect(e, colorized_insp)
+      );
+    }
+
+
+    return Promise.resolve(true);
+  }//}}}
+
+  async function networkResponseReceived(params)
+  {//{{{
+    let response = {
+      status            : params.response.status,
+      statusText        : params.response.statusText,
+      headers           : params.response.headers,
+      mimeType          : params.response.mimeType,
+      charset           : params.response.charset,
+      encodedDataLength : params.response.encodedDatalength,
+      responseTime      : params.response.responseTime,
+      protocol          : params.response.protocol
+    };
+    if ( rr_map.has( params.requestId ) ) {
+      let m = rr_map.get( params.requestId );
+      m.response = response;
+      if (envSet('QA','1')) {
+        console.log("");
+        console.log("A[%s] %d %s %s", 
+          params.requestId, 
+          response.status,
+          params.response.url, 
+          response.mimeType
+        );
+      }
+      rr_map.set( params.requestId, m );
+      rr_mark = hrtime.bigint();
+      if ( rr_callback ) await rr_callback( response, params.requestId, 'A' ); 
+    }
+    else {
+      if (envSet('QA','1')) console.log("B[%s]", params.requestId, response );
+      rr_mark = hrtime.bigint();
+      if ( rr_callback ) await rr_callback( response, params.requestId, 'B' ); 
+    }
+    return Promise.resolve(true);
+  }//}}}
+
+  async function networkRequestWillBeSent(params)
+  {//{{{
+    let markdata = {
+      requestId : params.requestId,
+      url       : params.request.url,
+      method    : params.request.method,
+      headers   : params.request.headers,
+      timestamp : params.timestamp,
+      wallTime  : params.wallTime,
+      initiator : params.initiator
+    };
+    latest_rr = params.requestId;
+    if ( !rr_map.has( latest_rr ) ) {
+      rr_map.set( latest_rr, {
+        url      : markdata.url,
+        request  : markdata,
+        response : {}
+      });
+    }
+    if ( !outstanding_rr.has( latest_rr ) ) {
+      outstanding_rr.set( latest_rr, markdata );
+    }
+    if (envSet('QA','1')) {
+      console.log("");
+      console.log("Q[%s] %s %s", 
+        latest_rr, 
+        markdata.method,
+        markdata.url
+      );
+    }
+    rr_mark = hrtime.bigint();
+    if ( rr_callback ) await rr_callback( markdata, params.requestId, 'Q' ); 
+    return Promise.resolve(true);
+  }//}}}
+
+  async function networkLoadingFinished(params)
+  {//{{{
+    if ( outstanding_rr.has( params.requestId ) ) {
+      latest_rr = params.requestId; // FIXME: Assignments to latest_rr superseded by callback-mediated control flow
+      outstanding_rr.delete( params.requestId );
+    }
+    if (envSet('QA','1')) console.log("L[%s]", params.requestId, outstanding_rr.size );
+    rr_mark = hrtime.bigint();
+    if ( rr_callback ) await rr_callback( params.requestId, params.requestId, 'L' ); 
+
+    return Promise.resolve(true);
+  }//}}}
+
   function document_reset( clear_traversal_flags )
   {//{{{
     console.log( clear_traversal_flags ? "HARD RESET" : "RESET" );
@@ -2150,7 +2203,7 @@ async function monitor()
     let traversal_rq_aborted = false;
     let traversal_rq_success = false;
 
-    function xhr_response_callback( data, requestId, phase )
+    async function xhr_response_callback( data, requestId, phase )
     {//{{{
       switch ( phase ) {
         case 'Q':
@@ -2218,7 +2271,20 @@ async function monitor()
           }
           // Request loading finished
           break;
+        case 'NDRX':
+        case 'NDRY':
+          // Data received for request[requestId]
+          console.log( "Chunk for %s",
+            data.requestId,
+            inspect( Network.getResponseBody( {
+              requestId: data.requestId 
+            } ),
+              colorized_insp
+            )
+          );
+          break;
       }
+      return Promise.resolve(true);
     }//}}}
 
     async function clickon_callback( node_id, nm )
@@ -2722,7 +2788,7 @@ async function monitor()
   }//}}}
 
   async function finalize_metadata_congress_gov_ph( step )
-  {
+  {//{{{
     // Chew up, digest, dump, and clear captured nodes.
     if ( step == 0 ) {
 
@@ -2898,7 +2964,7 @@ async function monitor()
       await trigger_dom_fetch();
     }
     return Promise.resolve(true);
-  }
+  }//}}}
 
   async function finalize_metadata( step )
   {//{{{
@@ -2911,6 +2977,7 @@ async function monitor()
     Network.requestWillBeSent(networkRequestWillBeSent);
     Network.responseReceived(networkResponseReceived);
     Network.loadingFinished(networkLoadingFinished);
+    Network.dataReceived(networkDataReceived);
 
     DOM.setChildNodes(domSetChildNodes);
 

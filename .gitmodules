@@ -1,0 +1,4 @@
+[submodule "legiscope-frontend"]
+	path = legiscope-frontend
+	url = git@joi.avahilario.net:legiscope/legiscope-frontend.git
+	branch = sails-0

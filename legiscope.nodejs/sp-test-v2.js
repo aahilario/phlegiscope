@@ -1426,12 +1426,15 @@ async function monitor()
         encodedDataLength : params.encodedDataLength,
         data              : await Network.getResponseBody( { requestId: params.requestId } )
       };
-      if ( rr_map.has( params.requestId ) ) {
+      if ( rr_map.has( params.requestId ) )
+      {
         let m = rr_map.get( params.requestId );
         m.datameta = response;
         if (envSet('QA','1')) if ( m.url.match(/\.json$/) ) console.log("NDRX[%s]", 
           params.requestId, 
-          inspect( m, colorized_insp )
+          envSet( "NDRX_BODY", "1" ) 
+          ? inspect( { url : m.url, data : JSON.parse( response.data.body ) }, colorized_insp )
+          : inspect( m, colorized_insp )
         );
         rr_map.set( params.requestId, m );
         rr_mark = hrtime.bigint();
@@ -1448,7 +1451,6 @@ async function monitor()
         inspect(e, colorized_insp)
       );
     }
-
 
     return Promise.resolve(true);
   }//}}}
@@ -2281,6 +2283,11 @@ async function monitor()
             } ),
               colorized_insp
             )
+          );
+          break;
+        default:
+          console.log( "Prinked[%s] %s", requestId, phase,
+            inspect( data, colorized_insp )
           );
           break;
       }
